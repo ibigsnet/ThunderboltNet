@@ -1,0 +1,24 @@
+/* ThunderboltNet — Settings page */
+.tbn-wrap { max-width: 960px; }
+.tbn-lead { margin: 0.5em 0 1em; line-height: 1.45; }
+.tbn-muted { color: var(--orange-muted, #888); font-size: 0.95em; }
+.tbn-hint { display: block; font-size: 0.85em; color: #888; margin-top: 0.25em; }
+.tbn-table { border-collapse: collapse; margin: 0.5em 0 1.25em; }
+.tbn-table th, .tbn-table td {
+  border: 1px solid #4444;
+  padding: 0.35em 0.65em;
+  text-align: left;
+  vertical-align: top;
+}
+.tbn-table thead th { font-weight: 600; }
+.tbn-wide { width: 100%; }
+.tbn-form dt { font-weight: 600; margin-top: 0.75em; }
+.tbn-form dd { margin: 0.25em 0 0.5em 0; }
+.tbn-form input.narrow { width: 12em; max-width: 100%; }
+.tbn-pre {
+  background: #1113;
+  border: 1px solid #4444;
+  padding: 0.75em 1em;
+  overflow-x: auto;
+  font-size: 0.9em;
+}

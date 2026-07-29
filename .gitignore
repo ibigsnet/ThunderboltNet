@@ -1,0 +1,8 @@
+# Local-only — not on public GitHub
+.grok-notes/
+*.local.md
+NOTES.local.md
+.private/
+*~
+*.swp
+.DS_Store

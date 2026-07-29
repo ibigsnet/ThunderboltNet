@@ -1,0 +1,16 @@
+#!/bin/bash
+# CLI status — installed under /usr/local/emhttp/plugins/ThunderboltNet/scripts/
+# Safe for SSH diagnostics on Unraid (read-only JSON via php).
+set -euo pipefail
+PHP="${PHP:-/usr/bin/php}"
+STATUS="/usr/local/emhttp/plugins/ThunderboltNet/include/get-status.php"
+if [[ -x "$PHP" && -f "$STATUS" ]]; then
+  exec "$PHP" "$STATUS"
+fi
+# Fallback without emhttp
+echo "Thunderbolt devices:"
+ls -la /sys/bus/thunderbolt/devices/ 2>/dev/null || echo "  (no sysfs)"
+echo
+echo "Netdevs:"
+ip -br link 2>/dev/null | grep -E 'thunder|bond-tb' || echo "  (none)"
+ip -br addr 2>/dev/null | grep -E 'thunder|bond-tb' || true

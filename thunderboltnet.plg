@@ -1,0 +1,119 @@
+<?xml version='1.0' standalone='yes'?>
+<!DOCTYPE PLUGIN [
+<!ENTITY name "ThunderboltNet">
+<!ENTITY author "RifleJock">
+<!--
+  Versioning — Unraid plugin updates use strcmp() (lexicographic), NOT version_compare.
+  No hyphens. Bump only this entity; asset ?v= uses it.
+
+  Going forward (new calendar days):
+    YYYY.MM.DD       first release that day
+    YYYY.MM.DDaa     2nd same day, then ab, ac, ... az, ba, bb, ...
+  Two-letter only after the bare date — never single a–z on new days.
+-->
+<!ENTITY version "2026.07.29">
+<!ENTITY launch "Settings/ThunderboltNet">
+<!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
+<!ENTITY github "ibigsnet/ThunderboltNet">
+<!ENTITY raw "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main">
+<!ENTITY plugdir "/usr/local/emhttp/plugins/ThunderboltNet">
+<!ENTITY configdir "/boot/config/plugins/ThunderboltNet">
+]>
+
+<PLUGIN name="&name;"
+  author="&author;"
+  version="&version;"
+  launch="&launch;"
+  pluginURL="&pluginURL;"
+  icon="sitemap"
+  min="6.12.0"
+  support="https://github.com/&github;"
+  project="https://github.com/&github;"
+  readme="https://raw.githubusercontent.com/&github;/main/README.md">
+
+<CHANGES>
+###&version;
+- Initial public scaffold: TB sysfs status, module load (e2e=0 option), include_interfaces for live thunderbolt*/bond-tb, optional static IP apply. Same ship workflow as StorageGuard (GitHub raw + plugin install).
+
+</CHANGES>
+
+<!-- Create plugin dirs -->
+<FILE Run="/bin/bash">
+<INLINE><![CDATA[
+mkdir -p /usr/local/emhttp/plugins/ThunderboltNet/include
+mkdir -p /usr/local/emhttp/plugins/ThunderboltNet/scripts
+mkdir -p /boot/config/plugins/ThunderboltNet
+if [ ! -f /boot/config/plugins/ThunderboltNet/ThunderboltNet.cfg ]; then
+  if [ -f /usr/local/emhttp/plugins/ThunderboltNet/default.cfg ]; then
+    cp -a /usr/local/emhttp/plugins/ThunderboltNet/default.cfg /boot/config/plugins/ThunderboltNet/ThunderboltNet.cfg
+  fi
+fi
+echo "ThunderboltNet: directories ready"
+]]></INLINE>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/ThunderboltNet.page">
+<URL>&raw;/ThunderboltNet.page?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/default.cfg">
+<URL>&raw;/default.cfg?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/README.md">
+<URL>&raw;/README.md?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/thunderboltnet.css">
+<URL>&raw;/thunderboltnet.css?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/thunderboltnet.js">
+<URL>&raw;/thunderboltnet.js?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php">
+<URL>&raw;/include/tbn-lib.php?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/get-status.php">
+<URL>&raw;/include/get-status.php?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-apply.php">
+<URL>&raw;/include/tbn-apply.php?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-update.php">
+<URL>&raw;/include/tbn-update.php?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-status">
+<URL>&raw;/scripts/tbn-status?v=&version;</URL>
+</FILE>
+
+<!-- Post-install: permissions + optional go snippet note -->
+<FILE Run="/bin/bash">
+<INLINE><![CDATA[
+echo "ThunderboltNet: finishing install..."
+chmod 755 /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-status 2>/dev/null || true
+# Ensure cfg exists
+if [ ! -f /boot/config/plugins/ThunderboltNet/ThunderboltNet.cfg ]; then
+  cp -a /usr/local/emhttp/plugins/ThunderboltNet/default.cfg /boot/config/plugins/ThunderboltNet/ThunderboltNet.cfg 2>/dev/null || true
+fi
+echo "ThunderboltNet: install complete. Open Settings → Thunderbolt Net (hard-refresh)."
+ls -la /usr/local/emhttp/plugins/ThunderboltNet/ || true
+]]></INLINE>
+</FILE>
+
+<!-- ONLY on plugin remove -->
+<FILE Run="/bin/bash" Method="remove">
+<INLINE><![CDATA[
+echo "ThunderboltNet: removing plugin..."
+# Leave network-extra.cfg alone (user may still want interfaces listed)
+rm -rf /usr/local/emhttp/plugins/ThunderboltNet
+echo "ThunderboltNet: removed (config retained under /boot/config/plugins/ThunderboltNet)."
+]]></INLINE>
+</FILE>
+
+</PLUGIN>
