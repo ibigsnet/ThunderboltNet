@@ -15,7 +15,7 @@
   ThunderboltNet first intentional public line is 2026.07.29aa (do not reintroduce
   a bare 2026.07.29 as a shipping version). Next same-day bump: ab, then ac, ...
 -->
-<!ENTITY version "2026.07.29aa">
+<!ENTITY version "2026.07.29ab">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -37,6 +37,9 @@
 
 <CHANGES>
 ###&version;
+- Docs/help: install is **Plugins → Install Plugin** + raw `.plg` URL (not CLI). RELEASES.md matches.
+
+###2026.07.29aa
 - Initial public release (primary): TB sysfs status, module load (optional e2e=0), include_interfaces for live thunderbolt*/bond-tb, optional static IP apply.
 - Settings entry under **Network Services** (with Tailscale/VPN), not a top-level Settings category and not User Utilities (Storage Guard stays there).
 
