@@ -11,7 +11,7 @@
     YYYY.MM.DDaa     2nd same day, then ab, ac, ... az, ba, bb, ...
   Two-letter only after the bare date — never single a–z on new days.
 -->
-<!ENTITY version "2026.07.29">
+<!ENTITY version "2026.07.29aa">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -33,6 +33,9 @@
 
 <CHANGES>
 ###&version;
+- Place Settings entry under **Network Services** (with Tailscale/VPN), not a top-level Settings category. Storage Guard stays under User Utilities by design.
+
+###2026.07.29
 - Initial public scaffold: TB sysfs status, module load (e2e=0 option), include_interfaces for live thunderbolt*/bond-tb, optional static IP apply. Same ship workflow as StorageGuard (GitHub raw + plugin install).
 
 </CHANGES>
