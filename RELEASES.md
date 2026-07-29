@@ -7,7 +7,7 @@ When a build is marked **stable**, pin a Git tag so that exact tree can be reins
 
 | Tag | Plugin version | Notes |
 |-----|----------------|--------|
-| *(none yet)* | — | Scaffold on `main` only until a host-verified baseline exists. |
+| *(none yet)* | `2026.07.29aa` on `main` | First intentional public line. Bare `2026.07.29` was a mistaken first ship — do not reintroduce. Next same-day: `ab`. |
 
 ### Normal updates (latest)
 
