@@ -11,11 +11,8 @@
     YYYY.MM.DDaa     2nd same day, then ab, ac, ... az, ba, bb, ...
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
-
-  First intentional public line: 2026.07.29aa. Current: ac.
-  Do not reintroduce bare 2026.07.29 as a shipping version.
 -->
-<!ENTITY version "2026.07.29ac">
+<!ENTITY version "2026.07.29ad">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -37,15 +34,16 @@
 
 <CHANGES>
 ###&version;
-- Install/remove parity with StorageGuard: wipe plugin tree on install (Unraid skips existing files), thorough remove of both case variants, strip TB ifaces from network-extra, drop our modprobe.d snippet. Keeps boot cfg for reinstall.
-- Plugins description README is INLINE (no CDN dependency for the Plugins list blurb).
+- Settings help: user-facing cable/NHI notes only (no developer workflow text).
+
+###2026.07.29ac
+- Cleaner install/remove: refresh plugin files on install; remove clears plugin files and TB listening-interface entries; settings under /boot are kept.
 
 ###2026.07.29ab
-- Docs/help: install is **Plugins → Install Plugin** + raw `.plg` URL (not CLI). RELEASES.md matches.
+- Install via Plugins → Install Plugin with the raw .plg URL.
 
 ###2026.07.29aa
-- Initial public release (primary): TB sysfs status, module load (optional e2e=0), include_interfaces for live thunderbolt*/bond-tb, optional static IP apply.
-- Settings entry under **Network Services** (with Tailscale/VPN).
+- Initial release: TB status, module load, optional listening interfaces and static IP. Settings under Network Services.
 
 </CHANGES>
 
