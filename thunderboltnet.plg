@@ -12,10 +12,10 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 
-  ThunderboltNet first intentional public line is 2026.07.29aa (do not reintroduce
-  a bare 2026.07.29 as a shipping version). Next same-day bump: ab, then ac, ...
+  First intentional public line: 2026.07.29aa. Current: ac.
+  Do not reintroduce bare 2026.07.29 as a shipping version.
 -->
-<!ENTITY version "2026.07.29ab">
+<!ENTITY version "2026.07.29ac">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -37,29 +37,37 @@
 
 <CHANGES>
 ###&version;
+- Install/remove parity with StorageGuard: wipe plugin tree on install (Unraid skips existing files), thorough remove of both case variants, strip TB ifaces from network-extra, drop our modprobe.d snippet. Keeps boot cfg for reinstall.
+- Plugins description README is INLINE (no CDN dependency for the Plugins list blurb).
+
+###2026.07.29ab
 - Docs/help: install is **Plugins → Install Plugin** + raw `.plg` URL (not CLI). RELEASES.md matches.
 
 ###2026.07.29aa
 - Initial public release (primary): TB sysfs status, module load (optional e2e=0), include_interfaces for live thunderbolt*/bond-tb, optional static IP apply.
-- Settings entry under **Network Services** (with Tailscale/VPN), not a top-level Settings category and not User Utilities (Storage Guard stays there).
+- Settings entry under **Network Services** (with Tailscale/VPN).
 
 </CHANGES>
 
-<!-- Create plugin dirs -->
+<!--
+  Install prep (StorageGuard pattern):
+  Unraid will NOT overwrite FILE targets that already exist. Always wipe the
+  emhttp plugin tree, then recreate empty dirs, before downloading assets.
+  Do NOT wipe /boot/config/plugins/ThunderboltNet (user settings).
+-->
 <FILE Run="/bin/bash">
 <INLINE><![CDATA[
+echo "ThunderboltNet: preparing directories..."
+rm -rf /usr/local/emhttp/plugins/ThunderboltNet
+rm -rf /usr/local/emhttp/plugins/thunderboltnet
 mkdir -p /usr/local/emhttp/plugins/ThunderboltNet/include
 mkdir -p /usr/local/emhttp/plugins/ThunderboltNet/scripts
 mkdir -p /boot/config/plugins/ThunderboltNet
-if [ ! -f /boot/config/plugins/ThunderboltNet/ThunderboltNet.cfg ]; then
-  if [ -f /usr/local/emhttp/plugins/ThunderboltNet/default.cfg ]; then
-    cp -a /usr/local/emhttp/plugins/ThunderboltNet/default.cfg /boot/config/plugins/ThunderboltNet/ThunderboltNet.cfg
-  fi
-fi
-echo "ThunderboltNet: directories ready"
+echo "ThunderboltNet: directories ready."
 ]]></INLINE>
 </FILE>
 
+<!-- Plugin UI + assets -->
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/ThunderboltNet.page">
 <URL>&raw;/ThunderboltNet.page?v=&version;</URL>
 </FILE>
@@ -68,8 +76,19 @@ echo "ThunderboltNet: directories ready"
 <URL>&raw;/default.cfg?v=&version;</URL>
 </FILE>
 
+<!--
+  Plugins page: Markdown(file_get_contents(README.md)) for the description.
+  INLINE so install never depends on a stale GitHub raw CDN README.
+  Repo README.md matches.
+-->
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/README.md">
-<URL>&raw;/README.md?v=&version;</URL>
+<INLINE>
+<![CDATA[
+**Thunderbolt Net**
+
+Status and light controls for Thunderbolt / USB4 host networking on Unraid: peers, link speed and lanes, modules, optional listening-interfaces include, optional static IP. Does not replace Network Settings for your primary NICs.
+]]>
+</INLINE>
 </FILE>
 
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/thunderboltnet.css">
@@ -100,27 +119,69 @@ echo "ThunderboltNet: directories ready"
 <URL>&raw;/scripts/tbn-status?v=&version;</URL>
 </FILE>
 
-<!-- Post-install: permissions + optional go snippet note -->
+<!-- Post-install: permissions + default cfg if missing -->
 <FILE Run="/bin/bash">
 <INLINE><![CDATA[
 echo "ThunderboltNet: finishing install..."
 chmod 755 /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-status 2>/dev/null || true
-# Ensure cfg exists
 if [ ! -f /boot/config/plugins/ThunderboltNet/ThunderboltNet.cfg ]; then
-  cp -a /usr/local/emhttp/plugins/ThunderboltNet/default.cfg /boot/config/plugins/ThunderboltNet/ThunderboltNet.cfg 2>/dev/null || true
+  if [ -f /usr/local/emhttp/plugins/ThunderboltNet/default.cfg ]; then
+    cp -a /usr/local/emhttp/plugins/ThunderboltNet/default.cfg /boot/config/plugins/ThunderboltNet/ThunderboltNet.cfg
+    echo "ThunderboltNet: created default ThunderboltNet.cfg"
+  fi
 fi
-echo "ThunderboltNet: install complete. Open Settings → Thunderbolt Net (hard-refresh)."
+echo "ThunderboltNet: install complete. Settings → Network Services → Thunderbolt Net (hard-refresh)."
 ls -la /usr/local/emhttp/plugins/ThunderboltNet/ || true
 ]]></INLINE>
 </FILE>
 
-<!-- ONLY on plugin remove -->
+<!--
+  ONLY on plugin remove (Unraid runs Method=remove FILE blocks, then moves
+  the .plg to plugins-removed and deletes the /var/log/plugins symlink).
+  Must leave the host reinstallable: no leftover emhttp tree, no TB entries
+  in network-extra that we added, no orphan modprobe snippet we wrote.
+  Retain /boot/config/plugins/ThunderboltNet/*.cfg (same as StorageGuard).
+-->
 <FILE Run="/bin/bash" Method="remove">
 <INLINE><![CDATA[
 echo "ThunderboltNet: removing plugin..."
-# Leave network-extra.cfg alone (user may still want interfaces listed)
+
+# 1) Strip TB listening ifaces we manage; keep everything else (e.g. tailscale1)
+EXTRA=/boot/config/network-extra.cfg
+if [ -f "$EXTRA" ]; then
+  INC=$(sed -n 's/^include_interfaces="\(.*\)"/\1/p' "$EXTRA" | head -1)
+  EXC=$(sed -n 's/^exclude_interfaces="\(.*\)"/\1/p' "$EXTRA" | head -1)
+  NEW=""
+  for if in $INC; do
+    case "$if" in
+      thunderbolt*|bond-tb) echo "ThunderboltNet: dropping $if from include_interfaces" ;;
+      *) NEW="${NEW}${NEW:+ }$if" ;;
+    esac
+  done
+  {
+    echo "include_interfaces=\"${NEW}\""
+    echo "exclude_interfaces=\"${EXC}\""
+  } > "$EXTRA"
+  echo "ThunderboltNet: network-extra include_interfaces now: ${NEW:-(empty)}"
+fi
+
+# 2) Drop runtime modprobe options we may have written (do not rmmod — host may still use TB)
+if [ -f /etc/modprobe.d/thunderbolt_net.conf ]; then
+  if grep -q 'options thunderbolt_net e2e=' /etc/modprobe.d/thunderbolt_net.conf 2>/dev/null; then
+    rm -f /etc/modprobe.d/thunderbolt_net.conf
+    echo "ThunderboltNet: removed /etc/modprobe.d/thunderbolt_net.conf"
+  fi
+fi
+
+# 3) Emhttp plugin trees (both casings, StorageGuard pattern)
 rm -rf /usr/local/emhttp/plugins/ThunderboltNet
-echo "ThunderboltNet: removed (config retained under /boot/config/plugins/ThunderboltNet)."
+rm -rf /usr/local/emhttp/plugins/thunderboltnet
+
+# 4) Transient status files (not required for reinstall, but tidy)
+rm -f /tmp/plugins/thunderboltnet.txt 2>/dev/null || true
+
+echo "ThunderboltNet: removed (settings retained under /boot/config/plugins/ThunderboltNet)."
+echo "ThunderboltNet: reinstall via Plugins → Install Plugin + raw thunderboltnet.plg URL."
 ]]></INLINE>
 </FILE>
 

@@ -12,7 +12,7 @@ $mods = $status['modules'];
 $devices = $status['devices'];
 $netdevs = $status['netdevs'];
 $include = $status['include_interfaces'];
-$ver = '2026.07.29ab';
+$ver = '2026.07.29ac';
 foreach (['/tmp/plugins/thunderboltnet.plg', '/boot/config/plugins/thunderboltnet.plg'] as $plg) {
   if (is_file($plg)) {
     if (preg_match('/ENTITY version "([^"]+)"/', file_get_contents($plg), $m)) {

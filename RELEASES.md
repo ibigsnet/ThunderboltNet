@@ -18,7 +18,7 @@ When a build is marked **stable**, pin a Git tag so that exact tree can be reins
 
 | Tag | Plugin version | Notes |
 |-----|----------------|--------|
-| *(none yet)* | `2026.07.29ab` on `main` | First intentional public line was `aa`; `ab` is install-docs/help cleanup. Bare `2026.07.29` was a mistaken first ship — do not reintroduce. Next same-day: `ac`. |
+| *(none yet)* | `2026.07.29ac` on `main` | First intentional public line was `aa`. `ac` = StorageGuard-parity install wipe + clean remove. Bare `2026.07.29` was a mistaken first ship — do not reintroduce. Next same-day: `ad`. |
 
 ### Roll back (when a stable tag exists)
 
