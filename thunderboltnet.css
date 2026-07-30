@@ -1,133 +1,175 @@
-/* ThunderboltNet — Unraid Network Settings friendly layout */
+/* ThunderboltNet — complement Unraid form styles; do not fight dl/dt/dd */
+
+/* Let Unraid tab content width apply; avoid narrow centered column for forms */
 .tbn-wrap {
-  max-width: 920px;
-  margin: 0.25em 0 1.5em;
+  max-width: none;
+  width: 100%;
+  box-sizing: border-box;
   line-height: 1.45;
+  margin: 0;
+  padding: 0;
 }
+
 .tbn-wrap h3 {
-  margin: 1.25em 0 0.5em;
-  font-size: 1.1em;
+  margin: 1.5rem 0 0.75rem;
+  font-size: 1.4rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 .tbn-wrap h3:first-child {
-  margin-top: 0.35em;
+  margin-top: 0;
 }
+
 .tbn-muted {
   color: var(--orange-muted, #999);
   font-size: 0.95em;
 }
 .tbn-note {
-  margin: 0.4em 0 0.9em;
+  margin: 0.35rem 0 1rem;
   font-size: 0.92em;
   color: var(--orange-muted, #999);
 }
 
-/* Unraid-like label : field rows */
-.tbn-form-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 0.35em 0 1em;
+/* Forms: use stock Unraid dl/dt/dd (35% right labels on desktop).
+   Only tighten spacing inside our wrap. */
+.tbn-wrap form dl {
+  margin: 0;
+  padding: 0.25rem 0 0.5rem;
 }
-.tbn-form-table th,
-.tbn-form-table td {
-  padding: 0.4em 0.65em 0.4em 0;
-  vertical-align: middle;
-  text-align: left;
-  border: none;
+.tbn-wrap form dt {
+  font-weight: 600;
 }
-.tbn-form-table th {
-  width: 14em;
-  font-weight: normal;
-  white-space: nowrap;
-  padding-right: 1em;
-}
-.tbn-form-table td select,
-.tbn-form-table td input[type="text"],
-.tbn-form-table td input[type="number"] {
-  max-width: 22em;
-}
-.tbn-form-table .tbn-hint {
+.tbn-wrap form dd .tbn-hint,
+.tbn-wrap .tbn-hint {
   display: block;
   font-size: 0.85em;
+  font-weight: normal;
   color: var(--orange-muted, #999);
-  margin-top: 0.2em;
+  margin-top: 0.25rem;
 }
-.tbn-actions {
-  margin: 0.75em 0 1em;
-  padding-left: 0;
+.tbn-wrap form dd select,
+.tbn-wrap form dd input[type="text"],
+.tbn-wrap form dd input[type="number"] {
+  max-width: 400px;
 }
-.tbn-actions input {
-  margin-right: 0.35em;
+.tbn-wrap form dd input.narrow,
+.tbn-wrap form dd select.narrow {
+  max-width: 150px !important;
 }
 
-/* Status / data tables */
+/* Apply / Done row — match Unraid spacing under forms */
+.tbn-wrap .tbn-actions,
+.tbn-wrap form > p.tbn-actions {
+  margin: 1rem 0 0.5rem;
+  padding: 0;
+}
+
+/* Status / fabric tables — full width, subtle borders */
 .tbn-table {
   border-collapse: collapse;
-  margin: 0.4em 0 1em;
+  margin: 0.5rem 0 1.25rem;
+  width: 100%;
+  max-width: 100%;
 }
 .tbn-table th,
 .tbn-table td {
-  border: 1px solid rgba(128, 128, 128, 0.35);
-  padding: 0.35em 0.65em;
+  border: 1px solid var(--disabled-input-border-color, rgba(128, 128, 128, 0.35));
+  padding: 0.5rem 0.75rem;
   text-align: left;
   vertical-align: top;
 }
 .tbn-table thead th {
   font-weight: 600;
+  background: rgba(128, 128, 128, 0.08);
+}
+.tbn-summary {
+  max-width: 52rem;
 }
 .tbn-summary td:first-child {
   font-weight: 600;
   white-space: nowrap;
-  width: 11em;
+  width: 12rem;
+  text-align: right;
+  padding-right: 1rem;
+  border: none;
+  background: transparent;
 }
-.tbn-wide {
-  width: 100%;
+.tbn-summary td {
+  border: none;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+}
+.tbn-summary tr:last-child td {
+  border-bottom: none;
 }
 
-/* Notices */
+/* Link cards local/remote */
+.tbn-link-card {
+  margin-bottom: 1.25rem;
+  max-width: 52rem;
+}
+.tbn-link-card thead th {
+  background: rgba(128, 128, 128, 0.1);
+}
+.tbn-side-label {
+  width: 5.5em;
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+/* Notices / warnings */
 .tbn-notice {
   border: 1px solid rgba(200, 140, 40, 0.55);
   background: rgba(200, 140, 40, 0.08);
   border-radius: 6px;
-  padding: 0.75em 1em;
-  margin: 0.6em 0 0.9em;
+  padding: 0.85rem 1.1rem;
+  margin: 0.75rem 0 1rem;
+  max-width: 52rem;
 }
 .tbn-notice h4 {
-  margin: 0 0 0.4em;
+  margin: 0 0 0.4rem;
   font-size: 1.05em;
 }
 .tbn-notice p {
-  margin: 0.35em 0;
+  margin: 0.35rem 0;
 }
 .tbn-hidden {
   display: none !important;
 }
 .tbn-pci-toggle-row {
-  margin: 0.25em 0 0.5em;
+  margin: 0.25rem 0 0.5rem;
+}
+.tbn-pci-details {
+  max-width: 100%;
+  overflow-x: auto;
 }
 .tbn-row-warn td {
   background: rgba(200, 140, 40, 0.12);
 }
 .tbn-warn-list {
-  margin: 0.4em 0 0.75em;
+  margin: 0.4rem 0 0.75rem;
+  max-width: 52rem;
 }
 .tbn-warn-item {
-  margin-bottom: 0.55em;
+  margin-bottom: 0.55rem;
 }
 .tbn-warn-msg {
-  margin: 0 0 0.4em;
+  margin: 0 0 0.4rem;
 }
 .tbn-warn-hint {
-  margin-left: 0.4em;
+  margin-left: 0.4rem;
   font-size: 0.9em;
 }
 .tbn-diag {
   width: 100%;
+  max-width: 52rem;
   box-sizing: border-box;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.85em;
   line-height: 1.35;
-  padding: 0.6em 0.75em;
-  border: 1px solid rgba(128, 128, 128, 0.4);
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--disabled-input-border-color, rgba(128, 128, 128, 0.4));
   border-radius: 4px;
   background: rgba(0, 0, 0, 0.12);
   resize: vertical;
@@ -136,26 +178,12 @@
 .tbn-diag-label {
   display: block;
   font-weight: 600;
-  margin: 0.75em 0 0.3em;
-}
-.tbn-footer {
-  margin-top: 1.25em;
-  padding-top: 0.65em;
-  border-top: 1px solid rgba(128, 128, 128, 0.25);
-  font-size: 0.92em;
+  margin: 0.75rem 0 0.3rem;
 }
 .tbn-section {
-  margin-bottom: 1.25em;
+  margin-bottom: 1.5rem;
 }
-.tbn-link-card {
-  margin-bottom: 1em;
-}
-.tbn-link-card thead th {
-  background: rgba(128, 128, 128, 0.12);
-}
-.tbn-side-label {
-  width: 5.5em;
-  font-weight: 600;
-  white-space: nowrap;
-  vertical-align: top;
+.tbn-live {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.95em;
 }

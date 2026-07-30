@@ -241,29 +241,6 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
       <input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">
       <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update.php">
       <input type="hidden" name="tbn_defaults" value="">
-      <table class="tbn-form-table">
-        <tr>
-          <th>Load modules on Apply</th>
-          <td>
-            <select name="load_modules">
-              <?= mk_option($cfg['load_modules'] ?? 'yes', 'yes', 'Yes') ?>
-              <?= mk_option($cfg['load_modules'] ?? 'yes', 'no', 'No') ?>
-            </select>
-            <span class="tbn-hint"><code>thunderbolt</code> + <code>thunderbolt_net</code> (does not unbind NHI)</span>
-          </td>
-        </tr>
-        <tr>
-          <th>E2E flow control</th>
-          <td>
-            <select name="e2e_flow_control">
-              <?= mk_option($cfg['e2e_flow_control'] ?? 'no', 'no', 'No (e2e=0)') ?>
-              <?= mk_option($cfg['e2e_flow_control'] ?? 'no', 'yes', 'Yes (driver default)') ?>
-            </select>
-            <span class="tbn-hint">Often leave No for cross-host links</span>
-          </td>
-        </tr>
-      </table>
-      <!-- preserve other cfg keys if present -->
       <input type="hidden" name="include_listening" value="<?= htmlspecialchars($cfg['include_listening'] ?? 'no') ?>">
       <input type="hidden" name="manage_ip" value="<?= htmlspecialchars($cfg['manage_ip'] ?? 'no') ?>">
       <input type="hidden" name="ip_addr" value="<?= htmlspecialchars($cfg['ip_addr'] ?? '10.255.1.2') ?>">
@@ -276,9 +253,29 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
       <input type="hidden" name="bond_name" value="<?= htmlspecialchars($cfg['bond_name'] ?? 'bond-tb') ?>">
       <input type="hidden" name="bond_mode" value="<?= htmlspecialchars($cfg['bond_mode'] ?? 'balance-rr') ?>">
       <input type="hidden" name="ignore_warnings" value="<?= htmlspecialchars($cfg['ignore_warnings'] ?? '') ?>">
+
+      <dl>
+        <dt>Load modules on Apply:</dt>
+        <dd>
+          <select name="load_modules">
+            <?= mk_option($cfg['load_modules'] ?? 'yes', 'yes', 'Yes') ?>
+            <?= mk_option($cfg['load_modules'] ?? 'yes', 'no', 'No') ?>
+          </select>
+          <span class="tbn-hint"><code>thunderbolt</code> + <code>thunderbolt_net</code> (does not unbind NHI)</span>
+        </dd>
+
+        <dt>E2E flow control:</dt>
+        <dd>
+          <select name="e2e_flow_control">
+            <?= mk_option($cfg['e2e_flow_control'] ?? 'no', 'no', 'No (e2e=0)') ?>
+            <?= mk_option($cfg['e2e_flow_control'] ?? 'no', 'yes', 'Yes (driver default)') ?>
+          </select>
+          <span class="tbn-hint">Often leave No for cross-host links</span>
+        </dd>
+      </dl>
+
       <p class="tbn-actions">
         <input type="submit" name="#apply" value="Apply">
-        <input type="button" value="Refresh" onclick="location.reload()">
         <input type="button" value="Done" onclick="done()">
       </p>
     </form>
