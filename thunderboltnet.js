@@ -355,6 +355,32 @@
     tbnFormSync(form);
   };
 
+  /**
+   * Known peers: save services preference on select change (no grey Apply button).
+   * Must submit the Apply control so update.php runs #include.
+   */
+  window.tbnListenSave = function (form) {
+    if (!form) {
+      return false;
+    }
+    var btn = form.querySelector('input[name="#apply"]');
+    if (!btn) {
+      btn = document.createElement('input');
+      btn.type = 'submit';
+      btn.name = '#apply';
+      btn.value = 'Apply';
+      btn.style.display = 'none';
+      form.appendChild(btn);
+    }
+    btn.disabled = false;
+    if (typeof form.requestSubmit === 'function') {
+      form.requestSubmit(btn);
+    } else {
+      btn.click();
+    }
+    return false;
+  };
+
   /** Wire all ThunderboltNet forms (listening, iface, harden) for Apply enable. */
   function tbnWireAllForms() {
     var wraps = document.querySelectorAll('.tbn-wrap form');

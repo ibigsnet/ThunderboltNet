@@ -399,116 +399,12 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
   }
 ?>
   <div class="tbn-section">
-    <h3>Host services on Thunderbolt links</h3>
-    <p class="tbn-note">
-      For high-speed file copies and admin over TB, turn <strong>Yes</strong> so Unraid host services
-      (SMB, NFS, SSH, web UI, etc. that use Unraid’s listening list) bind on that link’s IP.
-      <strong>Default for new peers is No</strong> (safer). Preference is remembered per peer UUID and
-      re-applied when they plug in again. VM VNC / Docker port publishes are separate from this toggle.
-    </p>
-<?php if (!$links): ?>
-    <p class="tbn-muted">No live Thunderbolt links — plug a peer to manage services per link.</p>
-<?php else: ?>
-    <table class="tbn-table tbn-wide tbn-listen-table">
-      <thead>
-        <tr>
-          <th>Tab</th>
-          <th>Peer</th>
-          <th>Local IPv4</th>
-          <th>Unraid services on this link</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-<?php foreach ($links as $L):
-  $loc = $L['local'];
-  $rem = $L['remote'];
-  $if = $L['iface'];
-  $pkey = tbn_peer_key_from_link($L);
-  $icfg = tbn_load_iface_cfg($if);
-  $listen = (($icfg['INCLUDE_LISTENING'] ?? 'no') === 'yes') ? 'yes' : 'no';
-  // Prefer remembered pref if set
-  if (isset($peers_mem[$pkey]['include_listening'])) {
-    $listen = ($peers_mem[$pkey]['include_listening'] === 'yes') ? 'yes' : 'no';
-  }
-  $live_on = !empty($loc['listening']);
-  $addrs = $loc['addrs'] ?? [];
-?>
-        <tr class="<?= $listen === 'yes' ? 'tbn-listen-on' : 'tbn-listen-off' ?>">
-          <td>
-            <a href="/Settings/NetworkSettings" onclick="return tbnGotoNetTab('<?= htmlspecialchars($L['label'], ENT_QUOTES) ?>', event)"><code><?= htmlspecialchars($L['label']) ?></code></a>
-            <span class="tbn-muted"><br><code><?= htmlspecialchars($if) ?></code></span>
-          </td>
-          <td>
-            <strong><?= htmlspecialchars(($rem['peer_name'] ?? '') !== '' ? $rem['peer_name'] : '—') ?></strong>
-          </td>
-          <td><code><?= htmlspecialchars($addrs ? implode(', ', $addrs) : '—') ?></code></td>
-          <td>
-            <form method="POST" action="/update.php" target="progressFrame" class="tbn-listen-form">
-              <input type="hidden" name="#file" value="ThunderboltNet/ifaces/<?= htmlspecialchars($if) ?>.cfg">
-              <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update-listening.php">
-              <input type="hidden" name="tbn_listen_action" value="set">
-              <input type="hidden" name="tbn_iface" value="<?= htmlspecialchars($if) ?>">
-              <input type="hidden" name="tbn_peer_key" value="<?= htmlspecialchars($pkey) ?>">
-              <select name="INCLUDE_LISTENING">
-                <?= mk_option($listen, 'no', 'No — IP only (default)') ?>
-                <?= mk_option($listen, 'yes', 'Yes — SMB / NFS / web UI (recommended for transfers)') ?>
-              </select>
-              <input type="submit" name="#apply" value="Apply">
-            </form>
-<?php if ($listen !== 'yes'): ?>
-            <p class="tbn-hint tbn-listen-warn">
-              Transfers over TB to Unraid shares or the web UI usually need <strong>Yes</strong>.
-              With <strong>No</strong>, the link can still ping, but host services typically ignore this interface.
-            </p>
-<?php elseif (!$live_on): ?>
-            <p class="tbn-hint">Saved as Yes — if services still miss this IP, Apply again or check Settings → Network Extra.</p>
-<?php else: ?>
-            <p class="tbn-hint">Live: this interface is on Unraid’s include listening list.</p>
-<?php endif; ?>
-          </td>
-          <td class="tbn-muted">Remembered for this peer</td>
-        </tr>
-<?php endforeach; ?>
-      </tbody>
-    </table>
-<?php endif; ?>
-    <form method="POST" action="/update.php" target="progressFrame" class="tbn-harden-form"
-      onsubmit="return confirm('Turn OFF Unraid host services on ALL Thunderbolt links and clear remembered Yes for every peer? (Security hardening — default No everywhere.)');">
-      <input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">
-      <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update-listening.php">
-      <input type="hidden" name="tbn_listen_action" value="harden_all">
-      <p class="tbn-actions">
-        <input type="submit" name="#apply" value="Harden: all peers services No">
-      </p>
-      <p class="tbn-hint">
-        Security override: sets every TB link and every remembered peer preference back to
-        <strong>No</strong>, and removes <code>thunderbolt*</code> from network-extra include list.
-      </p>
-    </form>
-    <dl>
-      <dt>Host services on TB links:</dt>
-      <dd class="tbn-muted">Listening include · remember per peer · harden all</dd>
-    </dl>
-    <blockquote class="inline_help">
-      <strong>Why Yes for transfers:</strong> high TB throughput only helps Unraid shares and the web UI if
-      those services <em>listen</em> on the Thunderbolt IP. That is this setting (Unraid
-      <code>network-extra.cfg</code> include list).<br><br>
-      <strong>Default No:</strong> safer when a peer is just a backhaul or untrusted path.
-      <strong>Recommended Yes</strong> for a laptop/desktop you use for bulk SMB/NFS or admin over TB.<br><br>
-      <strong>Harden: all peers services No</strong> — one-click security reset if you enabled Yes widely
-      and want everything back to the safe default.<br><br>
-      <strong>Not covered:</strong> VM VNC/SPICE and Docker published ports use their own bind settings.
-      <?= tbn_help_docs_footer('docs/settings-reference.md', 'Settings reference') ?>
-    </blockquote>
-  </div>
-
-  <div class="tbn-section">
     <h3>Known peers</h3>
     <p class="tbn-note">
-      Peers seen on this Unraid are remembered (name, last iface, rates, <strong>services preference</strong>)
-      after you unplug. When they return, remembered <em>Unraid services on this link</em> is re-applied.
-      Coming later: restore last static IPs automatically.
+      Remembered peers (online and offline). Use <strong>Unraid services</strong> so SMB / NFS / SSH / web UI
+      can listen on that link’s IP when you want high-speed transfers — <strong>Yes recommended for that</strong>;
+      default for new peers is <strong>No</strong> (safer). Preference is stored per peer UUID and re-applied on reconnect.
+      Changing the dropdown saves immediately. VM VNC / Docker ports are separate.
     </p>
 <?php if (!$peers_mem): ?>
     <p class="tbn-muted">No remembered peers yet — connect a host and open this tab once.</p>
@@ -517,11 +413,11 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
       <thead>
         <tr>
           <th>Status</th>
-          <th>Peer name</th>
-          <th>Last tab</th>
-          <th>Services pref</th>
+          <th>Peer</th>
+          <th>Tab / iface</th>
+          <th>Local IPv4</th>
+          <th>Unraid services on this link</th>
           <th>Last rate</th>
-          <th>Last local IPv4</th>
           <th>Last seen</th>
           <th>Visits</th>
         </tr>
@@ -529,18 +425,41 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
       <tbody>
 <?php
   uasort($peers_mem, function ($a, $b) {
+    $ao = !empty($a['online']) ? 1 : 0;
+    $bo = !empty($b['online']) ? 1 : 0;
+    if ($ao !== $bo) {
+      return $bo - $ao;
+    }
     return strcmp($b['last_seen'] ?? '', $a['last_seen'] ?? '');
   });
-  foreach ($peers_mem as $p):
+  foreach ($peers_mem as $pkey => $p):
     $online = !empty($p['online']);
     $rate = trim(($p['last_rx_speed'] ?? '') . ' / ' . ($p['last_tx_speed'] ?? ''));
     $addrs = $p['last_local_addrs'] ?? [];
     if (is_array($addrs)) {
       $addrs = implode(', ', $addrs);
     }
+    $if = $p['last_iface'] ?? '';
+    // Prefer live addrs when online
+    if ($online && $if !== '') {
+      foreach ($links as $L) {
+        if (($L['iface'] ?? '') === $if) {
+          $la = $L['local']['addrs'] ?? [];
+          if ($la) {
+            $addrs = implode(', ', $la);
+          }
+          break;
+        }
+      }
+    }
     $pref = (($p['include_listening'] ?? 'no') === 'yes') ? 'yes' : 'no';
+    $live_on = false;
+    if ($online && $if !== '') {
+      $live_on = in_array($if, $include, true);
+    }
+    $can_apply_live = ($online && $if !== '' && preg_match('/^thunderbolt\d+$/', $if));
 ?>
-        <tr class="<?= $online ? 'tbn-peer-online' : 'tbn-peer-offline' ?>">
+        <tr class="<?= $online ? 'tbn-peer-online' : 'tbn-peer-offline' ?> <?= $pref === 'yes' ? 'tbn-listen-on' : 'tbn-listen-off' ?>">
           <td><?= $online ? '<span class="tbn-badge tbn-badge-ok">Online</span>' : '<span class="tbn-badge tbn-badge-unknown">Offline</span>' ?></td>
           <td>
             <strong><?= htmlspecialchars(($p['peer_name'] ?? '') !== '' ? $p['peer_name'] : '—') ?></strong>
@@ -551,20 +470,42 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
           <td>
 <?php if (!empty($p['last_label'])): ?>
             <a href="/Settings/NetworkSettings" onclick="return tbnGotoNetTab('<?= htmlspecialchars($p['last_label'], ENT_QUOTES) ?>', event)"><code><?= htmlspecialchars($p['last_label']) ?></code></a>
-            <span class="tbn-muted"><br><code><?= htmlspecialchars($p['last_iface'] ?? '') ?></code></span>
+            <span class="tbn-muted"><br><code><?= htmlspecialchars($if) ?></code></span>
 <?php else: ?>
             —
 <?php endif; ?>
           </td>
+          <td><code class="tbn-live" data-tbn-live-ip4="<?= htmlspecialchars($if) ?>"><?= htmlspecialchars($addrs !== '' ? $addrs : '—') ?></code></td>
           <td>
-<?php if ($pref === 'yes'): ?>
-            <span class="tbn-badge tbn-badge-ok">Yes</span>
+            <form method="POST" action="/update.php" target="progressFrame" class="tbn-listen-form">
+              <input type="hidden" name="#file" value="<?= $can_apply_live
+                ? 'ThunderboltNet/ifaces/' . htmlspecialchars($if) . '.cfg'
+                : 'ThunderboltNet/ThunderboltNet.cfg' ?>">
+              <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update-listening.php">
+              <input type="hidden" name="tbn_listen_action" value="set">
+              <input type="hidden" name="tbn_iface" value="<?= htmlspecialchars($if) ?>">
+              <input type="hidden" name="tbn_peer_key" value="<?= htmlspecialchars((string)$pkey) ?>">
+              <select name="INCLUDE_LISTENING" class="tbn-listen-select" onchange="tbnListenSave(this.form)">
+                <?= mk_option($pref, 'no', 'No — IP only (default)') ?>
+                <?= mk_option($pref, 'yes', 'Yes — SMB / NFS / web UI (recommended)') ?>
+              </select>
+              <noscript>
+                <input type="submit" name="#apply" value="Apply">
+              </noscript>
+            </form>
+<?php if ($pref !== 'yes'): ?>
+            <p class="tbn-hint tbn-listen-warn">
+              Shares / web UI usually unreachable on this TB IP until <strong>Yes</strong>.
+            </p>
+<?php elseif ($online && !$live_on): ?>
+            <p class="tbn-hint">Saved Yes — if still unreachable, check Network Extra / re-select Yes.</p>
+<?php elseif ($online && $live_on): ?>
+            <p class="tbn-hint">Live on include list.</p>
 <?php else: ?>
-            <span class="tbn-badge tbn-badge-unknown">No</span>
+            <p class="tbn-hint">Remembered Yes — applied when this peer is online.</p>
 <?php endif; ?>
           </td>
           <td><?= htmlspecialchars($rate !== ' / ' ? $rate : '—') ?></td>
-          <td><code><?= htmlspecialchars($addrs !== '' ? $addrs : '—') ?></code></td>
           <td class="tbn-muted"><?= htmlspecialchars($p['last_seen'] ?? '—') ?></td>
           <td><?= (int)($p['seen_count'] ?? 0) ?></td>
         </tr>
@@ -572,6 +513,28 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
       </tbody>
     </table>
 <?php endif; ?>
+    <form method="POST" action="/update.php" target="progressFrame" class="tbn-harden-form"
+      onsubmit="return confirm('Turn OFF Unraid host services on ALL Thunderbolt links and clear remembered Yes for every peer?');">
+      <input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">
+      <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update-listening.php">
+      <input type="hidden" name="tbn_listen_action" value="harden_all">
+      <p class="tbn-actions">
+        <input type="submit" name="#apply" value="Harden: all peers services No" class="tbn-harden-btn">
+      </p>
+      <p class="tbn-hint">
+        Security override: all peers → services <strong>No</strong>; strip TB ifaces from network-extra include list.
+      </p>
+    </form>
+    <dl>
+      <dt>Known peers / services:</dt>
+      <dd class="tbn-muted">Per-peer listen · remember · harden all</dd>
+    </dl>
+    <blockquote class="inline_help">
+      <strong>Unraid services on this link</strong> updates <code>network-extra.cfg</code> include list (SMB, NFS, SSH, web UI, …).
+      Dropdown saves as soon as you change it (no grey Apply). Preference is remembered per peer UUID.<br><br>
+      <strong>Harden: all peers services No</strong> resets every preference and live TB include entries to the safe default.
+      <?= tbn_help_docs_footer('docs/settings-reference.md', 'Settings reference') ?>
+    </blockquote>
   </div>
 
   <div class="tbn-section">

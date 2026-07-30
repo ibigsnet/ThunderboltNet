@@ -11,9 +11,13 @@
 $docroot = $docroot ?? ($_SERVER['DOCUMENT_ROOT'] ?? '/usr/local/emhttp');
 require_once '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php';
 
-$action = strtolower(trim((string)($_POST['tbn_listen_action'] ?? $_POST['#arg'][1] ?? 'set')));
+$action = strtolower(trim((string)($_POST['tbn_listen_action'] ?? '')));
+$apply = (string)($_POST['#apply'] ?? '');
 
-if ($action === 'harden_all' || strcasecmp((string)($_POST['#apply'] ?? ''), 'Harden all TB links') === 0) {
+if (
+  $action === 'harden_all'
+  || stripos($apply, 'Harden') !== false
+) {
   tbn_listening_harden_all();
   tbn_sync_iface_pages();
   return;
@@ -24,12 +28,18 @@ $key = trim((string)($_POST['tbn_peer_key'] ?? ''));
 $want = strtolower(trim((string)($_POST['INCLUDE_LISTENING'] ?? 'no')));
 $want = ($want === 'yes') ? 'yes' : 'no';
 
-if ($if === '' || !preg_match('/^thunderbolt\d+$/', $if)) {
-  return;
-}
-if ($key === '') {
+if ($key === '' && $if !== '' && preg_match('/^thunderbolt\d+$/', $if)) {
   $key = 'iface:' . $if;
 }
+if ($key === '') {
+  return;
+}
 
-tbn_set_peer_listening_pref($key, $want, $if);
+// Offline peer: remember preference only. Online: update network-extra + iface cfg.
+$live_if = '';
+if ($if !== '' && preg_match('/^thunderbolt\d+$/', $if) && is_dir('/sys/class/net/' . $if)) {
+  $live_if = $if;
+}
+
+tbn_set_peer_listening_pref($key, $want, $live_if);
 tbn_sync_iface_pages();
