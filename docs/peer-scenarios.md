@@ -23,7 +23,7 @@ E2E is **host-wide** — see [driver-options.md](driver-options.md).
 
 ## Unraid ↔ Linux (desktop, laptop, or server)
 
-**Best-supported scenario** for Thunderbolt Net.
+Well-supported with this plugin (same kernel family both sides). Not necessarily the only or “most common” peer for Unraid users — Mac and Windows setups are covered below.
 
 ### Unraid
 
@@ -41,7 +41,7 @@ E2E is **host-wide** — see [driver-options.md](driver-options.md).
 
 - Match **prefix** both ends (`/24` with `/24`, not one `/24` and one `/30` unless you understand the overlap).  
 - Peer **name** in the Unraid table is often the Linux hostname; **stack** may show `Linux` or a vendor string — not always the PC brand.  
-- If traffic is flaky with E2E **Yes**, return to **No** and reconnect.
+- If traffic is flaky with E2E **Yes**, return to **No**, confirm sysfs, then **reseat** the cable (all extra TB cables unplugged first if you had more than one).
 
 ---
 

@@ -586,16 +586,17 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
         <strong>Product default is No</strong> because many cross-host links (especially Unraid ↔ Linux)
         are more reliable with e2e off: fewer flaky bring-ups, stuck “ThunderboltIP login”, or one-way
         traffic. This is not Ethernet pause on eth0 and not TCP windowing.<br><br>
-        <strong>Scenarios — leave No:</strong>
-        Unraid ↔ Linux desktop/server; Unraid ↔ Unraid; two peers (tbn0+tbn1) on this host;
-        any time the link is unstable with e2e on.<br><br>
-        <strong>Scenarios — try Yes only after No fails:</strong>
-        Unraid ↔ macOS Thunderbolt Bridge; Unraid ↔ Windows (OEM TB networking stacks vary);
-        lab debugging with upstream guidance. Change, Apply, confirm
-        <code>/sys/module/thunderbolt_net/parameters/e2e</code>, reconnect or reboot if the value stuck,
-        then retest <em>all</em> peers (reload hits every TB netdev).<br><br>
+        <strong>Leave No for:</strong>
+        Linux peers, Unraid↔Unraid, multi-peer hosts, or any flaky bring-up with e2e on.
+        Default No is the normal starting point for every peer OS — if it works, leave it.<br><br>
+        <strong>Try Yes only after No fails:</strong>
+        macOS Thunderbolt Bridge or Windows (OEM stacks vary), or specific upstream guidance.
+        Change <em>only</em> E2E, Apply, confirm <code>/sys/module/thunderbolt_net/parameters/e2e</code>
+        (reboot if it did not flip). Then <strong>reseat the cable</strong> — TB often re-trains only when
+        the physical path drops. If several TB cables were plugged in (especially two to the same peer),
+        unplug <em>all</em> first, then plug one known-good cable back in. Retest every peer (host-wide setting).<br><br>
         <strong>Docks / hubs with RJ45:</strong> those ports are usually USB Ethernet, not this setting —
-        configure them like eth, not tbn. See peer scenarios.
+        configure them like eth, not tbn.
         <?= tbn_help_docs_footer('docs/driver-options.md', 'E2E & modules guide') ?>
         · <?= tbn_docs_more_html('docs/peer-scenarios.md', 'Peer scenarios (Mac / Linux / Windows / docks) ↗') ?>
       </blockquote>

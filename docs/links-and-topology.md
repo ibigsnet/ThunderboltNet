@@ -23,9 +23,30 @@ Reality:
 
 1. The fabric must enumerate **two** network-capable peer paths.  
 2. If sysfs only shows one peer hop, bonding cannot invent a second slave.  
-3. Some dual-plug attempts leave the domain wedged — unplug **both** ends, single-cable recovery, then retry carefully with known-good 40G cables.
+3. Two cables to the **same** peer often do **not** create `thunderbolt0` + `thunderbolt1` — you may still see a single path, or a confused domain with no clean networking.  
+4. Dual-plug experiments are a common way to **wedge** bring-up until all cables are cleared.
 
-Plugin **Enable bonding** builds a **TB-only** bond (`bond-tb` by default), not Unraid’s main `bond0` on eth ports. Use only when two live `thunderbolt*` members exist.
+Plugin **Enable bonding** builds a **TB-only** bond (`bond-tb` by default), not Unraid’s main `bond0` on eth ports. Use only when two live `thunderbolt*` members already exist.
+
+## Multi-cable and recovery
+
+### Why “unplug everything, then one cable” works
+
+Thunderbolt domains remember paths and services. Extra cables (second link to the same host, a dock still attached, a half-seated rear port) can keep the domain from settling on a single clean host-to-host network service.
+
+**Recovery pattern (high value):**
+
+1. Unplug **all** TB/USB4 host cables from **both** ends of every machine under test.  
+2. Pause a few seconds.  
+3. Seat **one** known-good cable only.  
+4. Confirm one peer and one netdev; configure IP; prove ping.  
+5. Add other peers/cables only after that baseline works.
+
+### Reseating one cable (when you already have a single link)
+
+Unplug that cable fully (both ends if possible), wait, reconnect. That re-trains the path and is often more effective than re-clicking Apply alone after driver changes.
+
+See [troubleshooting.md — Reseating the cable](troubleshooting.md#reseating-the-cable-why-it-matters).
 
 ---
 

@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.07.29ay">
+<!ENTITY version "2026.07.29az">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -34,6 +34,9 @@
 
 <CHANGES>
 ###&version;
+- Docs: reseating cables & multi-cable recovery; drop confusing E2E “already know” row; no “most common” peer claim.
+
+###2026.07.29ay
 - Plug-and-play groundwork: remembered peers, activity / safe-unplug hints; Plugins blurb updated.
 - Docs (DOCS.md + docs/*), Unraid blue helpers, LOCAL|REMOTE|REMOTE table, link quality cable advice.
 - Clearer description: Thunderbolt-compatible host networking (not one generation only).

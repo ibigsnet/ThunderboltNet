@@ -81,20 +81,29 @@ That is an empirical reliability choice for Unraid home-lab host networking — 
 
 | Scenario | Recommendation |
 |----------|----------------|
-| Unraid ↔ Linux desktop/laptop (Kernel TB net both sides) | **No (`e2e=0`)** — start here |
-| Unraid ↔ second Unraid / Linux server | **No** |
-| Multiple peers (tbn0 + tbn1) on Unraid | **No** (one host-wide value; prefer the reliable setting for all) |
-| Flaky bring-up, one-way ping, or login timeouts with e2e on | **No** |
-| You already know `e2e=0` fixed your pair | Keep **No** |
+| Unraid ↔ Linux desktop, laptop, or server | **No (`e2e=0`)** — start here |
+| Unraid ↔ second Unraid | **No** |
+| Multiple peers (tbn0 + tbn1) on Unraid | **No** (one host-wide value for every TB netdev) |
+| Flaky bring-up, one-way ping, or “ThunderboltIP login” timeouts | **No** — then [reseat the cable](troubleshooting.md#reseating-the-cable-why-it-matters) and retest |
+
+Default **No** is the right starting point for almost every peer OS. You do not need a special “keep No forever” row — if it works, leave it.
 
 ### When you might try Yes
 
 | Scenario | Notes |
 |----------|-------|
-| Unraid ↔ **macOS** Thunderbolt Bridge | Try **No** first; if the Mac side is stable only with driver-default behavior on Linux, experiment with **Yes** and retest. Document what works for your Mac OS version. |
-| Unraid ↔ **Windows** | Windows Thunderbolt networking support varies by OEM stack; try **No** first, then **Yes** only if the vendor docs or testing require it. |
-| Same-vendor lab with upstream guidance | If a kernel bug report or Intel/OEM note says leave e2e on for a specific combo, use **Yes**. |
-| Debugging only | Change one variable at a time; reconnect cable after Apply; reboot if `/sys/module/.../e2e` did not change. |
+| Unraid ↔ **macOS** Thunderbolt Bridge | Still start with **No**. Only try **Yes** if the link is stable in every other way but fails with e2e off. |
+| Unraid ↔ **Windows** | OEM stacks vary; start **No**, then **Yes** only if testing (or vendor docs) require it. |
+| Upstream / OEM guidance for a specific combo | Follow that note if you have one; retest after each change. |
+
+### Changing E2E without confusing yourself
+
+1. Change **only** E2E (not IP, not cable, not security) — one variable at a time.  
+2. Apply, then confirm `/sys/module/thunderbolt_net/parameters/e2e` actually flipped (`Y`/`N` or `1`/`0`).  
+3. If it did **not** change, reboot (or carefully reload the module — that drops **all** TB netdevs).  
+4. **Reseat the cable** after the module option is correct — many TB domains only fully re-train when the physical path drops and returns (see [troubleshooting](troubleshooting.md#reseating-the-cable-why-it-matters)).  
+5. If you had **more than one** TB cable plugged in, unplug **all** of them first, then plug **one** known-good cable back in ([multi-cable recovery](links-and-topology.md#multi-cable-and-recovery)).  
+6. Re-test **every** peer: E2E is host-wide.
 
 ### What E2E is *not*
 
@@ -107,14 +116,16 @@ That is an empirical reliability choice for Unraid home-lab host networking — 
 
 ## Example workflows
 
-### A. Unraid ↔ Linux PC (most common)
+These are **examples**, not a claim about which peer type is most popular.
+
+### A. Unraid ↔ Linux PC
 
 1. Driver options: **Load modules = Yes**, **E2E = No**.  
-2. Apply.  
-3. Cable both hosts; wait for `thunderbolt0`.  
+2. Apply; confirm `e2e` sysfs if you just changed it.  
+3. One cable between the hosts; wait for `thunderbolt0`.  
 4. tbn0: static `10.255.0.2/24`, default route **No**.  
 5. On the Linux peer: static `10.255.0.1/24` on its TB net iface (NetworkManager or `ip`).  
-6. Ping both ways.
+6. Ping both ways. If the iface never appears, [reseat](troubleshooting.md#reseating-the-cable-why-it-matters) once with only that cable plugged in.
 
 See [peer-scenarios.md](peer-scenarios.md).
 
@@ -122,13 +133,14 @@ See [peer-scenarios.md](peer-scenarios.md).
 
 1. Still **one** E2E setting for the host — leave **No**.  
 2. Give each link its **own subnet** (`10.255.0.0/24` and `10.255.1.0/24`).  
-3. Do not expect different e2e per peer.
+3. Do not expect different e2e per peer.  
+4. Prefer one cable per peer; dual-homing the **same** peer with two cables is a different problem ([topology](links-and-topology.md#dual-cable-between-the-same-pair-of-pcs)).
 
-### C. Changing E2E after things already work
+### C. After changing E2E (any peer OS)
 
-1. Note current `/sys/module/thunderbolt_net/parameters/e2e`.  
-2. Change UI, Apply.  
-3. If the sysfs value did not change, reboot (or carefully reload the module — disrupts all TB nets).  
+1. Confirm sysfs.  
+2. Clear multi-cable clutter if present (all unplugged → one cable).  
+3. Reseat that cable.  
 4. Re-test every peer, not just one.
 
 ---
@@ -136,5 +148,5 @@ See [peer-scenarios.md](peer-scenarios.md).
 ## Related
 
 - Peer OS notes: [peer-scenarios.md](peer-scenarios.md)  
+- Reseating & multi-cable recovery: [troubleshooting.md](troubleshooting.md#reseating-the-cable-why-it-matters) · [links-and-topology.md](links-and-topology.md)  
 - Settings list: [settings-reference.md](settings-reference.md)  
-- Topology / dual cable: [links-and-topology.md](links-and-topology.md)  
