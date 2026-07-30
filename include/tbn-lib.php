@@ -308,6 +308,79 @@ function tbn_link_summaries() {
 }
 
 /**
+ * Assess trained link vs local controller capability (cable / training hint).
+ * Returns: level (ok|warn|info|unknown), label, note, detail.
+ */
+function tbn_link_quality(array $remote, array $status = []) {
+  $gen = tbn_sysfs_str('/sys/bus/thunderbolt/devices/0-0/generation');
+  $usb4 = '';
+  $uevent = @file_get_contents('/sys/bus/thunderbolt/devices/0-0/uevent');
+  if (is_string($uevent) && preg_match('/USB4_VERSION=(\S+)/', $uevent, $m)) {
+    $usb4 = $m[1];
+  }
+  $rx = $remote['rx_speed'] ?? '';
+  $tx = $remote['tx_speed'] ?? '';
+  $rl = isset($remote['rx_lanes']) ? (int)$remote['rx_lanes'] : 0;
+  $tl = isset($remote['tx_lanes']) ? (int)$remote['tx_lanes'] : 0;
+  $gbps = 0.0;
+  if (preg_match('/([\d.]+)\s*Gb/i', $rx, $m)) {
+    $gbps = (float)$m[1];
+  }
+
+  $ctrl = 'TB host';
+  if ($gen !== '') {
+    $ctrl = 'TB Gen ' . $gen;
+  }
+  if ($usb4 !== '') {
+    $ctrl .= ' / USB4 ' . $usb4;
+  }
+  // Gen 3+ / USB4 hosts typically can do dual-lane ~40G when path allows
+  $ctrl_can_dual = ($gen === '' || (int)$gen >= 3);
+
+  if ($rx === '' && $tx === '' && $rl === 0) {
+    return [
+      'level' => 'unknown',
+      'label' => 'No link',
+      'note' => '',
+      'detail' => "Controller: {$ctrl}",
+    ];
+  }
+
+  $trained = trim($rx . ' · ' . ($rl > 0 ? $rl . ' lane' . ($rl === 1 ? '' : 's') : 'lanes n/a'));
+  if ($ctrl_can_dual && $rl === 1 && $gbps > 0 && $gbps <= 20.5) {
+    return [
+      'level' => 'warn',
+      'label' => '20G · 1-lane',
+      'note' => "Controller looks capable of higher rates ({$ctrl}, often up to ~40G / 2-lane). "
+        . "Trained path is {$trained} both directions — usually a 20G-class cable, single-lane training, or port path limit — not one host “capping” the other.",
+      'detail' => "Controller {$ctrl}; trained {$trained}",
+    ];
+  }
+  if ($rl >= 2 && $gbps >= 30) {
+    return [
+      'level' => 'ok',
+      'label' => 'High rate',
+      'note' => '',
+      'detail' => "Controller {$ctrl}; trained {$trained}",
+    ];
+  }
+  if ($gbps > 0) {
+    return [
+      'level' => 'info',
+      'label' => $trained,
+      'note' => '',
+      'detail' => "Controller {$ctrl}; trained {$trained}",
+    ];
+  }
+  return [
+    'level' => 'info',
+    'label' => 'Linked',
+    'note' => '',
+    'detail' => "Controller {$ctrl}",
+  ];
+}
+
+/**
  * Optional LLDP neighbor if lldpcli/lldpctl is installed (usually not on Unraid).
  * Thunderbolt fabric already exposes peer name/speed via sysfs; LLDP is extra.
  */

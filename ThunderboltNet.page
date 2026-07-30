@@ -105,121 +105,70 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
   </div>
 
   <div class="tbn-section">
-    <h3>Links</h3>
+    <h3>Remote peers</h3>
     <p class="tbn-note">
-      Each row compares <strong>this Unraid host</strong> with the <strong>far-side peer</strong> on that cable.
-      Thunderbolt advertises peer <em>name</em> and <em>stack</em> separately from OEM branding:
-      local manufacturer is often the board vendor (e.g. ASUS); remote “stack” on Linux peers is often
-      <code>Linux</code> (the TB software identity), while peer name is usually that machine’s hostname.
-      Link speed/lanes are the trained fabric rate. IP and bond settings are on each <strong>tbnN</strong> tab.
+      One row per link (kernel <code>thunderboltN</code> → tab <strong>tbnN</strong>).
+      Local host details are above — not repeated here.
+      <em>Peer name</em> is the far host’s advertised name; <em>stack</em> is the TB vendor field
+      (often OEM on hardware, often <code>Linux</code> / <code>Intel Corp.</code> for software identity — not the peer chassis brand).
+      Rate/lanes are the trained path. Settings for each link are on its tbn tab.
     </p>
 <?php if (!$links): ?>
-    <p class="tbn-muted">No active Thunderbolt network interfaces.</p>
+    <p class="tbn-muted">No Thunderbolt network interfaces yet.</p>
 <?php else: ?>
-<?php foreach ($links as $L):
-  $loc = $L['local'];
-  $rem = $L['remote'];
-  $lldp = $L['lldp'];
-  $mem = !empty($loc['membership']) ? implode(' ', $loc['membership']) : (!empty($loc['master']) ? $loc['master'] : 'none');
-?>
-    <table class="tbn-table tbn-wide tbn-link-card">
+    <table class="tbn-table tbn-wide tbn-peers">
       <thead>
         <tr>
-          <th style="width:11em"></th>
-          <th>Local (this host)</th>
-          <th>Remote (peer)</th>
-        </tr>
-        <tr>
-          <th colspan="3" class="tbn-link-title">
-            <a href="/Settings/NetworkSettings" onclick="return tbnGotoNetTab('<?= htmlspecialchars($L['label'], ENT_QUOTES) ?>', event)"><?= htmlspecialchars($L['label']) ?></a>
-            <span class="tbn-muted"> · kernel <code><?= htmlspecialchars($L['iface']) ?></code>
-              · settings on the tbn tab</span>
-          </th>
+          <th>Tab</th>
+          <th>Iface</th>
+          <th>Peer name</th>
+          <th>Stack</th>
+          <th>RX / TX</th>
+          <th>Lanes</th>
+          <th>State</th>
+          <th>IPv4 (local)</th>
+          <th>Listen</th>
+          <th>Bond/br</th>
+          <th>Link</th>
         </tr>
       </thead>
       <tbody>
-        <tr>
-          <td>Name</td>
-          <td><code><?= htmlspecialchars($loc['os_hostname'] !== '' ? $loc['os_hostname'] : '—') ?></code>
-            <span class="tbn-muted"> (OS hostname)</span></td>
-          <td><code><?= htmlspecialchars($rem['peer_name'] !== '' ? $rem['peer_name'] : '—') ?></code>
-            <span class="tbn-muted"> (peer name from fabric)</span></td>
-        </tr>
-        <tr>
-          <td>Product / identity</td>
-          <td><?= htmlspecialchars($loc['product'] !== '' ? $loc['product'] : '—') ?>
-            <span class="tbn-muted"> (TB controller product)</span></td>
-          <td><?= htmlspecialchars($rem['peer_name'] !== '' ? $rem['peer_name'] : '—') ?>
-            <span class="tbn-muted"> (same as peer name when only one string is advertised)</span></td>
-        </tr>
-        <tr>
-          <td>Manufacturer / stack</td>
-          <td><?= htmlspecialchars($loc['manufacturer'] !== '' ? $loc['manufacturer'] : '—') ?>
-            <span class="tbn-muted"> (OEM / board vendor)</span></td>
-          <td><?= htmlspecialchars($rem['stack'] !== '' ? $rem['stack'] : '—') ?>
-            <span class="tbn-muted"> (TB stack identity; often “Linux” on Linux peers)</span></td>
-        </tr>
-        <tr>
-          <td>Link RX / TX</td>
-          <td class="tbn-muted">— (rate is end-to-end on the peer hop)</td>
+<?php foreach ($links as $L):
+  $loc = $L['local'];
+  $rem = $L['remote'];
+  $mem = !empty($loc['membership'])
+    ? implode(' ', $loc['membership'])
+    : (!empty($loc['master']) ? $loc['master'] : '—');
+  $q = tbn_link_quality($rem, $status);
+  $state = ($loc['operstate'] ?: '—') . ' / c=' . ($loc['carrier'] === '' ? 'n/a' : $loc['carrier']);
+?>
+        <tr class="tbn-quality-<?= htmlspecialchars($q['level']) ?>">
           <td>
-            <strong><?= htmlspecialchars($rem['rx_speed'] !== '' ? $rem['rx_speed'] : '—') ?></strong>
-            /
-            <strong><?= htmlspecialchars($rem['tx_speed'] !== '' ? $rem['tx_speed'] : '—') ?></strong>
+            <a href="/Settings/NetworkSettings" onclick="return tbnGotoNetTab('<?= htmlspecialchars($L['label'], ENT_QUOTES) ?>', event)"><code><?= htmlspecialchars($L['label']) ?></code></a>
           </td>
-        </tr>
-        <tr>
-          <td>Lanes RX / TX</td>
-          <td class="tbn-muted">—</td>
-          <td><?= htmlspecialchars(($rem['rx_lanes'] !== '' ? $rem['rx_lanes'] : '—') . ' / ' . ($rem['tx_lanes'] !== '' ? $rem['tx_lanes'] : '—')) ?></td>
-        </tr>
-        <tr>
-          <td>Interface state</td>
-          <td><?= htmlspecialchars($loc['operstate'] ?: '—') ?>
-            · carrier <?= htmlspecialchars($loc['carrier'] === '' ? 'n/a' : $loc['carrier']) ?>
-            · MTU <?= htmlspecialchars($loc['mtu'] !== '' ? $loc['mtu'] : '—') ?></td>
-          <td class="tbn-muted">See peer name / speeds above</td>
-        </tr>
-        <tr>
-          <td>MAC</td>
-          <td><code><?= htmlspecialchars(strtoupper($loc['mac'] ?: '—')) ?></code></td>
-          <td class="tbn-muted">—</td>
-        </tr>
-        <tr>
-          <td>IPv4 (live)</td>
+          <td><code><?= htmlspecialchars($L['iface']) ?></code></td>
+          <td><?= htmlspecialchars($rem['peer_name'] !== '' ? $rem['peer_name'] : '—') ?></td>
+          <td><?= htmlspecialchars($rem['stack'] !== '' ? $rem['stack'] : '—') ?></td>
+          <td><?= htmlspecialchars(trim(($rem['rx_speed'] ?: '—') . ' / ' . ($rem['tx_speed'] ?: '—'))) ?></td>
+          <td><?= htmlspecialchars(trim(($rem['rx_lanes'] ?: '—') . ' / ' . ($rem['tx_lanes'] ?: '—'))) ?></td>
+          <td><?= htmlspecialchars($state) ?></td>
           <td><code><?= htmlspecialchars($loc['addrs'] ? implode(', ', $loc['addrs']) : '—') ?></code></td>
-          <td class="tbn-muted">Not visible from this host without probing</td>
-        </tr>
-        <tr>
-          <td>Listening include</td>
           <td><?= !empty($loc['listening']) ? 'yes' : 'no' ?></td>
-          <td class="tbn-muted">—</td>
-        </tr>
-        <tr>
-          <td>Bond / bridge</td>
           <td><code><?= htmlspecialchars($mem) ?></code></td>
-          <td class="tbn-muted">—</td>
-        </tr>
-        <tr>
-          <td>Fabric UUID / service</td>
-          <td class="tbn-muted">local controller UUID on devices table</td>
           <td>
-<?php if ($rem['unique_id'] !== ''): ?>
-            <code><?= htmlspecialchars($rem['unique_id']) ?></code>
-            <?php if ($rem['service'] !== ''): ?><br>service <code><?= htmlspecialchars($rem['service']) ?></code><?php endif; ?>
-<?php else: ?>
-            <span class="tbn-muted">No peer fabric entry (link down or not trained)</span>
-<?php endif; ?>
+            <span class="tbn-badge tbn-badge-<?= htmlspecialchars($q['level']) ?>" title="<?= htmlspecialchars($q['detail']) ?>">
+              <?= htmlspecialchars($q['label']) ?>
+            </span>
           </td>
         </tr>
-        <tr>
-          <td>LLDP</td>
-          <td colspan="2" class="tbn-muted"><?= htmlspecialchars($lldp['summary'] !== '' ? $lldp['summary'] : 'n/a') ?>
-            — optional; TB fabric data above is primary</td>
+<?php if ($q['note'] !== ''): ?>
+        <tr class="tbn-quality-note tbn-quality-<?= htmlspecialchars($q['level']) ?>">
+          <td colspan="11" class="tbn-muted"><?= htmlspecialchars($q['note']) ?></td>
         </tr>
+<?php endif; ?>
+<?php endforeach; ?>
       </tbody>
     </table>
-<?php endforeach; ?>
 <?php endif; ?>
   </div>
 
