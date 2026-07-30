@@ -619,8 +619,8 @@ function tbn_bring_up_ifaces() {
 
 /**
  * Apply static IPv4 to primary iface (CLI; not full Unraid network.cfg rewrite).
- * Safe: never sets default route if never_default=yes.
- * Why not network.cfg? thunderbolt* is hotplug — often missing at boot network start.
+ * Global legacy static IP path. Default route only if explicitly enabled.
+ * thunderbolt* is hotplug — not network.cfg eth blocks.
  */
 function tbn_apply_static_ip() {
   $cfg = tbn_load_cfg();
@@ -648,7 +648,10 @@ function tbn_apply_static_ip() {
     @exec("ip addr flush dev {$ife} 2>/dev/null");
     @exec("ip addr add {$target} dev {$ife} 2>/dev/null", $o, $rc);
   }
-  if ($cfg['ip_gateway'] !== '' && $cfg['never_default'] !== 'yes') {
+  // Legacy global: never_default=yes means do not install default (same as DEFAULT_ROUTE=no)
+  $allow_default = (($cfg['default_route'] ?? '') === 'yes')
+    || (($cfg['never_default'] ?? 'yes') === 'no');
+  if ($cfg['ip_gateway'] !== '' && $allow_default) {
     $gw = escapeshellarg($cfg['ip_gateway']);
     @exec("ip route replace default via {$gw} dev {$ife} 2>/dev/null");
   }
@@ -722,7 +725,8 @@ function tbn_iface_defaults($if = 'thunderbolt0') {
     'IPADDR' => '10.255.1.' . $last,
     'NETMASK' => '24',
     'GATEWAY' => '',
-    'NEVER_DEFAULT' => 'yes',
+    // Install a system default route via this iface? Default no (peer-local only).
+    'DEFAULT_ROUTE' => 'no',
     'MTU' => '',
     'USE_MTU' => 'no',
     'INCLUDE_LISTENING' => 'no',
@@ -749,7 +753,13 @@ function tbn_parse_cfg_file($path) {
 }
 
 function tbn_load_iface_cfg($if) {
-  return array_merge(tbn_iface_defaults($if), tbn_parse_cfg_file(tbn_iface_cfg_path($if)));
+  $raw = tbn_parse_cfg_file(tbn_iface_cfg_path($if));
+  // Migrate old NEVER_DEFAULT=yes|no → DEFAULT_ROUTE=no|yes (invert double-negative)
+  if (!isset($raw['DEFAULT_ROUTE']) && isset($raw['NEVER_DEFAULT'])) {
+    $raw['DEFAULT_ROUTE'] = (($raw['NEVER_DEFAULT'] ?? 'yes') === 'yes') ? 'no' : 'yes';
+    unset($raw['NEVER_DEFAULT']);
+  }
+  return array_merge(tbn_iface_defaults($if), $raw);
 }
 
 function tbn_write_iface_cfg($if, array $cfg) {
@@ -929,7 +939,8 @@ function tbn_apply_iface($if) {
           @exec("ip addr flush dev {$ife} 2>/dev/null");
           @exec("ip addr add {$target} dev {$ife} 2>/dev/null");
         }
-        if (($cfg['GATEWAY'] ?? '') !== '' && ($cfg['NEVER_DEFAULT'] ?? 'yes') !== 'yes') {
+        // DEFAULT_ROUTE=yes + gateway → install system default via this iface (uncommon for TB)
+        if (($cfg['GATEWAY'] ?? '') !== '' && ($cfg['DEFAULT_ROUTE'] ?? 'no') === 'yes') {
           $gw = escapeshellarg($cfg['GATEWAY']);
           @exec("ip route replace default via {$gw} dev {$ife} 2>/dev/null");
         }

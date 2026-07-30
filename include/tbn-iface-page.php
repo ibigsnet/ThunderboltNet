@@ -182,13 +182,17 @@ if (strpos($nm, '.') === false) {
         <input type="text" name="GATEWAY" maxlength="15" value="<?= htmlspecialchars($cfg['GATEWAY'] ?? '') ?>">
       </dd>
 
-      <dt>Never default route:</dt>
+      <dt>Enable default route:</dt>
       <dd>
-        <select name="NEVER_DEFAULT">
-          <?= mk_option($cfg['NEVER_DEFAULT'] ?? 'yes', 'yes', 'Yes') ?>
-          <?= mk_option($cfg['NEVER_DEFAULT'] ?? 'yes', 'no', 'No') ?>
+        <select name="DEFAULT_ROUTE">
+          <?= mk_option($cfg['DEFAULT_ROUTE'] ?? 'no', 'no', 'No') ?>
+          <?= mk_option($cfg['DEFAULT_ROUTE'] ?? 'no', 'yes', 'Yes') ?>
         </select>
-        <span class="tbn-hint">Yes keeps the system default route on eth/br/wlan.</span>
+        <span class="tbn-hint">
+          Default is No. Thunderbolt links are usually peer-to-peer; keep routing local to this link.
+          Only set Yes if you intentionally want this interface to carry the system default route
+          for general network traffic (rare).
+        </span>
       </dd>
 
       <dt>Desired MTU:</dt>
