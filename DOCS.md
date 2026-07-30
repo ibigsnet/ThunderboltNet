@@ -1,6 +1,7 @@
 # Thunderbolt Net — Documentation
 
-**Host-to-host networking** over Thunderbolt-compatible ports on Unraid (Linux `thunderbolt_net` / `thunderboltN` interfaces—TB3/TB4/USB4 and later where the kernel supports them). Overview of the fabric, per-link settings like eth0 (`tbn0` / `tbn1` …), driver options, and practical peer scenarios.
+**Host-to-host networking** over Thunderbolt-family ports on Unraid (Linux `thunderbolt_net` / `thunderboltN`).  
+That includes **Thunderbolt 3, 4, and 5**, and **USB4 / USB4 v2** host controllers when the platform and kernel expose the same fabric—not plain USB&nbsp;2/3-only ports. See [standards and speeds](docs/standards-and-speeds.md).
 
 **Install:** Plugins → Install Plugin →  
 `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg`
@@ -44,7 +45,7 @@ The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt l
 | Driver options (`e2e`, modules) — **host-wide** | [docs/driver-options.md](docs/driver-options.md) |
 | Unraid ↔ Mac / Linux / Windows / docks & hubs | [docs/peer-scenarios.md](docs/peer-scenarios.md) |
 | `/24` vs `/30`, unique subnets per link | [docs/addressing.md](docs/addressing.md) |
-| TB/USB4 generations, rates, lanes, cables | [docs/standards-and-speeds.md](docs/standards-and-speeds.md) |
+| TB3–5, USB4/USB4 v2, rates, lanes, cables (not USB3-only) | [docs/standards-and-speeds.md](docs/standards-and-speeds.md) |
 | Hardware, BIOS, modules, security | [docs/requirements.md](docs/requirements.md) |
 | Topology, dual cables, hubs with NICs | [docs/links-and-topology.md](docs/links-and-topology.md) |
 | Every Settings field | [docs/settings-reference.md](docs/settings-reference.md) |
@@ -54,11 +55,11 @@ The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt l
 
 ## Quick start
 
-1. Confirm a Thunderbolt / USB4 **host controller** is visible (Thunderbolt tab shows hardware, not the empty state).
-2. Use a **certified TB4 / USB4** cable between Unraid and the peer (prefer short 40&nbsp;Gbps-rated cables).
+1. Confirm a Thunderbolt-family **host controller** is visible (Thunderbolt tab shows hardware, not the empty state).
+2. Use a **certified Thunderbolt / USB4** cable rated for your hosts (short high-rate passive is the usual lab choice).
 3. On **Thunderbolt → Driver options**, leave **E2E flow control = No** unless a peer scenario says otherwise.
 4. When `thunderbolt0` appears, open **tbn0**, set a **static** IPv4 (e.g. `10.255.0.2/24`), Apply.
-5. On the peer, set a matching address (e.g. `10.255.0.1/24`) on its Thunderbolt / USB4 network interface.
+5. On the peer, set a matching address (e.g. `10.255.0.1/24`) on its Thunderbolt network interface (macOS: Thunderbolt Bridge, etc.).
 6. Ping both ways. If the link quality badge says **20G · 1-lane** on a capable host, try a better cable first ([speeds](docs/standards-and-speeds.md)).
 
 ---

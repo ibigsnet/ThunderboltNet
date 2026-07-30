@@ -768,7 +768,7 @@ function tbn_modules_loaded() {
 }
 
 /**
- * Probe for Thunderbolt / USB4 host controller hardware (not peer cable).
+ * Probe for Thunderbolt-family host controller hardware (TB3/4/5, USB4 host router — not peer cable).
  * Returns keys: has_hardware, sysfs_bus, domain0, pci_lines, modules, reason.
  */
 function tbn_hardware_probe() {
@@ -779,7 +779,7 @@ function tbn_hardware_probe() {
   $lines = [];
   @exec('lspci -nn 2>/dev/null', $lines);
   foreach ($lines as $line) {
-    if (preg_match('/thunderbolt|USB4|Maple Ridge|NHI|JHL|Alpine Ridge|Titan Ridge|Ice Lake.*Thunderbolt/i', $line)) {
+    if (preg_match('/thunderbolt|USB4|Maple Ridge|Barlow Ridge|NHI|JHL|Alpine Ridge|Titan Ridge|Ice Lake.*Thunderbolt/i', $line)) {
       $pci[] = $line;
     }
   }
@@ -1327,7 +1327,7 @@ function tbn_list_pci_iommu() {
   @exec('lspci -Dnn 2>/dev/null', $lines);
   $want = [];
   foreach ($lines as $line) {
-    if (preg_match('/thunderbolt|USB4|Maple Ridge|NHI|Alpine Ridge|Titan Ridge|JHL/i', $line)
+    if (preg_match('/thunderbolt|USB4|Maple Ridge|Barlow Ridge|NHI|Alpine Ridge|Titan Ridge|JHL/i', $line)
       || preg_match('/\[8086:(1136|1137|1138|15eb|15ec|15ef|15f0|9a1b|9a1d|a0b5|a71e)\]/i', $line)) {
       if (preg_match('/^([0-9a-f:.]+)\s+(.+)$/i', $line, $m)) {
         $want[$m[1]] = $m[2];

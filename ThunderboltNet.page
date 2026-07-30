@@ -49,17 +49,25 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
 
 <?php if (!$has_hw): ?>
   <div class="tbn-notice" role="status">
-    <h4>No Thunderbolt hardware detected</h4>
+    <h4>No Thunderbolt host controller detected</h4>
     <p>
-      No Thunderbolt-compatible host controller is visible to Linux
-      (Thunderbolt / USB4 host interface that can run host networking).
+      Linux does not see a Thunderbolt host interface that can run host-to-host networking
+      (Thunderbolt&nbsp;3 /&nbsp;4 /&nbsp;5 or USB4-class host controllers, when the kernel exposes them).
+      Ordinary USB&nbsp;2/3 ports alone do not provide this path.
+    </p>
+    <p>
       This plugin is not required on this system unless you add compatible hardware.
     </p>
-    <p>
-      If that seems wrong, copy the diagnostics below and open an issue:
+    <p class="tbn-notice-issue">
+      If that seems wrong, copy the plugin diagnostics below and open an issue:<br>
       <a href="<?= htmlspecialchars($issues_url) ?>" target="_blank" rel="noopener"><?= htmlspecialchars($issues_url) ?></a>
     </p>
-    <label class="tbn-diag-label" for="tbn-diagnostics">Diagnostics</label>
+    <p class="tbn-notice-tools">
+      For a full Unraid package (logs, lspci, etc.), also run
+      <a href="/Tools/Diagnostics">Tools → Diagnostics</a>
+      and attach that zip when filing the issue.
+    </p>
+    <label class="tbn-diag-label" for="tbn-diagnostics">Plugin diagnostics</label>
     <textarea id="tbn-diagnostics" class="tbn-diag" readonly rows="14" spellcheck="false"><?= htmlspecialchars($diag) ?></textarea>
     <p class="tbn-actions">
       <input type="button" value="Copy diagnostics" onclick="tbnCopyDiagnostics()">

@@ -2,27 +2,28 @@
 
 ## Unraid host
 
-- Unraid with a kernel that includes **Thunderbolt / USB4** support (plugin targets modern Unraid; see `.plg` `min=`).  
-- A visible Thunderbolt/USB4 **host controller** (NHI) bound to the host driver — not permanently stuck on `vfio-pci` if you want host networking.  
-- Kernel modules: `thunderbolt`, `thunderbolt_net` (plugin can modprobe on Apply).
+- Unraid with a kernel that includes the **Thunderbolt** driver family (covers TB3/TB4/TB5-class and USB4 host routers; see `.plg` `min=`).  
+- A visible Thunderbolt **host controller** (NHI / host router) bound to the host driver — not permanently stuck on `vfio-pci` if you want host networking.  
+- Kernel modules: `thunderbolt`, `thunderbolt_net` (plugin can modprobe on Apply).  
+- **Not** a USB-only board with no Thunderbolt/USB4 host router — USB&nbsp;3 SuperSpeed ports alone are not enough.
 
 ## Peer
 
-- Another **host** that implements Thunderbolt/USB4 **networking** (Linux `thunderbolt_net`, macOS Thunderbolt Bridge, or Windows when the OEM stack provides it).  
+- Another **host** that implements Thunderbolt-family **networking** (Linux `thunderbolt_net`, macOS Thunderbolt Bridge, or Windows when the OEM stack provides it).  
 - Or accept that docks/hubs with RJ45 are usually **USB Ethernet**, not TB net — see [peer-scenarios.md](peer-scenarios.md).
 
 ## Cable
 
-- Prefer **certified Thunderbolt 4 / USB4 40&nbsp;Gbps** for host-to-host.  
+- Prefer a **certified Thunderbolt / USB4** cable rated for both ends (40&nbsp;Gbps class is the usual TB4-era pick; higher-rated cables for TB5/USB4 v2 when both hosts support it).  
 - Details: [standards-and-speeds.md](standards-and-speeds.md).
 
 ## BIOS / firmware (typical checklist)
 
 Exact menus vary by vendor (ASUS, MSI, Gigabyte, …):
 
-- Thunderbolt / USB4 support **Enabled**  
+- Thunderbolt / USB4 (or “USB4 and Thunderbolt”) support **Enabled**  
 - Security mode you understand (**None** is easiest for a closed lab; **User/Secure** needs authorization UX)  
-- Do not force the port into pure USB2/USB3-only mode if you want full TB/USB4  
+- Do not force the port into pure USB2/USB3-only mode if you want full Thunderbolt-family rates  
 - After BIOS changes, cold boot and recheck sysfs / the Thunderbolt tab  
 
 ## Security domain

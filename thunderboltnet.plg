@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.07.29az">
+<!ENTITY version "2026.07.29ba">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -34,6 +34,10 @@
 
 <CHANGES>
 ###&version;
+- Empty-state: clearer TB3–5/USB4 wording, spacing, link to Tools → Diagnostics.
+- Docs: standards matrix (TB3–5, USB4/v2; not USB3-only; no “USB5” brand).
+
+###2026.07.29az
 - Docs: reseating cables & multi-cable recovery; drop confusing E2E “already know” row; no “most common” peer claim.
 
 ###2026.07.29ay
@@ -122,7 +126,7 @@ echo "ThunderboltNet: directories ready."
 <![CDATA[
 **Thunderbolt Net**
 
-Plug-and-play host-to-host networking over Thunderbolt-compatible ports on Unraid. Fabric overview for local and remote links, per-link settings (tbn0, tbn1, …), PCI/IOMMU status, driver options, remembered peers, and link activity hints—not limited to one Thunderbolt or USB generation.
+Plug-and-play host-to-host networking over Thunderbolt-family ports on Unraid (Thunderbolt 3/4/5 and USB4-class hosts where Linux exposes them). Fabric overview, per-link settings (tbn0, tbn1, …), PCI/IOMMU, driver options, remembered peers, and activity hints—not locked to one generation.
 ]]>
 </INLINE>
 </FILE>
