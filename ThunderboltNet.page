@@ -2,6 +2,7 @@ Menu="NetworkSettings:1100"
 Title="Thunderbolt"
 Tag="sitemap"
 Icon="sitemap"
+Markdown="false"
 ---
 <?php
 /**
@@ -46,11 +47,7 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
 
 <div class="tbn-wrap">
   <div class="tbn-hero">
-    <h3 class="tbn-title">Thunderbolt / USB4 host networking</h3>
-    <p class="tbn-lead">
-      High-bandwidth <strong>host-to-host</strong> LAN over Thunderbolt 4 / USB4 (often 20&nbsp;Gb/s per link)
-      for bulk copies, VMs, backups, or media — without saturating Ethernet or Wi‑Fi.
-    </p>
+    <h3 class="tbn-title">Thunderbolt / USB4 networking</h3>
   </div>
 
 <?php if (!$has_hw): ?>
@@ -75,16 +72,12 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
   </div>
 <?php else: ?>
 
-  <p class="tbn-lead tbn-muted">
-    Each live link gets its own tab after Wireless: <strong>Thunderbolt tbn0</strong>, <strong>tbn1</strong>, …
-    (kernel names <code>thunderbolt0</code>, <code>thunderbolt1</code>). Configure addressing there, similar to eth.
-    This overview is for controller status, modules, and IOMMU/VFIO awareness.
-  </p>
-
   <blockquote class="inline_help">
-    <p><strong>Why not only eth pages?</strong> Unraid’s eth tabs manage boot-time NICs in <code>network.cfg</code>.
-    Thunderbolt netdevs appear when a peer link trains (hotplug) and need <code>thunderbolt</code> + <code>thunderbolt_net</code>.</p>
-    <p><strong>Cables:</strong> real TB4 / USB4 only. <strong>Safety:</strong> do not unbind the Thunderbolt NHI (can wedge until cold boot).</p>
+    <p>Live links appear as tabs <strong>Thunderbolt tbn0</strong>, <strong>tbn1</strong>, … (kernel
+    <code>thunderbolt0</code>, …). This page is controller status, modules, and PCI/IOMMU/VFIO.</p>
+    <p>Thunderbolt netdevs are hotplug; they are not configured like boot-time eth interfaces in
+    <code>network.cfg</code>. Use real Thunderbolt 4 / USB4 cables. Do not unbind the Thunderbolt NHI
+    from the host driver (can wedge the controller until a cold boot).</p>
   </blockquote>
 
   <h3>Summary</h3>

@@ -75,10 +75,6 @@ if (strpos($nm, '.') === false) {
 <div class="tbn-wrap">
   <div class="tbn-hero">
     <h3 class="tbn-title">Thunderbolt <?= htmlspecialchars($label) ?> <span class="tbn-muted">(<code><?= htmlspecialchars($if) ?></code>)</span></h3>
-    <p class="tbn-lead tbn-muted">
-      Host-to-host Thunderbolt / USB4 link. Settings mirror Unraid’s eth pages where they make sense;
-      addressing is applied with Linux tools because <code>thunderbolt*</code> is hotplug (not boot-time eth in <code>network.cfg</code>).
-    </p>
   </div>
 
 <?php if (!$present): ?>
@@ -134,7 +130,7 @@ if (strpos($nm, '.') === false) {
 **Interface description**
 : <input type="text" name="DESCRIPTION" maxlength="80" autocomplete="off" spellcheck="false" value="<?= htmlspecialchars($cfg['DESCRIPTION'] ?? '') ?>">
 
-: Optional label for this TB link (e.g. “desktop bulk path”).
+: Optional label for this interface.
 
 **MAC address**
 : <code><?= htmlspecialchars(strtoupper($mac)) ?></code>
@@ -205,7 +201,7 @@ if (strpos($nm, '.') === false) {
 <?php endforeach; ?>
   </select>
 
-: Example pair: this host <code>10.255.1.2/24</code>, peer <code>10.255.1.1/24</code>.
+: Static IPv4 and prefix length (both ends of the link must match).
 
 **IPv4 default gateway**
 : <input type="text" name="GATEWAY" maxlength="15" class="narrow" value="<?= htmlspecialchars($cfg['GATEWAY'] ?? '') ?>">

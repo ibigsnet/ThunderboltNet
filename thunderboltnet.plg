@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.07.29aj">
+<!ENTITY version "2026.07.29ak">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -34,10 +34,12 @@
 
 <CHANGES>
 ###&version;
-- Fix blank Settings tab (absolute plugin paths; Unraid .page eval breaks __DIR__).
-- Overview tab **Thunderbolt** plus per-link tabs **Thunderbolt tbn0**, **tbn1**, … after Wireless.
-- Eth-like per-iface settings: enable, bond (TB-only), IP static/DHCP, gateway, never-default, MTU, listening include, Reset.
-- IOMMU group / PCI / VFIO info; no-hardware empty state with copyable diagnostics.
+- Neutral settings copy (remove personal use-case marketing from the UI).
+- Fix tbnN tabs showing raw PHP: set Markdown=false on generated pages.
+
+###2026.07.29aj
+- Fix blank Settings tab (absolute plugin paths).
+- Overview **Thunderbolt** plus per-link **tbn0** / **tbn1** tabs; eth-like per-iface settings; IOMMU/VFIO info.
 
 ###2026.07.29ai
 - Empty state when no Thunderbolt hardware is detected.
@@ -85,7 +87,7 @@ echo "ThunderboltNet: directories ready."
 <![CDATA[
 **Thunderbolt Net**
 
-Host-to-host Thunderbolt / USB4 networking on Unraid: overview plus per-link tabs (tbn0, tbn1, …) with eth-like settings, IOMMU/VFIO info, and optional listening-interface include for high-bandwidth private LAN transfers.
+Thunderbolt / USB4 networking on Unraid: controller status, per-link tabs (tbn0, tbn1, …), optional addressing and listening-interface include.
 ]]>
 </INLINE>
 </FILE>
