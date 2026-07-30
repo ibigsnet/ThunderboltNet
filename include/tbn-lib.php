@@ -40,6 +40,8 @@ function tbn_load_cfg() {
     'bond_enable' => 'no',
     'bond_name' => 'bond-tb',
     'bond_mode' => 'balance-rr',
+    // Space-separated warning keys the user chose to hide globally (e.g. vfio:0000:11:00.0)
+    'ignore_warnings' => '',
   ];
   $cfg = [];
   if (function_exists('parse_plugin_cfg')) {
@@ -155,10 +157,11 @@ function tbn_list_netdevs() {
     if ($if === '.' || $if === '..') {
       continue;
     }
-    if (!preg_match('/^(thunderbolt\d+|bond-tb)$/', $if)) {
+    if (!preg_match('/^(thunderbolt\d+|bond-tb|br-tb)$/', $if)) {
       continue;
     }
     $base = $net . '/' . $if;
+    $master = tbn_iface_master($if);
     $out[] = [
       'iface' => $if,
       'operstate' => tbn_sysfs_str($base . '/operstate'),
@@ -166,7 +169,174 @@ function tbn_list_netdevs() {
       'address' => tbn_sysfs_str($base . '/address'),
       'mtu' => tbn_sysfs_str($base . '/mtu'),
       'addrs' => tbn_iface_addrs($if),
+      'master' => $master,
+      'masters' => tbn_iface_membership_labels($if, $master),
     ];
+  }
+  return $out;
+}
+
+/** Bond/bridge master name if enslaved, else ''. */
+function tbn_iface_master($if) {
+  $m = '/sys/class/net/' . $if . '/master';
+  if (!is_link($m) && !is_dir($m)) {
+    return '';
+  }
+  $real = @realpath($m);
+  return $real ? basename($real) : '';
+}
+
+/** Human labels for bond/bridge membership. */
+function tbn_iface_membership_labels($if, $master = null) {
+  if ($master === null) {
+    $master = tbn_iface_master($if);
+  }
+  $labels = [];
+  if ($master !== '') {
+    $type = 'upper';
+    if (is_dir('/sys/class/net/' . $master . '/bonding')) {
+      $type = 'bond';
+    } elseif (is_dir('/sys/class/net/' . $master . '/bridge')) {
+      $type = 'bridge';
+    }
+    $labels[] = $type . ':' . $master;
+  }
+  // Also list if this iface IS a bond/bridge that has members
+  if (is_dir('/sys/class/net/' . $if . '/bonding')) {
+    $members = [];
+    foreach (@scandir('/sys/class/net/' . $if . '/lower_*') ?: [] as $_) {
+      // lower_* are not via scandir of bonding; use glob
+    }
+    foreach (glob('/sys/class/net/' . $if . '/lower_*') ?: [] as $low) {
+      $members[] = basename(@realpath($low) ?: $low);
+    }
+    if ($members) {
+      $labels[] = 'bond-members:' . implode(',', $members);
+    }
+  }
+  return $labels;
+}
+
+/**
+ * Per-link summary: local side + far (peer) side from Thunderbolt fabric sysfs.
+ * Peer hostname comes from TB topology (device_name), not LLDP.
+ */
+function tbn_link_summaries() {
+  $include = tbn_read_include_interfaces();
+  $include_map = array_fill_keys($include, true);
+  $out = [];
+
+  foreach (tbn_list_tb_iface_names() as $if) {
+    $base = '/sys/class/net/' . $if;
+    $master = tbn_iface_master($if);
+    $parentdev = '';
+    $lines = [];
+    @exec('ip -d link show dev ' . escapeshellarg($if) . ' 2>/dev/null', $lines);
+    foreach ($lines as $line) {
+      if (preg_match('/parentdev\s+(\S+)/', $line, $m)) {
+        $parentdev = $m[1];
+        break;
+      }
+    }
+    // Resolve service node and peer host from sysfs
+    $svc_path = '';
+    $peer_path = '';
+    if ($parentdev !== '') {
+      // parentdev is like 0-1.0 under domain
+      $cand = '/sys/bus/thunderbolt/devices/' . $parentdev;
+      if (is_dir($cand) || is_link($cand)) {
+        $svc_path = @realpath($cand) ?: $cand;
+        $peer_path = dirname($svc_path);
+      }
+    }
+    if ($svc_path === '') {
+      $devlink = @realpath($base . '/device');
+      if ($devlink) {
+        $svc_path = $devlink;
+        $peer_path = dirname($devlink);
+      }
+    }
+
+    $local_host = tbn_sysfs_str('/sys/bus/thunderbolt/devices/0-0/device_name');
+    if ($local_host === '') {
+      $local_host = gethostname() ?: '';
+    }
+
+    $entry = [
+      'iface' => $if,
+      'label' => tbn_label_for_iface($if),
+      'local' => [
+        'hostname' => gethostname() ?: '',
+        'controller_name' => $local_host,
+        'mac' => tbn_sysfs_str($base . '/address'),
+        'operstate' => tbn_sysfs_str($base . '/operstate'),
+        'carrier' => tbn_sysfs_str($base . '/carrier'),
+        'mtu' => tbn_sysfs_str($base . '/mtu'),
+        'addrs' => tbn_iface_addrs($if),
+        'master' => $master,
+        'membership' => tbn_iface_membership_labels($if, $master),
+        'listening' => !empty($include_map[$if]) || ($master !== '' && !empty($include_map[$master])),
+      ],
+      'remote' => [
+        'hostname' => '',
+        'vendor' => '',
+        'unique_id' => '',
+        'rx_speed' => '',
+        'tx_speed' => '',
+        'rx_lanes' => '',
+        'tx_lanes' => '',
+        'service' => $parentdev,
+      ],
+      'lldp' => tbn_lldp_neighbor($if),
+    ];
+
+    if ($peer_path && is_dir($peer_path)) {
+      $entry['remote']['hostname'] = tbn_sysfs_str($peer_path . '/device_name');
+      $entry['remote']['vendor'] = tbn_sysfs_str($peer_path . '/vendor_name');
+      $entry['remote']['unique_id'] = tbn_sysfs_str($peer_path . '/unique_id');
+      $entry['remote']['rx_speed'] = tbn_sysfs_str($peer_path . '/rx_speed');
+      $entry['remote']['tx_speed'] = tbn_sysfs_str($peer_path . '/tx_speed');
+      $entry['remote']['rx_lanes'] = tbn_sysfs_str($peer_path . '/rx_lanes');
+      $entry['remote']['tx_lanes'] = tbn_sysfs_str($peer_path . '/tx_lanes');
+    }
+
+    $out[] = $entry;
+  }
+  return $out;
+}
+
+/**
+ * Optional LLDP neighbor if lldpcli/lldpctl is installed (usually not on Unraid).
+ * Thunderbolt fabric already exposes peer name/speed via sysfs; LLDP is extra.
+ */
+function tbn_lldp_neighbor($if) {
+  $out = ['available' => false, 'summary' => '', 'raw' => ''];
+  $bins = ['/usr/sbin/lldpctl', '/usr/bin/lldpctl', '/usr/sbin/lldpcli', '/usr/bin/lldpcli'];
+  $bin = '';
+  foreach ($bins as $b) {
+    if (is_executable($b)) {
+      $bin = $b;
+      break;
+    }
+  }
+  if ($bin === '') {
+    $out['summary'] = 'LLDP tools not installed';
+    return $out;
+  }
+  $out['available'] = true;
+  $lines = [];
+  if (strpos($bin, 'lldpcli') !== false) {
+    @exec(escapeshellcmd($bin) . ' show neighbors ports ' . escapeshellarg($if) . ' 2>/dev/null', $lines);
+  } else {
+    @exec(escapeshellcmd($bin) . ' ' . escapeshellarg($if) . ' 2>/dev/null', $lines);
+  }
+  $text = trim(implode("\n", $lines));
+  $out['raw'] = $text;
+  if ($text === '' || stripos($text, 'unknown') !== false && strlen($text) < 40) {
+    $out['summary'] = 'No LLDP neighbor on this port';
+  } else {
+    // Keep short
+    $out['summary'] = preg_replace('/\s+/', ' ', substr($text, 0, 200));
   }
   return $out;
 }
@@ -320,8 +490,10 @@ function tbn_status() {
     'modules' => tbn_modules_loaded(),
     'hardware' => $probe,
     'has_hardware' => !empty($probe['has_hardware']),
+    'local_controller' => tbn_sysfs_str('/sys/bus/thunderbolt/devices/0-0/device_name'),
     'devices' => tbn_list_tb_devices(),
     'netdevs' => tbn_list_netdevs(),
+    'links' => tbn_link_summaries(),
     'include_interfaces' => tbn_read_include_interfaces(),
     'cfg' => $cfg,
   ];
@@ -829,4 +1001,111 @@ function tbn_plugin_version() {
     }
   }
   return 'unknown';
+}
+
+/** Parsed list of globally ignored warning keys. */
+function tbn_ignored_warnings(?array $cfg = null) {
+  if ($cfg === null) {
+    $cfg = tbn_load_cfg();
+  }
+  $raw = trim((string)($cfg['ignore_warnings'] ?? ''));
+  if ($raw === '') {
+    return [];
+  }
+  $parts = preg_split('/\s+/', $raw);
+  return array_values(array_filter($parts, function ($p) {
+    return $p !== '';
+  }));
+}
+
+function tbn_is_warning_ignored($key, ?array $cfg = null) {
+  return in_array($key, tbn_ignored_warnings($cfg), true);
+}
+
+/**
+ * Persist ignore for one warning key in ThunderboltNet.cfg (global).
+ */
+function tbn_ignore_warning($key) {
+  $key = trim((string)$key);
+  if ($key === '' || !preg_match('/^[A-Za-z0-9:._-]+$/', $key)) {
+    return false;
+  }
+  $cfg = tbn_load_cfg();
+  $list = tbn_ignored_warnings($cfg);
+  if (!in_array($key, $list, true)) {
+    $list[] = $key;
+  }
+  $cfg['ignore_warnings'] = implode(' ', $list);
+  return tbn_write_global_cfg($cfg);
+}
+
+/**
+ * Write full global plugin cfg (known keys only).
+ */
+function tbn_write_global_cfg(array $cfg) {
+  $defaults = [
+    'tbn_defaults' => '',
+    'load_modules' => 'yes',
+    'e2e_flow_control' => 'no',
+    'include_listening' => 'no',
+    'manage_ip' => 'no',
+    'ip_addr' => '10.255.1.2',
+    'ip_cidr' => '24',
+    'ip_gateway' => '',
+    'never_default' => 'yes',
+    'iface_primary' => 'thunderbolt0',
+    'iface_secondary' => 'thunderbolt1',
+    'bond_enable' => 'no',
+    'bond_name' => 'bond-tb',
+    'bond_mode' => 'balance-rr',
+    'ignore_warnings' => '',
+  ];
+  $merged = array_merge($defaults, $cfg);
+  $dir = tbn_cfg_dir();
+  if (!is_dir($dir)) {
+    @mkdir($dir, 0755, true);
+  }
+  $lines = ['; ThunderboltNet global settings', ''];
+  foreach ($defaults as $k => $_) {
+    $v = isset($merged[$k]) ? (string)$merged[$k] : '';
+    $lines[] = $k . '="' . str_replace(['\\', '"'], ['\\\\', '\\"'], $v) . '"';
+  }
+  return @file_put_contents(tbn_cfg_path(), implode("\n", $lines) . "\n") !== false;
+}
+
+/**
+ * Active PCI warnings (currently VFIO on TB-related devices).
+ * Each: key, bdf, message, severity.
+ */
+function tbn_pci_warnings(array $pci, ?array $cfg = null) {
+  if ($cfg === null) {
+    $cfg = tbn_load_cfg();
+  }
+  $out = [];
+  foreach ($pci as $p) {
+    $bdf = $p['bdf'] ?? '';
+    if ($bdf === '') {
+      continue;
+    }
+    $vfio = ($p['vfio'] ?? 'no') === 'yes' || ($p['driver'] ?? '') === 'vfio-pci'
+      || ($p['vfio_boot_cfg'] ?? 'no') === 'yes';
+    if (!$vfio) {
+      continue;
+    }
+    $key = 'vfio:' . $bdf;
+    if (tbn_is_warning_ignored($key, $cfg)) {
+      continue;
+    }
+    $drv = $p['driver'] ?? '(none)';
+    $desc = $p['description'] ?? '';
+    $out[] = [
+      'key' => $key,
+      'bdf' => $bdf,
+      'severity' => 'warning',
+      'message' => "PCI {$bdf} is VFIO-bound or listed in vfio-pci.cfg (driver: {$drv})"
+        . ($desc !== '' ? " — {$desc}" : '')
+        . '. The host may not be able to use this Thunderbolt function until it is unbound from VFIO.',
+    ];
+  }
+  return $out;
 }

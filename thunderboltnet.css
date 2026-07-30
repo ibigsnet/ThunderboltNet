@@ -1,32 +1,73 @@
-/* ThunderboltNet — Network Settings tab */
+/* ThunderboltNet — Unraid Network Settings friendly layout */
 .tbn-wrap {
-  max-width: 980px;
+  max-width: 920px;
   margin: 0.25em 0 1.5em;
+  line-height: 1.45;
 }
-.tbn-hero {
-  margin-bottom: 1em;
+.tbn-wrap h3 {
+  margin: 1.25em 0 0.5em;
+  font-size: 1.1em;
 }
-.tbn-title {
-  margin: 0 0 0.4em;
-  font-size: 1.15em;
-}
-.tbn-lead {
-  margin: 0.4em 0 0.6em;
-  line-height: 1.5;
+.tbn-wrap h3:first-child {
+  margin-top: 0.35em;
 }
 .tbn-muted {
   color: var(--orange-muted, #999);
   font-size: 0.95em;
-  line-height: 1.45;
 }
+.tbn-note {
+  margin: 0.4em 0 0.9em;
+  font-size: 0.92em;
+  color: var(--orange-muted, #999);
+}
+
+/* Unraid-like label : field rows */
+.tbn-form-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.35em 0 1em;
+}
+.tbn-form-table th,
+.tbn-form-table td {
+  padding: 0.4em 0.65em 0.4em 0;
+  vertical-align: middle;
+  text-align: left;
+  border: none;
+}
+.tbn-form-table th {
+  width: 14em;
+  font-weight: normal;
+  white-space: nowrap;
+  padding-right: 1em;
+}
+.tbn-form-table td select,
+.tbn-form-table td input[type="text"],
+.tbn-form-table td input[type="number"] {
+  max-width: 22em;
+}
+.tbn-form-table .tbn-hint {
+  display: block;
+  font-size: 0.85em;
+  color: var(--orange-muted, #999);
+  margin-top: 0.2em;
+}
+.tbn-actions {
+  margin: 0.75em 0 1em;
+  padding-left: 0;
+}
+.tbn-actions input {
+  margin-right: 0.35em;
+}
+
+/* Status / data tables */
 .tbn-table {
   border-collapse: collapse;
-  margin: 0.4em 0 1.1em;
+  margin: 0.4em 0 1em;
 }
 .tbn-table th,
 .tbn-table td {
   border: 1px solid rgba(128, 128, 128, 0.35);
-  padding: 0.35em 0.7em;
+  padding: 0.35em 0.65em;
   text-align: left;
   vertical-align: top;
 }
@@ -36,65 +77,85 @@
 .tbn-summary td:first-child {
   font-weight: 600;
   white-space: nowrap;
-  width: 12em;
+  width: 11em;
 }
 .tbn-wide {
   width: 100%;
 }
-.tbn-wrap input.narrow,
-.tbn-wrap select {
-  max-width: 22em;
-}
-.tbn-steps {
-  margin: 0.5em 0 1.25em 1.25em;
-  line-height: 1.55;
-  padding: 0;
-}
-.tbn-steps li {
-  margin: 0.35em 0;
-}
-.tbn-footer {
-  margin-top: 1.5em;
-  padding-top: 0.75em;
-  border-top: 1px solid rgba(128, 128, 128, 0.25);
-}
-.tbn-wrap blockquote.inline_help {
-  margin: 0.75em 0 1.25em;
-}
+
+/* Notices */
 .tbn-notice {
   border: 1px solid rgba(200, 140, 40, 0.55);
   background: rgba(200, 140, 40, 0.08);
   border-radius: 6px;
-  padding: 0.9em 1.1em 1em;
-  margin: 0.75em 0 1.25em;
-  line-height: 1.5;
+  padding: 0.75em 1em;
+  margin: 0.6em 0 0.9em;
 }
 .tbn-notice h4 {
-  margin: 0 0 0.5em;
+  margin: 0 0 0.4em;
   font-size: 1.05em;
 }
 .tbn-notice p {
-  margin: 0.45em 0;
+  margin: 0.35em 0;
 }
-.tbn-diag-label {
-  display: block;
-  font-weight: 600;
-  margin: 0.85em 0 0.35em;
+.tbn-hidden {
+  display: none !important;
+}
+.tbn-pci-toggle-row {
+  margin: 0.25em 0 0.5em;
+}
+.tbn-row-warn td {
+  background: rgba(200, 140, 40, 0.12);
+}
+.tbn-warn-list {
+  margin: 0.4em 0 0.75em;
+}
+.tbn-warn-item {
+  margin-bottom: 0.55em;
+}
+.tbn-warn-msg {
+  margin: 0 0 0.4em;
+}
+.tbn-warn-hint {
+  margin-left: 0.4em;
+  font-size: 0.9em;
 }
 .tbn-diag {
   width: 100%;
-  max-width: 100%;
   box-sizing: border-box;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.85em;
   line-height: 1.35;
-  padding: 0.65em 0.75em;
+  padding: 0.6em 0.75em;
   border: 1px solid rgba(128, 128, 128, 0.4);
   border-radius: 4px;
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.12);
   resize: vertical;
-  min-height: 12em;
+  min-height: 11em;
 }
-.tbn-diag-actions {
-  margin: 0.65em 0 0;
+.tbn-diag-label {
+  display: block;
+  font-weight: 600;
+  margin: 0.75em 0 0.3em;
+}
+.tbn-footer {
+  margin-top: 1.25em;
+  padding-top: 0.65em;
+  border-top: 1px solid rgba(128, 128, 128, 0.25);
+  font-size: 0.92em;
+}
+.tbn-section {
+  margin-bottom: 1.25em;
+}
+.tbn-link-card {
+  margin-bottom: 1em;
+}
+.tbn-link-card thead th {
+  background: rgba(128, 128, 128, 0.12);
+}
+.tbn-side-label {
+  width: 5.5em;
+  font-weight: 600;
+  white-space: nowrap;
+  vertical-align: top;
 }

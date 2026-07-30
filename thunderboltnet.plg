@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.07.29ak">
+<!ENTITY version "2026.07.29ao">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -34,6 +34,13 @@
 
 <CHANGES>
 ###&version;
+- Drop version/GitHub footer from Settings pages (Plugins page already shows version).
+
+- Summary: local hostname/controller, listening includes, bond/bridge membership; per-link local↔remote (peer name, RX/TX, lanes); optional LLDP if tools exist.
+
+###2026.07.29am
+- Thunderbolt tab vs tbnN eth-style settings; cleaner form layout.
+
 - Neutral settings copy (remove personal use-case marketing from the UI).
 - Fix tbnN tabs showing raw PHP: set Markdown=false on generated pages.
 
@@ -87,7 +94,7 @@ echo "ThunderboltNet: directories ready."
 <![CDATA[
 **Thunderbolt Net**
 
-Thunderbolt / USB4 networking on Unraid: controller status, per-link tabs (tbn0, tbn1, …), optional addressing and listening-interface include.
+Thunderbolt / USB4 networking: summary (local and remote link info), PCI/IOMMU, tbn0/tbn1 interface settings.
 ]]>
 </INLINE>
 </FILE>
@@ -122,6 +129,14 @@ Thunderbolt / USB4 networking on Unraid: controller status, per-link tabs (tbn0,
 
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-update-iface.php">
 <URL>&raw;/include/tbn-update-iface.php?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-pci-panel.php">
+<URL>&raw;/include/tbn-pci-panel.php?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-ignore-warning.php">
+<URL>&raw;/include/tbn-ignore-warning.php?v=&version;</URL>
 </FILE>
 
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-status">

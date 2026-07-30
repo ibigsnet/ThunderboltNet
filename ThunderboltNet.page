@@ -6,20 +6,19 @@ Markdown="false"
 ---
 <?php
 /**
- * Overview tab (after wlan :1000). Per-link tabs: Thunderbolt tbn0, tbn1, ...
- * IMPORTANT: never use __DIR__ here — Unraid evaluates pages under a different cwd.
+ * Thunderbolt-specific overview (controller, modules, fabric, PCI/IOMMU).
+ * Per-link addressing lives on Thunderbolt tbn0 / tbn1 tabs.
+ * Absolute paths only — Unraid .page eval breaks __DIR__.
  */
 require_once '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php';
 
 $plugin = 'ThunderboltNet';
-$cfg = function_exists('parse_plugin_cfg') ? parse_plugin_cfg($plugin) : tbn_load_cfg();
+$cfg = function_exists('parse_plugin_cfg') ? parse_plugin_cfg($plugin) : [];
 if (!is_array($cfg)) {
-  $cfg = tbn_load_cfg();
-} else {
-  $cfg = array_merge(tbn_load_cfg(), $cfg);
+  $cfg = [];
 }
+$cfg = array_merge(tbn_load_cfg(), $cfg);
 
-// Ensure per-iface Network Settings tabs exist for live thunderbolt*
 tbn_sync_iface_pages();
 
 $status = tbn_status();
@@ -46,140 +45,254 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
 <link rel="stylesheet" href="/plugins/ThunderboltNet/thunderboltnet.css?v=<?= htmlspecialchars($ver) ?>">
 
 <div class="tbn-wrap">
-  <div class="tbn-hero">
-    <h3 class="tbn-title">Thunderbolt / USB4 networking</h3>
-  </div>
 
 <?php if (!$has_hw): ?>
-  <div class="tbn-notice tbn-notice-warn" role="status">
-    <h4>No Thunderbolt hardware detected on this server</h4>
+  <div class="tbn-notice" role="status">
+    <h4>No Thunderbolt hardware detected</h4>
     <p>
-      No Thunderbolt / USB4 host controller is visible to Linux (no matching PCI device and no
-      <code>/sys/bus/thunderbolt</code> domain).
-      <strong>You do not need this plugin on this machine</strong> unless you add TB hardware later.
+      No Thunderbolt / USB4 host controller is visible to Linux.
+      This plugin is not required on this system unless you add compatible hardware.
     </p>
     <p>
-      If this looks wrong, copy the diagnostics below and open a GitHub issue:
+      If that seems wrong, copy the diagnostics below and open an issue:
       <a href="<?= htmlspecialchars($issues_url) ?>" target="_blank" rel="noopener"><?= htmlspecialchars($issues_url) ?></a>
     </p>
-    <label class="tbn-diag-label" for="tbn-diagnostics">Hardware diagnostics (safe to paste publicly)</label>
-    <textarea id="tbn-diagnostics" class="tbn-diag" readonly rows="16" spellcheck="false"><?= htmlspecialchars($diag) ?></textarea>
-    <p class="tbn-diag-actions">
+    <label class="tbn-diag-label" for="tbn-diagnostics">Diagnostics</label>
+    <textarea id="tbn-diagnostics" class="tbn-diag" readonly rows="14" spellcheck="false"><?= htmlspecialchars($diag) ?></textarea>
+    <p class="tbn-actions">
       <input type="button" value="Copy diagnostics" onclick="tbnCopyDiagnostics()">
       <input type="button" value="Refresh" onclick="location.reload()">
       <input type="button" value="Done" onclick="done()">
     </p>
   </div>
+
 <?php else: ?>
+
+<?php
+  $links = $status['links'] ?? tbn_link_summaries();
+  $local_ctrl = $status['local_controller'] ?? tbn_sysfs_str('/sys/bus/thunderbolt/devices/0-0/device_name');
+?>
+  <div class="tbn-section">
+    <h3>This host</h3>
+    <table class="tbn-table tbn-summary">
+      <tr><td>Hostname</td><td><code><?= htmlspecialchars($status['hostname']) ?></code></td></tr>
+      <tr><td>Controller</td><td><?= htmlspecialchars($local_ctrl !== '' ? $local_ctrl : '—') ?></td></tr>
+      <tr><td>Domain security</td><td><code><?= htmlspecialchars($status['security'] ?: '(none/unknown)') ?></code></td></tr>
+      <tr><td>Modules</td>
+        <td><code>thunderbolt</code> <?= htmlspecialchars($mod_tb) ?> ·
+            <code>thunderbolt_net</code> <?= htmlspecialchars($mod_net) ?></td></tr>
+      <tr><td>Listening includes</td>
+        <td><code><?= htmlspecialchars(implode(' ', $include) ?: '(none)') ?></code>
+          <span class="tbn-muted"> (network-extra; edit per-link on tbnN or Interface Extra)</span></td></tr>
+      <tr><td>Link tabs</td>
+        <td>
+<?php if (!$ifaces): ?>
+          <span class="tbn-muted">No thunderbolt* netdevs yet</span>
+<?php else: ?>
+<?php foreach ($ifaces as $if): $lb = tbn_label_for_iface($if); $n = (int)substr($if, strlen('thunderbolt')); ?>
+          <a href="/Settings/Tbn<?= $n ?>"><code><?= htmlspecialchars($lb) ?></code></a>
+<?php endforeach; ?>
+<?php endif; ?>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="tbn-section">
+    <h3>Links (local ↔ remote)</h3>
+    <p class="tbn-note">
+      Far-side name and link rate come from the Thunderbolt fabric (sysfs).
+      LLDP is optional and usually unavailable on stock Unraid.
+      Address/bond settings for each link are on its <strong>tbnN</strong> tab.
+    </p>
+<?php if (!$links): ?>
+    <p class="tbn-muted">No active Thunderbolt network interfaces.</p>
+<?php else: ?>
+<?php foreach ($links as $L): $loc = $L['local']; $rem = $L['remote']; $lldp = $L['lldp']; ?>
+    <table class="tbn-table tbn-wide tbn-link-card">
+      <thead>
+        <tr>
+          <th colspan="2">
+            <a href="/Settings/Tbn<?= (int)substr($L['iface'], strlen('thunderbolt')) ?>"><?= htmlspecialchars($L['label']) ?></a>
+            <span class="tbn-muted"> · <code><?= htmlspecialchars($L['iface']) ?></code></span>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="tbn-side-label">Local</td>
+          <td>
+            <strong><?= htmlspecialchars($loc['hostname'] !== '' ? $loc['hostname'] : '—') ?></strong>
+            <?php if (!empty($loc['controller_name'])): ?>
+              <span class="tbn-muted"> (<?= htmlspecialchars($loc['controller_name']) ?>)</span>
+            <?php endif; ?>
+            <br>
+            MAC <code><?= htmlspecialchars(strtoupper($loc['mac'] ?: '—')) ?></code>
+            · state <?= htmlspecialchars($loc['operstate'] ?: '—') ?>
+            · carrier <?= htmlspecialchars($loc['carrier'] === '' ? 'n/a' : $loc['carrier']) ?>
+            · MTU <?= htmlspecialchars($loc['mtu'] !== '' ? $loc['mtu'] : '—') ?>
+            <br>
+            IPv4 <code><?= htmlspecialchars($loc['addrs'] ? implode(', ', $loc['addrs']) : '—') ?></code>
+            <br>
+            Listening: <?= !empty($loc['listening']) ? 'yes' : 'no' ?>
+            · Bond/bridge:
+            <?php if (!empty($loc['membership'])): ?>
+              <code><?= htmlspecialchars(implode(' ', $loc['membership'])) ?></code>
+            <?php elseif (!empty($loc['master'])): ?>
+              <code><?= htmlspecialchars($loc['master']) ?></code>
+            <?php else: ?>
+              none
+            <?php endif; ?>
+          </td>
+        </tr>
+        <tr>
+          <td class="tbn-side-label">Remote</td>
+          <td>
+            <strong><?= htmlspecialchars($rem['hostname'] !== '' ? $rem['hostname'] : '(no peer / unknown)') ?></strong>
+            <?php if ($rem['vendor'] !== ''): ?>
+              <span class="tbn-muted"> · <?= htmlspecialchars($rem['vendor']) ?></span>
+            <?php endif; ?>
+            <br>
+            Link RX/TX:
+            <strong><?= htmlspecialchars($rem['rx_speed'] !== '' ? $rem['rx_speed'] : '—') ?></strong>
+            /
+            <strong><?= htmlspecialchars($rem['tx_speed'] !== '' ? $rem['tx_speed'] : '—') ?></strong>
+            · lanes
+            <?= htmlspecialchars(($rem['rx_lanes'] !== '' ? $rem['rx_lanes'] : '—') . ' / ' . ($rem['tx_lanes'] !== '' ? $rem['tx_lanes'] : '—')) ?>
+            <br>
+            <?php if ($rem['unique_id'] !== ''): ?>
+              UUID <code><?= htmlspecialchars($rem['unique_id']) ?></code>
+              <?php if ($rem['service'] !== ''): ?> · service <code><?= htmlspecialchars($rem['service']) ?></code><?php endif; ?>
+            <?php else: ?>
+              <span class="tbn-muted">No far-side fabric entry (cable/peer down or not trained).</span>
+            <?php endif; ?>
+            <br>
+            LLDP:
+            <span class="tbn-muted"><?= htmlspecialchars($lldp['summary'] !== '' ? $lldp['summary'] : 'n/a') ?></span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+<?php endforeach; ?>
+<?php endif; ?>
+  </div>
+
+  <div class="tbn-section">
+    <h3>PCI / IOMMU / VFIO</h3>
+<?php
+  $tbn_pci_uid = 'overview';
+  require '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-pci-panel.php';
+?>
+  </div>
+
+  <div class="tbn-section">
+    <h3>Thunderbolt devices</h3>
+<?php if (!$devices): ?>
+    <p class="tbn-muted">No entries under <code>/sys/bus/thunderbolt/devices</code>.</p>
+<?php else: ?>
+    <table class="tbn-table tbn-wide">
+      <thead>
+        <tr><th>ID</th><th>Name</th><th>Vendor</th><th>RX / TX</th><th>Lanes</th><th>Netdevs</th></tr>
+      </thead>
+      <tbody>
+<?php foreach ($devices as $d): ?>
+        <tr>
+          <td><code><?= htmlspecialchars($d['id']) ?></code></td>
+          <td><?= htmlspecialchars($d['device_name'] ?: '—') ?></td>
+          <td><?= htmlspecialchars($d['vendor_name'] ?: '—') ?></td>
+          <td><?= htmlspecialchars(trim(($d['rx_speed'] ?: '—') . ' / ' . ($d['tx_speed'] ?: '—'))) ?></td>
+          <td><?= htmlspecialchars(trim(($d['rx_lanes'] ?: '—') . ' / ' . ($d['tx_lanes'] ?: '—'))) ?></td>
+          <td><code><?= htmlspecialchars($d['netdevs'] ? implode(', ', $d['netdevs']) : '—') ?></code></td>
+        </tr>
+<?php endforeach; ?>
+      </tbody>
+    </table>
+<?php endif; ?>
+  </div>
+
+  <div class="tbn-section">
+    <h3>Live netdevs</h3>
+<?php if (!$netdevs): ?>
+    <p class="tbn-muted">No <code>thunderbolt*</code> interfaces yet.</p>
+<?php else: ?>
+    <table class="tbn-table tbn-wide">
+      <thead>
+        <tr><th>Iface</th><th>UI tab</th><th>State</th><th>Carrier</th><th>MAC</th><th>IPv4</th></tr>
+      </thead>
+      <tbody>
+<?php foreach ($netdevs as $n): ?>
+        <tr>
+          <td><code><?= htmlspecialchars($n['iface']) ?></code></td>
+          <td><code><?= htmlspecialchars(tbn_label_for_iface($n['iface'])) ?></code></td>
+          <td><?= htmlspecialchars($n['operstate']) ?></td>
+          <td><?= htmlspecialchars($n['carrier'] === '' ? 'n/a' : $n['carrier']) ?></td>
+          <td><code><?= htmlspecialchars($n['address']) ?></code></td>
+          <td><code><?= htmlspecialchars($n['addrs'] ? implode(', ', $n['addrs']) : '—') ?></code></td>
+        </tr>
+<?php endforeach; ?>
+      </tbody>
+    </table>
+<?php endif; ?>
+  </div>
+
+  <div class="tbn-section">
+    <h3>Driver options</h3>
+    <form method="POST" action="/update.php" target="progressFrame">
+      <input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">
+      <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update.php">
+      <input type="hidden" name="tbn_defaults" value="">
+      <table class="tbn-form-table">
+        <tr>
+          <th>Load modules on Apply</th>
+          <td>
+            <select name="load_modules">
+              <?= mk_option($cfg['load_modules'] ?? 'yes', 'yes', 'Yes') ?>
+              <?= mk_option($cfg['load_modules'] ?? 'yes', 'no', 'No') ?>
+            </select>
+            <span class="tbn-hint"><code>thunderbolt</code> + <code>thunderbolt_net</code> (does not unbind NHI)</span>
+          </td>
+        </tr>
+        <tr>
+          <th>E2E flow control</th>
+          <td>
+            <select name="e2e_flow_control">
+              <?= mk_option($cfg['e2e_flow_control'] ?? 'no', 'no', 'No (e2e=0)') ?>
+              <?= mk_option($cfg['e2e_flow_control'] ?? 'no', 'yes', 'Yes (driver default)') ?>
+            </select>
+            <span class="tbn-hint">Often leave No for cross-host links</span>
+          </td>
+        </tr>
+      </table>
+      <!-- preserve other cfg keys if present -->
+      <input type="hidden" name="include_listening" value="<?= htmlspecialchars($cfg['include_listening'] ?? 'no') ?>">
+      <input type="hidden" name="manage_ip" value="<?= htmlspecialchars($cfg['manage_ip'] ?? 'no') ?>">
+      <input type="hidden" name="ip_addr" value="<?= htmlspecialchars($cfg['ip_addr'] ?? '10.255.1.2') ?>">
+      <input type="hidden" name="ip_cidr" value="<?= htmlspecialchars($cfg['ip_cidr'] ?? '24') ?>">
+      <input type="hidden" name="ip_gateway" value="<?= htmlspecialchars($cfg['ip_gateway'] ?? '') ?>">
+      <input type="hidden" name="never_default" value="<?= htmlspecialchars($cfg['never_default'] ?? 'yes') ?>">
+      <input type="hidden" name="iface_primary" value="<?= htmlspecialchars($cfg['iface_primary'] ?? 'thunderbolt0') ?>">
+      <input type="hidden" name="iface_secondary" value="<?= htmlspecialchars($cfg['iface_secondary'] ?? 'thunderbolt1') ?>">
+      <input type="hidden" name="bond_enable" value="<?= htmlspecialchars($cfg['bond_enable'] ?? 'no') ?>">
+      <input type="hidden" name="bond_name" value="<?= htmlspecialchars($cfg['bond_name'] ?? 'bond-tb') ?>">
+      <input type="hidden" name="bond_mode" value="<?= htmlspecialchars($cfg['bond_mode'] ?? 'balance-rr') ?>">
+      <input type="hidden" name="ignore_warnings" value="<?= htmlspecialchars($cfg['ignore_warnings'] ?? '') ?>">
+      <p class="tbn-actions">
+        <input type="submit" name="#apply" value="Apply">
+        <input type="button" value="Refresh" onclick="location.reload()">
+        <input type="button" value="Done" onclick="done()">
+      </p>
+    </form>
+  </div>
 
   <blockquote class="inline_help">
-    <p>Live links appear as tabs <strong>Thunderbolt tbn0</strong>, <strong>tbn1</strong>, … (kernel
-    <code>thunderbolt0</code>, …). This page is controller status, modules, and PCI/IOMMU/VFIO.</p>
-    <p>Thunderbolt netdevs are hotplug; they are not configured like boot-time eth interfaces in
-    <code>network.cfg</code>. Use real Thunderbolt 4 / USB4 cables. Do not unbind the Thunderbolt NHI
-    from the host driver (can wedge the controller until a cold boot).</p>
+    <p>Use Thunderbolt 4 / USB4 cables for host links. Do not unbind the Thunderbolt NHI from the host driver.</p>
   </blockquote>
-
-  <h3>Summary</h3>
-  <table class="tbn-table tbn-summary">
-    <tr><td>Hostname</td><td><?= htmlspecialchars($status['hostname']) ?></td></tr>
-    <tr><td>Domain security</td><td><code><?= htmlspecialchars($status['security'] ?: '(none/unknown)') ?></code></td></tr>
-    <tr><td>Modules</td><td><code>thunderbolt</code> <?= htmlspecialchars($mod_tb) ?> · <code>thunderbolt_net</code> <?= htmlspecialchars($mod_net) ?></td></tr>
-    <tr><td>Peers / ifaces</td><td><?= (int)$peer_count ?> peer(s) · <?= count($ifaces) ?> iface(s)</td></tr>
-    <tr><td>Interface tabs</td>
-      <td>
-<?php if (!$ifaces): ?>
-        <span class="tbn-muted">None yet — connect a cable/peer, then Refresh (tabs: tbn0, tbn1, …)</span>
-<?php else: ?>
-<?php foreach ($ifaces as $if): $lb = tbn_label_for_iface($if); ?>
-        <a href="/Settings/Tbn<?= (int)substr($if, strlen('thunderbolt')) ?>"><code><?= htmlspecialchars($lb) ?></code></a>
-        <span class="tbn-muted">(= <?= htmlspecialchars($if) ?>)</span>
-<?php endforeach; ?>
-<?php endif; ?>
-      </td>
-    </tr>
-    <tr><td>Listening includes</td><td><code><?= htmlspecialchars(implode(' ', $include) ?: '(empty)') ?></code></td></tr>
-  </table>
-
-  <h3>Controller PCI / IOMMU / VFIO</h3>
-  <p class="tbn-muted">If the NHI is bound to <code>vfio-pci</code>, the host cannot use Thunderbolt networking.</p>
-<?php if (!$pci): ?>
-  <p class="tbn-muted">No TB-related PCI rows found.</p>
-<?php else: ?>
-  <table class="tbn-table tbn-wide">
-    <thead>
-      <tr><th>PCI BDF</th><th>IOMMU group</th><th>Driver</th><th>VFIO</th><th>Description</th></tr>
-    </thead>
-    <tbody>
-<?php foreach ($pci as $p): ?>
-      <tr>
-        <td><code><?= htmlspecialchars($p['bdf']) ?></code></td>
-        <td><code><?= htmlspecialchars($p['iommu_group']) ?></code></td>
-        <td><code><?= htmlspecialchars($p['driver']) ?></code></td>
-        <td><?= htmlspecialchars($p['vfio']) ?><?= $p['vfio_boot_cfg'] === 'yes' ? ' (boot cfg)' : '' ?></td>
-        <td><?= htmlspecialchars($p['description']) ?></td>
-      </tr>
-<?php endforeach; ?>
-    </tbody>
-  </table>
-<?php endif; ?>
-
-  <h3>Thunderbolt devices</h3>
-<?php if (!$devices): ?>
-  <p class="tbn-muted">No sysfs device entries.</p>
-<?php else: ?>
-  <table class="tbn-table tbn-wide">
-    <thead>
-      <tr><th>ID</th><th>Name</th><th>Vendor</th><th>RX / TX</th><th>Lanes</th><th>Netdevs</th></tr>
-    </thead>
-    <tbody>
-<?php foreach ($devices as $d): ?>
-      <tr>
-        <td><code><?= htmlspecialchars($d['id']) ?></code></td>
-        <td><?= htmlspecialchars($d['device_name'] ?: '—') ?></td>
-        <td><?= htmlspecialchars($d['vendor_name'] ?: '—') ?></td>
-        <td><?= htmlspecialchars(trim(($d['rx_speed'] ?: '—') . ' / ' . ($d['tx_speed'] ?: '—'))) ?></td>
-        <td><?= htmlspecialchars(trim(($d['rx_lanes'] ?: '—') . ' / ' . ($d['tx_lanes'] ?: '—'))) ?></td>
-        <td><code><?= htmlspecialchars($d['netdevs'] ? implode(', ', $d['netdevs']) : '—') ?></code></td>
-      </tr>
-<?php endforeach; ?>
-    </tbody>
-  </table>
-<?php endif; ?>
-
-  <h3>Global driver options</h3>
-  <form markdown="1" method="POST" action="/update.php" target="progressFrame">
-  <input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">
-  <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update.php">
-  <input type="hidden" name="tbn_defaults" value="">
-
-**Load modules when applying**
-: <select name="load_modules">
-  <?= mk_option($cfg['load_modules'] ?? 'yes', 'yes', 'Yes') ?>
-  <?= mk_option($cfg['load_modules'] ?? 'yes', 'no', 'No') ?>
-  </select>
-
-: <code>modprobe thunderbolt</code> + <code>thunderbolt_net</code> (never NHI unbind).
-
-**E2E flow control**
-: <select name="e2e_flow_control">
-  <?= mk_option($cfg['e2e_flow_control'] ?? 'no', 'no', 'No (e2e=0 — often better cross-host)') ?>
-  <?= mk_option($cfg['e2e_flow_control'] ?? 'no', 'yes', 'Yes (driver default)') ?>
-  </select>
-
-: Cross-host links often work better with e2e=0.
-
-&nbsp;
-: <input type="submit" name="#apply" value="Apply"><input type="button" value="Refresh" onclick="location.reload()"><input type="button" value="Done" onclick="done()">
-
-  </form>
 
 <?php endif; ?>
 
   <p class="tbn-muted tbn-footer">
     Version <code><?= htmlspecialchars($ver) ?></code>
     · <a href="https://github.com/ibigsnet/ThunderboltNet" target="_blank" rel="noopener">GitHub</a>
-    · Settings → Network Settings → Thunderbolt / tbnN
   </p>
 </div>
 <script src="/plugins/ThunderboltNet/thunderboltnet.js?v=<?= htmlspecialchars($ver) ?>"></script>
