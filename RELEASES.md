@@ -8,9 +8,11 @@
 |-------|-----|
 | **Latest (`main`)** | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg` |
 
-Use the **raw** URL ending in `.plg` (not a GitHub repo or blob page). After install, hard-refresh **Settings → Network Settings → Thunderbolt Net**.
+Use the **raw** URL ending in `.plg` (not a GitHub repo or blob page). After install, hard-refresh **Settings → Network Settings → Thunderbolt**.
 
 Plugin versions use a date string (`YYYY.MM.DD…`). Normal installs track **`main`**.
+
+Full documentation (not the Plugins blurb): [DOCS.md](https://github.com/ibigsnet/ThunderboltNet/blob/main/DOCS.md) and [docs/](https://github.com/ibigsnet/ThunderboltNet/tree/main/docs).
 
 ## Stable baselines (rollback targets)
 

@@ -112,6 +112,75 @@
     }
   };
 
+  /**
+   * Unraid HelpButton toggles $('.inline_help'). BodyInlineJS also makes the matching
+   * <dt> clickable when blockquote.inline_help sits as the next sibling after a <dl>.
+   * Network Settings can re-paint tab content after our script runs — re-bind once for
+   * ThunderboltNet blockquotes that still lack a helpinfo id.
+   */
+  function tbnBindInlineHelp() {
+    if (typeof window.jQuery === 'undefined' && typeof window.$ === 'undefined') {
+      return;
+    }
+    var $ = window.jQuery || window.$;
+    var base = 0;
+    $('blockquote.inline_help[id^="helpinfo"]').each(function () {
+      var m = String(this.id || '').match(/helpinfo(\d+)/);
+      if (m) {
+        base = Math.max(base, parseInt(m[1], 10) + 1);
+      }
+    });
+    $('.tbn-wrap blockquote.inline_help').each(function () {
+      var $bq = $(this);
+      if ($bq.attr('id') && String($bq.attr('id')).indexOf('helpinfo') === 0) {
+        return;
+      }
+      var id = 'helpinfo' + base++;
+      $bq.attr('id', id);
+      var pin = $bq.prev();
+      if (!pin.prop('nodeName')) {
+        pin = $bq.parent().prev();
+      }
+      while (pin.prop('nodeName') && String(pin.prop('nodeName')).search(/(table|dl)/i) === -1) {
+        pin = pin.prev();
+      }
+      pin.find('tr:first, dt:last').each(function () {
+        var node = $(this);
+        var name = String(node.prop('nodeName') || '').toLowerCase();
+        if (name === 'dt') {
+          while (
+            !node.html() ||
+            String(node.html()).search(/(<input|<select|nbsp;)/i) >= 0 ||
+            name !== 'dt'
+          ) {
+            if (name === 'dt' && node.is(':first-of-type')) {
+              break;
+            }
+            node = node.prev();
+            name = String(node.prop('nodeName') || '').toLowerCase();
+          }
+          node.css('cursor', 'help').off('click.tbnHelp').on('click.tbnHelp', function () {
+            $('#' + id).toggle('slow');
+          });
+        } else if (node.html() && (name !== 'tr' || node.children('td:first').html())) {
+          node.css('cursor', 'help').off('click.tbnHelp').on('click.tbnHelp', function () {
+            $('#' + id).toggle('slow');
+          });
+        }
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+      setTimeout(tbnBindInlineHelp, 100);
+      setTimeout(tbnBindInlineHelp, 500);
+    });
+  } else {
+    setTimeout(tbnBindInlineHelp, 100);
+    setTimeout(tbnBindInlineHelp, 500);
+  }
+
   window.tbnCopyDiagnostics = function () {
     var el = document.getElementById('tbn-diagnostics');
     if (!el) {

@@ -29,9 +29,11 @@ function tbn_load_cfg() {
   $defaults = [
     'load_modules' => 'yes',
     'e2e_flow_control' => 'no',
+    // Default IPv4 plan for new/Reset iface tabs: small-lan | p2p | custom
+    'address_plan' => 'small-lan',
     'include_listening' => 'no',
     'manage_ip' => 'no',
-    'ip_addr' => '10.255.1.2',
+    'ip_addr' => '10.255.0.2',
     'ip_cidr' => '24',
     'ip_gateway' => '',
     'never_default' => 'yes',
@@ -302,16 +304,270 @@ function tbn_link_summaries() {
       $entry['remote']['tx_lanes'] = tbn_sysfs_str($peer_path . '/tx_lanes');
     }
 
+    // Traffic heuristic + safe-to-unplug hint (refined over future visits via sample file)
+    $entry['activity'] = tbn_iface_activity($if);
     $out[] = $entry;
   }
   return $out;
 }
 
 /**
+ * Sysfs counter snapshot for traffic rate estimates between page loads.
+ */
+function tbn_iface_stats_path($if) {
+  $safe = preg_replace('/[^A-Za-z0-9_-]/', '', (string)$if);
+  return '/var/tmp/tbn-stats-' . $safe . '.json';
+}
+
+function tbn_read_iface_counters($if) {
+  $base = '/sys/class/net/' . $if . '/statistics';
+  $rx = @file_get_contents($base . '/rx_bytes');
+  $tx = @file_get_contents($base . '/tx_bytes');
+  return [
+    'rx_bytes' => is_numeric(trim((string)$rx)) ? (float)trim($rx) : 0.0,
+    'tx_bytes' => is_numeric(trim((string)$tx)) ? (float)trim($tx) : 0.0,
+    't' => microtime(true),
+  ];
+}
+
+/**
+ * Best-effort activity for “safe to unplug” guidance.
+ * Needs two page loads a few seconds–minutes apart for a real rate; otherwise unknown/idle-by-state.
+ *
+ * Returns: level (idle|light|busy|down|unknown), label, safe_unplug (yes|no|unknown), note, bps
+ */
+function tbn_iface_activity($if) {
+  $empty = [
+    'level' => 'unknown',
+    'label' => 'Unknown',
+    'safe_unplug' => 'unknown',
+    'note' => 'Refresh again in a few seconds to estimate traffic.',
+    'bps' => null,
+  ];
+  if (!is_dir('/sys/class/net/' . $if)) {
+    return [
+      'level' => 'down',
+      'label' => 'Not present',
+      'safe_unplug' => 'yes',
+      'note' => 'Interface gone — cable already removed or peer left.',
+      'bps' => 0.0,
+    ];
+  }
+  $oper = tbn_sysfs_str('/sys/class/net/' . $if . '/operstate');
+  $carrier = tbn_sysfs_str('/sys/class/net/' . $if . '/carrier');
+  $now = tbn_read_iface_counters($if);
+  $path = tbn_iface_stats_path($if);
+  $prev = null;
+  if (is_readable($path)) {
+    $j = @json_decode((string)@file_get_contents($path), true);
+    if (is_array($j) && isset($j['t'], $j['rx_bytes'], $j['tx_bytes'])) {
+      $prev = $j;
+    }
+  }
+  @file_put_contents($path, json_encode($now));
+
+  if ($oper === 'down' || $carrier === '0') {
+    return [
+      'level' => 'down',
+      'label' => 'Link down',
+      'safe_unplug' => 'yes',
+      'note' => 'No carrier — usually fine to unplug the cable.',
+      'bps' => 0.0,
+    ];
+  }
+
+  if ($prev === null) {
+    $empty['label'] = 'Sampling…';
+    $empty['note'] = 'First sample taken. Refresh the page in a few seconds for traffic rate and unplug guidance.';
+    return $empty;
+  }
+
+  $dt = $now['t'] - (float)$prev['t'];
+  if ($dt < 1.0) {
+    $empty['label'] = 'Sampling…';
+    $empty['note'] = 'Samples too close together — wait a few seconds and refresh.';
+    return $empty;
+  }
+  if ($dt > 600) {
+    // Stale previous sample — treat as re-baseline
+    $empty['label'] = 'Sampling…';
+    $empty['note'] = 'Previous sample was old; refreshed baseline. Refresh again shortly.';
+    return $empty;
+  }
+
+  $drx = max(0.0, $now['rx_bytes'] - (float)$prev['rx_bytes']);
+  $dtx = max(0.0, $now['tx_bytes'] - (float)$prev['tx_bytes']);
+  $bps = ($drx + $dtx) / $dt;
+
+  // Thresholds: heuristic only (not kernel “removal policy”)
+  if ($bps < 50 * 1024) { // < ~50 KiB/s both ways
+    return [
+      'level' => 'idle',
+      'label' => 'Idle',
+      'safe_unplug' => 'yes',
+      'note' => 'Little or no recent traffic — generally OK to unplug after finishing copies. Unmount/share sessions on the peer first if you used them.',
+      'bps' => $bps,
+    ];
+  }
+  if ($bps < 2 * 1024 * 1024) { // < ~2 MiB/s
+    return [
+      'level' => 'light',
+      'label' => 'Light traffic',
+      'safe_unplug' => 'unknown',
+      'note' => 'Some traffic still flowing. Prefer waiting until transfers finish before unplugging.',
+      'bps' => $bps,
+    ];
+  }
+  return [
+    'level' => 'busy',
+    'label' => 'Busy',
+    'safe_unplug' => 'no',
+    'note' => 'Sustained traffic — do not unplug yet (risk of incomplete transfers or hung SMB/NFS clients).',
+    'bps' => $bps,
+  ];
+}
+
+function tbn_format_bps($bps) {
+  if ($bps === null || $bps < 0) {
+    return '—';
+  }
+  if ($bps < 1024) {
+    return round($bps) . ' B/s';
+  }
+  if ($bps < 1024 * 1024) {
+    return round($bps / 1024, 1) . ' KiB/s';
+  }
+  return round($bps / (1024 * 1024), 2) . ' MiB/s';
+}
+
+/**
+ * Remembered peers (plug-and-play groundwork). JSON on flash under plugin config dir.
+ * Future: re-apply last IPs, show health history, notify on reconnect.
+ */
+function tbn_peers_memory_path() {
+  return tbn_cfg_dir() . '/peers.json';
+}
+
+function tbn_load_peers_memory() {
+  $path = tbn_peers_memory_path();
+  if (!is_readable($path)) {
+    return [];
+  }
+  $j = @json_decode((string)@file_get_contents($path), true);
+  return is_array($j) ? $j : [];
+}
+
+function tbn_save_peers_memory(array $peers) {
+  $dir = tbn_cfg_dir();
+  if (!is_dir($dir)) {
+    @mkdir($dir, 0755, true);
+  }
+  // Cap history
+  if (count($peers) > 32) {
+    uasort($peers, function ($a, $b) {
+      return strcmp($b['last_seen'] ?? '', $a['last_seen'] ?? '');
+    });
+    $peers = array_slice($peers, 0, 32, true);
+  }
+  return @file_put_contents(
+    tbn_peers_memory_path(),
+    json_encode($peers, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n"
+  ) !== false;
+}
+
+/**
+ * Upsert live links into peers.json (by fabric unique_id or iface fallback).
+ */
+function tbn_remember_live_peers(array $links) {
+  $peers = tbn_load_peers_memory();
+  $now = date('c');
+  foreach ($links as $L) {
+    $rem = $L['remote'] ?? [];
+    $uid = trim((string)($rem['unique_id'] ?? ''));
+    $key = $uid !== '' ? $uid : ('iface:' . ($L['iface'] ?? 'unknown'));
+    $prev = $peers[$key] ?? [];
+    $peers[$key] = array_merge($prev, [
+      'unique_id' => $uid,
+      'peer_name' => $rem['peer_name'] ?? ($prev['peer_name'] ?? ''),
+      'stack' => $rem['stack'] ?? ($prev['stack'] ?? ''),
+      'last_iface' => $L['iface'] ?? '',
+      'last_label' => $L['label'] ?? '',
+      'last_rx_speed' => $rem['rx_speed'] ?? '',
+      'last_tx_speed' => $rem['tx_speed'] ?? '',
+      'last_rx_lanes' => $rem['rx_lanes'] ?? '',
+      'last_tx_lanes' => $rem['tx_lanes'] ?? '',
+      'last_local_addrs' => $L['local']['addrs'] ?? [],
+      'last_seen' => $now,
+      'seen_count' => (int)($prev['seen_count'] ?? 0) + 1,
+      'online' => true,
+    ]);
+  }
+  // Mark others offline (still remembered)
+  $live_keys = [];
+  foreach ($links as $L) {
+    $uid = trim((string)($L['remote']['unique_id'] ?? ''));
+    $live_keys[] = $uid !== '' ? $uid : ('iface:' . ($L['iface'] ?? ''));
+  }
+  foreach ($peers as $k => $p) {
+    $peers[$k]['online'] = in_array($k, $live_keys, true);
+  }
+  tbn_save_peers_memory($peers);
+  return $peers;
+}
+
+/**
+ * HTML snippet for activity / safe-unplug (Settings pages).
+ */
+function tbn_activity_html(array $act) {
+  $level = htmlspecialchars($act['level'] ?? 'unknown');
+  $label = htmlspecialchars($act['label'] ?? 'Unknown');
+  $safe = $act['safe_unplug'] ?? 'unknown';
+  $note = htmlspecialchars($act['note'] ?? '');
+  $rate = tbn_format_bps($act['bps'] ?? null);
+  $safe_label = [
+    'yes' => 'OK to unplug',
+    'no' => 'Keep connected',
+    'unknown' => 'Unplug: check first',
+  ];
+  $sl = htmlspecialchars($safe_label[$safe] ?? $safe_label['unknown']);
+  $html = '<span class="tbn-badge tbn-badge-act-' . $level . '">' . $label . '</span> ';
+  $html .= '<span class="tbn-badge tbn-badge-safe-' . htmlspecialchars($safe) . '">' . $sl . '</span>';
+  if ($rate !== '—') {
+    $html .= ' <span class="tbn-muted">~' . htmlspecialchars($rate) . '</span>';
+  }
+  if ($note !== '') {
+    $html .= '<p class="tbn-hint tbn-activity-note">' . $note . '</p>';
+  }
+  return $html;
+}
+
+/**
  * Assess trained link vs local controller capability (cable / training hint).
- * Returns: level (ok|warn|info|unknown), label, note, detail.
+ *
+ * Returns:
+ *   level      ok|warn|info|unknown
+ *   label      short badge text
+ *   note       plain explanation (capability vs trained path)
+ *   likely     most probable limit (when known) — not a hard cable EEPROM read
+ *   suggestion what to try next
+ *   less_likely other possible causes
+ *   detail     compact title/tooltip string
+ *
+ * Linux does not expose a reliable “this cable is 20G” flag. Inference is:
+ * local host can dual-lane high rate, but path trained 20G×1 → cable/path is
+ * the usual bottleneck (not “the other host capping you”).
  */
 function tbn_link_quality(array $remote, array $status = []) {
+  $empty = [
+    'level' => 'unknown',
+    'label' => 'No link',
+    'note' => '',
+    'likely' => '',
+    'suggestion' => '',
+    'less_likely' => '',
+    'detail' => '',
+  ];
+
   $gen = tbn_sysfs_str('/sys/bus/thunderbolt/devices/0-0/generation');
   $usb4 = '';
   $uevent = @file_get_contents('/sys/bus/thunderbolt/devices/0-0/uevent');
@@ -326,6 +582,12 @@ function tbn_link_quality(array $remote, array $status = []) {
   if (preg_match('/([\d.]+)\s*Gb/i', $rx, $m)) {
     $gbps = (float)$m[1];
   }
+  // Symmetric low rate both ways strengthens “path/cable” over one-sided host bug
+  $tx_gbps = 0.0;
+  if (preg_match('/([\d.]+)\s*Gb/i', $tx, $m)) {
+    $tx_gbps = (float)$m[1];
+  }
+  $symmetric_20 = ($gbps > 0 && $gbps <= 20.5 && ($tx_gbps <= 0 || $tx_gbps <= 20.5));
 
   $ctrl = 'TB host';
   if ($gen !== '') {
@@ -338,46 +600,107 @@ function tbn_link_quality(array $remote, array $status = []) {
   $ctrl_can_dual = ($gen === '' || (int)$gen >= 3);
 
   if ($rx === '' && $tx === '' && $rl === 0) {
-    return [
-      'level' => 'unknown',
-      'label' => 'No link',
-      'note' => '',
-      'detail' => "Controller: {$ctrl}",
-    ];
+    $empty['detail'] = "Controller: {$ctrl}";
+    return $empty;
   }
 
   $trained = trim($rx . ' · ' . ($rl > 0 ? $rl . ' lane' . ($rl === 1 ? '' : 's') : 'lanes n/a'));
-  if ($ctrl_can_dual && $rl === 1 && $gbps > 0 && $gbps <= 20.5) {
+  if ($tx !== '' && $tx !== $rx) {
+    $trained .= ' (TX ' . $tx . ($tl > 0 ? ' · ' . $tl . ' lane' . ($tl === 1 ? '' : 's') : '') . ')';
+  }
+
+  // Strong signal: capable controller, single-lane ~20G both directions
+  if ($ctrl_can_dual && $rl === 1 && $symmetric_20) {
     return [
       'level' => 'warn',
       'label' => '20G · 1-lane',
-      'note' => "Controller looks capable of higher rates ({$ctrl}, often up to ~40G / 2-lane). "
-        . "Trained path is {$trained} both directions — usually a 20G-class cable, single-lane training, or port path limit — not one host “capping” the other.",
-      'detail' => "Controller {$ctrl}; trained {$trained}",
+      'note' => "This host’s controller looks capable of higher rates ({$ctrl}, often up to ~40G / 2-lane). "
+        . "Trained path is {$trained} both directions.",
+      'likely' => 'Most likely a cable or cable-path limit — a 20G-class / single-lane USB-C cable, '
+        . 'a long passive cable that only trains one lane, or a port that is not full USB4/TB bandwidth.',
+      'suggestion' => 'For higher speeds: use a certified 40 Gbps Thunderbolt 4 or USB4 cable '
+        . '(prefer short passive, or active if you need length). Re-seat both ends, try the other rear TB/USB4 ports, '
+        . 'and avoid front-panel USB-C unless you know it is wired for full USB4.',
+      'less_likely' => 'Less likely: one host “capping” the other when both sides are Gen3+/USB4. '
+        . 'BIOS/firmware can still force a lower mode — check Thunderbolt/USB4 security and port mode if a known-good 40G cable still trains 20G×1.',
+      'detail' => "Controller {$ctrl}; trained {$trained}; likely cable/path limit",
     ];
   }
+
   if ($rl >= 2 && $gbps >= 30) {
     return [
       'level' => 'ok',
       'label' => 'High rate',
-      'note' => '',
+      'note' => "Trained at a high dual-lane rate ({$trained}). Controller: {$ctrl}.",
+      'likely' => 'Path looks healthy for high-speed host-to-host Thunderbolt networking.',
+      'suggestion' => '',
+      'less_likely' => '',
       'detail' => "Controller {$ctrl}; trained {$trained}",
     ];
   }
+
+  if ($ctrl_can_dual && $rl >= 2 && $gbps > 0 && $gbps < 30) {
+    return [
+      'level' => 'info',
+      'label' => $trained !== '' ? $trained : 'Linked',
+      'note' => "Dual-lane link at {$trained} on {$ctrl}.",
+      'likely' => 'Link trained with 2 lanes; rate is moderate — cable, peer, or intermediate hop may still limit peak Gb/s.',
+      'suggestion' => 'If you expected ~40G, try a certified 40 Gbps TB4/USB4 cable and confirm the peer also supports dual-lane high rate.',
+      'less_likely' => '',
+      'detail' => "Controller {$ctrl}; trained {$trained}",
+    ];
+  }
+
   if ($gbps > 0) {
     return [
       'level' => 'info',
-      'label' => $trained,
-      'note' => '',
+      'label' => $trained !== '' ? $trained : 'Linked',
+      'note' => "Trained path: {$trained}. Controller: {$ctrl}.",
+      'likely' => '',
+      'suggestion' => '',
+      'less_likely' => '',
       'detail' => "Controller {$ctrl}; trained {$trained}",
     ];
   }
+
   return [
     'level' => 'info',
     'label' => 'Linked',
     'note' => '',
+    'likely' => '',
+    'suggestion' => '',
+    'less_likely' => '',
     'detail' => "Controller {$ctrl}",
   ];
+}
+
+/**
+ * HTML block for a quality result (badge + structured advice). Safe for Settings pages.
+ */
+function tbn_link_quality_html(array $q) {
+  $level = htmlspecialchars($q['level'] ?? 'info');
+  $label = htmlspecialchars($q['label'] ?? '');
+  $detail = htmlspecialchars($q['detail'] ?? '');
+  $html = '<span class="tbn-badge tbn-badge-' . $level . '" title="' . $detail . '">' . $label . '</span>';
+  $parts = [];
+  if (!empty($q['note'])) {
+    $parts[] = '<p class="tbn-quality-note">' . htmlspecialchars($q['note']) . '</p>';
+  }
+  if (!empty($q['likely'])) {
+    $parts[] = '<p class="tbn-quality-likely"><strong>Likely limit:</strong> '
+      . htmlspecialchars($q['likely']) . '</p>';
+  }
+  if (!empty($q['suggestion'])) {
+    $parts[] = '<p class="tbn-quality-suggest"><strong>Suggestion:</strong> '
+      . htmlspecialchars($q['suggestion']) . '</p>';
+  }
+  if (!empty($q['less_likely'])) {
+    $parts[] = '<p class="tbn-quality-less tbn-muted">' . htmlspecialchars($q['less_likely']) . '</p>';
+  }
+  if ($parts) {
+    $html .= '<div class="tbn-quality-advice">' . implode('', $parts) . '</div>';
+  }
+  return $html;
 }
 
 /**
@@ -558,6 +881,9 @@ function tbn_diagnostics_text() {
 function tbn_status() {
   $cfg = tbn_load_cfg();
   $probe = tbn_hardware_probe();
+  $links = tbn_link_summaries();
+  // Plug-and-play groundwork: persist last-seen peers while reviewing Settings
+  $peers = tbn_remember_live_peers($links);
   return [
     'hostname' => gethostname() ?: '',
     'time' => date('c'),
@@ -569,7 +895,8 @@ function tbn_status() {
     'local_manufacturer' => tbn_sysfs_str('/sys/bus/thunderbolt/devices/0-0/vendor_name'),
     'devices' => tbn_list_tb_devices(),
     'netdevs' => tbn_list_netdevs(),
-    'links' => tbn_link_summaries(),
+    'links' => $links,
+    'peers_memory' => $peers,
     'include_interfaces' => tbn_read_include_interfaces(),
     'cfg' => $cfg,
   ];
@@ -781,13 +1108,83 @@ function tbn_iface_cfg_path($if) {
   return tbn_iface_cfg_dir() . '/' . $safe . '.cfg';
 }
 
-function tbn_iface_defaults($if = 'thunderbolt0') {
-  $n = 0;
-  if (preg_match('/(\d+)$/', $if, $m)) {
-    $n = (int)$m[1];
+/**
+ * Numeric index from thunderboltN (used for unique default subnets per link).
+ */
+function tbn_iface_index($if) {
+  if (preg_match('/(\d+)$/', (string)$if, $m)) {
+    return (int)$m[1];
   }
-  // .2 on first Unraid TB iface is conventional; peer often .1
-  $last = 2 + $n;
+  return 0;
+}
+
+/**
+ * Supported IPv4 address plans (per-link and global default).
+ * small-lan: /24, room for VMs/aliases — product default.
+ * p2p: /30, two usable hosts — pure host↔host pipe.
+ * custom: keep whatever IP/mask the user sets.
+ */
+function tbn_address_plans() {
+  return [
+    'small-lan' => [
+      'label' => 'Small LAN (/24)',
+      'prefix' => 24,
+      'mask' => '255.255.255.0',
+    ],
+    'p2p' => [
+      'label' => 'Point-to-point (/30)',
+      'prefix' => 30,
+      'mask' => '255.255.255.252',
+    ],
+    'custom' => [
+      'label' => 'Custom',
+      'prefix' => null,
+      'mask' => null,
+    ],
+  ];
+}
+
+function tbn_normalize_address_plan($plan) {
+  $plan = strtolower(trim((string)$plan));
+  $plans = tbn_address_plans();
+  return isset($plans[$plan]) ? $plan : 'small-lan';
+}
+
+/**
+ * Suggested static IPv4 for a plan + iface (Unraid = .2, peer often .1).
+ * Each thunderboltN gets third-octet N so dual peers do not share one /24.
+ */
+function tbn_suggest_address($if, $plan = 'small-lan') {
+  $plan = tbn_normalize_address_plan($plan);
+  $n = tbn_iface_index($if);
+  $base = '10.255.' . $n;
+  if ($plan === 'p2p') {
+    return [
+      'IPADDR' => $base . '.2',
+      'NETMASK' => '255.255.255.252',
+      'prefix' => 30,
+      'peer_hint' => $base . '.1',
+      'network' => $base . '.0/30',
+    ];
+  }
+  // small-lan (and custom suggestions when resetting)
+  return [
+    'IPADDR' => $base . '.2',
+    'NETMASK' => '255.255.255.0',
+    'prefix' => 24,
+    'peer_hint' => $base . '.1',
+    'network' => $base . '.0/24',
+  ];
+}
+
+function tbn_iface_defaults($if = 'thunderbolt0') {
+  $g = tbn_load_cfg();
+  $plan = tbn_normalize_address_plan($g['address_plan'] ?? 'small-lan');
+  if ($plan === 'custom') {
+    // Custom global default still needs a starting suggestion for empty forms.
+    $plan = 'small-lan';
+  }
+  $sug = tbn_suggest_address($if, $plan);
   return [
     'DESCRIPTION' => '',
     'ENABLE' => 'yes',
@@ -798,8 +1195,10 @@ function tbn_iface_defaults($if = 'thunderbolt0') {
     'BR_NAME' => 'br-tb',
     'PROTOCOL' => 'ipv4',
     'USE_DHCP' => 'no',
-    'IPADDR' => '10.255.1.' . $last,
-    'NETMASK' => '24',
+    // Address plan: small-lan | p2p | custom — see docs/addressing.md
+    'ADDRESS_PLAN' => tbn_normalize_address_plan($g['address_plan'] ?? 'small-lan'),
+    'IPADDR' => $sug['IPADDR'],
+    'NETMASK' => (string)$sug['prefix'],
     'GATEWAY' => '',
     // Install a system default route via this iface? Default no (peer-local only).
     'DEFAULT_ROUTE' => 'no',
@@ -807,6 +1206,68 @@ function tbn_iface_defaults($if = 'thunderbolt0') {
     'USE_MTU' => 'no',
     'INCLUDE_LISTENING' => 'no',
   ];
+}
+
+/**
+ * Public docs on GitHub (same pattern as StorageGuard DOCS.md — not the Plugins blurb).
+ */
+function tbn_github_repo() {
+  return 'https://github.com/ibigsnet/ThunderboltNet';
+}
+
+/**
+ * Human-readable docs URL (blob/main). $path is repo-relative, e.g. DOCS.md or docs/addressing.md
+ */
+function tbn_docs_url($path = 'DOCS.md') {
+  $path = ltrim((string)$path, '/');
+  if ($path === '') {
+    $path = 'DOCS.md';
+  }
+  return tbn_github_repo() . '/blob/main/' . $path;
+}
+
+/**
+ * Compact docs nav for Settings pages (overview + tbnN).
+ * $active: overview | iface | addressing | speeds | requirements | topology | troubleshoot
+ */
+function tbn_docs_bar_html($active = 'overview') {
+  $links = [
+    'guide' => ['DOCS.md', 'Docs home'],
+    'drivers' => ['docs/driver-options.md', 'Driver options'],
+    'peers' => ['docs/peer-scenarios.md', 'Peer scenarios'],
+    'addressing' => ['docs/addressing.md', 'Addressing'],
+    'speeds' => ['docs/standards-and-speeds.md', 'Standards & speeds'],
+    'requirements' => ['docs/requirements.md', 'Requirements'],
+    'topology' => ['docs/links-and-topology.md', 'Links & topology'],
+    'troubleshoot' => ['docs/troubleshooting.md', 'Troubleshooting'],
+  ];
+  $parts = [];
+  foreach ($links as $key => $pair) {
+    list($path, $label) = $pair;
+    $cls = ($key === $active || ($active === 'overview' && $key === 'guide') || ($active === 'iface' && $key === 'addressing'))
+      ? ' class="tbn-docs-active"' : '';
+    $parts[] = '<a href="' . htmlspecialchars(tbn_docs_url($path)) . '" target="_blank" rel="noopener"'
+      . $cls . '>' . htmlspecialchars($label) . '</a>';
+  }
+  return '<nav class="tbn-docs-bar" aria-label="Thunderbolt Net documentation">'
+    . '<span class="tbn-docs-label">Documentation</span> '
+    . implode(' <span class="tbn-docs-sep">·</span> ', $parts)
+    . '</nav>';
+}
+
+/**
+ * Short inline “more in docs” anchor for hints / helpers.
+ */
+function tbn_docs_more_html($path, $label = 'More in docs') {
+  return '<a class="tbn-docs-more" href="' . htmlspecialchars(tbn_docs_url($path))
+    . '" target="_blank" rel="noopener">' . htmlspecialchars($label) . '</a>';
+}
+
+/**
+ * Footer line used inside blockquote.inline_help — always opens GitHub docs in a new tab.
+ */
+function tbn_help_docs_footer($path, $label = 'Full guide') {
+  return '<br><br>' . tbn_docs_more_html($path, $label . ' ↗');
 }
 
 function tbn_parse_cfg_file($path) {
@@ -1134,9 +1595,10 @@ function tbn_write_global_cfg(array $cfg) {
     'tbn_defaults' => '',
     'load_modules' => 'yes',
     'e2e_flow_control' => 'no',
+    'address_plan' => 'small-lan',
     'include_listening' => 'no',
     'manage_ip' => 'no',
-    'ip_addr' => '10.255.1.2',
+    'ip_addr' => '10.255.0.2',
     'ip_cidr' => '24',
     'ip_gateway' => '',
     'never_default' => 'yes',

@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.07.29av">
+<!ENTITY version "2026.07.29ay">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -34,6 +34,19 @@
 
 <CHANGES>
 ###&version;
+- Plug-and-play groundwork: remembered peers, activity / safe-unplug hints; Plugins blurb updated.
+- Docs (DOCS.md + docs/*), Unraid blue helpers, LOCAL|REMOTE|REMOTE table, link quality cable advice.
+- Clearer description: Thunderbolt-compatible host networking (not one generation only).
+
+###2026.07.29ax
+- Clearer Plugins description: Thunderbolt-compatible host networking (not one USB/TB generation only).
+
+###2026.07.29aw
+- Docs treasure trove (DOCS.md + docs/*): driver E2E, peer scenarios (Linux/Mac/Windows/docks), addressing, speeds.
+- Unraid blue inline_help on driver and tbn fields; Documentation bar links to GitHub guides.
+- Link quality advice: likely cable limit + upgrade suggestion; LOCAL|REMOTE|REMOTE comparison table.
+
+###2026.07.29av
 - Compact Remote peers table (one row per tbnN); link quality badge vs controller capability.
 
 - Clearer local vs remote identity (hostname, product, manufacturer/stack); unified link table; more driver help and spacing.
@@ -106,7 +119,7 @@ echo "ThunderboltNet: directories ready."
 <![CDATA[
 **Thunderbolt Net**
 
-Thunderbolt / USB4 networking: summary (local and remote link info), PCI/IOMMU, tbn0/tbn1 interface settings.
+Plug-and-play host-to-host networking over Thunderbolt-compatible ports on Unraid. Fabric overview for local and remote links, per-link settings (tbn0, tbn1, …), PCI/IOMMU status, driver options, remembered peers, and link activity hints—not limited to one Thunderbolt or USB generation.
 ]]>
 </INLINE>
 </FILE>

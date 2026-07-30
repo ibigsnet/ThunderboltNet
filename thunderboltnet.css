@@ -47,6 +47,52 @@
   color: var(--orange-muted, #999);
   margin-top: 0.25rem;
 }
+
+/*
+ * Unraid default: .inline_help { display: none } until Help button or label click.
+ * Do not force display:block here — that breaks the blue help system.
+ * Only polish spacing when Unraid shows them.
+ */
+.tbn-wrap blockquote.inline_help {
+  margin: 0.35rem 0 1rem;
+  max-width: 52rem;
+  line-height: 1.45;
+}
+.tbn-wrap dl + blockquote.inline_help {
+  margin-top: 0.15rem;
+}
+/* Clickable labels get cursor:help from Unraid / tbnBindInlineHelp */
+.tbn-wrap dt {
+  cursor: default;
+}
+
+/* Documentation bar (GitHub DOCS.md / docs/*) */
+.tbn-docs-bar {
+  margin: 0 0 1rem;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.88em;
+  line-height: 1.45;
+  border: 1px solid rgba(128, 128, 128, 0.28);
+  border-radius: 6px;
+  background: rgba(80, 140, 200, 0.06);
+}
+.tbn-docs-bar .tbn-docs-label {
+  font-weight: 600;
+  margin-right: 0.25rem;
+}
+.tbn-docs-bar .tbn-docs-sep {
+  opacity: 0.55;
+  margin: 0 0.15rem;
+}
+.tbn-docs-bar a.tbn-docs-active {
+  font-weight: 600;
+}
+.tbn-docs-more {
+  white-space: nowrap;
+}
+.tbn-wrap blockquote.inline_help a {
+  text-decoration: underline;
+}
 .tbn-wrap form dd select,
 .tbn-wrap form dd input[type="text"],
 .tbn-wrap form dd input[type="number"] {
@@ -204,4 +250,134 @@
 .tbn-live {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.95em;
+}
+
+/* LOCAL | REMOTE | REMOTE comparison */
+.tbn-compare-scroll {
+  width: 100%;
+  overflow-x: auto;
+  margin: 0.5rem 0 1rem;
+}
+.tbn-compare {
+  min-width: 36rem;
+}
+.tbn-compare th.tbn-compare-rowhead,
+.tbn-compare tbody th {
+  width: 10.5rem;
+  min-width: 9rem;
+  text-align: right;
+  font-weight: 600;
+  white-space: nowrap;
+  vertical-align: top;
+  color: var(--orange-muted, #aaa);
+  background: rgba(128, 128, 128, 0.05);
+}
+.tbn-compare thead th {
+  text-align: center;
+  vertical-align: bottom;
+}
+.tbn-compare .tbn-compare-subhead th {
+  font-weight: 500;
+  font-size: 0.92em;
+  background: rgba(128, 128, 128, 0.06);
+}
+.tbn-compare .tbn-col-local {
+  min-width: 11rem;
+  background: rgba(80, 140, 200, 0.06);
+}
+.tbn-compare .tbn-col-remote {
+  min-width: 12rem;
+  vertical-align: top;
+}
+.tbn-compare .tbn-uuid {
+  font-size: 0.8em;
+  word-break: break-all;
+}
+
+/* Link quality badges + structured advice */
+.tbn-badge {
+  display: inline-block;
+  font-size: 0.85em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(128, 128, 128, 0.35);
+  background: rgba(128, 128, 128, 0.12);
+  white-space: nowrap;
+}
+.tbn-badge-ok {
+  border-color: rgba(60, 160, 90, 0.55);
+  background: rgba(60, 160, 90, 0.15);
+  color: inherit;
+}
+.tbn-badge-warn {
+  border-color: rgba(200, 140, 40, 0.65);
+  background: rgba(200, 140, 40, 0.18);
+  color: inherit;
+}
+.tbn-badge-info {
+  border-color: rgba(80, 140, 200, 0.5);
+  background: rgba(80, 140, 200, 0.12);
+}
+.tbn-badge-unknown {
+  opacity: 0.85;
+}
+.tbn-quality-warn {
+  background: rgba(200, 140, 40, 0.07);
+}
+.tbn-quality-ok {
+  background: rgba(60, 160, 90, 0.05);
+}
+.tbn-quality-advice {
+  margin-top: 0.45rem;
+  font-size: 0.88em;
+  line-height: 1.4;
+  max-width: 28rem;
+}
+.tbn-quality-advice p {
+  margin: 0.3rem 0 0;
+}
+.tbn-quality-note {
+  color: inherit;
+}
+.tbn-quality-likely {
+  color: inherit;
+}
+.tbn-quality-suggest {
+  color: inherit;
+}
+.tbn-quality-less {
+  font-size: 0.95em;
+}
+
+/* Activity / safe-unplug */
+.tbn-badge-act-idle,
+.tbn-badge-safe-yes {
+  border-color: rgba(60, 160, 90, 0.55);
+  background: rgba(60, 160, 90, 0.15);
+}
+.tbn-badge-act-light,
+.tbn-badge-safe-unknown {
+  border-color: rgba(200, 140, 40, 0.65);
+  background: rgba(200, 140, 40, 0.18);
+}
+.tbn-badge-act-busy,
+.tbn-badge-safe-no {
+  border-color: rgba(200, 70, 70, 0.55);
+  background: rgba(200, 70, 70, 0.14);
+}
+.tbn-badge-act-down,
+.tbn-badge-act-unknown {
+  opacity: 0.9;
+}
+.tbn-activity-note {
+  margin-top: 0.35rem;
+  max-width: 26rem;
+}
+.tbn-peers-memory .tbn-peer-offline td {
+  opacity: 0.85;
+}
+.tbn-peers-memory .tbn-peer-online td {
+  background: rgba(60, 160, 90, 0.04);
 }
