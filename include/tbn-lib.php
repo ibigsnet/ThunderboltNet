@@ -676,30 +676,69 @@ function tbn_link_quality(array $remote, array $status = []) {
 
 /**
  * HTML block for a quality result (badge + structured advice). Safe for Settings pages.
+ *
+ * $compact: table-friendly layout — badge + short line; long text under <details>.
  */
-function tbn_link_quality_html(array $q) {
+function tbn_link_quality_html(array $q, $compact = true) {
   $level = htmlspecialchars($q['level'] ?? 'info');
   $label = htmlspecialchars($q['label'] ?? '');
   $detail = htmlspecialchars($q['detail'] ?? '');
   $html = '<span class="tbn-badge tbn-badge-' . $level . '" title="' . $detail . '">' . $label . '</span>';
+
+  $likely = trim((string)($q['likely'] ?? ''));
+  $note = trim((string)($q['note'] ?? ''));
+  $suggestion = trim((string)($q['suggestion'] ?? ''));
+  $less = trim((string)($q['less_likely'] ?? ''));
+  $has_body = ($likely !== '' || $note !== '' || $suggestion !== '' || $less !== '');
+
+  if (!$has_body) {
+    return $html;
+  }
+
+  if ($compact) {
+    // One short lead line in the cell; rest collapsible so the table does not explode
+    $lead = $likely !== '' ? $likely : $note;
+    if (strlen($lead) > 140) {
+      $lead = rtrim(substr($lead, 0, 137)) . '…';
+    }
+    $html .= '<p class="tbn-quality-lead">' . htmlspecialchars($lead) . '</p>';
+    $html .= '<details class="tbn-quality-details">';
+    $html .= '<summary>Details &amp; suggestion</summary>';
+    $html .= '<div class="tbn-quality-advice">';
+    if ($note !== '') {
+      $html .= '<p class="tbn-quality-note">' . htmlspecialchars($note) . '</p>';
+    }
+    if ($likely !== '') {
+      $html .= '<p class="tbn-quality-likely"><strong>Likely limit:</strong> '
+        . htmlspecialchars($likely) . '</p>';
+    }
+    if ($suggestion !== '') {
+      $html .= '<p class="tbn-quality-suggest"><strong>Suggestion:</strong> '
+        . htmlspecialchars($suggestion) . '</p>';
+    }
+    if ($less !== '') {
+      $html .= '<p class="tbn-quality-less tbn-muted">' . htmlspecialchars($less) . '</p>';
+    }
+    $html .= '</div></details>';
+    return $html;
+  }
+
   $parts = [];
-  if (!empty($q['note'])) {
-    $parts[] = '<p class="tbn-quality-note">' . htmlspecialchars($q['note']) . '</p>';
+  if ($note !== '') {
+    $parts[] = '<p class="tbn-quality-note">' . htmlspecialchars($note) . '</p>';
   }
-  if (!empty($q['likely'])) {
+  if ($likely !== '') {
     $parts[] = '<p class="tbn-quality-likely"><strong>Likely limit:</strong> '
-      . htmlspecialchars($q['likely']) . '</p>';
+      . htmlspecialchars($likely) . '</p>';
   }
-  if (!empty($q['suggestion'])) {
+  if ($suggestion !== '') {
     $parts[] = '<p class="tbn-quality-suggest"><strong>Suggestion:</strong> '
-      . htmlspecialchars($q['suggestion']) . '</p>';
+      . htmlspecialchars($suggestion) . '</p>';
   }
-  if (!empty($q['less_likely'])) {
-    $parts[] = '<p class="tbn-quality-less tbn-muted">' . htmlspecialchars($q['less_likely']) . '</p>';
+  if ($less !== '') {
+    $parts[] = '<p class="tbn-quality-less tbn-muted">' . htmlspecialchars($less) . '</p>';
   }
-  if ($parts) {
-    $html .= '<div class="tbn-quality-advice">' . implode('', $parts) . '</div>';
-  }
+  $html .= '<div class="tbn-quality-advice">' . implode('', $parts) . '</div>';
   return $html;
 }
 

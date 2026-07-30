@@ -112,6 +112,28 @@
     }
   };
 
+  /** Show/hide fabric service + domain rows (default collapsed). */
+  window.tbnToggleFabricDetails = function (btn) {
+    if (!btn) {
+      return;
+    }
+    var rows = document.querySelectorAll('.tbn-fabric tr.tbn-fabric-detail');
+    if (!rows.length) {
+      return;
+    }
+    var hide = !rows[0].classList.contains('tbn-hidden');
+    for (var i = 0; i < rows.length; i++) {
+      if (hide) {
+        rows[i].classList.add('tbn-hidden');
+      } else {
+        rows[i].classList.remove('tbn-hidden');
+      }
+    }
+    btn.value = hide
+      ? (btn.getAttribute('data-show') || 'Show services & domain')
+      : (btn.getAttribute('data-hide') || 'Hide services & domain');
+  };
+
   /**
    * Unraid HelpButton toggles $('.inline_help'). BodyInlineJS also makes the matching
    * <dt> clickable when blockquote.inline_help sits as the next sibling after a <dl>.

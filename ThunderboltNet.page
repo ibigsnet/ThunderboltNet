@@ -478,14 +478,31 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
   <div class="tbn-section">
     <h3>Fabric devices</h3>
     <p class="tbn-note">
-      Raw Thunderbolt topology. <strong>Name</strong> is the advertised device name.
-      <strong>Manufacturer / stack</strong> is the TB <code>vendor_name</code> field: for the local host router
-      this is usually the OEM (e.g. ASUS); for a Linux peer it is often the software stack (<code>Linux</code>), not the chassis brand.
+      Thunderbolt topology from sysfs. By default only the <strong>local controller</strong> and
+      <strong>peers</strong> are shown (what you usually need).
+      <strong>Name</strong> is the advertised device name; <strong>Manufacturer / stack</strong> is
+      <code>vendor_name</code> (OEM on the host router; often <code>Linux</code> / software identity on a peer, not the chassis brand).
     </p>
 <?php if (!$devices): ?>
     <p class="tbn-muted">No entries under <code>/sys/bus/thunderbolt/devices</code>.</p>
-<?php else: ?>
-    <table class="tbn-table tbn-wide">
+<?php else:
+  $fabric_detail_n = 0;
+  foreach ($devices as $d) {
+    $id = $d['id'];
+    if ($id === 'domain0' || preg_match('/\.\d+$/', $id)) {
+      $fabric_detail_n++;
+    }
+  }
+?>
+<?php if ($fabric_detail_n > 0): ?>
+    <p class="tbn-pci-toggle-row">
+      <input type="button" class="tbn-fabric-toggle" value="Show services &amp; domain (<?= (int)$fabric_detail_n ?>)"
+        data-show="Show services &amp; domain (<?= (int)$fabric_detail_n ?>)"
+        data-hide="Hide services &amp; domain"
+        onclick="tbnToggleFabricDetails(this)">
+    </p>
+<?php endif; ?>
+    <table class="tbn-table tbn-wide tbn-fabric">
       <thead>
         <tr>
           <th>ID</th>
@@ -501,17 +518,20 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
 <?php foreach ($devices as $d):
   $id = $d['id'];
   $role = 'node';
-  if ($id === 'domain0') {
+  $row_class = '';
+  if ($id === 'domain0' || preg_match('/^domain\d+$/', $id)) {
     $role = 'domain';
+    $row_class = 'tbn-fabric-detail tbn-hidden';
   } elseif ($id === '0-0') {
     $role = 'local controller';
   } elseif (preg_match('/^\d+-\d+$/', $id) && $id !== '0-0') {
     $role = 'peer';
   } elseif (preg_match('/\.\d+$/', $id)) {
     $role = 'service';
+    $row_class = 'tbn-fabric-detail tbn-hidden';
   }
 ?>
-        <tr>
+        <tr<?= $row_class !== '' ? ' class="' . htmlspecialchars($row_class) . '"' : '' ?>>
           <td><code><?= htmlspecialchars($id) ?></code></td>
           <td><?= htmlspecialchars($role) ?></td>
           <td><?= htmlspecialchars($d['device_name'] ?: '—') ?></td>
@@ -523,6 +543,18 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
 <?php endforeach; ?>
       </tbody>
     </table>
+    <dl>
+      <dt>Fabric roles:</dt>
+      <dd class="tbn-muted">What domain / service / peer mean</dd>
+    </dl>
+    <blockquote class="inline_help">
+      <strong>local controller (<code>0-0</code>)</strong> — this machine’s Thunderbolt host router (board product + OEM).<br>
+      <strong>peer (<code>0-1</code>, <code>0-3</code>, …)</strong> — remote host on a trained path; rates/lanes live here.<br>
+      <strong>service (<code>0-1.0</code>, …)</strong> — kernel service node under a peer (e.g. networking). Name/stack are often blank;
+      the useful netdev name is usually already on the parent peer row. Hidden by default.<br>
+      <strong>domain (<code>domain0</code>)</strong> — container for this host controller’s Thunderbolt domain
+      (security level and domain-wide state live under this in sysfs). Not a cable peer; hidden by default.
+    </blockquote>
 <?php endif; ?>
   </div>
 
