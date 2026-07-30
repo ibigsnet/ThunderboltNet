@@ -1,24 +1,63 @@
-/* ThunderboltNet — Settings page */
-.tbn-wrap { max-width: 960px; }
-.tbn-lead { margin: 0.5em 0 1em; line-height: 1.45; }
-.tbn-muted { color: var(--orange-muted, #888); font-size: 0.95em; }
-.tbn-hint { display: block; font-size: 0.85em; color: #888; margin-top: 0.25em; }
-.tbn-table { border-collapse: collapse; margin: 0.5em 0 1.25em; }
-.tbn-table th, .tbn-table td {
-  border: 1px solid #4444;
-  padding: 0.35em 0.65em;
+/* ThunderboltNet — Network Settings tab */
+.tbn-wrap {
+  max-width: 980px;
+  margin: 0.25em 0 1.5em;
+}
+.tbn-hero {
+  margin-bottom: 1em;
+}
+.tbn-title {
+  margin: 0 0 0.4em;
+  font-size: 1.15em;
+}
+.tbn-lead {
+  margin: 0.4em 0 0.6em;
+  line-height: 1.5;
+}
+.tbn-muted {
+  color: var(--orange-muted, #999);
+  font-size: 0.95em;
+  line-height: 1.45;
+}
+.tbn-table {
+  border-collapse: collapse;
+  margin: 0.4em 0 1.1em;
+}
+.tbn-table th,
+.tbn-table td {
+  border: 1px solid rgba(128, 128, 128, 0.35);
+  padding: 0.35em 0.7em;
   text-align: left;
   vertical-align: top;
 }
-.tbn-table thead th { font-weight: 600; }
-.tbn-wide { width: 100%; }
-.tbn-form dt { font-weight: 600; margin-top: 0.75em; }
-.tbn-form dd { margin: 0.25em 0 0.5em 0; }
-.tbn-form input.narrow { width: 12em; max-width: 100%; }
-.tbn-pre {
-  background: #1113;
-  border: 1px solid #4444;
-  padding: 0.75em 1em;
-  overflow-x: auto;
-  font-size: 0.9em;
+.tbn-table thead th {
+  font-weight: 600;
+}
+.tbn-summary td:first-child {
+  font-weight: 600;
+  white-space: nowrap;
+  width: 12em;
+}
+.tbn-wide {
+  width: 100%;
+}
+.tbn-wrap input.narrow,
+.tbn-wrap select {
+  max-width: 22em;
+}
+.tbn-steps {
+  margin: 0.5em 0 1.25em 1.25em;
+  line-height: 1.55;
+  padding: 0;
+}
+.tbn-steps li {
+  margin: 0.35em 0;
+}
+.tbn-footer {
+  margin-top: 1.5em;
+  padding-top: 0.75em;
+  border-top: 1px solid rgba(128, 128, 128, 0.25);
+}
+.tbn-wrap blockquote.inline_help {
+  margin: 0.75em 0 1.25em;
 }

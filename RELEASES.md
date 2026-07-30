@@ -8,7 +8,7 @@
 |-------|-----|
 | **Latest (`main`)** | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg` |
 
-Use the **raw** URL ending in `.plg` (not a GitHub repo or blob page). After install, hard-refresh **Settings → Network Services → Thunderbolt Net**.
+Use the **raw** URL ending in `.plg` (not a GitHub repo or blob page). After install, hard-refresh **Settings → Network Settings → Thunderbolt Net**.
 
 Plugin versions use a date string (`YYYY.MM.DD…`). Normal installs track **`main`**.
 

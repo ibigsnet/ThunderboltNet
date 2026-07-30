@@ -1,8 +1,14 @@
-Menu="NetworkServices"
+Menu="NetworkSettings"
 Title="Thunderbolt Net"
+Tag="sitemap"
 Icon="sitemap"
 ---
 <?php
+/**
+ * Network Settings tab: Thunderbolt / USB4 host-to-host LAN helpers.
+ * Hotplug TB ifaces are not managed like eth0 in network.cfg — this page
+ * covers discovery, modules, listening include, and optional static IP.
+ */
 $plugin = 'ThunderboltNet';
 $cfg = parse_plugin_cfg($plugin);
 require_once __DIR__ . '/include/tbn-lib.php';
@@ -12,7 +18,7 @@ $mods = $status['modules'];
 $devices = $status['devices'];
 $netdevs = $status['netdevs'];
 $include = $status['include_interfaces'];
-$ver = '2026.07.29ae';
+$ver = '2026.07.29af';
 foreach (['/tmp/plugins/thunderboltnet.plg', '/boot/config/plugins/thunderboltnet.plg'] as $plg) {
   if (is_file($plg)) {
     if (preg_match('/ENTITY version "([^"]+)"/', file_get_contents($plg), $m)) {
@@ -21,33 +27,67 @@ foreach (['/tmp/plugins/thunderboltnet.plg', '/boot/config/plugins/thunderboltne
     }
   }
 }
+
+$mod_tb = !empty($mods['thunderbolt']) ? 'loaded' : 'not loaded';
+$mod_net = !empty($mods['thunderbolt_net']) ? 'loaded' : 'not loaded';
+$peer_count = 0;
+foreach ($devices as $d) {
+  // Peer hosts are typically 0-N (not 0-0 host, not domain0, not *.service only)
+  if (preg_match('/^\d+-\d+$/', $d['id']) && $d['id'] !== '0-0' && ($d['device_name'] !== '' || $d['rx_speed'] !== '')) {
+    $peer_count++;
+  }
+}
+$live_tb = count($netdevs);
 ?>
 <link rel="stylesheet" href="/plugins/ThunderboltNet/thunderboltnet.css?v=<?= htmlspecialchars($ver) ?>">
 
 <div class="tbn-wrap">
-  <p class="tbn-lead">
-    Discover Thunderbolt/USB4 host links and netdevs, optionally include them in Unraid
-    <strong>listening interfaces</strong>, and apply a simple static IP for bulk transfers.
-    Does <strong>not</strong> replace Network Settings for eth0/br0 — host TB only.
-  </p>
+  <div class="tbn-hero">
+    <h3 class="tbn-title">Thunderbolt / USB4 host networking</h3>
+    <p class="tbn-lead">
+      Use a <strong>Thunderbolt 4 / USB4 cable between two PCs</strong> as a high-bandwidth private LAN —
+      often <strong>20&nbsp;Gb/s per link</strong> (or more with multi-lane / dual cables) for bulk copies,
+      VM disks, backups, or media, without saturating your normal Ethernet or Wi‑Fi.
+    </p>
+    <p class="tbn-lead tbn-muted">
+      This tab lives under <strong>Network Settings</strong> because it configures a network path.
+      It does <strong>not</strong> replace the eth0 / br0 / bond pages: those NICs stay managed by Unraid as usual.
+      Thunderbolt netdevs appear when a peer link trains (hotplug), so addressing here is applied
+      with standard Linux tools rather than rewriting Unraid’s boot-time <code>network.cfg</code> for eth ports.
+    </p>
+  </div>
 
   <blockquote class="inline_help">
-    <p><strong>Do not</strong> unbind the Thunderbolt NHI (Maple Ridge) from the host driver — that can wedge the controller (probe -110) until a cold boot.</p>
-    <p>Real Thunderbolt 4 / USB4 cables are required for host-to-host links (USB 3.2-only C cables will not train a TB fabric).</p>
+    <p><strong>Why a plugin?</strong> Unraid’s stock Network Settings knows about eth / bond / bridge interfaces
+    that exist at boot. Thunderbolt host-to-host creates <code>thunderbolt0</code> (and friends) only after
+    the cable and peer are up, and needs the <code>thunderbolt</code> + <code>thunderbolt_net</code> modules.
+    This page discovers that fabric, optionally brings an address online for transfers, and can add the
+    live iface to Unraid’s <strong>listening interfaces</strong> (same idea as Tailscale on Interface Extra).</p>
+    <p><strong>Cables:</strong> use real Thunderbolt 4 / USB4 cables. USB 3.2-only C cables will not create a TB fabric.</p>
+    <p><strong>Safety:</strong> do <strong>not</strong> unbind the Thunderbolt NHI (Maple Ridge) from the host driver
+    to “fix” discovery — that can wedge the controller until a cold boot.</p>
   </blockquote>
 
-  <h3>Status</h3>
-  <table class="tbn-table">
+  <h3>Link status</h3>
+  <table class="tbn-table tbn-summary">
     <tr><td>Hostname</td><td><?= htmlspecialchars($status['hostname']) ?></td></tr>
     <tr><td>Domain security</td><td><code><?= htmlspecialchars($status['security'] ?: '(none/unknown)') ?></code></td></tr>
-    <tr><td>Module <code>thunderbolt</code></td><td><?= !empty($mods['thunderbolt']) ? 'loaded' : 'not loaded' ?></td></tr>
-    <tr><td>Module <code>thunderbolt_net</code></td><td><?= !empty($mods['thunderbolt_net']) ? 'loaded' : 'not loaded' ?></td></tr>
-    <tr><td>include_interfaces</td><td><code><?= htmlspecialchars(implode(' ', $include) ?: '(empty)') ?></code></td></tr>
+    <tr><td>Module <code>thunderbolt</code></td><td><?= htmlspecialchars($mod_tb) ?></td></tr>
+    <tr><td>Module <code>thunderbolt_net</code></td><td><?= htmlspecialchars($mod_net) ?></td></tr>
+    <tr><td>Peers / TB netdevs</td><td><?= (int)$peer_count ?> peer(s) · <?= (int)$live_tb ?> iface(s)</td></tr>
+    <tr>
+      <td>Listening include list</td>
+      <td><code><?= htmlspecialchars(implode(' ', $include) ?: '(empty — only stock mgmt ifaces)') ?></code></td>
+    </tr>
   </table>
 
   <h3>Thunderbolt devices</h3>
+  <p class="tbn-muted">
+    Kernel view of the local controller and any connected hosts. Speeds and lanes are what the link trained;
+    dual cables may show a second peer path / second netdev when both ports are used.
+  </p>
 <?php if (!$devices): ?>
-  <p class="tbn-muted">No entries under <code>/sys/bus/thunderbolt/devices</code> (controller down, or no domain yet).</p>
+  <p class="tbn-muted">No entries under <code>/sys/bus/thunderbolt/devices</code> (controller down, modules missing, or no domain yet).</p>
 <?php else: ?>
   <table class="tbn-table tbn-wide">
     <thead>
@@ -70,9 +110,14 @@ foreach (['/tmp/plugins/thunderboltnet.plg', '/boot/config/plugins/thunderboltne
   </table>
 <?php endif; ?>
 
-  <h3>Thunderbolt netdevs</h3>
+  <h3>Thunderbolt network interfaces</h3>
+  <p class="tbn-muted">
+    These are the Linux netdevs you can address for SMB, NFS, rsync, iperf, etc.
+    <strong>NO-CARRIER / DOWN</strong> usually means the peer side is not up yet, or the link needs
+    <code>ip link set … up</code> (Apply with static IP does that).
+  </p>
 <?php if (!$netdevs): ?>
-  <p class="tbn-muted">No <code>thunderbolt*</code> / <code>bond-tb</code> interfaces. Peer link + <code>thunderbolt_net</code> required first.</p>
+  <p class="tbn-muted">No <code>thunderbolt*</code> / <code>bond-tb</code> interfaces yet. Connect a TB4/USB4 cable to a peer that also loads <code>thunderbolt_net</code>.</p>
 <?php else: ?>
   <table class="tbn-table tbn-wide">
     <thead>
@@ -92,75 +137,111 @@ foreach (['/tmp/plugins/thunderboltnet.plg', '/boot/config/plugins/thunderboltne
   </table>
 <?php endif; ?>
 
-  <h3>Actions</h3>
-  <form method="POST" action="/update.php" target="progressFrame">
-    <input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">
-    <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update.php">
-    <dl class="tbn-form">
-      <dt>Load modules at apply</dt>
-      <dd>
-        <select name="load_modules">
-          <option value="yes" <?= ($cfg['load_modules'] ?? 'yes') === 'yes' ? 'selected' : '' ?>>Yes</option>
-          <option value="no" <?= ($cfg['load_modules'] ?? '') === 'no' ? 'selected' : '' ?>>No</option>
-        </select>
-        <span class="tbn-hint">modprobe thunderbolt + thunderbolt_net (no NHI unbind).</span>
-      </dd>
+  <h3>Configuration</h3>
+  <p class="tbn-muted">
+    Defaults are observe-only. Enable only what you need. Peer must use a matching subnet
+    (example: this host <code>10.255.1.2/24</code>, peer <code>10.255.1.1/24</code>).
+  </p>
 
-      <dt>E2E flow control</dt>
-      <dd>
-        <select name="e2e_flow_control">
-          <option value="no" <?= ($cfg['e2e_flow_control'] ?? 'no') === 'no' ? 'selected' : '' ?>>No (e2e=0, often better cross-host)</option>
-          <option value="yes" <?= ($cfg['e2e_flow_control'] ?? '') === 'yes' ? 'selected' : '' ?>>Yes (driver default)</option>
-        </select>
-      </dd>
+  <form markdown="1" method="POST" action="/update.php" target="progressFrame" id="thunderboltnet-form">
+  <input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">
+  <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update.php">
+  <input type="hidden" name="tbn_defaults" value="">
 
-      <dt>Include listening interfaces</dt>
-      <dd>
-        <select name="include_listening">
-          <option value="no" <?= ($cfg['include_listening'] ?? 'no') === 'no' ? 'selected' : '' ?>>No</option>
-          <option value="yes" <?= ($cfg['include_listening'] ?? '') === 'yes' ? 'selected' : '' ?>>Yes — add live thunderbolt*/bond-tb to network-extra.cfg</option>
-        </select>
-        <span class="tbn-hint">Same idea as Tailscale’s include list. Only ifaces that exist are added. Does not create TB devices.</span>
-      </dd>
+**Load modules when applying**
+: <select name="load_modules">
+  <?= mk_option($cfg['load_modules'] ?? 'yes', 'yes', 'Yes') ?>
+  <?= mk_option($cfg['load_modules'] ?? 'yes', 'no', 'No') ?>
+  </select>
 
-      <dt>Manage static IP</dt>
-      <dd>
-        <select name="manage_ip">
-          <option value="no" <?= ($cfg['manage_ip'] ?? 'no') === 'no' ? 'selected' : '' ?>>No</option>
-          <option value="yes" <?= ($cfg['manage_ip'] ?? '') === 'yes' ? 'selected' : '' ?>>Yes — apply on save (CLI ip addr)</option>
-        </select>
-      </dd>
+: Loads <code>thunderbolt</code> and <code>thunderbolt_net</code> so the kernel can talk to the controller
+  and create netdevs for host-to-host links. Does **not** unbind NHI. Leave Yes unless you manage modules yourself (e.g. in <code>go</code>).
 
-      <dt>Primary iface</dt>
-      <dd><input type="text" name="iface_primary" value="<?= htmlspecialchars($cfg['iface_primary'] ?? 'thunderbolt0') ?>" class="narrow"></dd>
+**E2E flow control**
+: <select name="e2e_flow_control">
+  <?= mk_option($cfg['e2e_flow_control'] ?? 'no', 'no', 'No (e2e=0 — often better cross-host)') ?>
+  <?= mk_option($cfg['e2e_flow_control'] ?? 'no', 'yes', 'Yes (driver default)') ?>
+  </select>
 
-      <dt>Secondary iface</dt>
-      <dd><input type="text" name="iface_secondary" value="<?= htmlspecialchars($cfg['iface_secondary'] ?? 'thunderbolt1') ?>" class="narrow"> <span class="tbn-hint">for dual cable / include list</span></dd>
+: End-to-end flow control in <code>thunderbolt_net</code>. Cross-OS / host-to-host links often work more reliably with **e2e=0**. Change only if you know you need the driver default.
 
-      <dt>IPv4 address</dt>
-      <dd><input type="text" name="ip_addr" value="<?= htmlspecialchars($cfg['ip_addr'] ?? '10.255.1.2') ?>" class="narrow"></dd>
+**Include as listening interface**
+: <select name="include_listening">
+  <?= mk_option($cfg['include_listening'] ?? 'no', 'no', 'No') ?>
+  <?= mk_option($cfg['include_listening'] ?? 'no', 'yes', 'Yes — add live TB ifaces to network-extra') ?>
+  </select>
 
-      <dt>Prefix length</dt>
-      <dd><input type="text" name="ip_cidr" value="<?= htmlspecialchars($cfg['ip_cidr'] ?? '24') ?>" class="narrow"></dd>
+: When Yes, live <code>thunderbolt*</code> / configured names are added to <code>include_interfaces</code>
+  in <code>network-extra.cfg</code> (same mechanism as **Interface Extra** / Tailscale), so Unraid services
+  can listen on the TB path. Only interfaces that **exist right now** are added. Turn No to remove those TB names from the list (other includes like <code>tailscale1</code> stay).
 
-      <dt>Never default route</dt>
-      <dd>
-        <select name="never_default">
-          <option value="yes" <?= ($cfg['never_default'] ?? 'yes') === 'yes' ? 'selected' : '' ?>>Yes (recommended)</option>
-          <option value="no" <?= ($cfg['never_default'] ?? '') === 'no' ? 'selected' : '' ?>>No</option>
-        </select>
-      </dd>
-    </dl>
-    <input type="submit" name="#apply" value="Apply">
-    <input type="button" value="Refresh status" onclick="location.reload()">
+**Manage static IPv4**
+: <select name="manage_ip">
+  <?= mk_option($cfg['manage_ip'] ?? 'no', 'no', 'No') ?>
+  <?= mk_option($cfg['manage_ip'] ?? 'no', 'yes', 'Yes — apply address on save') ?>
+  </select>
+
+: When Yes, Apply brings the primary iface up and sets a static address with <code>ip addr</code>.
+  This is intentional: TB links are hotplug, so we avoid owning Unraid’s eth <code>network.cfg</code> blocks.
+  Address is **not** automatically re-applied at array start unless you re-Apply or add your own boot hook later.
+  Prefer a private transfer subnet that does not collide with LAN DHCP.
+
+**Primary interface**
+: <input type="text" name="iface_primary" maxlength="32" class="narrow" value="<?= htmlspecialchars($cfg['iface_primary'] ?? 'thunderbolt0') ?>">
+
+: Usually <code>thunderbolt0</code> for a single cable. Used for static IP and the listening include list.
+
+**Secondary interface**
+: <input type="text" name="iface_secondary" maxlength="32" class="narrow" value="<?= htmlspecialchars($cfg['iface_secondary'] ?? 'thunderbolt1') ?>">
+
+: Optional second link (dual cable). Included in the listening list when present; bonding UI is not enabled yet.
+
+**IPv4 address**
+: <input type="text" name="ip_addr" maxlength="15" class="narrow" value="<?= htmlspecialchars($cfg['ip_addr'] ?? '10.255.1.2') ?>">
+
+: Static address on the primary TB iface when Manage static IPv4 is Yes. Example pair: Unraid <code>10.255.1.2</code>, desktop <code>10.255.1.1</code>.
+
+**Prefix length**
+: <input type="text" name="ip_cidr" maxlength="2" class="narrow" value="<?= htmlspecialchars($cfg['ip_cidr'] ?? '24') ?>">
+
+: CIDR prefix (e.g. <code>24</code> → <code>/24</code>). Keep both ends on the same subnet.
+
+**Gateway (optional)**
+: <input type="text" name="ip_gateway" maxlength="15" class="narrow" value="<?= htmlspecialchars($cfg['ip_gateway'] ?? '') ?>">
+
+: Leave empty for a pure peer link. Only used if Never default route is No.
+
+**Never default route**
+: <select name="never_default">
+  <?= mk_option($cfg['never_default'] ?? 'yes', 'yes', 'Yes (recommended)') ?>
+  <?= mk_option($cfg['never_default'] ?? 'yes', 'no', 'No — allow default via gateway above') ?>
+  </select>
+
+: **Yes** keeps your normal LAN/WAN default route on eth/br/wlan. A TB link should almost never become the default route for the whole server.
+
+  <input type="hidden" name="bond_enable" value="<?= htmlspecialchars($cfg['bond_enable'] ?? 'no') ?>">
+  <input type="hidden" name="bond_name" value="<?= htmlspecialchars($cfg['bond_name'] ?? 'bond-tb') ?>">
+  <input type="hidden" name="bond_mode" value="<?= htmlspecialchars($cfg['bond_mode'] ?? 'balance-rr') ?>">
+
+&nbsp;
+: <input type="submit" name="#apply" value="Apply"><input type="button" value="Refresh" onclick="location.reload()"><input type="button" value="Done" onclick="done()">
+
   </form>
 
-  <h3>CLI</h3>
-  <pre class="tbn-pre"># On Unraid after plugin install:
-php /usr/local/emhttp/plugins/ThunderboltNet/include/get-status.php
-/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-status</pre>
+  <h3>Typical setup</h3>
+  <ol class="tbn-steps">
+    <li>Plug a <strong>TB4 / USB4</strong> cable between this Unraid host and the other machine (both need working thunderbolt drivers).</li>
+    <li>Confirm a peer and <code>thunderbolt0</code> appear under Link status (Refresh if needed).</li>
+    <li>On the peer, bring its TB iface up and give it the matching subnet address.</li>
+    <li>Here: set <strong>Manage static IPv4 = Yes</strong>, set address/prefix, <strong>Apply</strong>.</li>
+    <li>Optional: <strong>Include as listening interface = Yes</strong> if Unraid services should accept connections on the TB path.</li>
+    <li>Test: <code>ping</code> the peer address; then use SMB/NFS/rsync over that IP for bulk transfers.</li>
+  </ol>
 
-  <p class="tbn-muted">Version <code><?= htmlspecialchars($ver) ?></code> ·
-  <a href="https://github.com/ibigsnet/ThunderboltNet" target="_blank" rel="noopener">GitHub</a></p>
+  <p class="tbn-muted tbn-footer">
+    Version <code><?= htmlspecialchars($ver) ?></code>
+    · <a href="https://github.com/ibigsnet/ThunderboltNet" target="_blank" rel="noopener">GitHub</a>
+    · Settings → Network Settings → Thunderbolt Net
+  </p>
 </div>
 <script src="/plugins/ThunderboltNet/thunderboltnet.js?v=<?= htmlspecialchars($ver) ?>"></script>

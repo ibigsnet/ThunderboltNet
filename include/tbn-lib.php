@@ -318,8 +318,26 @@ function tbn_load_modules() {
 }
 
 /**
+ * Bring configured TB ifaces administratively up (helps carrier / ping).
+ */
+function tbn_bring_up_ifaces() {
+  $cfg = tbn_load_cfg();
+  $up = [];
+  foreach ([$cfg['iface_primary'], $cfg['iface_secondary']] as $if) {
+    if ($if === '' || !is_dir('/sys/class/net/' . $if)) {
+      continue;
+    }
+    $ife = escapeshellarg($if);
+    @exec("ip link set {$ife} up 2>/dev/null");
+    $up[] = $if;
+  }
+  return $up;
+}
+
+/**
  * Apply static IPv4 to primary iface (CLI; not full Unraid network.cfg rewrite).
  * Safe: never sets default route if never_default=yes.
+ * Why not network.cfg? thunderbolt* is hotplug — often missing at boot network start.
  */
 function tbn_apply_static_ip() {
   $cfg = tbn_load_cfg();
@@ -341,8 +359,12 @@ function tbn_apply_static_ip() {
   $target = escapeshellarg($ip . '/' . $cidr);
   $ife = escapeshellarg($if);
   @exec("ip link set {$ife} up 2>/dev/null");
-  @exec("ip addr flush dev {$ife} 2>/dev/null");
-  @exec("ip addr add {$target} dev {$ife} 2>/dev/null", $o, $rc);
+  // Prefer replace so re-Apply is idempotent
+  @exec("ip addr replace {$target} dev {$ife} 2>/dev/null", $o, $rc);
+  if ($rc !== 0) {
+    @exec("ip addr flush dev {$ife} 2>/dev/null");
+    @exec("ip addr add {$target} dev {$ife} 2>/dev/null", $o, $rc);
+  }
   if ($cfg['ip_gateway'] !== '' && $cfg['never_default'] !== 'yes') {
     $gw = escapeshellarg($cfg['ip_gateway']);
     @exec("ip route replace default via {$gw} dev {$ife} 2>/dev/null");
