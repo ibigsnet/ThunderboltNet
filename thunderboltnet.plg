@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.07.30ay">
+<!ENTITY version "2026.07.30az">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -34,6 +34,11 @@
 
 <CHANGES>
 ###&version;
+- Promise single-link host-net: honest trained/lanes copy; Single-lane badge (not “Below max = fix cable”); recovery help for dual-cable wedge (unplug all both boxes).
+- Bonding experimental: hidden with one thunderbolt*; refuse Apply with &lt;2 members; active-backup preferred.
+- Default MTU 9000 both ends (peer must match); docs/README match lab reality (~10–15 Gbit/s 1-lane normal).
+
+###2026.07.30ay
 - Restore Unraid form grid on tbn tabs; only IP/CIDR rows forced horizontal (not whole form left-smashed).
 
 - Remove in-UI port icon legend (docs-only port-icons guide); restore simple empty-state layout.

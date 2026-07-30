@@ -273,14 +273,36 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
       <strong>Peer name</strong> — far host’s advertised name.
       <strong>Stack</strong> — TB vendor field (often <code>Linux</code> / software ID, not the chassis brand).<br><br>
       <strong>Link RX/TX &amp; lanes</strong> — <em>LOCAL</em> is this host’s class ceiling (not a live hop rate).
-      Each <em>REMOTE</em> column is the trained path on that cable (end-to-end with that peer).<br><br>
-      <strong>Link quality</strong> — trained vs host max; yellow <em>Below max</em> usually means cable/port path
-      (try a certified 40&nbsp;Gb/s TB4/USB4 cable).<br><br>
+      Each <em>REMOTE</em> column is the <strong>trained</strong> path on that cable (end-to-end with that peer).
+      <code>rx_speed</code> is per lane; dual-lane would still show ~20&nbsp;Gb/s with <strong>2-lane</strong>.
+      Single-lane (~20&nbsp;Gb/s · 1-lane) is common for TB host-to-host under Linux.<br><br>
+      <strong>Link quality</strong> — trained rate first; yellow <em>Single-lane</em> means below controller class max,
+      not a failed install. ~10–15&nbsp;Gbit/s TCP is normal for 1-lane. MTU&nbsp;9000 both ends helps CPU, not dual-lane.<br><br>
       <strong>Local IPv4 / MAC / state</strong> under REMOTE are <em>this Unraid end</em> of that link.
-      Set addresses and bonding on each <strong>tbnN</strong> tab.
+      Set addresses on each <strong>tbnN</strong> tab. Happy path: <strong>one cable, one peer, one IP</strong>.
+      Do not dual-cable the same peer to bond for speed.
       <?= tbn_help_docs_footer('docs/links-and-topology.md', 'Links & topology') ?>
       · <?= tbn_docs_more_html('docs/peer-scenarios.md', 'Peer scenarios ↗') ?>
     </blockquote>
+
+  <div class="tbn-section tbn-recovery">
+    <h3>Recovery (wedged fabric)</h3>
+    <dl>
+      <dt>If dual-cable experiments broke the link:</dt>
+      <dd class="tbn-muted">All cables out both boxes · wait · one cable only</dd>
+    </dl>
+    <blockquote class="inline_help">
+      Two TB cables to the <em>same</em> peer often still yield one netdev — and can leave the domain stuck
+      (NO-CARRIER, no peer, weird addresses). Software cleanup alone may not fix it.<br><br>
+      <strong>1.</strong> Unplug <em>all</em> Thunderbolt / USB4 host cables from <em>both ends on both machines</em>.<br>
+      <strong>2.</strong> Wait a few seconds until peers disappear.<br>
+      <strong>3.</strong> Plug back <em>exactly one</em> known-good TB4/USB4 cable (40G-class ports only).<br>
+      <strong>4.</strong> Confirm one peer and one <code>thunderboltN</code>, then Apply IP / services on the tbn tab.<br><br>
+      Soft “port power cycle” is not available; physical unplug is the reliable retrain.
+      <?= tbn_help_docs_footer('docs/troubleshooting.md', 'Troubleshooting') ?>
+    </blockquote>
+  </div>
+
 <?php if (!$links): ?>
     <p class="tbn-muted">No Thunderbolt network interfaces yet — plug a peer and Refresh.</p>
     <table class="tbn-table tbn-wide tbn-compare">
@@ -767,11 +789,12 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
 
   <dl>
     <dt>Cables and safety:</dt>
-    <dd class="tbn-muted">Certified cable · never unbind NHI</dd>
+    <dd class="tbn-muted">One cable · never unbind NHI</dd>
   </dl>
   <blockquote class="inline_help">
-    Prefer certified <strong>Thunderbolt 4 / USB4 40&nbsp;Gb/s</strong> cables for host-to-host.
-    <em>Below max</em> / 20&nbsp;Gb/s · 1-lane on a capable host is usually cable or port path, not one host “capping” the other.<br><br>
+    Prefer a single certified <strong>Thunderbolt 4 / USB4</strong> cable on full TB ports (not SS-only 20G USB).
+    <em>Single-lane</em> / 20&nbsp;Gb/s · 1-lane on a dual-capable host is common for Linux host-to-host — not a failed install.
+    Sticker “40&nbsp;Gb/s” is dual-lane class; trained path is what you get.<br><br>
     <strong>Never</strong> unbind the Thunderbolt NHI to “fix” networking — that can wedge the controller until reboot.
     <?= tbn_help_docs_footer('docs/standards-and-speeds.md', 'Standards & speeds') ?>
     · <?= tbn_docs_more_html('docs/troubleshooting.md', 'Troubleshooting ↗') ?>

@@ -56,26 +56,25 @@ UI and docs use **Gb/s** consistently (e.g. `20 Gb/s · 1-lane`, `Max ~40 Gb/s �
 
 ## Rate vs lanes
 
-- **Gb/s** in sysfs is the trained signaling rate on the path.  
-- **Lanes** (1 vs 2) often decide whether you see ~20&nbsp;Gb/s or ~40&nbsp;Gb/s class behavior on TB3/4-era paths.  
-- A **high-gen host** (TB4/USB4/TB5 class) that only trains **20&nbsp;Gb/s · 1-lane** is usually limited by **cable or port path**, not by “the other host capping you.”
+- **Gb/s** in sysfs is the **per-lane** trained signaling rate.  
+- **Lanes** (1 vs 2) decide single-lane (~20&nbsp;Gb/s class) vs dual-lane (~40&nbsp;Gb/s class) on TB3/4-era paths.  
+- A **high-gen host** that trains **20&nbsp;Gb/s · 1-lane** is **common for Linux host-to-host** (firmware ICM). Not a failed install. Cable can matter for some pairs, but a short certified TB4 cable often stays 1-lane too.  
+- Sticker “40&nbsp;Gb/s” is dual-lane **class** capability — not a promise of dual-lane host-net or ~40&nbsp;Gbit/s TCP.
 
 ### Link quality messages (plugin)
 
 | Column | What you see |
 |--------|----------------|
-| **LOCAL** | Host **Max** (e.g. ~40&nbsp;Gb/s · 2-lane), then a **Thunderbolt links** box: each live port with **host max** vs **trained** rate + peer name. Other USB SuperSpeed banks (10/20&nbsp;Gb/s Type-C) sit under a collapsed “Other USB SuperSpeed” list — not full TB networking. |
-| **REMOTE** | Status badge (**Below max** / **Healthy** / …) + trained rate; short lead; details under **Why & what to try**. |
+| **LOCAL** | Host **Max** (e.g. ~40&nbsp;Gb/s · 2-lane) = controller class ceiling, not a guarantee. Live TB links show trained rate vs max. |
+| **REMOTE** | Status badge + **trained** rate; lead sentence; details under **Why & what to try**. |
 
 | Remote status | Meaning |
 |---------------|---------|
-| **Below max** (yellow) | Trained ≪ host Max — often cable/path |
-| **Healthy** / near max | Dual-lane high rate for this class |
-| **Moderate** / **Linked** | Up, but not at ceiling |
+| **Single-lane** (yellow) | Trained 1-lane under controller max — common for host-net; ~10–15&nbsp;Gbit/s TCP is normal |
+| **Healthy** / near max | Dual-lane high rate for this class (nice when it happens) |
+| **Dual-lane** / **Linked** | Up; may still be under ceiling |
 
-Yellow means “this path is weaker than what **this** host can do,” not “20&nbsp;Gb/s is always wrong.”
-
-Linux does **not** expose a reliable cable-SKU EEPROM — inference is capability vs training.
+Yellow means “below controller class max,” not “broken plugin” or “always fix with a new cable.”
 
 ## Cables
 
@@ -90,8 +89,10 @@ Marketing stickers lie; **sysfs trained rate** is the ground truth for your pair
 
 ## Throughput expectations
 
-- Trained line rate is not the same as sustained TCP/SMB payload forever — protocol, CPU, storage, and **MTU** matter.  
-- Host-to-host TB net is excellent for low-latency lab links and bulk copy; design around measured numbers on **your** cable.  
+- Trained line rate ≠ sustained TCP/SMB forever — protocol, CPU, storage, and **MTU** matter.  
+- On **1-lane · 20&nbsp;Gb/s** host-net, lab TCP/iperf often lands around **~13–14&nbsp;Gbit/s**; real rsync of multi-GiB files similar (~12.5–13&nbsp;Gbit/s) even from Gen5 NVMe.  
+- **MTU 9000 both ends** cuts packets/s and retrans; it does **not** unlock dual-lane or double rate.  
+- Design around **measured** numbers; do not plan on sticker 40&nbsp;G host-net.
 - Kernel default **MTU 1500** is Ethernet habit, not a Thunderbolt limit (`thunderbolt_net` maxmtu is typically tens of KB). At 20–80&nbsp;Gb/s class links, 1500&nbsp;B frames mean **millions of packets/s** for full-pipe bulk — raise to **9000 on both ends** for rsync/SMB when you can.  
 - Full tables (PPS vs MTU, efficiency, peer commands): **[mtu-and-throughput.md](mtu-and-throughput.md)**.
 

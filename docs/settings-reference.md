@@ -18,16 +18,16 @@ Not per-tbn: changing E2E affects every Thunderbolt network interface on Unraid.
 | Interface description | empty | Cosmetic label in plugin config |
 | MAC address | (live) | Read-only |
 | Enable interface | Yes | `ip link set up/down` on Apply |
-| Enable bonding | No | TB-only bond of live thunderbolt* |
-| Bonding mode | balance-rr | Linux bond mode if bonding Yes |
-| Bond name | bond-tb0 | TB-only bond (`bond-tb0`, `bond-tb1`, … — not Unraid `bond0`) |
+| Enable bonding | No (hidden unless ≥2 live TB ifaces) | **Experimental** TB-only bond; needs two+ `thunderbolt*`; same-peer dual-cable unsupported |
+| Bonding mode | active-backup | Prefer active-backup; 802.3ad usually fails on TB |
+| Bond name | bond-tb0 | TB-only bond (`bond-tb0`, … — not Unraid `bond0`) |
 | Enable bridging | No | Reserved; not auto-applied yet |
 | Network protocol | IPv4 only | IPv6 limited |
 | IPv4 assignment | Static | Prefer static on host↔host |
 | IPv4 address / mask | 10.255.N.2 / 24 | Unique subnet per N |
 | IPv4 default gateway | empty | Optional next hop on this link |
 | Enable default route | No | Don’t steal system default from eth0 |
-| Desired MTU | 1500 kernel default (safe) | Modes: **1500** · **9000 recommended for TB bulk (both ends)** · Custom. Driver often allows up to ~65k; peer must match. See [mtu-and-throughput.md](mtu-and-throughput.md) |
+| Desired MTU | **9000** (both ends) | Modes: **9000** · **1500** · Custom. Peer must match. Does not unlock dual-lane. See [mtu-and-throughput.md](mtu-and-throughput.md) |
 | Unraid services on this link (listening) | No (recommend Yes for SMB/transfers) | Per peer; remembered; overview table + Harden all |
 | IPv4 (live) | (live) | Read-only from kernel |
 | Bond / bridge membership | (live) | Read-only |

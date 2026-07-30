@@ -26,7 +26,7 @@ Reality:
 3. Two cables to the **same** peer often do **not** create `thunderbolt0` + `thunderbolt1` — you may still see a single path, or a confused domain with no clean networking.  
 4. Dual-plug experiments are a common way to **wedge** bring-up until all cables are cleared.
 
-Plugin **Enable bonding** builds a **TB-only** bond named like **`bond-tb0`** / **`bond-tb1`** (not Unraid’s eth **`bond0`**). Use only when two live `thunderbolt*` members already exist.
+Plugin bonding is **experimental** and only offered when **two or more live** `thunderbolt*` members already exist (or bonding was previously enabled). It builds a **TB-only** bond (`bond-tb0`, … — not Unraid eth `bond0`). Same-peer dual-cable almost never provides two members; Apply with fewer than two members is ignored. Prefer **one cable, one peer, one IP**.
 
 ## Multi-cable and recovery
 
@@ -34,13 +34,13 @@ Plugin **Enable bonding** builds a **TB-only** bond named like **`bond-tb0`** / 
 
 Thunderbolt domains remember paths and services. Extra cables (second link to the same host, a dock still attached, a half-seated rear port) can keep the domain from settling on a single clean host-to-host network service.
 
-**Highly recommended recovery steps** (when the fabric is wedged or dual-cable experiments went sideways):
+**Required recovery** when dual-cable experiments went sideways (software-only teardown often fails):
 
-1. Unplug **all** TB/USB4 host cables from **both** ends of every machine under test.  
-2. Pause a few seconds.  
-3. Seat **one** known-good cable only.  
-4. Confirm one peer and one netdev; configure IP; prove ping.  
-5. Add other peers/cables only after that baseline works.
+1. Unplug **all** TB/USB4 host cables from **both ends on both machines** (clear every TB port).  
+2. Pause a few seconds until peers disappear.  
+3. Seat **exactly one** known-good cable only (TB ports, not SS-only USB).  
+4. Confirm one peer and one netdev; configure IP + MTU; prove ping.  
+5. Do **not** dual-plug the same peer again for “bonding speed.” Multi-peer (two different hosts) is a different story when two netdevs already exist.
 
 ### Reseating one cable (when you already have a single link)
 

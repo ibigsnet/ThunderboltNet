@@ -59,11 +59,12 @@ The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt l
 ## Quick start
 
 1. Confirm a Thunderbolt-family **host controller** is visible (Thunderbolt tab shows hardware, not the empty state).
-2. Use a **certified Thunderbolt / USB4** cable rated for your hosts (short high-rate passive is the usual lab choice).
+2. Use **one** certified Thunderbolt / USB4 cable on full TB ports (not SS-only USB). Do not dual-cable the same peer for bonding.
 3. On **Thunderbolt → Driver options**, leave **E2E flow control = No** unless a peer scenario says otherwise.
-4. When `thunderbolt0` appears, open **tbn0**, set a **static** IPv4 (e.g. `10.255.0.2/24`), Apply.
-5. On the peer, set a matching address (e.g. `10.255.0.1/24`) on its Thunderbolt network interface (macOS: Thunderbolt Bridge, etc.).
-6. Ping both ways. If link quality shows **Below max** / **20 Gb/s · 1-lane** on a host that can do ~40&nbsp;Gb/s, try a better cable first ([speeds](docs/standards-and-speeds.md)).
+4. When `thunderbolt0` appears, open **tbn0**, set a **static** IPv4 (e.g. `10.255.0.2/24`), **MTU 9000** (both ends), Apply.
+5. On the peer, matching address (e.g. `10.255.0.1/24`) and matching MTU on its Thunderbolt network interface.
+6. Ping both ways. **Single-lane / ~20 Gb/s · 1-lane** on a dual-capable host is common for Linux host-to-host — expect roughly **~10–15 Gbit/s** TCP, not full sticker 40G ([speeds](docs/standards-and-speeds.md)).
+7. If dual-cable experiments wedged the fabric: unplug **all** TB cables on **both** machines, wait, plug **one** cable only ([troubleshooting](docs/troubleshooting.md)).
 
 ---
 
@@ -80,10 +81,13 @@ Helpers summarize settings; long examples and peer tables live here in the docs 
 
 ## What this is *not*
 
+- Not a promise of dual-lane / sticker **40 Gb/s** host-net TCP (1-lane is common under Linux).
+- Not dual-cable bonding to the **same** peer for 2× bandwidth (usually one netdev; bond fails; can wedge fabric).
 - Not a substitute for 10/25/40/100G Ethernet to a switch (unless you deliberately run TB host networking).
 - Not automatic multi-host “TB LAN” switching — each `thunderboltN` is typically **one peer path**.
 - A dock’s **Ethernet RJ45** is usually a **USB/PCIe NIC**, not `thunderbolt_net` — configure it like any other eth device ([peer scenarios](docs/peer-scenarios.md)).
 - Never “fix” networking by unbinding the Thunderbolt **NHI** from the host driver — that can wedge some controllers until reboot.
+- Soft port power-cycle / custom ICM dual-lane forcing is out of scope.
 
 ---
 

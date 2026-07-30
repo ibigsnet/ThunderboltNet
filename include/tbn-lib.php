@@ -1086,7 +1086,7 @@ function tbn_controller_capability_html(array $cap = null) {
   $html .= '<p class="tbn-cap-meta">' . htmlspecialchars($cap['label'] ?? '') . '</p>';
   if (!empty($cap['class'])) {
     $html .= '<p class="tbn-cap-class tbn-muted">'
-      . htmlspecialchars($cap['class'] . ' host — ceiling when cable + peer train fully')
+      . htmlspecialchars($cap['class'] . ' host — controller class ceiling, not a promise of dual-lane host-net')
       . '</p>';
   }
   if (!empty($cap['product'])) {
@@ -1134,10 +1134,10 @@ function tbn_controller_capability_html(array $cap = null) {
       $html .= '<span class="tbn-port-spd' . ($below ? ' tbn-port-spd-warn' : ' tbn-port-spd-ok') . '">'
         . htmlspecialchars($p['trained'] !== '' ? $p['trained'] : '—')
         . '</span>';
-      $html .= ' <span class="tbn-muted">' . ($below ? 'trained (below max)' : 'trained') . '</span>';
+      $html .= ' <span class="tbn-muted">' . ($below ? 'trained (below controller max)' : 'trained') . '</span>';
       $html .= '</div>';
       if ($below) {
-        $html .= '<div class="tbn-port-hint tbn-muted">Often cable or port path — try a certified high-rate TB/USB4 cable.</div>';
+        $html .= '<div class="tbn-port-hint tbn-muted">Single-lane is common for TB host-to-host under Linux — not a failed install.</div>';
       }
       $html .= '</li>';
     }
@@ -1183,9 +1183,9 @@ function tbn_controller_capability_html(array $cap = null) {
  *   detail     compact title/tooltip string
  *   controller capability array (max potential)
  *
- * Linux does not expose a reliable “this cable is 20G” flag. Inference is:
- * local host can dual-lane high rate, but path trained 20G×1 → cable/path is
- * the usual bottleneck (not “the other host capping you”).
+ * Linux does not expose a reliable cable SKU. Trained 20G×1-lane on a dual-capable
+ * host is common for TB host-to-host under firmware ICM — treat as normal, not
+ * a broken install. Cable is only one of several factors.
  */
 function tbn_link_quality(array $remote, array $status = []) {
   $cap = tbn_controller_capability();
@@ -1247,13 +1247,14 @@ function tbn_link_quality(array $remote, array $status = []) {
     return [
       'level' => 'warn',
       'label' => $badge_trained,
-      'status' => 'Below max',
-      'lead' => 'Trained below host max ' . $max_short . '.',
-      'note' => 'Host can do ' . $max_short . '. This path trained at ' . $trained . '.',
-      'likely' => 'Usually the cable or which physical port you used (front-panel / weak USB-C path is common).',
-      'suggestion' => 'Try a short certified Thunderbolt 4 or USB4 cable (40 Gb/s class), re-seat both ends, use rear full-bandwidth ports.',
-      'less_likely' => 'Less often: BIOS port mode, or a peer that only trains one lane.',
-      'detail' => 'Max ' . $max_short . '; trained ' . $trained . '; likely cable/path',
+      'status' => 'Single-lane',
+      'lead' => 'Trained ' . $trained . ' (controller max ' . $max_short . ').',
+      'note' => 'Host class is ' . $max_short . '. This path trained at ' . $trained
+        . '. TCP/SMB in the ~10–15 Gbit/s range is normal for 1-lane host-net.',
+      'likely' => 'Common on TB4/USB4 host-to-host under Linux (firmware ICM). Not a failed plugin install.',
+      'suggestion' => 'Use one cable only; set MTU 9000 on both ends for bulk. Do not dual-cable the same peer to “bond for speed.”',
+      'less_likely' => 'Cable/port can still matter for some pairs, but a short certified TB4 cable often stays 1-lane too.',
+      'detail' => 'Max ' . $max_short . '; trained ' . $trained . '; single-lane host-net common',
       'controller' => $cap,
       'trained' => $trained,
       'max_short' => $max_short,
@@ -1281,11 +1282,11 @@ function tbn_link_quality(array $remote, array $status = []) {
     return [
       'level' => 'info',
       'label' => $badge_trained,
-      'status' => 'Moderate',
-      'lead' => 'Two lanes, but under host max ' . $max_short . '.',
-      'note' => 'Trained ' . $trained . '.',
-      'likely' => 'Cable, peer, or intermediate hop may still limit peak rate.',
-      'suggestion' => 'If you expected ' . $max_short . ', try a certified high-rate TB/USB4 cable on both ends.',
+      'status' => 'Dual-lane',
+      'lead' => 'Trained ' . $trained . ' · controller max ' . $max_short . '.',
+      'note' => 'Two lanes trained; peak rate still below controller class ceiling.',
+      'likely' => 'Path/peer/cable can still limit signaling rate under the dual-lane width.',
+      'suggestion' => 'MTU 9000 both ends helps CPU at high PPS; it does not raise trained Gb/s.',
       'less_likely' => '',
       'detail' => 'Max ' . $max_short . '; trained ' . $trained,
       'controller' => $cap,
@@ -1951,7 +1952,7 @@ function tbn_iface_defaults($if = 'thunderbolt0') {
     'DESCRIPTION' => '',
     'ENABLE' => 'yes',
     'BONDING' => 'no',
-    'BONDING_MODE' => 'balance-rr',
+    'BONDING_MODE' => 'active-backup',
     'BOND_NAME' => 'bond-tb0',
     // Space-separated thunderboltN members; empty = all live TB ifaces
     'BOND_MEMBERS' => '',
@@ -1976,9 +1977,10 @@ function tbn_iface_defaults($if = 'thunderbolt0') {
     'GATEWAY6' => '',
     'DEFAULT_ROUTE6' => 'no',
     // MTU_MODE: default (kernel 1500) | 9000 (recommended TB bulk) | custom
-    'MTU_MODE' => 'default',
+    // Product default 9000 for bulk host-net; peer must match or PMTU pain.
+    'MTU_MODE' => '9000',
     'MTU' => '9000',
-    'USE_MTU' => 'no', // kept in sync with MTU_MODE for older logic
+    'USE_MTU' => 'yes', // kept in sync with MTU_MODE for older logic
     'INCLUDE_LISTENING' => 'no',
   ];
 }
@@ -2565,14 +2567,26 @@ function tbn_apply_iface($if) {
   // Listening include for this iface only
   tbn_set_listening_for_iface($if, ($cfg['INCLUDE_LISTENING'] ?? 'no') === 'yes' ? 'yes' : 'no');
 
-  // Bonding — only when this form enables it (not when we are a slave)
+  // Bonding — experimental; only when form enables it and ≥2 live TB members
   if (!$is_bond_slave && ($cfg['BONDING'] ?? 'no') === 'yes') {
-    tbn_apply_simple_bond($cfg, $if);
-    // Bond master should match desired MTU too
-    $bond = $cfg['BOND_NAME'] ?? 'bond-tb0';
-    if ($bond !== '' && is_dir('/sys/class/net/' . $bond)) {
-      tbn_apply_mtu($bond, tbn_desired_mtu($cfg));
+    $members = tbn_parse_bond_members($cfg['BOND_MEMBERS'] ?? '', true);
+    if (!$members && $if !== '') {
+      $members = [$if];
     }
+    // Same-peer dual-cable almost never yields two netdevs; refuse 1-member bonds
+    $live_tb = tbn_list_tb_iface_names();
+    $members = array_values(array_filter($members, function ($m) use ($live_tb) {
+      return in_array($m, $live_tb, true);
+    }));
+    if (count($members) >= 2) {
+      $cfg['BOND_MEMBERS'] = implode(' ', $members);
+      tbn_apply_simple_bond($cfg, $if);
+      $bond = $cfg['BOND_NAME'] ?? 'bond-tb0';
+      if ($bond !== '' && is_dir('/sys/class/net/' . $bond)) {
+        tbn_apply_mtu($bond, tbn_desired_mtu($cfg));
+      }
+    }
+    // else: leave bonding=yes in cfg but do not create a useless 1-slave bond
   }
   return ['ok' => true, 'iface' => $if, 'cfg' => $cfg, 'netdevs' => tbn_list_netdevs()];
 }

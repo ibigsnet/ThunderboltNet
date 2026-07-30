@@ -77,15 +77,25 @@ More topology detail: [links-and-topology.md](links-and-topology.md).
 4. Unraid E2E **No**; **reseat** once; retest ([driver-options.md](driver-options.md)).  
 5. Keep default route **No** so you aren’t blackholing other traffic while testing.
 
-## Below max / 20 Gb/s · 1-lane on a capable host
+## Single-lane / 20 Gb/s · 1-lane on a dual-capable host
 
-- **Most likely cable or port path** — try certified 40&nbsp;Gbps short cable, other rear ports.  
-- Not usually “the peer OS is capping you” when both ends are high-gen hosts.  
+- **Common** for TB4/USB4 **host-to-host under Linux** (firmware ICM). Not a failed install.  
+- Expect roughly **~10–15&nbsp;Gbit/s** TCP; jumbo MTU helps CPU, not dual-lane.  
+- Cable/port can still matter for some pairs, but a short certified TB4 cable often stays 1-lane.  
 - Details: [standards-and-speeds.md](standards-and-speeds.md).
 
-## Two cables, still one interface
+## Two cables, still one interface (or worse)
 
-Expected often for the **same** two hosts — see [links-and-topology.md](links-and-topology.md#dual-cable-between-the-same-pair-of-pcs).
+Expected often for the **same** two hosts — still one XDomain / one `thunderboltN`. Bonding usually fails (`set_mac` −95, flaky MII). See [links-and-topology.md](links-and-topology.md#dual-cable-between-the-same-pair-of-pcs).
+
+### Wedged after dual-cable experiments
+
+Software cleanup alone may not fix NO-CARRIER / missing peer:
+
+1. Unplug **all** TB/USB4 host cables from **both ends on both machines**.  
+2. Wait until the fabric is empty.  
+3. Plug back **exactly one** cable (TB ports only).  
+4. Confirm peer + netdev; re-apply IP / MTU / services.
 
 ## One-way traffic / flaky after reboot
 

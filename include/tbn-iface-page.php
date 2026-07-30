@@ -159,19 +159,30 @@ if (strpos($nm, '.') === false) {
       Yes brings the link up and applies addressing. No sets it down (skipped when this iface is a bond member).
     </blockquote>
 
+<?php
+  $n_tb_live = count($tb_ifaces);
+  $bond_want = ($cfg['BONDING'] ?? 'no') === 'yes';
+  // Hide bond UI unless ≥2 live thunderbolt* or user already enabled bonding
+  $show_bond_section = $n_tb_live >= 2 || $bond_want || $is_bond_slave;
+?>
+<?php if ($show_bond_section): ?>
     <div class="tbn-section-bond">
       <dl>
         <dt>Enable bonding:</dt>
         <dd>
           <select name="BONDING" class="tbn-ctl-bond" <?= $is_bond_slave ? 'disabled' : '' ?>>
             <?= mk_option($cfg['BONDING'] ?? 'no', 'no', 'No') ?>
-            <?= mk_option($cfg['BONDING'] ?? 'no', 'yes', 'Yes') ?>
+            <?= mk_option($cfg['BONDING'] ?? 'no', 'yes', 'Yes — experimental') ?>
           </select>
         </dd>
       </dl>
       <blockquote class="inline_help">
-        Thunderbolt-only Linux bond (<code>bond-tb0</code>, …), not Unraid eth <code>bond0</code>.
-        When Yes, mode / name / members appear (like eth0).
+        <strong>Experimental.</strong> Thunderbolt-only Linux bond (<code>bond-tb0</code>, …), not Unraid eth <code>bond0</code>.
+        Needs <strong>two or more live</strong> <code>thunderbolt*</code> netdevs already present
+        (e.g. two <em>different</em> peers). Two cables to the <em>same</em> peer usually still yield
+        <strong>one</strong> netdev — bonding cannot invent a second slave, and TB slaves reject
+        <code>set_mac</code> (common bond modes fail). Apply with fewer than two members is ignored.
+        Prefer one cable, one peer, one IP.
       </blockquote>
 
       <div class="tbn-bond-opts tbn-hidden">
@@ -179,14 +190,17 @@ if (strpos($nm, '.') === false) {
           <dt>Bonding mode:</dt>
           <dd>
             <select name="BONDING_MODE">
-              <?= mk_option($cfg['BONDING_MODE'] ?? 'balance-rr', 'balance-rr', 'balance-rr (0)') ?>
-              <?= mk_option($cfg['BONDING_MODE'] ?? 'balance-rr', 'active-backup', 'active-backup (1)') ?>
-              <?= mk_option($cfg['BONDING_MODE'] ?? 'balance-rr', 'balance-xor', 'balance-xor (2)') ?>
-              <?= mk_option($cfg['BONDING_MODE'] ?? 'balance-rr', '802.3ad', '802.3ad (4)') ?>
+              <?= mk_option($cfg['BONDING_MODE'] ?? 'active-backup', 'active-backup', 'active-backup (1) — least bad') ?>
+              <?= mk_option($cfg['BONDING_MODE'] ?? 'active-backup', 'balance-rr', 'balance-rr (0)') ?>
+              <?= mk_option($cfg['BONDING_MODE'] ?? 'active-backup', 'balance-xor', 'balance-xor (2)') ?>
+              <?= mk_option($cfg['BONDING_MODE'] ?? 'active-backup', '802.3ad', '802.3ad (4) — usually fails on TB') ?>
             </select>
           </dd>
         </dl>
-        <blockquote class="inline_help">Linux bonding mode for bond-tbN.</blockquote>
+        <blockquote class="inline_help">
+          Prefer <strong>active-backup</strong> if you truly have two TB netdevs. 802.3ad/LACP is a poor fit
+          for <code>thunderbolt_net</code> (no set_mac, flaky MII).
+        </blockquote>
 
         <dl>
           <dt>Bond name:</dt>
@@ -198,14 +212,13 @@ if (strpos($nm, '.') === false) {
         </dl>
         <blockquote class="inline_help">
           Default <code>bond-tb0</code> (then <code>bond-tb1</code>, …). Do not reuse Unraid eth <code>bond0</code>.
-          Only shown when bonding is Yes.
         </blockquote>
 
         <dl>
           <dt>Bond members:</dt>
           <dd class="tbn-bond-members">
-<?php if (!$tb_ifaces): ?>
-            <span class="tbn-muted">No live thunderbolt* interfaces</span>
+<?php if ($n_tb_live < 2): ?>
+            <span class="tbn-muted">Need two+ live thunderbolt* interfaces (currently <?= (int)$n_tb_live ?>).</span>
 <?php else: ?>
 <?php foreach ($tb_ifaces as $mif):
   $checked = in_array($mif, $bond_members_sel, true);
@@ -221,12 +234,19 @@ if (strpos($nm, '.') === false) {
           </dd>
         </dl>
         <blockquote class="inline_help">
-          Checkboxes list <em>currently live</em> <code>thunderbolt*</code> interfaces (eth0 uses a multi-select
-          of fixed eth ports). TB members appear and disappear with cables, so checkboxes fit better than a
-          static dropdown. Needs two+ paths for a useful bond. Empty selection = all live TB ifaces.
+          Live <code>thunderbolt*</code> only. Select at least two. Same-peer dual-cable does not create two members.
         </blockquote>
       </div>
     </div>
+<?php else: ?>
+    <input type="hidden" name="BONDING" value="no">
+    <blockquote class="inline_help">
+      <strong>Bonding:</strong> not offered with a single live <code>thunderbolt*</code> path (the normal case).
+      Two cables to the same peer almost never create a second netdev — do not dual-plug to “team” for speed.
+      If the fabric wedges after dual-cable experiments: unplug <em>all</em> TB cables on <em>both</em> machines,
+      wait, plug one cable only.
+    </blockquote>
+<?php endif; ?>
 
     <div class="tbn-section-bridge">
       <dl>
@@ -456,8 +476,8 @@ if (strpos($nm, '.') === false) {
       <dt>Desired MTU:</dt>
       <dd>
         <select name="MTU_MODE" class="tbn-ctl-mtu" <?= $is_bond_slave ? 'disabled' : '' ?>>
-          <?= mk_option($mtu_mode, 'default', '1500 — kernel default (safe first plug)') ?>
           <?= mk_option($mtu_mode, '9000', '9000 — recommended for TB bulk (both ends)') ?>
+          <?= mk_option($mtu_mode, 'default', '1500 — kernel default') ?>
           <?= mk_option($mtu_mode, 'custom', 'Custom…') ?>
         </select>
         <span class="tbn-mtu-custom-wrap <?= $mtu_mode === 'custom' ? '' : 'tbn-hidden' ?>">
@@ -470,15 +490,12 @@ if (strpos($nm, '.') === false) {
     </dl>
     <blockquote class="inline_help">
       Live: <strong><?= htmlspecialchars(tbn_format_mtu_live($mtu_live, $mtu_mode)) ?></strong>
-      · driver allows <?= (int)$mtu_lim['min'] ?>–<?= (int)$mtu_lim['max'] ?>
-      (<code>thunderbolt_net</code> supports large frames; default <strong>1500</strong> is Ethernet habit, not a TB limit).<br><br>
-      <strong>Why raise it?</strong> At 20–80&nbsp;Gb/s class links, 1500&nbsp;B frames mean millions of packets/s for
-      rsync/SMB — high CPU and softirq. <strong>9000 on both ends</strong> cuts packet rate ~6× for the same
-      bulk throughput. Mismatch (one end 9000, peer 1500) causes drops or PMTU pain — set the peer the same
-      (<code>ip link set dev … mtu 9000</code> on Linux). We cannot set the peer’s MTU from Unraid when their
-      virtual NIC appears; only this host’s netdev.<br><br>
-      Product default stays <strong>1500</strong> so first plug always works; use <strong>9000</strong> for
-      serious transfers once both ends agree.
+      · driver allows <?= (int)$mtu_lim['min'] ?>–<?= (int)$mtu_lim['max'] ?>.
+      Plugin default is <strong>9000</strong> for bulk TB host-net (peer must match).<br><br>
+      Jumbo cuts packets/s and CPU on a ~10–15&nbsp;Gbit/s 1-lane path; it does <strong>not</strong> unlock dual-lane
+      or double trained Gb/s. Mismatch (9000 vs peer 1500) causes drops — set the peer the same
+      (<code>ip link set dev … mtu 9000</code> on Linux). We only configure this host’s netdev.<br><br>
+      Use <strong>1500</strong> only if the peer cannot do jumbo.
       <?= tbn_help_docs_footer('docs/mtu-and-throughput.md', 'MTU &amp; throughput') ?>
     </blockquote>
 

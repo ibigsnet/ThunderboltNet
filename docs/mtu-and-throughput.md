@@ -11,7 +11,7 @@ This page explains why that matters for **rsync, SMB, NFS, and large file copies
 | Question | Answer |
 |----------|--------|
 | What does “1500 (kernel default)” mean? | Live sysfs MTU is 1500; we did **not** push a custom size. Label is intentional. |
-| Should 1500 stay the **product** default? | **Yes for first plug** (always interoperable). **No as the “fast path”** — use **9000 on both ends** for bulk. |
+| Product default MTU? | **9000** for bulk host-net (peer must match). Use **1500** only if the peer cannot do jumbo. |
 | Can Unraid set the peer’s MTU? | **No.** Each OS configures its own netdev when the virtual NIC appears. Match manually (or via peer scripts). |
 | Is jumbo “emulating a 10G+ NIC”? | MTU is frame size, not line rate. Line rate comes from TB path training. Jumbo reduces **packets/s and CPU** at a given rate. |
 | Safe recommended value? | **9000** both ends for host↔host TB bulk. Higher (e.g. 16k–64k) is possible but less portable across stacks. |
@@ -69,9 +69,9 @@ If the link or disk cannot fill 40&nbsp;G, MTU still reduces per-byte CPU on bot
 
 | Setting | Default | Rationale |
 |---------|---------|-----------|
-| MTU mode | **1500 — kernel default** | First plug works with any peer still on 1500 |
-| Recommended for bulk | **9000 — both ends** | Classic jumbo; widely supported; large PPS cut |
-| Custom | Any value in driver min–max | Power users; keep **identical** on peer |
+| MTU mode | **9000 — both ends** | Bulk TB host-net; peer must match |
+| Safe fallback | **1500 — kernel default** | When peer cannot jumbo |
+| Custom | Any value in driver min–max | Keep **identical** on peer; does not raise trained lanes |
 
 Overview **Local iface state** shows e.g. `MTU 1500 (kernel default)` or `MTU 9000 (jumbo)` so it is obvious you have not raised it yet.
 
