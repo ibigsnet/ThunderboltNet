@@ -946,6 +946,23 @@ function tbn_iface_addrs($if) {
   return $addrs;
 }
 
+/**
+ * Echo IPv4 netmask <select> (must live in tbn-lib — iface page is require'd per tab).
+ */
+function tbn_render_netmask_select($name, $nm_dotted, $masks) {
+  echo '<select name="' . htmlspecialchars($name) . '" class="narrow">';
+  foreach ($masks as $mask => $pref) {
+    if (function_exists('mk_option')) {
+      echo mk_option($nm_dotted, $mask, $pref);
+    } else {
+      $sel = ((string)$nm_dotted === (string)$mask) ? ' selected' : '';
+      echo '<option value="' . htmlspecialchars($mask) . '"' . $sel . '>'
+        . htmlspecialchars($pref) . "</option>\n";
+    }
+  }
+  echo '</select>';
+}
+
 /** Global (and optional link-local) IPv6 addresses on iface. */
 function tbn_iface_addrs6($if, $include_ll = false) {
   $addrs = [];

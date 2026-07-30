@@ -78,16 +78,6 @@ if (strpos($nm, '.') === false) {
   $nm_dotted = $nm;
 }
 
-/**
- * Render netmask <select> for IPv4.
- */
-function tbn_render_netmask_select($name, $nm_dotted, $masks) {
-  echo '<select name="' . htmlspecialchars($name) . '" class="narrow">';
-  foreach ($masks as $mask => $pref) {
-    echo mk_option($nm_dotted, $mask, $pref);
-  }
-  echo '</select>';
-}
 ?>
 <link rel="stylesheet" href="/plugins/ThunderboltNet/thunderboltnet.css?v=<?= htmlspecialchars($ver) ?>">
 
