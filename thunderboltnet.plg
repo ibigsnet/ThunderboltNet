@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.07.30">
+<!ENTITY version "2026.07.30aa">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -34,6 +34,11 @@
 
 <CHANGES>
 ###&version;
+- Install fix follow-up: ensure clean plg for Unraid wget (stale compressed main cache).
+- Fix plg XML parse error (bare ampersand in CHANGES broke Install Plugin).
+- Fabric devices: hide service/domain rows by default; compact link quality cells.
+
+###2026.07.30
 - Fix plg XML parse error (bare ampersand in CHANGES broke Install Plugin).
 - Fabric devices: hide service/domain rows by default; compact link quality cells.
 
