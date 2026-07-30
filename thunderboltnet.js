@@ -309,6 +309,15 @@
     var vlan = form.VLAN_ENABLE ? form.VLAN_ENABLE.value : 'no';
     tbnShow(form.querySelector('.tbn-vlan-opts'), vlan === 'yes' && !slave);
 
+    var mtuMode = form.MTU_MODE ? form.MTU_MODE.value : 'default';
+    tbnShow(form.querySelector('.tbn-mtu-custom-wrap'), mtuMode === 'custom' && !slave);
+    if (form.USE_MTU) {
+      form.USE_MTU.value = mtuMode === 'default' ? 'no' : 'yes';
+    }
+    if (mtuMode === '9000' && form.MTU && !form.MTU.value) {
+      form.MTU.value = '9000';
+    }
+
     tbnSyncBondMembers(form);
   };
 

@@ -34,6 +34,7 @@ The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt l
 | Suggested IPv4 | `10.255.N.2` / **24** for `thunderboltN` | One subnet per link; room for a few addresses |
 | Enable default route | **No** | Keep internet on eth0/br0; TB stays peer-local |
 | Include listening | **No** | Don’t advertise Unraid services on TB unless you opt in |
+| MTU | **1500** (kernel default) | Safe first plug; use **9000 both ends** for bulk at 20–80&nbsp;G class — [MTU & throughput](docs/mtu-and-throughput.md) |
 | Bonding / bridging | **No** | Only when you really have multiple TB netdevs to bond |
 
 ---
@@ -46,6 +47,7 @@ The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt l
 | Unraid ↔ Mac / Linux / Windows / docks & hubs | [docs/peer-scenarios.md](docs/peer-scenarios.md) |
 | `/24` vs `/30`, unique subnets per link | [docs/addressing.md](docs/addressing.md) |
 | TB3–5, USB4/USB4 v2, rates, lanes, cables (not USB3-only) | [docs/standards-and-speeds.md](docs/standards-and-speeds.md) |
+| MTU 1500 vs 9000, PPS overhead, both-ends setup | [docs/mtu-and-throughput.md](docs/mtu-and-throughput.md) |
 | Hardware, BIOS, modules, security | [docs/requirements.md](docs/requirements.md) |
 | Topology, dual cables, hubs with NICs | [docs/links-and-topology.md](docs/links-and-topology.md) |
 | Every Settings field | [docs/settings-reference.md](docs/settings-reference.md) |

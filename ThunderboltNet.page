@@ -292,11 +292,16 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
           <td class="tbn-col-local tbn-muted">Per-link netdev (see remote columns)</td>
 <?php foreach ($links as $L):
   $loc = $L['local'];
+  $if_cfg_mtu = function_exists('tbn_load_iface_cfg') ? tbn_load_iface_cfg($L['iface'] ?? '') : [];
+  $mtu_mode = function_exists('tbn_normalize_mtu_mode') ? tbn_normalize_mtu_mode($if_cfg_mtu) : 'default';
+  $mtu_label = function_exists('tbn_format_mtu_live')
+    ? tbn_format_mtu_live($loc['mtu'] ?? '', $mtu_mode)
+    : (($loc['mtu'] ?? '') !== '' ? $loc['mtu'] : '—');
 ?>
           <td class="tbn-col-remote">
             <?= htmlspecialchars($loc['operstate'] ?: '—') ?>
             · carrier <?= htmlspecialchars($loc['carrier'] === '' ? 'n/a' : $loc['carrier']) ?>
-            · MTU <?= htmlspecialchars($loc['mtu'] !== '' ? $loc['mtu'] : '—') ?>
+            · MTU <?= htmlspecialchars($mtu_label) ?>
           </td>
 <?php endforeach; ?>
         </tr>

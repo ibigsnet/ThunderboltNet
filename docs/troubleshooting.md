@@ -1,5 +1,14 @@
 # Troubleshooting
 
+## Slow rsync / SMB despite high trained Gb/s
+
+1. Check overview **Local iface state** — if you still see `MTU 1500 (kernel default)`, you are paying full Ethernet-sized packet rates on a multi‑20&nbsp;G path.  
+2. Set **Desired MTU → 9000** on the tbn tab **and** the same MTU on the peer (Unraid cannot set the peer’s NIC).  
+3. See [mtu-and-throughput.md](mtu-and-throughput.md) for PPS tables and peer commands.  
+4. Also verify storage (array parity, single-disk limits) and CPU — MTU is not the only bottleneck.
+
+---
+
 ## Reseating the cable (why it matters)
 
 Software Apply (modules, E2E, static IP) does **not** always force a full Thunderbolt domain re-train. The fabric often keeps the previous xdomain / service state until the **physical path** drops.

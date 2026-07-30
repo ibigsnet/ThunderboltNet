@@ -441,18 +441,46 @@ if (strpos($nm, '.') === false) {
       </div>
     </div>
 
+<?php
+  $mtu_mode = tbn_normalize_mtu_mode($cfg);
+  $mtu_lim = tbn_iface_mtu_limits($if);
+  $mtu_live = ($live['mtu'] ?? '') !== ''
+    ? $live['mtu']
+    : tbn_sysfs_str('/sys/class/net/' . $if . '/mtu');
+  $mtu_custom = ($cfg['MTU'] ?? '') !== '' ? (string)$cfg['MTU'] : '9000';
+  if ($mtu_mode === '9000') {
+    $mtu_custom = '9000';
+  }
+?>
     <dl>
       <dt>Desired MTU:</dt>
       <dd>
-        <input type="number" name="MTU" class="narrow" min="68" max="9198" placeholder="1500"
-          value="<?= htmlspecialchars($cfg['MTU'] ?? '') ?>" <?= $is_bond_slave ? 'disabled' : '' ?>>
-        <select name="USE_MTU" class="narrow" <?= $is_bond_slave ? 'disabled' : '' ?>>
-          <?= mk_option($cfg['USE_MTU'] ?? 'no', 'no', 'Default') ?>
-          <?= mk_option($cfg['USE_MTU'] ?? 'no', 'yes', 'Custom') ?>
+        <select name="MTU_MODE" class="tbn-ctl-mtu" <?= $is_bond_slave ? 'disabled' : '' ?>>
+          <?= mk_option($mtu_mode, 'default', '1500 — kernel default (safe first plug)') ?>
+          <?= mk_option($mtu_mode, '9000', '9000 — recommended for TB bulk (both ends)') ?>
+          <?= mk_option($mtu_mode, 'custom', 'Custom…') ?>
         </select>
+        <span class="tbn-mtu-custom-wrap <?= $mtu_mode === 'custom' ? '' : 'tbn-hidden' ?>">
+          <input type="number" name="MTU" class="narrow tbn-mtu-custom" min="<?= (int)$mtu_lim['min'] ?>"
+            max="<?= (int)$mtu_lim['max'] ?>" placeholder="9000"
+            value="<?= htmlspecialchars($mtu_custom) ?>" <?= $is_bond_slave ? 'disabled' : '' ?>>
+        </span>
+        <input type="hidden" name="USE_MTU" value="<?= $mtu_mode === 'default' ? 'no' : 'yes' ?>">
       </dd>
     </dl>
-    <blockquote class="inline_help">Custom MTU only when both ends and the path allow it.</blockquote>
+    <blockquote class="inline_help">
+      Live: <strong><?= htmlspecialchars(tbn_format_mtu_live($mtu_live, $mtu_mode)) ?></strong>
+      · driver allows <?= (int)$mtu_lim['min'] ?>–<?= (int)$mtu_lim['max'] ?>
+      (<code>thunderbolt_net</code> supports large frames; default <strong>1500</strong> is Ethernet habit, not a TB limit).<br><br>
+      <strong>Why raise it?</strong> At 20–80&nbsp;Gb/s class links, 1500&nbsp;B frames mean millions of packets/s for
+      rsync/SMB — high CPU and softirq. <strong>9000 on both ends</strong> cuts packet rate ~6× for the same
+      bulk throughput. Mismatch (one end 9000, peer 1500) causes drops or PMTU pain — set the peer the same
+      (<code>ip link set dev … mtu 9000</code> on Linux). We cannot set the peer’s MTU from Unraid when their
+      virtual NIC appears; only this host’s netdev.<br><br>
+      Product default stays <strong>1500</strong> so first plug always works; use <strong>9000</strong> for
+      serious transfers once both ends agree.
+      <?= tbn_help_docs_footer('docs/mtu-and-throughput.md', 'MTU &amp; throughput') ?>
+    </blockquote>
 
     <dl>
       <dt>Include listening interface:</dt>

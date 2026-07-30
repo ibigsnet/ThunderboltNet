@@ -8,6 +8,7 @@ Full product intro: [../DOCS.md](../DOCS.md).
 | [peer-scenarios.md](peer-scenarios.md) | Unraid ↔ Linux, macOS, Windows, docks/hubs with NICs |
 | [addressing.md](addressing.md) | `/24` vs `/30`, unique subnets, examples |
 | [standards-and-speeds.md](standards-and-speeds.md) | Generations, Gb/s, lanes, cable classes, quality badge |
+| [mtu-and-throughput.md](mtu-and-throughput.md) | MTU 1500 vs 9000, packet-rate overhead, both-ends jumbo |
 | [requirements.md](requirements.md) | Hardware, BIOS, kernel modules, security |
 | [links-and-topology.md](links-and-topology.md) | P2P model, dual cable, bonding, hubs |
 | [settings-reference.md](settings-reference.md) | Every global and tbnN field |

@@ -71,12 +71,14 @@ Marketing stickers lie; **sysfs trained rate** is the ground truth for your pair
 
 ## Throughput expectations
 
-- Trained line rate is not the same as sustained TCP/SMB payload forever — protocol, CPU, storage, and MTU matter.  
+- Trained line rate is not the same as sustained TCP/SMB payload forever — protocol, CPU, storage, and **MTU** matter.  
 - Host-to-host TB net is excellent for low-latency lab links and bulk copy; design around measured numbers on **your** cable.  
-- Jumbo MTU only helps if **both** ends and the path allow it (tbn tab).
+- Kernel default **MTU 1500** is Ethernet habit, not a Thunderbolt limit (`thunderbolt_net` maxmtu is typically tens of KB). At 20–80&nbsp;Gb/s class links, 1500&nbsp;B frames mean **millions of packets/s** for full-pipe bulk — raise to **9000 on both ends** for rsync/SMB when you can.  
+- Full tables (PPS vs MTU, efficiency, peer commands): **[mtu-and-throughput.md](mtu-and-throughput.md)**.
 
 ## Related
 
 - Topology: [links-and-topology.md](links-and-topology.md)  
 - Requirements: [requirements.md](requirements.md)  
+- MTU & bulk transfer overhead: [mtu-and-throughput.md](mtu-and-throughput.md)  
 - Troubleshooting slow links: [troubleshooting.md](troubleshooting.md)  

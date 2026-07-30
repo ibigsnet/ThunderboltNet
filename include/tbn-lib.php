@@ -1528,10 +1528,118 @@ function tbn_iface_defaults($if = 'thunderbolt0') {
     'NETMASK6' => '64',
     'GATEWAY6' => '',
     'DEFAULT_ROUTE6' => 'no',
-    'MTU' => '',
-    'USE_MTU' => 'no',
+    // MTU_MODE: default (kernel 1500) | 9000 (recommended TB bulk) | custom
+    'MTU_MODE' => 'default',
+    'MTU' => '9000',
+    'USE_MTU' => 'no', // kept in sync with MTU_MODE for older logic
     'INCLUDE_LISTENING' => 'no',
   ];
+}
+
+/**
+ * Driver/kernel MTU limits for a netdev (from `ip -d link`).
+ * thunderbolt_net commonly reports maxmtu ~65522 — jumbo is fine.
+ *
+ * @return array{min:int,max:int}
+ */
+function tbn_iface_mtu_limits($if) {
+  $min = 68;
+  $max = 65522;
+  if ($if === '' || !is_dir('/sys/class/net/' . $if)) {
+    return ['min' => $min, 'max' => $max];
+  }
+  $out = [];
+  @exec('ip -d link show dev ' . escapeshellarg($if) . ' 2>/dev/null', $out);
+  $blob = implode(' ', $out);
+  if (preg_match('/\bminmtu\s+(\d+)/', $blob, $m)) {
+    $min = max(68, (int)$m[1]);
+  }
+  if (preg_match('/\bmaxmtu\s+(\d+)/', $blob, $m)) {
+    $max = max($min, (int)$m[1]);
+  }
+  return ['min' => $min, 'max' => $max];
+}
+
+/**
+ * Normalize MTU_MODE + USE_MTU/MTU (legacy) → mode string.
+ */
+function tbn_normalize_mtu_mode(array $cfg) {
+  $mode = strtolower(trim((string)($cfg['MTU_MODE'] ?? '')));
+  if (in_array($mode, ['default', '9000', 'custom'], true)) {
+    return $mode;
+  }
+  // Legacy: USE_MTU=yes + value
+  if (($cfg['USE_MTU'] ?? 'no') === 'yes') {
+    $v = (int)($cfg['MTU'] ?? 0);
+    if ($v === 9000) {
+      return '9000';
+    }
+    if ($v >= 68) {
+      return 'custom';
+    }
+  }
+  return 'default';
+}
+
+/**
+ * Desired MTU integer, or null to leave kernel default (typically 1500).
+ */
+function tbn_desired_mtu(array $cfg) {
+  $mode = tbn_normalize_mtu_mode($cfg);
+  if ($mode === 'default') {
+    return null;
+  }
+  if ($mode === '9000') {
+    return 9000;
+  }
+  $v = (int)($cfg['MTU'] ?? 0);
+  if ($v < 68) {
+    return null;
+  }
+  return $v;
+}
+
+/**
+ * Apply MTU to a live netdev. Clamps to driver min/max.
+ * $mtu null → set 1500 (explicit kernel default) so re-Apply undoes jumbo.
+ */
+function tbn_apply_mtu($if, $mtu) {
+  if ($if === '' || !is_dir('/sys/class/net/' . $if)) {
+    return false;
+  }
+  $lim = tbn_iface_mtu_limits($if);
+  if ($mtu === null) {
+    $mtu = 1500;
+  }
+  $mtu = (int)$mtu;
+  if ($mtu < $lim['min']) {
+    $mtu = $lim['min'];
+  }
+  if ($mtu > $lim['max']) {
+    $mtu = $lim['max'];
+  }
+  // Cap UI-ish jumbo at 9198 for "normal" ethernet tools unless driver allows more;
+  // still honor higher if user chose custom within maxmtu (TB path supports large frames).
+  @exec('ip link set dev ' . escapeshellarg($if) . ' mtu ' . (int)$mtu . ' 2>/dev/null', $o, $rc);
+  return $rc === 0;
+}
+
+/**
+ * Live MTU label for overview: "1500 (kernel default)" vs "9000".
+ */
+function tbn_format_mtu_live($mtu, $configured_mode = '') {
+  $mtu = trim((string)$mtu);
+  if ($mtu === '') {
+    return '—';
+  }
+  $n = (int)$mtu;
+  if ($n === 1500 && ($configured_mode === '' || $configured_mode === 'default')) {
+    return '1500 (kernel default)';
+  }
+  if ($n === 9000) {
+    return '9000 (jumbo)';
+  }
+  return (string)$n;
 }
 
 /**
@@ -1562,6 +1670,7 @@ function tbn_docs_bar_html($active = 'overview') {
     'drivers' => ['docs/driver-options.md', 'Driver options'],
     'peers' => ['docs/peer-scenarios.md', 'Peer scenarios'],
     'addressing' => ['docs/addressing.md', 'Addressing'],
+    'mtu' => ['docs/mtu-and-throughput.md', 'MTU & throughput'],
     'speeds' => ['docs/standards-and-speeds.md', 'Standards & speeds'],
     'requirements' => ['docs/requirements.md', 'Requirements'],
     'topology' => ['docs/links-and-topology.md', 'Links & topology'],
@@ -1629,7 +1738,19 @@ function tbn_load_iface_cfg($if) {
   if (isset($raw['BR_NAME']) && ($raw['BR_NAME'] === 'br-tb' || $raw['BR_NAME'] === '')) {
     $raw['BR_NAME'] = 'br-tb0';
   }
-  return array_merge(tbn_iface_defaults($if), $raw);
+  // Derive MTU_MODE from legacy USE_MTU/MTU when mode missing
+  if (!isset($raw['MTU_MODE']) || $raw['MTU_MODE'] === '') {
+    $raw['MTU_MODE'] = tbn_normalize_mtu_mode($raw);
+  }
+  $merged = array_merge(tbn_iface_defaults($if), $raw);
+  // Keep USE_MTU in sync for any old readers
+  $mode = tbn_normalize_mtu_mode($merged);
+  $merged['MTU_MODE'] = $mode;
+  $merged['USE_MTU'] = ($mode === 'default') ? 'no' : 'yes';
+  if ($mode === '9000') {
+    $merged['MTU'] = '9000';
+  }
+  return $merged;
 }
 
 function tbn_write_iface_cfg($if, array $cfg) {
@@ -1977,17 +2098,16 @@ function tbn_apply_iface($if) {
     @exec("ip link set {$ife} down 2>/dev/null");
     return ['ok' => true, 'iface' => $if, 'enabled' => false];
   }
-  if (($cfg['USE_MTU'] ?? 'no') === 'yes' && ($cfg['MTU'] ?? '') !== '') {
-    $mtu = (int)$cfg['MTU'];
-    if ($mtu >= 68 && $mtu <= 9198) {
-      @exec("ip link set {$ife} mtu {$mtu} 2>/dev/null");
-    }
-  }
   // If this iface is enslaved to a bond, do not fight the bond master (eth-like).
   $master = tbn_iface_master($if);
   $is_bond_slave = ($master !== '' && (
     preg_match('/^bond-tb/', $master) || is_dir('/sys/class/net/' . $master . '/bonding')
   ));
+
+  // MTU on the netdev that carries the IP (slave: bond master owns MTU)
+  if (!$is_bond_slave) {
+    tbn_apply_mtu($if, tbn_desired_mtu($cfg));
+  }
 
   if (!$is_bond_slave) {
     tbn_apply_ip_block($if, $cfg, '');
@@ -2000,6 +2120,11 @@ function tbn_apply_iface($if) {
   // Bonding — only when this form enables it (not when we are a slave)
   if (!$is_bond_slave && ($cfg['BONDING'] ?? 'no') === 'yes') {
     tbn_apply_simple_bond($cfg, $if);
+    // Bond master should match desired MTU too
+    $bond = $cfg['BOND_NAME'] ?? 'bond-tb0';
+    if ($bond !== '' && is_dir('/sys/class/net/' . $bond)) {
+      tbn_apply_mtu($bond, tbn_desired_mtu($cfg));
+    }
   }
   return ['ok' => true, 'iface' => $if, 'cfg' => $cfg, 'netdevs' => tbn_list_netdevs()];
 }
