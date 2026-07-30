@@ -305,10 +305,11 @@ if (strpos($nm, '.') === false) {
       </dd>
     </dl>
     <blockquote class="inline_help">
-      When <strong>Yes</strong>, adds this interface to Unraid’s <code>network-extra.cfg</code>
-      <code>include_interfaces</code> list so services that honor that list may bind/listen on it
-      (SMB, etc., depending on Unraid settings). Leave <strong>No</strong> if TB is only for private
-      peer traffic and you do not want shares advertised on this link.
+      Same as <strong>Host services on Thunderbolt links</strong> on the overview tab (preferred place to manage this).
+      <strong>Yes</strong> — add this iface to Unraid <code>network-extra.cfg</code> include list so host services
+      (SMB, NFS, SSH, web UI, …) can listen on the TB IP. <strong>Recommended for bulk transfers.</strong><br>
+      <strong>No</strong> (default) — safer; IP/ping still work, but shares/UI usually will not on this address.
+      Preference is remembered per peer when set from the overview table.
     </blockquote>
 
     <dl>

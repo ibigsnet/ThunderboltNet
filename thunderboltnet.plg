@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.07.30ad">
+<!ENTITY version "2026.07.30ae">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -34,6 +34,8 @@
 
 <CHANGES>
 ###&version;
+- Host services per peer (SMB/NFS/web UI listen); remember Yes/No; Harden all to No.
+
 - Default TB bond name bond-tb0 (bond-tbN pattern; avoid Unraid bond0).
 
 - Fix blank tbn1/tbnN tabs: use require (not require_once) so each tab re-renders the shared form.
@@ -182,6 +184,10 @@ Plug-and-play host-to-host networking over Thunderbolt-family ports on Unraid (T
 
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-update-iface.php">
 <URL>&raw;/include/tbn-update-iface.php?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-update-listening.php">
+<URL>&raw;/include/tbn-update-listening.php?v=&version;</URL>
 </FILE>
 
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-pci-panel.php">

@@ -478,25 +478,169 @@ function tbn_save_peers_memory(array $peers) {
 /**
  * Upsert live links into peers.json (by fabric unique_id or iface fallback).
  */
+/**
+ * Stable key for peers.json (fabric UUID preferred).
+ */
+function tbn_peer_key_from_link(array $L) {
+  $uid = trim((string)($L['remote']['unique_id'] ?? ''));
+  if ($uid !== '') {
+    return $uid;
+  }
+  return 'iface:' . ($L['iface'] ?? 'unknown');
+}
+
+/**
+ * Ask Unraid to rebuild service listen sockets (best-effort).
+ */
+function tbn_refresh_unraid_services() {
+  $script = '/usr/local/emhttp/webGui/scripts/update_services';
+  if (is_executable($script)) {
+    @exec(escapeshellarg($script) . ' >/dev/null 2>&1 &');
+  }
+}
+
+/**
+ * Set INCLUDE_LISTENING for one iface + network-extra include_interfaces.
+ * $enable: 'yes'|'no'|bool
+ */
+function tbn_set_listening_for_iface($if, $enable) {
+  if (!preg_match('/^thunderbolt\d+$/', (string)$if)) {
+    return false;
+  }
+  $enable = ($enable === true || $enable === 'yes' || $enable === 1 || $enable === '1') ? 'yes' : 'no';
+  $cfg = tbn_load_iface_cfg($if);
+  $cfg['INCLUDE_LISTENING'] = $enable;
+  tbn_write_iface_cfg($if, $cfg);
+
+  $current = tbn_read_include_interfaces();
+  if ($enable === 'yes') {
+    if (!in_array($if, $current, true)) {
+      $current[] = $if;
+    }
+  } else {
+    $current = array_values(array_filter($current, function ($x) use ($if) {
+      return $x !== $if;
+    }));
+  }
+  tbn_write_include_interfaces($current);
+  return true;
+}
+
+/**
+ * Persist preferred listening for a remembered peer (and optional live iface).
+ */
+function tbn_set_peer_listening_pref($peer_key, $enable, $if = '') {
+  $enable = ($enable === true || $enable === 'yes' || $enable === 1 || $enable === '1') ? 'yes' : 'no';
+  $peer_key = trim((string)$peer_key);
+  if ($peer_key === '') {
+    return false;
+  }
+  $peers = tbn_load_peers_memory();
+  if (!isset($peers[$peer_key])) {
+    $peers[$peer_key] = [
+      'unique_id' => (strpos($peer_key, 'iface:') === 0) ? '' : $peer_key,
+      'peer_name' => '',
+      'include_listening' => $enable,
+      'seen_count' => 0,
+      'online' => false,
+    ];
+  } else {
+    $peers[$peer_key]['include_listening'] = $enable;
+  }
+  tbn_save_peers_memory($peers);
+  if ($if !== '' && preg_match('/^thunderbolt\d+$/', $if)) {
+    tbn_set_listening_for_iface($if, $enable);
+    tbn_refresh_unraid_services();
+  }
+  return true;
+}
+
+/**
+ * Security hardening: all TB ifaces + all remembered peers → listening No.
+ * Strips thunderbolt* / bond-tb* / br-tb* from network-extra include list.
+ */
+function tbn_listening_harden_all() {
+  $peers = tbn_load_peers_memory();
+  foreach ($peers as $k => $_) {
+    $peers[$k]['include_listening'] = 'no';
+  }
+  tbn_save_peers_memory($peers);
+
+  foreach (tbn_list_tb_iface_names() as $if) {
+    tbn_set_listening_for_iface($if, 'no');
+  }
+
+  $current = tbn_read_include_interfaces();
+  $current = array_values(array_filter($current, function ($x) {
+    return !preg_match('/^(thunderbolt\d+|bond-tb(?:\d+)?|br-tb(?:\d+)?)$/', (string)$x);
+  }));
+  tbn_write_include_interfaces($current);
+  tbn_refresh_unraid_services();
+  return true;
+}
+
+/**
+ * When a remembered peer comes online with include_listening=yes|no, align live iface + network-extra.
+ */
+function tbn_reconcile_listening_from_memory(array $links) {
+  $peers = tbn_load_peers_memory();
+  $changed = false;
+  foreach ($links as $L) {
+    $key = tbn_peer_key_from_link($L);
+    if (!isset($peers[$key]['include_listening'])) {
+      continue;
+    }
+    $pref = (($peers[$key]['include_listening'] ?? 'no') === 'yes') ? 'yes' : 'no';
+    $if = $L['iface'] ?? '';
+    if ($if === '' || !preg_match('/^thunderbolt\d+$/', $if)) {
+      continue;
+    }
+    $cfg = tbn_load_iface_cfg($if);
+    $cur = (($cfg['INCLUDE_LISTENING'] ?? 'no') === 'yes') ? 'yes' : 'no';
+    $in_list = in_array($if, tbn_read_include_interfaces(), true);
+    $want_in = ($pref === 'yes');
+    if ($cur !== $pref || $in_list !== $want_in) {
+      tbn_set_listening_for_iface($if, $pref);
+      $changed = true;
+    }
+  }
+  if ($changed) {
+    tbn_refresh_unraid_services();
+  }
+  return $changed;
+}
+
 function tbn_remember_live_peers(array $links) {
   $peers = tbn_load_peers_memory();
   $now = date('c');
   foreach ($links as $L) {
     $rem = $L['remote'] ?? [];
     $uid = trim((string)($rem['unique_id'] ?? ''));
-    $key = $uid !== '' ? $uid : ('iface:' . ($L['iface'] ?? 'unknown'));
+    $key = tbn_peer_key_from_link($L);
     $prev = $peers[$key] ?? [];
+    $if = $L['iface'] ?? '';
+    $iface_listen = 'no';
+    if ($if !== '' && preg_match('/^thunderbolt\d+$/', $if)) {
+      $ic = tbn_load_iface_cfg($if);
+      $iface_listen = (($ic['INCLUDE_LISTENING'] ?? 'no') === 'yes') ? 'yes' : 'no';
+    }
+    // Prefer saved peer preference; else current iface cfg; default no
+    $listen = $prev['include_listening'] ?? $iface_listen;
+    if ($listen !== 'yes') {
+      $listen = 'no';
+    }
     $peers[$key] = array_merge($prev, [
       'unique_id' => $uid,
       'peer_name' => $rem['peer_name'] ?? ($prev['peer_name'] ?? ''),
       'stack' => $rem['stack'] ?? ($prev['stack'] ?? ''),
-      'last_iface' => $L['iface'] ?? '',
+      'last_iface' => $if,
       'last_label' => $L['label'] ?? '',
       'last_rx_speed' => $rem['rx_speed'] ?? '',
       'last_tx_speed' => $rem['tx_speed'] ?? '',
       'last_rx_lanes' => $rem['rx_lanes'] ?? '',
       'last_tx_lanes' => $rem['tx_lanes'] ?? '',
       'last_local_addrs' => $L['local']['addrs'] ?? [],
+      'include_listening' => $listen,
       'last_seen' => $now,
       'seen_count' => (int)($prev['seen_count'] ?? 0) + 1,
       'online' => true,
@@ -505,8 +649,7 @@ function tbn_remember_live_peers(array $links) {
   // Mark others offline (still remembered)
   $live_keys = [];
   foreach ($links as $L) {
-    $uid = trim((string)($L['remote']['unique_id'] ?? ''));
-    $live_keys[] = $uid !== '' ? $uid : ('iface:' . ($L['iface'] ?? ''));
+    $live_keys[] = tbn_peer_key_from_link($L);
   }
   foreach ($peers as $k => $p) {
     $peers[$k]['online'] = in_array($k, $live_keys, true);
@@ -931,8 +1074,12 @@ function tbn_status() {
   $cfg = tbn_load_cfg();
   $probe = tbn_hardware_probe();
   $links = tbn_link_summaries();
-  // Plug-and-play groundwork: persist last-seen peers while reviewing Settings
+  // Plug-and-play: persist last-seen peers; re-apply remembered listening prefs
   $peers = tbn_remember_live_peers($links);
+  tbn_reconcile_listening_from_memory($links);
+  // Refresh summaries after reconcile so "listening" flags match network-extra
+  $links = tbn_link_summaries();
+  $peers = tbn_load_peers_memory();
   return [
     'hostname' => gethostname() ?: '',
     'time' => date('c'),
@@ -1239,7 +1386,7 @@ function tbn_iface_defaults($if = 'thunderbolt0') {
     'ENABLE' => 'yes',
     'BONDING' => 'no',
     'BONDING_MODE' => 'balance-rr',
-    'BOND_NAME' => 'bond-tb',
+    'BOND_NAME' => 'bond-tb0',
     'BRIDGING' => 'no',
     'BR_NAME' => 'br-tb',
     'PROTOCOL' => 'ipv4',
@@ -1574,7 +1721,7 @@ function tbn_mask_to_prefix($mask) {
  * Simple balance-rr (etc.) bond for TB members only — not full Unraid bond0.
  */
 function tbn_apply_simple_bond(array $cfg, $primary_if) {
-  $bond = $cfg['BOND_NAME'] ?? 'bond-tb';
+  $bond = $cfg['BOND_NAME'] ?? 'bond-tb0';
   if ($bond === '' || !preg_match('/^[A-Za-z0-9_.-]+$/', $bond)) {
     return;
   }

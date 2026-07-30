@@ -432,3 +432,27 @@
 .tbn-peers-memory .tbn-peer-online td {
   background: rgba(60, 160, 90, 0.04);
 }
+.tbn-listen-warn {
+  color: inherit;
+  max-width: 22rem;
+}
+.tbn-listen-table .tbn-listen-form {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  align-items: center;
+}
+.tbn-listen-table .tbn-listen-form select {
+  max-width: 22rem;
+}
+.tbn-listen-off td {
+  background: rgba(200, 140, 40, 0.06);
+}
+.tbn-listen-on td {
+  background: rgba(60, 160, 90, 0.04);
+}
+.tbn-harden-form {
+  margin-top: 1rem;
+  padding-top: 0.5rem;
+}

@@ -28,7 +28,7 @@ Not per-tbn: changing E2E affects every Thunderbolt network interface on Unraid.
 | IPv4 default gateway | empty | Optional next hop on this link |
 | Enable default route | No | Don’t steal system default from eth0 |
 | Desired MTU | Default | Optional custom MTU |
-| Include listening interface | No | network-extra include_interfaces |
+| Unraid services on this link (listening) | No (recommend Yes for SMB/transfers) | Per peer; remembered; overview table + Harden all |
 | IPv4 (live) | (live) | Read-only from kernel |
 | Bond / bridge membership | (live) | Read-only |
 
