@@ -278,8 +278,9 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
       Header under each REMOTE is the Settings tab and kernel iface — click the tab name to open it.<br><br>
       <strong>Peer name</strong> — far host’s advertised name.
       <strong>Stack</strong> — TB vendor field (often <code>Linux</code> / software ID, not the chassis brand).<br><br>
-      <strong>RX/TX and lanes</strong> — trained path on that cable.
-      <strong>Link quality</strong> — trained vs this host’s max; yellow <em>Below max</em> usually means cable/port path
+      <strong>Link RX/TX &amp; lanes</strong> — <em>LOCAL</em> is this host’s class ceiling (not a live hop rate).
+      Each <em>REMOTE</em> column is the trained path on that cable (end-to-end with that peer).<br><br>
+      <strong>Link quality</strong> — trained vs host max; yellow <em>Below max</em> usually means cable/port path
       (try a certified 40&nbsp;Gb/s TB4/USB4 cable).<br><br>
       <strong>Local IPv4 / MAC / state</strong> under REMOTE are <em>this Unraid end</em> of that link.
       Set addresses and bonding on each <strong>tbnN</strong> tab.
@@ -320,6 +321,9 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
   foreach ($links as $i => $L) {
     $qualities[$i] = tbn_link_quality($L['remote'], $status);
   }
+  $tbn_cap = function_exists('tbn_controller_capability')
+    ? tbn_controller_capability()
+    : ['max_short' => '', 'max_lanes' => 2, 'max_gbps' => 0];
 ?>
     <div class="tbn-compare-scroll">
     <table class="tbn-table tbn-wide tbn-compare">
