@@ -1361,18 +1361,17 @@ function tbn_apply_static_ip() {
   $target = escapeshellarg($ip . '/' . $cidr);
   $ife = escapeshellarg($if);
   @exec("ip link set {$ife} up 2>/dev/null");
-  // Prefer replace so re-Apply is idempotent
-  @exec("ip addr replace {$target} dev {$ife} 2>/dev/null", $o, $rc);
-  if ($rc !== 0) {
-    @exec("ip addr flush dev {$ife} 2>/dev/null");
-    @exec("ip addr add {$target} dev {$ife} 2>/dev/null", $o, $rc);
-  }
+  // Flush first — replace leaves other subnets/routes stacked on the same iface
+  tbn_iface_flush_l3($if, 4);
+  @exec("ip -4 addr add {$target} dev {$ife} 2>/dev/null", $o, $rc);
   // Legacy global: never_default=yes means do not install default (same as DEFAULT_ROUTE=no)
   $allow_default = (($cfg['default_route'] ?? '') === 'yes')
     || (($cfg['never_default'] ?? 'yes') === 'no');
   if ($cfg['ip_gateway'] !== '' && $allow_default) {
     $gw = escapeshellarg($cfg['ip_gateway']);
     @exec("ip route replace default via {$gw} dev {$ife} 2>/dev/null");
+  } else {
+    tbn_iface_drop_default_routes($if, 4);
   }
   return [
     'ok' => $rc === 0,
@@ -1659,6 +1658,61 @@ function tbn_write_iface_cfg($if, array $cfg) {
 }
 
 /**
+ * Drop L3 state on an iface so re-Apply is clean.
+ * Kernel connected routes follow addresses; also flush residual routes on this dev
+ * (stale defaults / stacked subnets from earlier applies that used "addr replace").
+ *
+ * $family: 4, 6, or 0 for both.
+ */
+function tbn_iface_flush_l3($if, $family = 0) {
+  if ($if === '' || !is_dir('/sys/class/net/' . $if)) {
+    return;
+  }
+  $ife = escapeshellarg($if);
+  $do4 = ($family === 0 || $family === 4);
+  $do6 = ($family === 0 || $family === 6);
+  if ($do4) {
+    // Global unicast only — keep link-local/peer quirks out of scope issues
+    @exec("ip -4 addr flush dev {$ife} scope global 2>/dev/null");
+    // Any leftover IPv4 routes bound to this device (connected should already be gone)
+    @exec("ip -4 route flush dev {$ife} 2>/dev/null");
+  }
+  if ($do6) {
+    @exec("ip -6 addr flush dev {$ife} scope global 2>/dev/null");
+    @exec("ip -6 route flush dev {$ife} 2>/dev/null");
+  }
+}
+
+/**
+ * Remove default route(s) that egress via this iface (when DEFAULT_ROUTE=no).
+ */
+function tbn_iface_drop_default_routes($if, $family = 0) {
+  if ($if === '' || !is_dir('/sys/class/net/' . $if)) {
+    return;
+  }
+  $do4 = ($family === 0 || $family === 4);
+  $do6 = ($family === 0 || $family === 6);
+  if ($do4) {
+    $lines = [];
+    @exec('ip -4 route show default 2>/dev/null', $lines);
+    foreach ($lines as $line) {
+      if (preg_match('/\bdev\s+' . preg_quote($if, '/') . '\b/', $line)) {
+        @exec('ip -4 route del ' . $line . ' 2>/dev/null');
+      }
+    }
+  }
+  if ($do6) {
+    $lines = [];
+    @exec('ip -6 route show default 2>/dev/null', $lines);
+    foreach ($lines as $line) {
+      if (preg_match('/\bdev\s+' . preg_quote($if, '/') . '\b/', $line)) {
+        @exec('ip -6 route del ' . $line . ' 2>/dev/null');
+      }
+    }
+  }
+}
+
+/**
  * Apply IPv4/IPv6 from a flat key prefix ('' for parent, or 'VLAN_10_' for VLAN).
  */
 function tbn_apply_ip_block($dev, array $cfg, $prefix = '') {
@@ -1679,13 +1733,24 @@ function tbn_apply_ip_block($dev, array $cfg, $prefix = '') {
     $do6 = (($cfg[$prefix . 'IPADDR6'] ?? '') !== '' || ($cfg[$prefix . 'USE_DHCP6'] ?? 'no') === 'yes');
   }
 
+  // Protocol-only modes: drop the other family so old dual-stack leftovers vanish
+  if ($prefix === '') {
+    if (!$do4) {
+      tbn_iface_flush_l3($dev, 4);
+    }
+    if (!$do6) {
+      tbn_iface_flush_l3($dev, 6);
+    }
+  }
+
   if ($do4) {
     $use = $cfg[$prefix . 'USE_DHCP'] ?? ($prefix === '' ? ($cfg['USE_DHCP'] ?? 'no') : 'no');
     if ($use === 'yes') {
-      // TB iface is a DHCP *client* (asks peer for a lease). Not Unraid serving DHCP.
+      // DHCP client will install its own addresses/routes — clear static leftovers first
+      tbn_iface_flush_l3($dev, 4);
       @exec("dhcpcd -n {$ife} 2>/dev/null || dhclient -1 {$ife} 2>/dev/null || true");
     } else {
-      $ip = $cfg[$prefix . 'IPADDR'] ?? '';
+      $ip = trim((string)($cfg[$prefix . 'IPADDR'] ?? ''));
       $nm = $cfg[$prefix . 'NETMASK'] ?? ($prefix === '' ? ($cfg['NETMASK'] ?? '24') : '24');
       $cidr = preg_replace('/\D/', '', (string)$nm);
       if ($cidr === '') {
@@ -1694,16 +1759,18 @@ function tbn_apply_ip_block($dev, array $cfg, $prefix = '') {
       if (strpos((string)$nm, '.') !== false) {
         $cidr = (string)tbn_mask_to_prefix($nm);
       }
+      // Always clear first: "ip addr replace" only swaps ONE address; stacked
+      // 10.255.0.0/24 + 10.255.1.0/24 both stay as kernel connected routes.
+      tbn_iface_flush_l3($dev, 4);
       if ($ip !== '' && filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-        // Flush existing global IPv4 first — "replace" only updates one address; old
-        // subnets from earlier Applies would otherwise stack (e.g. .0.2 and .1.2).
-        @exec("ip -4 addr flush dev {$ife} scope global 2>/dev/null");
         $target = escapeshellarg($ip . '/' . $cidr);
         @exec("ip -4 addr add {$target} dev {$ife} 2>/dev/null");
-        $gw = $cfg[$prefix . 'GATEWAY'] ?? '';
+        $gw = trim((string)($cfg[$prefix . 'GATEWAY'] ?? ''));
         $dr = $cfg[$prefix . 'DEFAULT_ROUTE'] ?? 'no';
-        if ($gw !== '' && $dr === 'yes') {
+        if ($gw !== '' && $dr === 'yes' && filter_var($gw, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
           @exec('ip -4 route replace default via ' . escapeshellarg($gw) . ' dev ' . $ife . ' 2>/dev/null');
+        } else {
+          tbn_iface_drop_default_routes($dev, 4);
         }
       }
     }
@@ -1712,6 +1779,7 @@ function tbn_apply_ip_block($dev, array $cfg, $prefix = '') {
   if ($do6) {
     $use6 = $cfg[$prefix . 'USE_DHCP6'] ?? 'no';
     if ($use6 === 'yes') {
+      tbn_iface_flush_l3($dev, 6);
       @exec("dhcpcd -6 -n {$ife} 2>/dev/null || dhclient -6 -1 {$ife} 2>/dev/null || true");
     } else {
       $ip6 = trim((string)($cfg[$prefix . 'IPADDR6'] ?? ''));
@@ -1719,14 +1787,16 @@ function tbn_apply_ip_block($dev, array $cfg, $prefix = '') {
       if ($p6 < 1 || $p6 > 128) {
         $p6 = 64;
       }
+      tbn_iface_flush_l3($dev, 6);
       if ($ip6 !== '' && filter_var($ip6, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-        @exec("ip -6 addr flush dev {$ife} scope global 2>/dev/null");
         $target6 = escapeshellarg($ip6 . '/' . $p6);
         @exec("ip -6 addr add {$target6} dev {$ife} 2>/dev/null");
-        $gw6 = $cfg[$prefix . 'GATEWAY6'] ?? '';
+        $gw6 = trim((string)($cfg[$prefix . 'GATEWAY6'] ?? ''));
         $dr6 = $cfg[$prefix . 'DEFAULT_ROUTE6'] ?? 'no';
-        if ($gw6 !== '' && $dr6 === 'yes') {
+        if ($gw6 !== '' && $dr6 === 'yes' && filter_var($gw6, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
           @exec('ip -6 route replace default via ' . escapeshellarg($gw6) . ' dev ' . $ife . ' 2>/dev/null');
+        } else {
+          tbn_iface_drop_default_routes($dev, 6);
         }
       }
     }
@@ -1902,6 +1972,8 @@ function tbn_apply_iface($if) {
   if (($cfg['ENABLE'] ?? 'yes') === 'yes') {
     @exec("ip link set {$ife} up 2>/dev/null");
   } else {
+    // Disable: drop addresses + routes so nothing lingers in the main table
+    tbn_iface_flush_l3($if, 0);
     @exec("ip link set {$ife} down 2>/dev/null");
     return ['ok' => true, 'iface' => $if, 'enabled' => false];
   }

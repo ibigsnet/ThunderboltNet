@@ -476,9 +476,8 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
           <td><code class="tbn-live" data-tbn-live-ip4="<?= htmlspecialchars($if) ?>"><?= htmlspecialchars($addrs !== '' ? $addrs : '—') ?></code></td>
           <td>
             <form method="POST" action="/update.php" target="progressFrame" class="tbn-listen-form">
-              <input type="hidden" name="#file" value="<?= $can_apply_live
-                ? 'ThunderboltNet/ifaces/' . htmlspecialchars($if) . '.cfg'
-                : 'ThunderboltNet/ThunderboltNet.cfg' ?>">
+              <?php // #file unused ($save=false in include); keep path for Unraid form plumbing only ?>
+              <input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">
               <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update-listening.php">
               <input type="hidden" name="tbn_listen_action" value="set">
               <input type="hidden" name="tbn_iface" value="<?= htmlspecialchars($if) ?>">

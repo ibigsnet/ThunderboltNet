@@ -7,9 +7,16 @@
  *   tbn_iface         = thunderboltN (for set)
  *   tbn_peer_key      = peers.json key (optional but preferred)
  *   INCLUDE_LISTENING = yes | no (for set)
+ *
+ * Unraid update.php merges POST into #file after this include. We set $save=false
+ * and write only via tbn_write_iface_cfg so listen forms never pollute iface cfgs
+ * with tbn_listen_action / tbn_peer_key keys.
  */
 $docroot = $docroot ?? ($_SERVER['DOCUMENT_ROOT'] ?? '/usr/local/emhttp');
 require_once '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php';
+
+// Prevent update.php from merging listen-form POST junk into the target cfg
+$save = false;
 
 $action = strtolower(trim((string)($_POST['tbn_listen_action'] ?? '')));
 $apply = (string)($_POST['#apply'] ?? '');
