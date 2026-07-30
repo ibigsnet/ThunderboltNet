@@ -20,7 +20,7 @@ if (is_file($helpers)) {
   require_once $helpers;
 }
 
-require_once __DIR__ . '/tbn-lib.php';
+require_once '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php';
 
 echo json_encode(tbn_status(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 echo (PHP_SAPI === 'cli') ? "\n" : '';

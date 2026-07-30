@@ -487,3 +487,345 @@ function tbn_apply_static_ip() {
     'netdevs' => tbn_list_netdevs(),
   ];
 }
+
+/* ------------------------------------------------------------------ */
+/*  Multi-iface tabs (tbn0 → thunderbolt0), IOMMU, page sync           */
+/* ------------------------------------------------------------------ */
+
+function tbn_plugin_root() {
+  return '/usr/local/emhttp/plugins/ThunderboltNet';
+}
+
+function tbn_require_lib() {
+  // Absolute path only — Unraid evaluates .page files with a cwd where __DIR__ is wrong.
+  require_once tbn_plugin_root() . '/include/tbn-lib.php';
+}
+
+/** Kernel names: thunderbolt0, thunderbolt1, ... sorted by number. */
+function tbn_list_tb_iface_names() {
+  $names = [];
+  foreach (@scandir('/sys/class/net') ?: [] as $if) {
+    if (preg_match('/^thunderbolt(\d+)$/', $if, $m)) {
+      $names[(int)$m[1]] = $if;
+    }
+  }
+  ksort($names, SORT_NUMERIC);
+  return array_values($names);
+}
+
+/** Display label tbn0 for thunderbolt0. */
+function tbn_label_for_iface($if) {
+  if (preg_match('/^thunderbolt(\d+)$/', $if, $m)) {
+    return 'tbn' . $m[1];
+  }
+  return $if;
+}
+
+function tbn_iface_cfg_dir() {
+  return tbn_cfg_dir() . '/ifaces';
+}
+
+function tbn_iface_cfg_path($if) {
+  $safe = preg_replace('/[^A-Za-z0-9_-]/', '', $if);
+  return tbn_iface_cfg_dir() . '/' . $safe . '.cfg';
+}
+
+function tbn_iface_defaults($if = 'thunderbolt0') {
+  $n = 0;
+  if (preg_match('/(\d+)$/', $if, $m)) {
+    $n = (int)$m[1];
+  }
+  // .2 on first Unraid TB iface is conventional; peer often .1
+  $last = 2 + $n;
+  return [
+    'DESCRIPTION' => '',
+    'ENABLE' => 'yes',
+    'BONDING' => 'no',
+    'BONDING_MODE' => 'balance-rr',
+    'BOND_NAME' => 'bond-tb',
+    'BRIDGING' => 'no',
+    'BR_NAME' => 'br-tb',
+    'PROTOCOL' => 'ipv4',
+    'USE_DHCP' => 'no',
+    'IPADDR' => '10.255.1.' . $last,
+    'NETMASK' => '24',
+    'GATEWAY' => '',
+    'NEVER_DEFAULT' => 'yes',
+    'MTU' => '',
+    'USE_MTU' => 'no',
+    'INCLUDE_LISTENING' => 'no',
+  ];
+}
+
+function tbn_parse_cfg_file($path) {
+  $cfg = [];
+  if (!is_readable($path)) {
+    return $cfg;
+  }
+  foreach (file($path, FILE_IGNORE_NEW_LINES) ?: [] as $line) {
+    $line = trim($line);
+    if ($line === '' || $line[0] === ';' || $line[0] === '#') {
+      continue;
+    }
+    if (preg_match('/^([A-Za-z0-9_]+)="([^"]*)"/', $line, $m)) {
+      $cfg[$m[1]] = $m[2];
+    } elseif (preg_match('/^([A-Za-z0-9_]+)=(.*)$/', $line, $m)) {
+      $cfg[$m[1]] = trim($m[2], " \t\"'");
+    }
+  }
+  return $cfg;
+}
+
+function tbn_load_iface_cfg($if) {
+  return array_merge(tbn_iface_defaults($if), tbn_parse_cfg_file(tbn_iface_cfg_path($if)));
+}
+
+function tbn_write_iface_cfg($if, array $cfg) {
+  $dir = tbn_iface_cfg_dir();
+  if (!is_dir($dir)) {
+    @mkdir($dir, 0755, true);
+  }
+  $defaults = tbn_iface_defaults($if);
+  $merged = array_merge($defaults, $cfg);
+  $lines = ['; ThunderboltNet iface ' . $if, ''];
+  foreach ($defaults as $k => $_) {
+    $v = isset($merged[$k]) ? $merged[$k] : '';
+    $lines[] = $k . '="' . str_replace(['\\', '"'], ['\\\\', '\\"'], (string)$v) . '"';
+  }
+  return @file_put_contents(tbn_iface_cfg_path($if), implode("\n", $lines) . "\n") !== false;
+}
+
+function tbn_reset_iface_cfg($if) {
+  return tbn_write_iface_cfg($if, tbn_iface_defaults($if));
+}
+
+/**
+ * PCI / IOMMU / VFIO info for Thunderbolt controllers (informational).
+ */
+function tbn_list_pci_iommu() {
+  $out = [];
+  $lines = [];
+  @exec('lspci -Dnn 2>/dev/null', $lines);
+  $want = [];
+  foreach ($lines as $line) {
+    if (preg_match('/thunderbolt|USB4|Maple Ridge|NHI|Alpine Ridge|Titan Ridge|JHL/i', $line)
+      || preg_match('/\[8086:(1136|1137|1138|15eb|15ec|15ef|15f0|9a1b|9a1d|a0b5|a71e)\]/i', $line)) {
+      if (preg_match('/^([0-9a-f:.]+)\s+(.+)$/i', $line, $m)) {
+        $want[$m[1]] = $m[2];
+      }
+    }
+  }
+  // Also walk domain0 parent PCI
+  $dom = @realpath('/sys/bus/thunderbolt/devices/domain0');
+  if ($dom) {
+    $p = $dom;
+    for ($i = 0; $i < 12 && $p && $p !== '/'; $i++, $p = dirname($p)) {
+      if (preg_match('#/([0-9a-f]{4}:[0-9a-f]{2}:[0-9a-f]{2}\.[0-9a-f])$#i', $p, $m)) {
+        $bdf = $m[1];
+        if (!isset($want[$bdf])) {
+          $want[$bdf] = '';
+        }
+      }
+    }
+  }
+  $vfio_bound = [];
+  if (is_readable('/boot/config/vfio-pci.cfg')) {
+    $raw = (string)@file_get_contents('/boot/config/vfio-pci.cfg');
+    if (preg_match_all('/[0-9a-f]{4}:[0-9a-f]{2}:[0-9a-f]{2}\.[0-9a-f]/i', $raw, $mm)) {
+      foreach ($mm[0] as $b) {
+        $vfio_bound[strtolower($b)] = true;
+      }
+    }
+  }
+  foreach ($want as $bdf => $desc) {
+    $sys = '/sys/bus/pci/devices/' . $bdf;
+    if (!is_dir($sys) && is_dir('/sys/bus/pci/devices/0000:' . preg_replace('/^0000:/', '', $bdf))) {
+      $bdf = '0000:' . preg_replace('/^0000:/', '', $bdf);
+      $sys = '/sys/bus/pci/devices/' . $bdf;
+    }
+    $driver = '';
+    if (is_link($sys . '/driver')) {
+      $driver = basename((string)@readlink($sys . '/driver'));
+    }
+    $group = '';
+    if (is_link($sys . '/iommu_group')) {
+      $group = basename((string)@readlink($sys . '/iommu_group'));
+    }
+    $in_vfio_cfg = !empty($vfio_bound[strtolower($bdf)]);
+    $vfio_active = ($driver === 'vfio-pci') || $in_vfio_cfg;
+    if ($desc === '' && is_readable($sys . '/vendor')) {
+      $desc = tbn_sysfs_str($sys . '/vendor') . ':' . tbn_sysfs_str($sys . '/device');
+    }
+    $out[] = [
+      'bdf' => $bdf,
+      'description' => $desc,
+      'driver' => $driver ?: '(none)',
+      'iommu_group' => $group !== '' ? $group : 'n/a',
+      'vfio' => $vfio_active ? 'yes' : 'no',
+      'vfio_boot_cfg' => $in_vfio_cfg ? 'yes' : 'no',
+    ];
+  }
+  usort($out, function ($a, $b) {
+    return strcmp($a['bdf'], $b['bdf']);
+  });
+  return $out;
+}
+
+/**
+ * Generate Network Settings tabs: Thunderbolt tbn0, tbn1, ... after wlan (:1000).
+ * Overview stays at :1100; ifaces start at :1110.
+ */
+function tbn_sync_iface_pages() {
+  $root = tbn_plugin_root();
+  if (!is_dir($root)) {
+    return;
+  }
+  $live = tbn_list_tb_iface_names();
+  $keep = [];
+  foreach ($live as $if) {
+    if (!preg_match('/^thunderbolt(\d+)$/', $if, $m)) {
+      continue;
+    }
+    $n = (int)$m[1];
+    $keep[$n] = true;
+    $menu = 1110 + $n;
+    $label = 'tbn' . $n;
+    $page = $root . '/Tbn' . $n . '.page';
+    $body = <<<PAGE
+Menu="NetworkSettings:{$menu}"
+Title="Thunderbolt {$label}"
+Tag="sitemap"
+Cond="file_exists('/sys/class/net/{$if}')"
+---
+<?php
+/* Generated by ThunderboltNet — do not edit; regenerated on install / overview load. */
+\$tbn_if = '{$if}';
+\$tbn_label = '{$label}';
+require_once '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-iface-page.php';
+
+PAGE;
+    @file_put_contents($page, $body);
+  }
+  foreach (glob($root . '/Tbn*.page') ?: [] as $f) {
+    if (preg_match('/Tbn(\d+)\.page$/', $f, $m) && empty($keep[(int)$m[1]])) {
+      @unlink($f);
+    }
+  }
+}
+
+/**
+ * Apply one iface cfg to the live system (not Unraid network.cfg).
+ */
+function tbn_apply_iface($if) {
+  $cfg = tbn_load_iface_cfg($if);
+  if (!is_dir('/sys/class/net/' . $if)) {
+    return ['ok' => false, 'error' => "interface {$if} not present"];
+  }
+  $ife = escapeshellarg($if);
+  if (($cfg['ENABLE'] ?? 'yes') === 'yes') {
+    @exec("ip link set {$ife} up 2>/dev/null");
+  } else {
+    @exec("ip link set {$ife} down 2>/dev/null");
+    return ['ok' => true, 'iface' => $if, 'enabled' => false];
+  }
+  if (($cfg['USE_MTU'] ?? 'no') === 'yes' && ($cfg['MTU'] ?? '') !== '') {
+    $mtu = (int)$cfg['MTU'];
+    if ($mtu >= 68 && $mtu <= 9198) {
+      @exec("ip link set {$ife} mtu {$mtu} 2>/dev/null");
+    }
+  }
+  $proto = $cfg['PROTOCOL'] ?? 'ipv4';
+  if ($proto === 'ipv4' || $proto === 'ipv4+ipv6') {
+    if (($cfg['USE_DHCP'] ?? 'no') === 'yes') {
+      // Best-effort DHCP; many Unraid systems lack a long-lived dhclient for TB
+      @exec("dhcpcd -n {$ife} 2>/dev/null || dhclient -1 {$ife} 2>/dev/null || true");
+    } else {
+      $ip = $cfg['IPADDR'] ?? '';
+      $cidr = preg_replace('/\D/', '', $cfg['NETMASK'] ?? '24');
+      if ($cidr === '') {
+        $cidr = '24';
+      }
+      // Accept classic netmask in NETMASK field
+      if (strpos($cfg['NETMASK'] ?? '', '.') !== false) {
+        $cidr = (string)tbn_mask_to_prefix($cfg['NETMASK']);
+      }
+      if ($ip !== '' && filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+        $target = escapeshellarg($ip . '/' . $cidr);
+        @exec("ip addr replace {$target} dev {$ife} 2>/dev/null", $o, $rc);
+        if ($rc !== 0) {
+          @exec("ip addr flush dev {$ife} 2>/dev/null");
+          @exec("ip addr add {$target} dev {$ife} 2>/dev/null");
+        }
+        if (($cfg['GATEWAY'] ?? '') !== '' && ($cfg['NEVER_DEFAULT'] ?? 'yes') !== 'yes') {
+          $gw = escapeshellarg($cfg['GATEWAY']);
+          @exec("ip route replace default via {$gw} dev {$ife} 2>/dev/null");
+        }
+      }
+    }
+  }
+  // Listening include for this iface only
+  $current = tbn_read_include_interfaces();
+  if (($cfg['INCLUDE_LISTENING'] ?? 'no') === 'yes') {
+    if (!in_array($if, $current, true)) {
+      $current[] = $if;
+      tbn_write_include_interfaces($current);
+    }
+  } else {
+    $current = array_values(array_filter($current, function ($x) use ($if) {
+      return $x !== $if;
+    }));
+    tbn_write_include_interfaces($current);
+  }
+  // Bonding (simplified TB-only bond)
+  if (($cfg['BONDING'] ?? 'no') === 'yes') {
+    tbn_apply_simple_bond($cfg, $if);
+  }
+  return ['ok' => true, 'iface' => $if, 'cfg' => $cfg, 'netdevs' => tbn_list_netdevs()];
+}
+
+function tbn_mask_to_prefix($mask) {
+  $long = ip2long($mask);
+  if ($long === false) {
+    return 24;
+  }
+  return substr_count(decbin($long), '1');
+}
+
+/**
+ * Simple balance-rr (etc.) bond for TB members only — not full Unraid bond0.
+ */
+function tbn_apply_simple_bond(array $cfg, $primary_if) {
+  $bond = $cfg['BOND_NAME'] ?? 'bond-tb';
+  if ($bond === '' || !preg_match('/^[A-Za-z0-9_.-]+$/', $bond)) {
+    return;
+  }
+  $mode = $cfg['BONDING_MODE'] ?? 'balance-rr';
+  $modes = [
+    'balance-rr' => 0, '0' => 0,
+    'active-backup' => 1, '1' => 1,
+    'balance-xor' => 2, '2' => 2,
+    'broadcast' => 3, '3' => 3,
+    '802.3ad' => 4, '4' => 4,
+    'balance-tlb' => 5, '5' => 5,
+    'balance-alb' => 6, '6' => 6,
+  ];
+  $mi = isset($modes[$mode]) ? $modes[$mode] : 0;
+  if (!is_dir('/sys/class/net/' . $bond)) {
+    @exec('ip link add ' . escapeshellarg($bond) . ' type bond mode ' . (int)$mi . ' 2>/dev/null');
+  }
+  $members = tbn_list_tb_iface_names();
+  foreach ($members as $m) {
+    @exec('ip link set ' . escapeshellarg($m) . ' down 2>/dev/null');
+    @exec('ip link set ' . escapeshellarg($m) . ' master ' . escapeshellarg($bond) . ' 2>/dev/null');
+  }
+  @exec('ip link set ' . escapeshellarg($bond) . ' up 2>/dev/null');
+}
+
+function tbn_plugin_version() {
+  foreach (['/tmp/plugins/thunderboltnet.plg', '/boot/config/plugins/thunderboltnet.plg'] as $plg) {
+    if (is_file($plg) && preg_match('/ENTITY version "([^"]+)"/', (string)@file_get_contents($plg), $m)) {
+      return $m[1];
+    }
+  }
+  return 'unknown';
+}

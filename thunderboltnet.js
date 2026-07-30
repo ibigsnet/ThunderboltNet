@@ -2,6 +2,25 @@
 (function () {
   'use strict';
 
+  window.tbnConfirmReset = function (form) {
+    if (!form) {
+      return false;
+    }
+    if (!window.confirm('Reset this Thunderbolt interface to plugin defaults?')) {
+      return false;
+    }
+    // Mark reset for #include handler
+    var h = form.querySelector('input[name="tbn_reset"]');
+    if (!h) {
+      h = document.createElement('input');
+      h.type = 'hidden';
+      h.name = 'tbn_reset';
+      form.appendChild(h);
+    }
+    h.value = '1';
+    return true;
+  };
+
   window.tbnCopyDiagnostics = function () {
     var el = document.getElementById('tbn-diagnostics');
     if (!el) {

@@ -18,7 +18,7 @@ if (is_file($helpers)) {
   require_once $helpers;
 }
 
-require_once __DIR__ . '/tbn-lib.php';
+require_once '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php';
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 $out = ['ok' => false, 'action' => $action];
