@@ -1,8 +1,13 @@
 # Port icons and silkscreen (do I have Thunderbolt?)
 
-Use the marks **printed next to the physical ports** on the motherboard rear I/O or laptop side. The plugin’s **Identify ports on your case** table (Thunderbolt tab) shows the same ideas with simple icons — it appears whether or not Linux found a controller (so machines **with** and **without** TB both see it).
+Use the marks **printed next to the physical ports** on the motherboard rear I/O or laptop side. The plugin’s **Identify ports on your case** table shows the **Thunderbolt lightning mark** (as on certified TB ports) and **USB SuperSpeed (SS + rate)** style marks so you can match your case.
 
-This is a **field guide**, not legal trademark artwork. Thunderbolt is a trademark of Intel; SuperSpeed-style “SS” marks follow USB‑IF conventions.
+| Host type | Where the table sits |
+|-----------|----------------------|
+| **No TB controller** (e.g. many secondary boxes) | Right of the “no controller” message |
+| **Has TB** | Half-width panel at the **bottom-right** of the Thunderbolt tab |
+
+Thunderbolt is a trademark of Intel Corporation. USB SuperSpeed / trident marks are associated with USB‑IF. The plugin graphics are for identification against silkscreen.
 
 ---
 

@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.07.30ar">
+<!ENTITY version "2026.07.30as">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -34,6 +34,8 @@
 
 <CHANGES>
 ###&version;
+- Port legend: Thunderbolt mark + SuperSpeed icons; no-TB layout error|legend; half-width bottom-right on TB hosts; Links after Known peers; column widths mid-size.
+
 - Port silkscreen legend (TB lightning/40 vs SS10/SS20) on overview with or without TB hardware.
 
 - Link quality: compact columns, Gb/s notation, TB ports boxed (max vs trained), USB SuperSpeed collapsed; clearer remote badges.
