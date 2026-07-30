@@ -2,6 +2,78 @@
 (function () {
   'use strict';
 
+  /**
+   * Switch to a Network Settings tab by title text (e.g. "tbn0", "Thunderbolt").
+   * Unraid keeps siblings as tabs under /Settings/NetworkSettings; deep links like
+   * /Settings/Tbn0 leave the tab strip context. Prefer clicking the existing tab.
+   */
+  function tbnFindTabButton(needle) {
+    var tabs = document.querySelectorAll('.tabs [role="tab"], .tabs a, #menu a, .nav-item');
+    var want = (needle || '').toLowerCase();
+    if (!want) {
+      return null;
+    }
+    for (var i = 0; i < tabs.length; i++) {
+      var t = (tabs[i].textContent || tabs[i].innerText || '').replace(/\s+/g, ' ').trim().toLowerCase();
+      if (t.indexOf(want) !== -1) {
+        return tabs[i];
+      }
+    }
+    return null;
+  }
+
+  window.tbnGotoNetTab = function (needle, evt) {
+    if (evt && evt.preventDefault) {
+      evt.preventDefault();
+    }
+    var tab = tbnFindTabButton(needle);
+    if (tab) {
+      tab.click();
+      try {
+        tab.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      } catch (e) { /* ignore */ }
+      return false;
+    }
+    // Not on Network Settings (or tabs not ready): remember target and open parent
+    try {
+      sessionStorage.setItem('tbnWantTab', needle);
+    } catch (e2) { /* ignore */ }
+    window.location.href = '/Settings/NetworkSettings';
+    return false;
+  };
+
+  // After navigating to Network Settings, activate requested tab once
+  function tbnApplyWantedTab() {
+    var want = null;
+    try {
+      want = sessionStorage.getItem('tbnWantTab');
+    } catch (e) {
+      return;
+    }
+    if (!want) {
+      return;
+    }
+    var tab = tbnFindTabButton(want);
+    if (tab) {
+      try {
+        sessionStorage.removeItem('tbnWantTab');
+      } catch (e2) { /* ignore */ }
+      // Defer so Unraid's own tab cookie init runs first
+      setTimeout(function () {
+        tab.click();
+      }, 50);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', tbnApplyWantedTab);
+  } else {
+    tbnApplyWantedTab();
+  }
+  // Unraid may paint tabs slightly later
+  setTimeout(tbnApplyWantedTab, 200);
+  setTimeout(tbnApplyWantedTab, 600);
+
   window.tbnConfirmReset = function (form) {
     if (!form) {
       return false;

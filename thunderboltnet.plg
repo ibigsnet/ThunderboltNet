@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.07.29ap">
+<!ENTITY version "2026.07.29aq">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -34,6 +34,8 @@
 
 <CHANGES>
 ###&version;
+- Link to tbnN switches Network Settings tab instead of leaving the tab strip.
+
 - Remove version/GitHub footer from Settings pages.
 
 - Drop version/GitHub footer from Settings pages (Plugins page already shows version).

@@ -89,8 +89,8 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
 <?php if (!$ifaces): ?>
           <span class="tbn-muted">No thunderbolt* netdevs yet</span>
 <?php else: ?>
-<?php foreach ($ifaces as $if): $lb = tbn_label_for_iface($if); $n = (int)substr($if, strlen('thunderbolt')); ?>
-          <a href="/Settings/Tbn<?= $n ?>"><code><?= htmlspecialchars($lb) ?></code></a>
+<?php foreach ($ifaces as $if): $lb = tbn_label_for_iface($if); ?>
+          <a href="/Settings/NetworkSettings" onclick="return tbnGotoNetTab('<?= htmlspecialchars($lb, ENT_QUOTES) ?>', event)"><code><?= htmlspecialchars($lb) ?></code></a>
 <?php endforeach; ?>
 <?php endif; ?>
         </td>
@@ -113,7 +113,7 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
       <thead>
         <tr>
           <th colspan="2">
-            <a href="/Settings/Tbn<?= (int)substr($L['iface'], strlen('thunderbolt')) ?>"><?= htmlspecialchars($L['label']) ?></a>
+            <a href="/Settings/NetworkSettings" onclick="return tbnGotoNetTab('<?= htmlspecialchars($L['label'], ENT_QUOTES) ?>', event)"><?= htmlspecialchars($L['label']) ?></a>
             <span class="tbn-muted"> · <code><?= htmlspecialchars($L['iface']) ?></code></span>
           </th>
         </tr>
