@@ -171,6 +171,7 @@ function tbn_list_netdevs() {
       'address' => tbn_sysfs_str($base . '/address'),
       'mtu' => tbn_sysfs_str($base . '/mtu'),
       'addrs' => tbn_iface_addrs($if),
+      'addrs6' => tbn_iface_addrs6($if),
       'master' => $master,
       'masters' => tbn_iface_membership_labels($if, $master),
     ];
