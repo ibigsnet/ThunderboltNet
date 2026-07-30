@@ -371,7 +371,7 @@ function tbn_iface_activity($if) {
       'level' => 'down',
       'label' => 'Link down',
       'safe_unplug' => 'yes',
-      'note' => 'No carrier — usually fine to unplug the cable.',
+      'note' => 'No carrier — fine to unplug.',
       'bps' => 0.0,
     ];
     @file_put_contents($path, json_encode([
