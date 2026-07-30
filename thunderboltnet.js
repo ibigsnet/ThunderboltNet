@@ -392,6 +392,58 @@
     }
   }
 
+  function tbnFormatBpsClient(bps) {
+    if (bps === null || bps === undefined || bps < 0) {
+      return '';
+    }
+    if (bps < 1024) {
+      return '~' + Math.round(bps) + ' B/s';
+    }
+    if (bps < 1024 * 1024) {
+      return '~' + (bps / 1024).toFixed(1) + ' KiB/s';
+    }
+    return '~' + (bps / (1024 * 1024)).toFixed(2) + ' MiB/s';
+  }
+
+  function tbnActivityHtmlClient(act) {
+    if (!act) {
+      return '';
+    }
+    var level = act.level || 'unknown';
+    var label = act.label || 'Measuring…';
+    var safe = act.safe_unplug || 'unknown';
+    var safeLabel = 'Measuring…';
+    if (level === 'down') {
+      safeLabel = 'OK to unplug';
+    } else if (safe === 'yes') {
+      safeLabel = 'OK to unplug';
+    } else if (safe === 'no') {
+      safeLabel = 'Keep connected';
+    } else if (level !== 'unknown') {
+      safeLabel = 'Check first';
+    }
+    var html =
+      '<span class="tbn-badge tbn-badge-act-' +
+      level +
+      '">' +
+      label +
+      '</span> <span class="tbn-badge tbn-badge-safe-' +
+      safe +
+      '">' +
+      safeLabel +
+      '</span>';
+    var rate = tbnFormatBpsClient(act.bps);
+    if (rate) {
+      html += ' <span class="tbn-muted">' + rate + '</span>';
+    }
+    if (act.note && level !== 'unknown') {
+      html += '<p class="tbn-hint tbn-activity-note">' + act.note + '</p>';
+    } else if (act.note && level === 'unknown') {
+      html += '<p class="tbn-hint tbn-activity-note tbn-muted">' + act.note + '</p>';
+    }
+    return html;
+  }
+
   /** Light live refresh: activity / IPs without full page reload. */
   function tbnLivePoll() {
     if (!document.querySelector('.tbn-wrap')) {
@@ -409,19 +461,25 @@
         data.links.forEach(function (L) {
           var ifc = L.iface;
           var loc = L.local || {};
-          var el4 = document.querySelector('[data-tbn-live-ip4="' + ifc + '"]');
-          if (el4) {
-            el4.textContent = loc.addrs && loc.addrs.length ? loc.addrs.join(', ') : '—';
+          var el4 = document.querySelectorAll('[data-tbn-live-ip4="' + ifc + '"]');
+          for (var i = 0; i < el4.length; i++) {
+            el4[i].textContent = loc.addrs && loc.addrs.length ? loc.addrs.join(', ') : '—';
           }
-          var el6 = document.querySelector('[data-tbn-live-ip6="' + ifc + '"]');
-          // status JSON may not include v6 yet — optional
-          if (el6 && loc.addrs6) {
-            el6.textContent = loc.addrs6.length ? loc.addrs6.join(', ') : '—';
+          var el6 = document.querySelectorAll('[data-tbn-live-ip6="' + ifc + '"]');
+          for (var j = 0; j < el6.length; j++) {
+            if (loc.addrs6) {
+              el6[j].textContent = loc.addrs6.length ? loc.addrs6.join(', ') : '—';
+            }
           }
           var act = L.activity;
-          var elA = document.querySelector('[data-tbn-live-act="' + ifc + '"]');
-          if (elA && act && typeof tbnActivityHtmlClient !== 'undefined') {
-            /* placeholder */
+          var elA = document.querySelectorAll('[data-tbn-live-act="' + ifc + '"]');
+          if (act && elA.length) {
+            var html = tbnActivityHtmlClient(act);
+            for (var k = 0; k < elA.length; k++) {
+              elA[k].className =
+                'tbn-col-remote tbn-act-' + (act.level || 'unknown');
+              elA[k].innerHTML = html;
+            }
           }
         });
       })

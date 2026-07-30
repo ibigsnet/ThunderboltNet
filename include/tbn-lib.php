@@ -334,99 +334,151 @@ function tbn_read_iface_counters($if) {
 
 /**
  * Best-effort activity for “safe to unplug” guidance.
- * Needs two page loads a few seconds–minutes apart for a real rate; otherwise unknown/idle-by-state.
  *
- * Returns: level (idle|light|busy|down|unknown), label, safe_unplug (yes|no|unknown), note, bps
+ * Uses a sample file with last counters + last computed result. Multiple calls in one
+ * page load (or rapid polls) must not clobber the baseline with dt≈0.
+ *
+ * Returns: level, label, safe_unplug, note, bps
  */
 function tbn_iface_activity($if) {
-  $empty = [
-    'level' => 'unknown',
-    'label' => 'Unknown',
-    'safe_unplug' => 'unknown',
-    'note' => 'Refresh again in a few seconds to estimate traffic.',
-    'bps' => null,
-  ];
+  $path = tbn_iface_stats_path($if);
+  $store = [];
+  if (is_readable($path)) {
+    $j = @json_decode((string)@file_get_contents($path), true);
+    if (is_array($j)) {
+      $store = $j;
+    }
+  }
+
+  $last_result = (isset($store['result']) && is_array($store['result'])) ? $store['result'] : null;
+
   if (!is_dir('/sys/class/net/' . $if)) {
-    return [
+    $r = [
       'level' => 'down',
       'label' => 'Not present',
       'safe_unplug' => 'yes',
       'note' => 'Interface gone — cable already removed or peer left.',
       'bps' => 0.0,
     ];
+    @file_put_contents($path, json_encode(['result' => $r, 't' => microtime(true)]));
+    return $r;
   }
+
   $oper = tbn_sysfs_str('/sys/class/net/' . $if . '/operstate');
   $carrier = tbn_sysfs_str('/sys/class/net/' . $if . '/carrier');
-  $now = tbn_read_iface_counters($if);
-  $path = tbn_iface_stats_path($if);
-  $prev = null;
-  if (is_readable($path)) {
-    $j = @json_decode((string)@file_get_contents($path), true);
-    if (is_array($j) && isset($j['t'], $j['rx_bytes'], $j['tx_bytes'])) {
-      $prev = $j;
-    }
-  }
-  @file_put_contents($path, json_encode($now));
-
   if ($oper === 'down' || $carrier === '0') {
-    return [
+    $r = [
       'level' => 'down',
       'label' => 'Link down',
       'safe_unplug' => 'yes',
       'note' => 'No carrier — usually fine to unplug the cable.',
       'bps' => 0.0,
     ];
+    @file_put_contents($path, json_encode([
+      'result' => $r,
+      't' => microtime(true),
+      'rx_bytes' => 0,
+      'tx_bytes' => 0,
+    ]));
+    return $r;
   }
 
-  if ($prev === null) {
-    $empty['label'] = 'Sampling…';
-    $empty['note'] = 'First sample taken. Refresh the page in a few seconds for traffic rate and unplug guidance.';
-    return $empty;
+  $now = tbn_read_iface_counters($if);
+  $min_dt = 2.0; // seconds between usable samples
+
+  if (!isset($store['t'], $store['rx_bytes'], $store['tx_bytes'])) {
+    // First baseline only — keep prior result if any
+    $store['t'] = $now['t'];
+    $store['rx_bytes'] = $now['rx_bytes'];
+    $store['tx_bytes'] = $now['tx_bytes'];
+    $r = [
+      'level' => 'unknown',
+      'label' => 'Measuring…',
+      'safe_unplug' => 'unknown',
+      'note' => 'Collecting traffic samples (updates automatically every few seconds).',
+      'bps' => null,
+    ];
+    $store['result'] = $r;
+    @file_put_contents($path, json_encode($store));
+    return $r;
   }
 
-  $dt = $now['t'] - (float)$prev['t'];
-  if ($dt < 1.0) {
-    $empty['label'] = 'Sampling…';
-    $empty['note'] = 'Samples too close together — wait a few seconds and refresh.';
-    return $empty;
+  $dt = $now['t'] - (float)$store['t'];
+
+  // Too soon: do not overwrite baseline; return last good result or measuring
+  if ($dt < $min_dt) {
+    if ($last_result !== null && ($last_result['level'] ?? '') !== 'unknown') {
+      return $last_result;
+    }
+    return [
+      'level' => 'unknown',
+      'label' => 'Measuring…',
+      'safe_unplug' => 'unknown',
+      'note' => 'Collecting traffic samples (updates automatically every few seconds).',
+      'bps' => null,
+    ];
   }
+
+  // Stale baseline (>10 min): re-baseline, keep last result for display if useful
   if ($dt > 600) {
-    // Stale previous sample — treat as re-baseline
-    $empty['label'] = 'Sampling…';
-    $empty['note'] = 'Previous sample was old; refreshed baseline. Refresh again shortly.';
-    return $empty;
+    $store['t'] = $now['t'];
+    $store['rx_bytes'] = $now['rx_bytes'];
+    $store['tx_bytes'] = $now['tx_bytes'];
+    $r = [
+      'level' => 'unknown',
+      'label' => 'Measuring…',
+      'safe_unplug' => 'unknown',
+      'note' => 'Sample baseline refreshed; next update in a few seconds.',
+      'bps' => null,
+    ];
+    if ($last_result !== null && in_array($last_result['level'] ?? '', ['idle', 'light', 'busy'], true)) {
+      // keep showing last known until next interval
+      $store['result'] = $last_result;
+      @file_put_contents($path, json_encode($store));
+      return $last_result;
+    }
+    $store['result'] = $r;
+    @file_put_contents($path, json_encode($store));
+    return $r;
   }
 
-  $drx = max(0.0, $now['rx_bytes'] - (float)$prev['rx_bytes']);
-  $dtx = max(0.0, $now['tx_bytes'] - (float)$prev['tx_bytes']);
+  $drx = max(0.0, $now['rx_bytes'] - (float)$store['rx_bytes']);
+  $dtx = max(0.0, $now['tx_bytes'] - (float)$store['tx_bytes']);
   $bps = ($drx + $dtx) / $dt;
 
-  // Thresholds: heuristic only (not kernel “removal policy”)
-  if ($bps < 50 * 1024) { // < ~50 KiB/s both ways
-    return [
+  if ($bps < 50 * 1024) {
+    $r = [
       'level' => 'idle',
       'label' => 'Idle',
       'safe_unplug' => 'yes',
-      'note' => 'Little or no recent traffic — generally OK to unplug after finishing copies. Unmount/share sessions on the peer first if you used them.',
+      'note' => 'Little or no recent traffic — generally OK to unplug after finishing copies.',
       'bps' => $bps,
     ];
-  }
-  if ($bps < 2 * 1024 * 1024) { // < ~2 MiB/s
-    return [
+  } elseif ($bps < 2 * 1024 * 1024) {
+    $r = [
       'level' => 'light',
       'label' => 'Light traffic',
       'safe_unplug' => 'unknown',
-      'note' => 'Some traffic still flowing. Prefer waiting until transfers finish before unplugging.',
+      'note' => 'Some traffic still flowing — prefer waiting until transfers finish.',
+      'bps' => $bps,
+    ];
+  } else {
+    $r = [
+      'level' => 'busy',
+      'label' => 'Busy',
+      'safe_unplug' => 'no',
+      'note' => 'Sustained traffic — do not unplug yet.',
       'bps' => $bps,
     ];
   }
-  return [
-    'level' => 'busy',
-    'label' => 'Busy',
-    'safe_unplug' => 'no',
-    'note' => 'Sustained traffic — do not unplug yet (risk of incomplete transfers or hung SMB/NFS clients).',
-    'bps' => $bps,
-  ];
+
+  // Advance baseline to now for next interval
+  $store['t'] = $now['t'];
+  $store['rx_bytes'] = $now['rx_bytes'];
+  $store['tx_bytes'] = $now['tx_bytes'];
+  $store['result'] = $r;
+  @file_put_contents($path, json_encode($store));
+  return $r;
 }
 
 function tbn_format_bps($bps) {
@@ -672,16 +724,27 @@ function tbn_activity_html(array $act) {
   $safe_label = [
     'yes' => 'OK to unplug',
     'no' => 'Keep connected',
-    'unknown' => 'Unplug: check first',
+    'unknown' => 'Measuring…',
   ];
-  $sl = htmlspecialchars($safe_label[$safe] ?? $safe_label['unknown']);
+  // Don't show confusing "Unplug: check first" while still sampling
+  if (($act['level'] ?? '') === 'unknown' || ($act['level'] ?? '') === 'down') {
+    $sl = ($act['level'] ?? '') === 'down'
+      ? 'OK to unplug'
+      : 'Measuring…';
+  } else {
+    $sl = $safe_label[$safe] ?? $safe_label['unknown'];
+  }
+  $sl = htmlspecialchars($sl);
   $html = '<span class="tbn-badge tbn-badge-act-' . $level . '">' . $label . '</span> ';
   $html .= '<span class="tbn-badge tbn-badge-safe-' . htmlspecialchars($safe) . '">' . $sl . '</span>';
-  if ($rate !== '—') {
+  if ($rate !== '—' && $act['bps'] !== null) {
     $html .= ' <span class="tbn-muted">~' . htmlspecialchars($rate) . '</span>';
   }
-  if ($note !== '') {
+  if ($note !== '' && ($act['level'] ?? '') !== 'unknown') {
+    // Keep Measuring notes short; hide long notes during measure to reduce noise
     $html .= '<p class="tbn-hint tbn-activity-note">' . $note . '</p>';
+  } elseif ($note !== '' && ($act['level'] ?? '') === 'unknown') {
+    $html .= '<p class="tbn-hint tbn-activity-note tbn-muted">' . $note . '</p>';
   }
   return $html;
 }

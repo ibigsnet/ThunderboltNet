@@ -275,12 +275,14 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
         <tr>
           <th scope="row">Activity / unplug</th>
           <td class="tbn-col-local tbn-muted">
-            Traffic heuristic · refresh twice for rate
+            Traffic heuristic · auto-updates every few seconds
           </td>
 <?php foreach ($links as $L):
-  $act = $L['activity'] ?? ['level' => 'unknown', 'label' => 'Unknown', 'safe_unplug' => 'unknown', 'note' => '', 'bps' => null];
+  $act = $L['activity'] ?? ['level' => 'unknown', 'label' => 'Measuring…', 'safe_unplug' => 'unknown', 'note' => '', 'bps' => null];
+  $ifc = htmlspecialchars($L['iface'] ?? '');
 ?>
-          <td class="tbn-col-remote tbn-act-<?= htmlspecialchars($act['level'] ?? 'unknown') ?>">
+          <td class="tbn-col-remote tbn-act-<?= htmlspecialchars($act['level'] ?? 'unknown') ?>"
+            data-tbn-live-act="<?= $ifc ?>">
             <?= tbn_activity_html($act) ?>
           </td>
 <?php endforeach; ?>
@@ -320,7 +322,7 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
         </tr>
         <tr>
           <th scope="row">Unraid services</th>
-          <td class="tbn-col-local tbn-muted">SMB / NFS / web UI listen on this link?</td>
+          <td class="tbn-col-local tbn-muted">See Known peers to change</td>
 <?php foreach ($links as $L):
   $loc = $L['local'];
   $listening = !empty($loc['listening']);
@@ -328,13 +330,9 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
           <td class="tbn-col-remote">
 <?php if ($listening): ?>
             <span class="tbn-badge tbn-badge-ok">Listening</span>
-            <p class="tbn-hint">Host services can use this Thunderbolt IP.</p>
 <?php else: ?>
             <span class="tbn-badge tbn-badge-warn">Not listening</span>
-            <p class="tbn-hint tbn-listen-warn">
-              SMB, NFS, SSH, and the Unraid web UI usually <strong>will not</strong> accept connections on this
-              TB address until you enable services below. IP/ping can still work.
-            </p>
+            <span class="tbn-muted"> · set in Known peers</span>
 <?php endif; ?>
           </td>
 <?php endforeach; ?>
