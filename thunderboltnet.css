@@ -30,14 +30,72 @@
   color: var(--orange-muted, #999);
 }
 
-/* Forms: use stock Unraid dl/dt/dd (35% right labels on desktop).
-   Only tighten spacing inside our wrap. */
+/*
+ * Form rows: Unraid themes often push dd far right (wide % label / full-width inputs).
+ * Keep labels compact and controls next to them (eth0-like), especially IP / mask / gateway.
+ */
+.tbn-wrap form {
+  max-width: 44rem;
+}
 .tbn-wrap form dl {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.85rem;
   margin: 0;
-  padding: 0.25rem 0 0.5rem;
+  padding: 0.3rem 0;
+  clear: both;
 }
 .tbn-wrap form dt {
+  float: none !important;
+  display: block;
+  flex: 0 0 12.5rem;
+  width: 12.5rem !important;
+  max-width: 42%;
+  margin: 0 !important;
+  padding: 0.15rem 0 !important;
+  text-align: right;
   font-weight: 600;
+  box-sizing: border-box;
+}
+.tbn-wrap form dd {
+  float: none !important;
+  display: block;
+  flex: 1 1 auto;
+  width: auto !important;
+  max-width: calc(100% - 13.5rem);
+  margin: 0 !important;
+  padding: 0.15rem 0 !important;
+  text-align: left;
+  box-sizing: border-box;
+}
+/* Unraid often forces select/input { width: 100% } — compact like eth0 */
+.tbn-wrap form select:not([multiple]),
+.tbn-wrap form input[type="text"],
+.tbn-wrap form input[type="number"],
+.tbn-wrap form input[type="password"] {
+  width: auto !important;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.tbn-wrap form input.tbn-ip,
+.tbn-wrap form input[name="GATEWAY"],
+.tbn-wrap form input[name="GATEWAY6"] {
+  width: 11rem !important;
+  min-width: 9rem;
+  max-width: 14rem !important;
+}
+.tbn-wrap form input.tbn-ip6 {
+  width: 16rem !important;
+  min-width: 12rem;
+  max-width: 22rem !important;
+}
+.tbn-wrap form select.narrow,
+.tbn-wrap form select.slim,
+.tbn-wrap form input.narrow {
+  width: auto !important;
+  min-width: 4.25rem;
+  max-width: 7.5rem !important;
 }
 .tbn-wrap form dd .tbn-hint,
 .tbn-wrap .tbn-hint {
@@ -794,13 +852,16 @@
   line-height: 1.25;
 }
 
-/* Keep address + / + CIDR on one baseline (Unraid often makes dd children block/100% wide) */
+/* IP + / + mask on one baseline, left-aligned in the value column */
 .tbn-wrap dd.tbn-cidr-row {
-  display: flex !important;
+  display: inline-flex !important;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 0.4rem;
+  justify-content: flex-start;
+  gap: 0.35rem;
   white-space: nowrap;
+  width: auto !important;
+  max-width: 100%;
 }
 .tbn-wrap dd.tbn-cidr-row .tbn-cidr-slash {
   display: inline-block;
@@ -809,6 +870,7 @@
   line-height: 1;
   padding: 0 0.05rem;
   width: auto !important;
+  margin: 0 !important;
 }
 .tbn-wrap dd.tbn-cidr-row input.tbn-ip,
 .tbn-wrap dd.tbn-cidr-row input.tbn-ip6,
@@ -816,24 +878,26 @@
 .tbn-wrap dd.tbn-cidr-row input.narrow {
   display: inline-block !important;
   float: none !important;
-  width: auto !important;
-  max-width: none;
   margin: 0 !important;
   vertical-align: middle;
   box-sizing: border-box;
 }
 .tbn-wrap dd.tbn-cidr-row input.tbn-ip {
-  width: 11.5rem !important;
+  width: 11rem !important;
   min-width: 9rem;
+  max-width: 12rem !important;
 }
 .tbn-wrap dd.tbn-cidr-row input.tbn-ip6 {
-  width: 18rem !important;
+  width: 16rem !important;
   min-width: 12rem;
+  max-width: 20rem !important;
 }
 .tbn-wrap dd.tbn-cidr-row select.narrow,
+.tbn-wrap dd.tbn-cidr-row select.slim,
 .tbn-wrap dd.tbn-cidr-row input.narrow {
-  width: 5.75rem !important;
-  min-width: 4.5rem;
+  width: auto !important;
+  min-width: 4.25rem;
+  max-width: 6.5rem !important;
 }
 /* bond-tb0 / br-tb0 — not Unraid "narrow" (too tight for those names) */
 .tbn-wrap input.tbn-ifname {
@@ -841,4 +905,16 @@
   width: 9.5rem !important;
   max-width: 12rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+@media (max-width: 640px) {
+  .tbn-wrap form dt {
+    flex: 0 0 100%;
+    width: 100% !important;
+    max-width: 100%;
+    text-align: left;
+  }
+  .tbn-wrap form dd {
+    max-width: 100%;
+  }
 }

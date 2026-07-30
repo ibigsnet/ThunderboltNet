@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.07.30au">
+<!ENTITY version "2026.07.30av">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -34,6 +34,8 @@
 
 <CHANGES>
 ###&version;
+- tbn form: IPv4/IPv6 address rows left-aligned (eth0-like); override full-width inputs.
+
 - Links LOCAL RX/TX and lanes show host Max ceiling; trained rates stay on REMOTE columns.
 
 - Simple-then-help copy: brief section notes; detail in blue helpers; domain security phone-lock analogy.

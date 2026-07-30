@@ -302,7 +302,7 @@ if (strpos($nm, '.') === false) {
           <dl>
             <dt>IPv4 default gateway:</dt>
             <dd>
-              <input type="text" name="GATEWAY" maxlength="15" value="<?= htmlspecialchars($cfg['GATEWAY'] ?? '') ?>">
+              <input type="text" name="GATEWAY" class="tbn-ip" maxlength="15" value="<?= htmlspecialchars($cfg['GATEWAY'] ?? '') ?>">
             </dd>
           </dl>
           <blockquote class="inline_help">Usually empty for peer-to-peer.</blockquote>
@@ -347,7 +347,7 @@ if (strpos($nm, '.') === false) {
           <dl>
             <dt>IPv6 default gateway:</dt>
             <dd>
-              <input type="text" name="GATEWAY6" maxlength="39" value="<?= htmlspecialchars($cfg['GATEWAY6'] ?? '') ?>">
+              <input type="text" name="GATEWAY6" class="tbn-ip6" maxlength="39" value="<?= htmlspecialchars($cfg['GATEWAY6'] ?? '') ?>">
             </dd>
           </dl>
           <blockquote class="inline_help">Usually empty for peer-to-peer.</blockquote>
