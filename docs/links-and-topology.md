@@ -34,7 +34,7 @@ Plugin **Enable bonding** builds a **TB-only** bond (`bond-tb` by default), not 
 
 Thunderbolt domains remember paths and services. Extra cables (second link to the same host, a dock still attached, a half-seated rear port) can keep the domain from settling on a single clean host-to-host network service.
 
-**Recovery pattern (high value):**
+**Highly recommended recovery steps** (when the fabric is wedged or dual-cable experiments went sideways):
 
 1. Unplug **all** TB/USB4 host cables from **both** ends of every machine under test.  
 2. Pause a few seconds.  

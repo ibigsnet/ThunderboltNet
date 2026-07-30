@@ -102,7 +102,7 @@ Default **No** is the right starting point for almost every peer OS. You do not 
 2. Apply, then confirm `/sys/module/thunderbolt_net/parameters/e2e` actually flipped (`Y`/`N` or `1`/`0`).  
 3. If it did **not** change, reboot (or carefully reload the module — that drops **all** TB netdevs).  
 4. **Reseat the cable** after the module option is correct — many TB domains only fully re-train when the physical path drops and returns (see [troubleshooting](troubleshooting.md#reseating-the-cable-why-it-matters)).  
-5. If you had **more than one** TB cable plugged in, unplug **all** of them first, then plug **one** known-good cable back in ([multi-cable recovery](links-and-topology.md#multi-cable-and-recovery)).  
+5. If you had **more than one** TB cable plugged in, unplug **all** of them first, then plug **one** known-good cable back in ([highly recommended recovery steps](links-and-topology.md#multi-cable-and-recovery)).  
 6. Re-test **every** peer: E2E is host-wide.
 
 ### What E2E is *not*

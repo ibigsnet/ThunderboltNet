@@ -29,7 +29,9 @@ Reseat is cheap; NHI unbind is not. Prefer reseat over “reset the controller�
 | **Two** cables to **two different** peers | Often `thunderbolt0` + `thunderbolt1` |
 | **Two** cables to the **same** peer | Frequently still **one** network path (or a confused domain) — not automatic dual netdevs / 2× bandwidth |
 
-### When the domain is wedged (especially after dual-cable experiments)
+### Highly recommended recovery steps (wedged domain / dual-cable mess)
+
+Especially after dual-cable experiments or a half-connected second port:
 
 1. Unplug **every** Thunderbolt / USB4 host cable from **both** machines (all ports).  
 2. Wait several seconds (10+ is fine).  
