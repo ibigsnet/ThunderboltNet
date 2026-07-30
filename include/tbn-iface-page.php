@@ -92,10 +92,6 @@ if (strpos($nm, '.') === false) {
 <?php endif; ?>
   </p>
 
-  <p class="tbn-note">
-    Click a field label (cursor becomes a help pointer) or the page <strong>Help</strong> button for blue inline details — same pattern as eth0 and Storage Guard.
-  </p>
-
   <form method="POST" action="/update.php" target="progressFrame" id="tbn-form-<?= htmlspecialchars($label) ?>">
     <input type="hidden" name="#file" value="ThunderboltNet/ifaces/<?= htmlspecialchars($if) ?>.cfg">
     <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update-iface.php">
@@ -176,13 +172,14 @@ if (strpos($nm, '.') === false) {
     <dl>
       <dt>Bond name:</dt>
       <dd>
-        <input type="text" name="BOND_NAME" class="narrow" maxlength="16"
-          value="<?= htmlspecialchars($cfg['BOND_NAME'] ?? 'bond-tb') ?>">
+        <input type="text" name="BOND_NAME" class="narrow" maxlength="15"
+          value="<?= htmlspecialchars($cfg['BOND_NAME'] ?? 'bond-tb0') ?>">
       </dd>
     </dl>
     <blockquote class="inline_help">
-      Netdev name for the TB bond (default <code>bond-tb</code>). Keep it short and unique; do not reuse Unraid’s
-      <code>bond0</code> name.
+      Netdev name for this Thunderbolt-only bond. Default <code>bond-tb0</code> (use <code>bond-tb1</code>, … if you
+      ever create more than one). Do <strong>not</strong> reuse Unraid’s eth bonds <code>bond0</code> / <code>bond1</code>.
+      Linux interface names max 15 characters.
     </blockquote>
 
     <dl>

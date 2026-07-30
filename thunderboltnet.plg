@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.07.30ac">
+<!ENTITY version "2026.07.30ad">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -34,6 +34,8 @@
 
 <CHANGES>
 ###&version;
+- Default TB bond name bond-tb0 (bond-tbN pattern; avoid Unraid bond0).
+
 - Fix blank tbn1/tbnN tabs: use require (not require_once) so each tab re-renders the shared form.
 
 ###2026.07.30ab

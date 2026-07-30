@@ -14,3 +14,4 @@ echo
 echo "Netdevs:"
 ip -br link 2>/dev/null | grep -E 'thunder|bond-tb' || echo "  (none)"
 ip -br addr 2>/dev/null | grep -E 'thunder|bond-tb' || true
+# bond-tb / bond-tb0 / bond-tb1 all match bond-tb*

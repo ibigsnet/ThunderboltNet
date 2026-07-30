@@ -40,7 +40,7 @@ function tbn_load_cfg() {
     'iface_primary' => 'thunderbolt0',
     'iface_secondary' => 'thunderbolt1',
     'bond_enable' => 'no',
-    'bond_name' => 'bond-tb',
+    'bond_name' => 'bond-tb0',
     'bond_mode' => 'balance-rr',
     // Space-separated warning keys the user chose to hide globally (e.g. vfio:0000:11:00.0)
     'ignore_warnings' => '',
@@ -147,7 +147,7 @@ function tbn_sysfs_str($path) {
 }
 
 /**
- * Kernel netdevs matching thunderbolt* (and optional bond-tb).
+ * Kernel netdevs matching thunderbolt* (and optional bond-tbN / br-tb).
  */
 function tbn_list_netdevs() {
   $out = [];
@@ -159,7 +159,7 @@ function tbn_list_netdevs() {
     if ($if === '.' || $if === '..') {
       continue;
     }
-    if (!preg_match('/^(thunderbolt\d+|bond-tb|br-tb)$/', $if)) {
+    if (!preg_match('/^(thunderbolt\d+|bond-tb(?:\d+)?|br-tb(?:\d+)?)$/', $if)) {
       continue;
     }
     $base = $net . '/' . $if;
@@ -1663,7 +1663,7 @@ function tbn_write_global_cfg(array $cfg) {
     'iface_primary' => 'thunderbolt0',
     'iface_secondary' => 'thunderbolt1',
     'bond_enable' => 'no',
-    'bond_name' => 'bond-tb',
+    'bond_name' => 'bond-tb0',
     'bond_mode' => 'balance-rr',
     'ignore_warnings' => '',
   ];

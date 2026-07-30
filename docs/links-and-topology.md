@@ -26,7 +26,7 @@ Reality:
 3. Two cables to the **same** peer often do **not** create `thunderbolt0` + `thunderbolt1` — you may still see a single path, or a confused domain with no clean networking.  
 4. Dual-plug experiments are a common way to **wedge** bring-up until all cables are cleared.
 
-Plugin **Enable bonding** builds a **TB-only** bond (`bond-tb` by default), not Unraid’s main `bond0` on eth ports. Use only when two live `thunderbolt*` members already exist.
+Plugin **Enable bonding** builds a **TB-only** bond named like **`bond-tb0`** / **`bond-tb1`** (not Unraid’s eth **`bond0`**). Use only when two live `thunderbolt*` members already exist.
 
 ## Multi-cable and recovery
 

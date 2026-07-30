@@ -606,7 +606,7 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
       <input type="hidden" name="iface_primary" value="<?= htmlspecialchars($cfg['iface_primary'] ?? 'thunderbolt0') ?>">
       <input type="hidden" name="iface_secondary" value="<?= htmlspecialchars($cfg['iface_secondary'] ?? 'thunderbolt1') ?>">
       <input type="hidden" name="bond_enable" value="<?= htmlspecialchars($cfg['bond_enable'] ?? 'no') ?>">
-      <input type="hidden" name="bond_name" value="<?= htmlspecialchars($cfg['bond_name'] ?? 'bond-tb') ?>">
+      <input type="hidden" name="bond_name" value="<?= htmlspecialchars($cfg['bond_name'] ?? 'bond-tb0') ?>">
       <input type="hidden" name="bond_mode" value="<?= htmlspecialchars($cfg['bond_mode'] ?? 'balance-rr') ?>">
       <input type="hidden" name="ignore_warnings" value="<?= htmlspecialchars($cfg['ignore_warnings'] ?? '') ?>">
       <input type="hidden" name="address_plan" value="<?= htmlspecialchars($cfg['address_plan'] ?? 'small-lan') ?>">
