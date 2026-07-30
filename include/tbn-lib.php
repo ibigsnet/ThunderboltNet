@@ -2161,14 +2161,7 @@ function tbn_port_icons_legend_html($layout = 'full') {
 
   $html = '<div class="' . htmlspecialchars($cls) . '" id="tbn-port-icons">';
   $html .= '<h3>Identify ports on your case</h3>';
-  $html .= '<p class="tbn-note">';
-  $html .= 'Match marks next to the physical ports. ';
-  $html .= '<strong>Thunderbolt</strong> uses the registered lightning mark';
-  if ($layout !== 'full') {
-    $html .= ' (often with <strong>40</strong>)';
-  }
-  $html .= '. <strong>SS<sup>10</sup>/SS<sup>20</sup></strong> alone is USB SuperSpeed only — not TB host networking.';
-  $html .= '</p>';
+  $html .= '<p class="tbn-note">Match silkscreen next to the ports. Lightning/40 = TB · SS alone = USB only.</p>';
 
   $html .= '<table class="tbn-table tbn-icon-table">';
   $html .= '<thead><tr><th>Mark</th><th>Meaning</th><th>TB net?</th></tr></thead><tbody>';
@@ -2222,13 +2215,14 @@ function tbn_port_icons_legend_html($layout = 'full') {
 
   $html .= '</tbody></table>';
 
-  $html .= '<p class="tbn-legend-rule"><strong>Rule:</strong> no Thunderbolt lightning / 40 → no TB host net for this plugin.</p>';
-  $html .= '<p class="tbn-muted tbn-legend-legal">Thunderbolt is a trademark of Intel Corporation. '
-    . 'USB SuperSpeed / trident marks are associated with USB‑IF. '
-    . 'Graphics here identify rear-panel marks; confirm with your board manual.</p>';
-  $html .= '<p class="tbn-muted">'
-    . tbn_docs_more_html('docs/port-icons.md', 'Port icons ↗')
-    . '</p>';
+  $html .= '<dl><dt>Port marks:</dt><dd class="tbn-muted">Thunderbolt vs SuperSpeed</dd></dl>';
+  $html .= '<blockquote class="inline_help">';
+  $html .= '<strong>Rule:</strong> no Thunderbolt lightning mark (and/or printed <strong>40</strong>) → no TB host networking for this plugin. '
+    . 'SS<sup>10</sup> / SS<sup>20</sup> alone is ordinary USB SuperSpeed.<br><br>';
+  $html .= 'Thunderbolt is a trademark of Intel Corporation. USB SuperSpeed / trident marks are associated with USB‑IF. '
+    . 'Graphics identify rear-panel marks; confirm with your board manual if unsure.';
+  $html .= tbn_help_docs_footer('docs/port-icons.md', 'Port icons guide');
+  $html .= '</blockquote>';
   $html .= '</div>';
   return $html;
 }
