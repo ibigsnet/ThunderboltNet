@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.07.29bb">
+<!ENTITY version "2026.07.30">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -34,6 +34,10 @@
 
 <CHANGES>
 ###&version;
+- Fix plg XML parse error (bare ampersand in CHANGES broke Install Plugin).
+- Fabric devices: hide service/domain rows by default; compact link quality cells.
+
+###2026.07.29bb
 - Fabric devices: hide service/domain rows by default (expand for detail); link quality cells compact + wrap.
 
 ###2026.07.29ba
@@ -41,7 +45,7 @@
 - Docs: standards matrix (TB3–5, USB4/v2; not USB3-only; no “USB5” brand).
 
 ###2026.07.29az
-- Docs: reseating cables & multi-cable recovery; drop confusing E2E “already know” row; no “most common” peer claim.
+- Docs: reseating cables and multi-cable recovery; drop confusing E2E “already know” row; no “most common” peer claim.
 
 ###2026.07.29ay
 - Plug-and-play groundwork: remembered peers, activity / safe-unplug hints; Plugins blurb updated.
