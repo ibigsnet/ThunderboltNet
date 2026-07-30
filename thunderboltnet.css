@@ -478,6 +478,60 @@
   font-size: 1.05em;
 }
 
+/* LOCAL column: host max potential + port list (link quality row) */
+.tbn-wrap .tbn-cap-local .tbn-cap-max {
+  display: block;
+  font-size: 1.05em;
+  color: var(--orange-bold, #e68a2e);
+}
+.tbn-wrap .tbn-cap-local .tbn-cap-meta,
+.tbn-wrap .tbn-cap-local .tbn-cap-class,
+.tbn-wrap .tbn-cap-local .tbn-cap-product,
+.tbn-wrap .tbn-cap-local .tbn-cap-footnote {
+  margin: 0.2rem 0 0;
+  font-size: 0.88em;
+  line-height: 1.35;
+  white-space: normal;
+}
+.tbn-wrap .tbn-cap-local .tbn-cap-footnote {
+  margin-top: 0.45rem;
+  font-size: 0.82em;
+}
+.tbn-wrap ul.tbn-port-list {
+  list-style: none;
+  margin: 0.45rem 0 0;
+  padding: 0;
+  text-align: left;
+}
+.tbn-wrap ul.tbn-port-list li {
+  margin: 0.2rem 0;
+  padding: 0.15rem 0;
+  font-size: 0.86em;
+  line-height: 1.35;
+  white-space: normal;
+  border-top: 1px solid rgba(128, 128, 128, 0.15);
+}
+.tbn-wrap ul.tbn-port-list li:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+.tbn-wrap .tbn-port-spd {
+  display: inline-block;
+  min-width: 2.4em;
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--orange-bold, #e68a2e);
+}
+.tbn-wrap .tbn-port-tb-link .tbn-port-spd {
+  color: #6abf69;
+}
+.tbn-wrap .tbn-port-title {
+  font-weight: 600;
+}
+.tbn-wrap .tbn-port-detail {
+  font-weight: 400;
+}
+
 /* Keep address + / + CIDR on one baseline (Unraid often makes dd children block/100% wide) */
 .tbn-wrap dd.tbn-cidr-row {
   display: flex !important;

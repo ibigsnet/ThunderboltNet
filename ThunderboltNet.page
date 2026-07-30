@@ -263,7 +263,17 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
         </tr>
         <tr>
           <th scope="row">Link quality</th>
-          <td class="tbn-col-local tbn-muted">Controller capability vs trained path</td>
+          <td class="tbn-col-local tbn-cap-local">
+<?php
+  // LOCAL = this host’s max class (why yellow 20G is a warning). REMOTE cells = trained path.
+  $tbn_cap = function_exists('tbn_controller_capability')
+    ? tbn_controller_capability()
+    : ['max_short' => '', 'label' => ''];
+  echo function_exists('tbn_controller_capability_html')
+    ? tbn_controller_capability_html($tbn_cap)
+    : '<span class="tbn-muted">Controller capability vs trained path</span>';
+?>
+          </td>
 <?php foreach ($links as $i => $L):
   $q = $qualities[$i];
 ?>

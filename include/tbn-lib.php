@@ -750,6 +750,330 @@ function tbn_activity_html(array $act) {
 }
 
 /**
+ * Local host controller capability (from 0-0 sysfs) — max potential, not trained path.
+ *
+ * Returns:
+ *   gen, usb4, label (short class), max_short (e.g. "~40G · 2-lane"),
+ *   max_html_lines (for LOCAL column), can_dual, detail
+ */
+function tbn_controller_capability() {
+  $gen = tbn_sysfs_str('/sys/bus/thunderbolt/devices/0-0/generation');
+  $usb4 = '';
+  $uevent = @file_get_contents('/sys/bus/thunderbolt/devices/0-0/uevent');
+  if (is_string($uevent) && preg_match('/USB4_VERSION=(\S+)/', $uevent, $m)) {
+    $usb4 = $m[1];
+  }
+  $product = tbn_sysfs_str('/sys/bus/thunderbolt/devices/0-0/device_name');
+  $mfg = tbn_sysfs_str('/sys/bus/thunderbolt/devices/0-0/vendor_name');
+
+  $gen_i = ($gen !== '' && ctype_digit($gen)) ? (int)$gen : 0;
+  // Marketing-class ceilings when path + peer + cable allow (not a cable EEPROM read).
+  // Gen numbers follow Linux thunderbolt "generation" on the host router.
+  $max_gbps = 40;
+  $max_lanes = 2;
+  $class = 'TB/USB4 host';
+  if ($gen_i >= 5 || ($usb4 !== '' && version_compare($usb4, '2.0', '>='))) {
+    $max_gbps = 80;
+    $max_lanes = 2;
+    $class = $gen_i >= 5 ? 'TB5-class' : 'USB4 v2-class';
+  } elseif ($gen_i >= 4 || $usb4 !== '') {
+    $max_gbps = 40;
+    $max_lanes = 2;
+    $class = $gen_i >= 4 ? 'TB4-class' : 'USB4-class';
+  } elseif ($gen_i >= 3) {
+    $max_gbps = 40;
+    $max_lanes = 2;
+    $class = 'TB3-class';
+  } elseif ($gen_i === 2) {
+    $max_gbps = 20;
+    $max_lanes = 2;
+    $class = 'TB2-class';
+  } elseif ($gen_i === 1) {
+    $max_gbps = 10;
+    $max_lanes = 2;
+    $class = 'TB1-class';
+  }
+
+  $ctrl = 'TB host';
+  if ($gen !== '') {
+    $ctrl = 'TB Gen ' . $gen;
+  }
+  if ($usb4 !== '') {
+    $ctrl .= ' / USB4 ' . $usb4;
+  }
+
+  $max_short = '~' . $max_gbps . 'G · ' . $max_lanes . '-lane';
+  // One-line + subline for LOCAL column
+  $lines = [
+    'Max potential ' . $max_short,
+    $ctrl . ($class !== '' ? ' · ' . $class : ''),
+  ];
+  if ($product !== '') {
+    $lines[] = $product . ($mfg !== '' ? ' (' . $mfg . ')' : '');
+  }
+
+  return [
+    'gen' => $gen,
+    'usb4' => $usb4,
+    'class' => $class,
+    'label' => $ctrl,
+    'max_gbps' => $max_gbps,
+    'max_lanes' => $max_lanes,
+    'max_short' => $max_short,
+    'can_dual' => ($gen_i === 0 || $gen_i >= 3 || $usb4 !== ''),
+    'detail' => $ctrl . '; max class ~' . $max_gbps . 'G / ' . $max_lanes . ' lanes when path allows',
+    'lines' => $lines,
+    'product' => $product,
+    'mfg' => $mfg,
+  ];
+}
+
+/**
+ * Human speed label from USB root-hub sysfs speed (Mbps integer string).
+ */
+function tbn_usb_speed_label($speed_mbps) {
+  $s = (float)$speed_mbps;
+  if ($s >= 20000) {
+    return ['short' => '20G', 'label' => 'USB 3.2 20 Gb/s class', 'mbps' => 20000];
+  }
+  if ($s >= 10000) {
+    return ['short' => '10G', 'label' => 'USB 3.1/3.2 10 Gb/s class', 'mbps' => 10000];
+  }
+  if ($s >= 5000) {
+    return ['short' => '5G', 'label' => 'USB 3.0/3.1 5 Gb/s class', 'mbps' => 5000];
+  }
+  if ($s >= 480) {
+    return ['short' => '480M', 'label' => 'USB 2.0 HS', 'mbps' => 480];
+  }
+  if ($s > 0) {
+    return ['short' => (string)(int)$s . 'M', 'label' => (int)$s . ' Mb/s', 'mbps' => (int)$s];
+  }
+  return ['short' => '?', 'label' => 'unknown', 'mbps' => 0];
+}
+
+/**
+ * PCI BDF parent of a sysfs path (e.g. usb root hub).
+ */
+function tbn_sysfs_pci_bdf($path) {
+  $real = @realpath($path);
+  if (!$real) {
+    return '';
+  }
+  if (preg_match_all('/([0-9a-f]{4}:[0-9a-f]{2}:[0-9a-f]{2}\.[0-9a-f])/i', $real, $m)) {
+    return end($m[1]);
+  }
+  return '';
+}
+
+/**
+ * Whether a PCI USB controller looks Thunderbolt/USB4-family (Maple Ridge, etc.).
+ */
+function tbn_pci_is_tb_usb($bdf) {
+  if ($bdf === '' || !is_dir('/sys/bus/pci/devices/' . $bdf)) {
+    return false;
+  }
+  $vendor = tbn_sysfs_str('/sys/bus/pci/devices/' . $bdf . '/vendor');
+  $device = tbn_sysfs_str('/sys/bus/pci/devices/' . $bdf . '/device');
+  // Intel Maple Ridge TB4 USB: 8086:1138; NHI 1137 — also match common USB4 xHCI IDs loosely via path
+  if (strtolower($vendor) === '0x8086' && in_array(strtolower($device), ['0x1138', '0x1137', '0x15eb', '0x15ec', '0x15ef', '0x15f0'], true)) {
+    return true;
+  }
+  // Path contains thunderbolt domain bridge chain often has 0f:00 / maple — check driver of sibling NHI
+  $real = @realpath('/sys/bus/pci/devices/' . $bdf);
+  if ($real && (strpos($real, 'thunderbolt') !== false || preg_match('#/0f:00\.0/#', $real))) {
+    return true;
+  }
+  // lspci-style: device name from modalias
+  $mod = @file_get_contents('/sys/bus/pci/devices/' . $bdf . '/modalias');
+  if (is_string($mod) && stripos($mod, 'thunderbolt') !== false) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Brief local port inventory for Link quality LOCAL column.
+ *
+ * Includes:
+ *  - TB host max class (from controller)
+ *  - Active TB peer ports (trained path)
+ *  - High-speed USB root hubs (5G/10G/20G) with port counts — TB-icon USB-C often appears here
+ *    even when they are not full dual-lane 40G TB networking paths
+ *
+ * @return list of rows: kind, title, detail, ports (int|null), speed_short, attached
+ */
+function tbn_list_local_ports(array $cap = null) {
+  if ($cap === null) {
+    $cap = tbn_controller_capability();
+  }
+  $rows = [];
+
+  // 1) Thunderbolt host controller (network fabric ceiling)
+  $rows[] = [
+    'kind' => 'tb-host',
+    'title' => 'TB/USB4 host',
+    'detail' => ($cap['label'] ?? 'TB host') . ' · max ' . ($cap['max_short'] ?? '?'),
+    'ports' => null,
+    'speed_short' => $cap['max_short'] ?? '',
+    'attached' => null,
+  ];
+
+  // 2) Active TB peer ports (only appear when something is linked)
+  $tb_ports = 0;
+  foreach (@scandir('/sys/bus/thunderbolt/devices') ?: [] as $id) {
+    if ($id === '.' || $id === '..' || $id === 'domain0' || $id === '0-0') {
+      continue;
+    }
+    // Direct children of host: 0-1, 0-3 (not services 0-1.0)
+    if (!preg_match('/^\d+-\d+$/', $id)) {
+      continue;
+    }
+    $base = '/sys/bus/thunderbolt/devices/' . $id;
+    $rx = tbn_sysfs_str($base . '/rx_speed');
+    $rl = tbn_sysfs_str($base . '/rx_lanes');
+    $name = tbn_sysfs_str($base . '/device_name');
+    if ($rx === '' && $name === '') {
+      continue;
+    }
+    $tb_ports++;
+    $lanes = ($rl !== '' ? $rl . '-lane' : '');
+    $rows[] = [
+      'kind' => 'tb-link',
+      'title' => 'TB port ' . $id,
+      'detail' => trim(($name !== '' ? $name . ' · ' : '') . $rx . ($lanes !== '' ? ' · ' . $lanes : '')),
+      'ports' => 1,
+      'speed_short' => $rx !== '' ? preg_replace('/\s*Gb\/s.*/i', 'G', $rx) : '',
+      'attached' => true,
+    ];
+  }
+
+  // 3) USB SuperSpeed(+) root hubs — physical USB-C / Type-A SS banks
+  //    Pair HS+SS of same controller later if needed; list SS roots only to avoid 480M clutter.
+  $usb_roots = [];
+  foreach (@scandir('/sys/bus/usb/devices') ?: [] as $bn) {
+    if (!preg_match('/^usb(\d+)$/', $bn, $m)) {
+      continue;
+    }
+    $hub = '/sys/bus/usb/devices/' . $bn;
+    $speed = tbn_sysfs_str($hub . '/speed');
+    $mbps = (float)$speed;
+    if ($mbps < 5000) {
+      continue; // skip pure USB2 roots (companion of SS hubs)
+    }
+    $maxchild = (int)tbn_sysfs_str($hub . '/maxchild');
+    $bdf = tbn_sysfs_pci_bdf($hub);
+    $sl = tbn_usb_speed_label($speed);
+    $is_tb = tbn_pci_is_tb_usb($bdf);
+    // Count attached vs empty via port state files
+    $attached = 0;
+    $empty = 0;
+    foreach (glob($hub . '/*-0:1.0/usb*-port*') ?: [] as $pd) {
+      $st = strtolower(tbn_sysfs_str($pd . '/state'));
+      if ($st === '' || $st === 'not attached') {
+        $empty++;
+      } else {
+        $attached++;
+      }
+    }
+    $usb_roots[] = [
+      'kind' => $is_tb ? 'usb-tb' : 'usb-ss',
+      'title' => $is_tb
+        ? ('TB USB-C · ' . $sl['short'] . ' USB path')
+        : ('USB-C/SS · ' . $sl['short']),
+      'detail' => $bn . ($bdf !== '' ? ' · PCI ' . $bdf : '') . ' · ' . $sl['label']
+        . ($maxchild > 0 ? ' · ' . $maxchild . ' port' . ($maxchild === 1 ? '' : 's') : '')
+        . ($attached + $empty > 0 ? ' · ' . $attached . ' in use' : ''),
+      'ports' => $maxchild > 0 ? $maxchild : null,
+      'speed_short' => $sl['short'],
+      'attached' => $attached,
+      'mbps' => $sl['mbps'],
+      'is_tb' => $is_tb,
+      'bus' => $bn,
+    ];
+  }
+  // Sort: TB-USB first, then by speed desc, then bus name
+  usort($usb_roots, function ($a, $b) {
+    if (!empty($a['is_tb']) !== !empty($b['is_tb'])) {
+      return !empty($a['is_tb']) ? -1 : 1;
+    }
+    $sa = (int)($a['mbps'] ?? 0);
+    $sb = (int)($b['mbps'] ?? 0);
+    if ($sa !== $sb) {
+      return $sb - $sa;
+    }
+    return strcmp($a['bus'] ?? '', $b['bus'] ?? '');
+  });
+  foreach ($usb_roots as $r) {
+    unset($r['mbps'], $r['is_tb'], $r['bus']);
+    $rows[] = $r;
+  }
+
+  // Aggregate note if we only saw TB links but no empty-port inventory from USB
+  if ($tb_ports === 0 && count($usb_roots) === 0) {
+    $rows[] = [
+      'kind' => 'note',
+      'title' => 'Ports',
+      'detail' => 'No SuperSpeed USB roots or live TB peers visible in sysfs yet',
+      'ports' => null,
+      'speed_short' => '',
+      'attached' => null,
+    ];
+  }
+
+  return $rows;
+}
+
+/**
+ * HTML for LOCAL column — host max + brief port / speed list.
+ */
+function tbn_controller_capability_html(array $cap = null) {
+  if ($cap === null) {
+    $cap = tbn_controller_capability();
+  }
+  if (empty($cap['max_short'])) {
+    return '<span class="tbn-muted">Controller capability unknown</span>';
+  }
+  $html = '<strong class="tbn-cap-max">' . htmlspecialchars('Max ' . $cap['max_short']) . '</strong>';
+  $html .= '<p class="tbn-cap-meta tbn-muted">' . htmlspecialchars($cap['label'] ?? '') . '</p>';
+  if (!empty($cap['class'])) {
+    $html .= '<p class="tbn-cap-class tbn-muted">'
+      . htmlspecialchars($cap['class'] . ' fabric ceiling (host networking when path trains fully)')
+      . '</p>';
+  }
+  if (!empty($cap['product'])) {
+    $html .= '<p class="tbn-cap-product tbn-muted"><code>'
+      . htmlspecialchars($cap['product'])
+      . '</code></p>';
+  }
+
+  $ports = tbn_list_local_ports($cap);
+  if ($ports) {
+    $html .= '<ul class="tbn-port-list">';
+    foreach ($ports as $p) {
+      if (($p['kind'] ?? '') === 'tb-host') {
+        continue; // already shown as Max line
+      }
+      $title = htmlspecialchars($p['title'] ?? '');
+      $detail = htmlspecialchars($p['detail'] ?? '');
+      $spd = trim((string)($p['speed_short'] ?? ''));
+      $badge = $spd !== ''
+        ? '<span class="tbn-port-spd">' . htmlspecialchars($spd) . '</span> '
+        : '';
+      $html .= '<li class="tbn-port-' . htmlspecialchars($p['kind'] ?? 'usb') . '">'
+        . $badge . '<span class="tbn-port-title">' . $title . '</span>'
+        . ($detail !== '' ? '<span class="tbn-port-detail tbn-muted"> — ' . $detail . '</span>' : '')
+        . '</li>';
+    }
+    $html .= '</ul>';
+    $html .= '<p class="tbn-cap-footnote tbn-muted">'
+      . '10G/20G rows are USB SuperSpeed roots (Type-C often silkscreened with a TB/lightning icon but not full dual-lane TB net). '
+      . 'Yellow remote badges compare trained TB path vs fabric Max above.'
+      . '</p>';
+  }
+  return $html;
+}
+
+/**
  * Assess trained link vs local controller capability (cable / training hint).
  *
  * Returns:
@@ -760,12 +1084,14 @@ function tbn_activity_html(array $act) {
  *   suggestion what to try next
  *   less_likely other possible causes
  *   detail     compact title/tooltip string
+ *   controller capability array (max potential)
  *
  * Linux does not expose a reliable “this cable is 20G” flag. Inference is:
  * local host can dual-lane high rate, but path trained 20G×1 → cable/path is
  * the usual bottleneck (not “the other host capping you”).
  */
 function tbn_link_quality(array $remote, array $status = []) {
+  $cap = tbn_controller_capability();
   $empty = [
     'level' => 'unknown',
     'label' => 'No link',
@@ -776,14 +1102,13 @@ function tbn_link_quality(array $remote, array $status = []) {
     'suggestion' => '',
     'less_likely' => '',
     'detail' => '',
+    'controller' => $cap,
   ];
 
-  $gen = tbn_sysfs_str('/sys/bus/thunderbolt/devices/0-0/generation');
-  $usb4 = '';
-  $uevent = @file_get_contents('/sys/bus/thunderbolt/devices/0-0/uevent');
-  if (is_string($uevent) && preg_match('/USB4_VERSION=(\S+)/', $uevent, $m)) {
-    $usb4 = $m[1];
-  }
+  $ctrl = $cap['label'];
+  $ctrl_can_dual = !empty($cap['can_dual']);
+  $max_short = $cap['max_short'];
+
   $rx = $remote['rx_speed'] ?? '';
   $tx = $remote['tx_speed'] ?? '';
   $rl = isset($remote['rx_lanes']) ? (int)$remote['rx_lanes'] : 0;
@@ -799,18 +1124,8 @@ function tbn_link_quality(array $remote, array $status = []) {
   }
   $symmetric_20 = ($gbps > 0 && $gbps <= 20.5 && ($tx_gbps <= 0 || $tx_gbps <= 20.5));
 
-  $ctrl = 'TB host';
-  if ($gen !== '') {
-    $ctrl = 'TB Gen ' . $gen;
-  }
-  if ($usb4 !== '') {
-    $ctrl .= ' / USB4 ' . $usb4;
-  }
-  // Gen 3+ / USB4 hosts typically can do dual-lane ~40G when path allows
-  $ctrl_can_dual = ($gen === '' || (int)$gen >= 3);
-
   if ($rx === '' && $tx === '' && $rl === 0) {
-    $empty['detail'] = "Controller: {$ctrl}";
+    $empty['detail'] = "Controller: {$ctrl}; max {$max_short}";
     return $empty;
   }
 
@@ -824,9 +1139,9 @@ function tbn_link_quality(array $remote, array $status = []) {
     return [
       'level' => 'warn',
       'label' => '20G · 1-lane',
-      'lead' => 'Likely cable or port path (not the peer OS “capping” you).',
-      'note' => "This host’s controller looks capable of higher rates ({$ctrl}, often up to ~40G / 2-lane). "
-        . "Trained path is {$trained} both directions.",
+      'lead' => 'Below host max ' . $max_short . ' — likely cable or port path.',
+      'note' => "This host’s controller max class is {$max_short} ({$ctrl}). "
+        . "Trained path is only {$trained} both directions — yellow because trained ≪ local max.",
       'likely' => 'Most likely a cable or cable-path limit: a 20G-class / single-lane USB-C cable, '
         . 'a long passive cable that only trains one lane, or a port that is not full Thunderbolt/USB4 bandwidth '
         . '(front-panel headers are a common weak path).',
@@ -835,7 +1150,8 @@ function tbn_link_quality(array $remote, array $status = []) {
         . 'and avoid front-panel USB-C unless you know it is wired for full bandwidth.',
       'less_likely' => 'Less likely: one host “capping” the other when both sides are Gen3+/USB4-class. '
         . 'BIOS/firmware can still force a lower mode — check Thunderbolt/USB4 security and port mode if a known-good 40G cable still trains 20G×1.',
-      'detail' => "Controller {$ctrl}; trained {$trained}; likely cable/path limit",
+      'detail' => "Max {$max_short} ({$ctrl}); trained {$trained}; likely cable/path limit",
+      'controller' => $cap,
     ];
   }
 
@@ -843,12 +1159,13 @@ function tbn_link_quality(array $remote, array $status = []) {
     return [
       'level' => 'ok',
       'label' => 'High rate',
-      'lead' => 'Dual-lane high rate — path looks healthy.',
-      'note' => "Trained at a high dual-lane rate ({$trained}). Controller: {$ctrl}.",
+      'lead' => 'Near host max ' . $max_short . ' — path looks healthy.',
+      'note' => "Trained at a high dual-lane rate ({$trained}). Host max class: {$max_short} ({$ctrl}).",
       'likely' => 'Path looks healthy for high-speed host-to-host Thunderbolt networking.',
       'suggestion' => '',
       'less_likely' => '',
-      'detail' => "Controller {$ctrl}; trained {$trained}",
+      'detail' => "Max {$max_short}; trained {$trained}",
+      'controller' => $cap,
     ];
   }
 
@@ -856,12 +1173,13 @@ function tbn_link_quality(array $remote, array $status = []) {
     return [
       'level' => 'info',
       'label' => $trained !== '' ? $trained : 'Linked',
-      'lead' => 'Two lanes trained; rate is moderate for this controller class.',
-      'note' => "Dual-lane link at {$trained} on {$ctrl}.",
+      'lead' => 'Two lanes; still under host max ' . $max_short . '.',
+      'note' => "Dual-lane link at {$trained}. Host max class: {$max_short} ({$ctrl}).",
       'likely' => 'Link trained with 2 lanes; rate is moderate — cable, peer, or intermediate hop may still limit peak Gb/s.',
       'suggestion' => 'If you expected ~40G, try a certified 40 Gbps TB4/USB4 cable and confirm the peer also supports dual-lane high rate.',
       'less_likely' => '',
-      'detail' => "Controller {$ctrl}; trained {$trained}",
+      'detail' => "Max {$max_short}; trained {$trained}",
+      'controller' => $cap,
     ];
   }
 
@@ -869,24 +1187,26 @@ function tbn_link_quality(array $remote, array $status = []) {
     return [
       'level' => 'info',
       'label' => $trained !== '' ? $trained : 'Linked',
-      'lead' => 'Link is up at the trained rate shown above.',
-      'note' => "Trained path: {$trained}. Controller: {$ctrl}.",
+      'lead' => 'Trained rate below; host max is ' . $max_short . '.',
+      'note' => "Trained path: {$trained}. Host max class: {$max_short} ({$ctrl}).",
       'likely' => '',
       'suggestion' => '',
       'less_likely' => '',
-      'detail' => "Controller {$ctrl}; trained {$trained}",
+      'detail' => "Max {$max_short}; trained {$trained}",
+      'controller' => $cap,
     ];
   }
 
   return [
     'level' => 'info',
     'label' => 'Linked',
-    'lead' => 'Interface present; little rate detail from sysfs.',
+    'lead' => 'Interface present; host max ' . $max_short . '.',
     'note' => '',
     'likely' => '',
     'suggestion' => '',
     'less_likely' => '',
-    'detail' => "Controller {$ctrl}",
+    'detail' => "Max {$max_short} ({$ctrl})",
+    'controller' => $cap,
   ];
 }
 

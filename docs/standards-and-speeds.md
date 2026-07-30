@@ -48,11 +48,20 @@ Thunderbolt Net’s **Link quality** badge compares **trained path** vs **contro
 
 ### Link quality messages (plugin)
 
-| Badge | Meaning |
-|-------|---------|
-| **High rate** | Dual-lane high rate trained — path looks healthy for that generation |
-| **20G · 1-lane** | Capable host, low single-lane train — **likely cable/path** |
+| Column | What you see |
+|--------|----------------|
+| **LOCAL** | **Max** fabric class from TB controller (`0-0`), plus a **brief port list**: live TB peer ports (trained rate), and **USB SuperSpeed roots** (5G / 10G / 20G) with port counts. Many Type-C ports wear a Thunderbolt icon but only expose a 10G or 20G **USB** path — they still appear here so you know the bank exists. |
+| **REMOTE** (per tbnN) | **Trained path** badge (yellow **20G · 1-lane**, green **High rate**, …) vs that fabric Max |
+
+Empty physical TB ports rarely appear in sysfs until something trains; USB `usbN-port*` + root-hub **speed** (10000 / 20000 Mb/s) is how we count 10G/20G Type-C banks.
+
+| Badge (remote) | Meaning |
+|----------------|---------|
+| **High rate** | Dual-lane high rate trained — near host max for that class |
+| **20G · 1-lane** (yellow) | Host max is higher (see LOCAL); trained low single-lane — **likely cable/path** |
 | Other | Linked at reported rate; see note if present |
+
+Yellow is “trained ≪ LOCAL max,” not “20G is always bad.” A pure TB2 host maxing at ~20G would not use the same warning story.
 
 For **20G · 1-lane** the UI suggests: certified high-rate **Thunderbolt / USB4** cable (often 40&nbsp;Gbps class for TB4-era, higher-rated for TB5 when both ends support it), re-seat, try other **rear** full-bandwidth ports, avoid unknown front-panel USB-C.
 
