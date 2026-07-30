@@ -18,7 +18,9 @@ $mods = $status['modules'];
 $devices = $status['devices'];
 $netdevs = $status['netdevs'];
 $include = $status['include_interfaces'];
-$ver = '2026.07.29ag';
+$has_hw = !empty($status['has_hardware']);
+$diag = tbn_diagnostics_text();
+$ver = '2026.07.29ai';
 foreach (['/tmp/plugins/thunderboltnet.plg', '/boot/config/plugins/thunderboltnet.plg'] as $plg) {
   if (is_file($plg)) {
     if (preg_match('/ENTITY version "([^"]+)"/', file_get_contents($plg), $m)) {
@@ -38,6 +40,7 @@ foreach ($devices as $d) {
   }
 }
 $live_tb = count($netdevs);
+$issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
 ?>
 <link rel="stylesheet" href="/plugins/ThunderboltNet/thunderboltnet.css?v=<?= htmlspecialchars($ver) ?>">
 
@@ -49,13 +52,50 @@ $live_tb = count($netdevs);
       often <strong>20&nbsp;Gb/s per link</strong> (or more with multi-lane / dual cables) for bulk copies,
       VM disks, backups, or media, without saturating your normal Ethernet or Wi‑Fi.
     </p>
-    <p class="tbn-lead tbn-muted">
-      This tab lives under <strong>Network Settings</strong> because it configures a network path.
-      It does <strong>not</strong> replace the eth0 / br0 / bond pages: those NICs stay managed by Unraid as usual.
-      Thunderbolt netdevs appear when a peer link trains (hotplug), so addressing here is applied
-      with standard Linux tools rather than rewriting Unraid’s boot-time <code>network.cfg</code> for eth ports.
+  </div>
+
+<?php if (!$has_hw): ?>
+  <div class="tbn-notice tbn-notice-warn" role="status">
+    <h4>No Thunderbolt hardware detected on this server</h4>
+    <p>
+      This host does not appear to have a Thunderbolt / USB4 host controller that Linux can see
+      (no matching PCI device and no <code>/sys/bus/thunderbolt</code> domain).
+      <strong>You do not need this plugin on this machine</strong> unless you plan to add TB hardware later.
+    </p>
+    <p>
+      Common reasons the page looks “empty”: wrong Unraid host (for example a box with only Ethernet),
+      no TB ports on the motherboard, or the controller is not exposed to this OS.
+    </p>
+    <p>
+      If you <strong>believe this is wrong</strong> (you have TB ports / an add-in card that should work),
+      copy the diagnostics below and open an issue on GitHub so we can improve detection:
+    </p>
+    <p>
+      <a href="<?= htmlspecialchars($issues_url) ?>" target="_blank" rel="noopener"><?= htmlspecialchars($issues_url) ?></a>
+    </p>
+    <label class="tbn-diag-label" for="tbn-diagnostics">Hardware diagnostics (safe to paste publicly)</label>
+    <textarea id="tbn-diagnostics" class="tbn-diag" readonly rows="16" spellcheck="false"><?= htmlspecialchars($diag) ?></textarea>
+    <p class="tbn-diag-actions">
+      <input type="button" value="Copy diagnostics" onclick="tbnCopyDiagnostics()">
+      <input type="button" value="Refresh" onclick="location.reload()">
+      <input type="button" value="Done" onclick="done()">
     </p>
   </div>
+  <p class="tbn-muted tbn-footer">
+    Version <code><?= htmlspecialchars($ver) ?></code>
+    · <a href="https://github.com/ibigsnet/ThunderboltNet" target="_blank" rel="noopener">GitHub</a>
+    · Hostname <code><?= htmlspecialchars($status['hostname']) ?></code>
+  </p>
+</div>
+<script src="/plugins/ThunderboltNet/thunderboltnet.js?v=<?= htmlspecialchars($ver) ?>"></script>
+<?php return; endif; ?>
+
+  <p class="tbn-lead tbn-muted">
+    This tab lives under <strong>Network Settings</strong> because it configures a network path.
+    It does <strong>not</strong> replace the eth0 / br0 / bond pages: those NICs stay managed by Unraid as usual.
+    Thunderbolt netdevs appear when a peer link trains (hotplug), so addressing here is applied
+    with standard Linux tools rather than rewriting Unraid’s boot-time <code>network.cfg</code> for eth ports.
+  </p>
 
   <blockquote class="inline_help">
     <p><strong>Why a plugin?</strong> Unraid’s stock Network Settings knows about eth / bond / bridge interfaces

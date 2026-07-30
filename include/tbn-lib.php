@@ -200,15 +200,126 @@ function tbn_modules_loaded() {
 }
 
 /**
+ * Probe for Thunderbolt / USB4 host controller hardware (not peer cable).
+ * Returns keys: has_hardware, sysfs_bus, domain0, pci_lines, modules, reason.
+ */
+function tbn_hardware_probe() {
+  $sysfs = is_dir('/sys/bus/thunderbolt/devices');
+  $domain0 = is_dir('/sys/bus/thunderbolt/devices/domain0')
+    || is_link('/sys/bus/thunderbolt/devices/domain0');
+  $pci = [];
+  $lines = [];
+  @exec('lspci -nn 2>/dev/null', $lines);
+  foreach ($lines as $line) {
+    if (preg_match('/thunderbolt|USB4|Maple Ridge|NHI|JHL|Alpine Ridge|Titan Ridge|Ice Lake.*Thunderbolt/i', $line)) {
+      $pci[] = $line;
+    }
+  }
+  // Also match known Intel TB NHI device IDs if description is sparse
+  if (!$pci) {
+    foreach ($lines as $line) {
+      if (preg_match('/\[8086:(1137|15eb|15ec|15ef|15f0|9a1b|9a1d|a0b5|a71e)\]/i', $line)) {
+        $pci[] = $line;
+      }
+    }
+  }
+  $mods = tbn_modules_loaded();
+  $has = $domain0 || count($pci) > 0;
+  $reason = '';
+  if (!$has) {
+    if (!$sysfs && !$mods['thunderbolt']) {
+      $reason = 'no_controller';
+    } elseif (!$sysfs) {
+      $reason = 'no_sysfs';
+    } else {
+      $reason = 'no_domain';
+    }
+  }
+  return [
+    'has_hardware' => $has,
+    'sysfs_bus' => $sysfs,
+    'domain0' => $domain0,
+    'pci_lines' => $pci,
+    'modules' => $mods,
+    'reason' => $reason,
+  ];
+}
+
+/**
+ * Plain-text diagnostics for GitHub issues / support (no secrets).
+ */
+function tbn_diagnostics_text() {
+  $probe = tbn_hardware_probe();
+  $ver = 'unknown';
+  foreach (['/tmp/plugins/thunderboltnet.plg', '/boot/config/plugins/thunderboltnet.plg'] as $plg) {
+    if (is_file($plg) && preg_match('/ENTITY version "([^"]+)"/', (string)@file_get_contents($plg), $m)) {
+      $ver = $m[1];
+      break;
+    }
+  }
+  $unraid = '';
+  if (is_readable('/etc/unraid-version')) {
+    $ini = @parse_ini_file('/etc/unraid-version');
+    $unraid = is_array($ini) && isset($ini['version']) ? $ini['version'] : '';
+  }
+  $out = [];
+  $out[] = '=== ThunderboltNet diagnostics ===';
+  $out[] = 'plugin_version: ' . $ver;
+  $out[] = 'hostname: ' . (gethostname() ?: '');
+  $out[] = 'unraid: ' . $unraid;
+  $out[] = 'time: ' . date('c');
+  $out[] = 'has_hardware: ' . ($probe['has_hardware'] ? 'yes' : 'no');
+  $out[] = 'sysfs_bus: ' . ($probe['sysfs_bus'] ? 'yes' : 'no');
+  $out[] = 'domain0: ' . ($probe['domain0'] ? 'yes' : 'no');
+  $out[] = 'module_thunderbolt: ' . (!empty($probe['modules']['thunderbolt']) ? 'loaded' : 'not loaded');
+  $out[] = 'module_thunderbolt_net: ' . (!empty($probe['modules']['thunderbolt_net']) ? 'loaded' : 'not loaded');
+  $out[] = 'domain_security: ' . (tbn_domain_security() ?: '(none)');
+  $out[] = '--- lspci (thunderbolt/USB4 matches) ---';
+  if ($probe['pci_lines']) {
+    foreach ($probe['pci_lines'] as $l) {
+      $out[] = $l;
+    }
+  } else {
+    $out[] = '(no matching PCI lines)';
+  }
+  $out[] = '--- /sys/bus/thunderbolt/devices ---';
+  if ($probe['sysfs_bus']) {
+    foreach (@scandir('/sys/bus/thunderbolt/devices') ?: [] as $n) {
+      if ($n === '.' || $n === '..') {
+        continue;
+      }
+      $out[] = $n;
+    }
+  } else {
+    $out[] = '(bus not present)';
+  }
+  $out[] = '--- netdevs ---';
+  $nets = tbn_list_netdevs();
+  if ($nets) {
+    foreach ($nets as $n) {
+      $out[] = $n['iface'] . ' state=' . $n['operstate'] . ' carrier=' . $n['carrier']
+        . ' addrs=' . ($n['addrs'] ? implode(',', $n['addrs']) : '-');
+    }
+  } else {
+    $out[] = '(none)';
+  }
+  $out[] = '=== end ===';
+  return implode("\n", $out) . "\n";
+}
+
+/**
  * Full status blob for UI / JSON.
  */
 function tbn_status() {
   $cfg = tbn_load_cfg();
+  $probe = tbn_hardware_probe();
   return [
     'hostname' => gethostname() ?: '',
     'time' => date('c'),
     'security' => tbn_domain_security(),
     'modules' => tbn_modules_loaded(),
+    'hardware' => $probe,
+    'has_hardware' => !empty($probe['has_hardware']),
     'devices' => tbn_list_tb_devices(),
     'netdevs' => tbn_list_netdevs(),
     'include_interfaces' => tbn_read_include_interfaces(),

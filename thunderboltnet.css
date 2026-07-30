@@ -61,3 +61,40 @@
 .tbn-wrap blockquote.inline_help {
   margin: 0.75em 0 1.25em;
 }
+.tbn-notice {
+  border: 1px solid rgba(200, 140, 40, 0.55);
+  background: rgba(200, 140, 40, 0.08);
+  border-radius: 6px;
+  padding: 0.9em 1.1em 1em;
+  margin: 0.75em 0 1.25em;
+  line-height: 1.5;
+}
+.tbn-notice h4 {
+  margin: 0 0 0.5em;
+  font-size: 1.05em;
+}
+.tbn-notice p {
+  margin: 0.45em 0;
+}
+.tbn-diag-label {
+  display: block;
+  font-weight: 600;
+  margin: 0.85em 0 0.35em;
+}
+.tbn-diag {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  line-height: 1.35;
+  padding: 0.65em 0.75em;
+  border: 1px solid rgba(128, 128, 128, 0.4);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.15);
+  resize: vertical;
+  min-height: 12em;
+}
+.tbn-diag-actions {
+  margin: 0.65em 0 0;
+}

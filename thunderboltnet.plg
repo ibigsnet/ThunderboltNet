@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.07.29ah">
+<!ENTITY version "2026.07.29ai">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -34,6 +34,9 @@
 
 <CHANGES>
 ###&version;
+- Clear empty state when no Thunderbolt hardware is detected: explain the plugin is not needed on that host, offer copyable diagnostics for GitHub issues if detection seems wrong.
+
+###2026.07.29ah
 - Thorough uninstall: remove emhttp trees (both casings), boot plugin dirs, tmp plugin files, modprobe snippets under /etc and /boot, TB entries from network-extra; no leftover empty dirs blocking reinstall.
 
 ###2026.07.29ag
