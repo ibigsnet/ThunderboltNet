@@ -11,4 +11,4 @@ Full product intro: [../DOCS.md](../DOCS.md).
 | [requirements.md](requirements.md) | Hardware, BIOS, kernel modules, security |
 | [links-and-topology.md](links-and-topology.md) | P2P model, dual cable, bonding, hubs |
 | [settings-reference.md](settings-reference.md) | Every global and tbnN field |
-| [troubleshooting.md](troubleshooting.md) | No iface, 20G×1, one-way ping, VFIO |
+| [troubleshooting.md](troubleshooting.md) | Reseating cables, multi-cable recovery, common failures |
