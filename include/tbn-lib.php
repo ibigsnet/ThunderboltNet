@@ -278,6 +278,7 @@ function tbn_link_summaries() {
         'carrier' => tbn_sysfs_str($base . '/carrier'),
         'mtu' => tbn_sysfs_str($base . '/mtu'),
         'addrs' => tbn_iface_addrs($if),
+        'addrs6' => tbn_iface_addrs6($if),
         'master' => $master,
         'membership' => tbn_iface_membership_labels($if, $master),
         'listening' => !empty($include_map[$if]) || ($master !== '' && !empty($include_map[$master])),
