@@ -181,7 +181,25 @@
   margin: 0.75rem 0 0.3rem;
 }
 .tbn-section {
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
+  padding-bottom: 0.5rem;
+}
+.tbn-section-drivers {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(128, 128, 128, 0.28);
+}
+.tbn-link-title {
+  text-align: left !important;
+  font-weight: 600;
+  background: rgba(128, 128, 128, 0.06) !important;
+}
+.tbn-link-card tbody td:first-child {
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+  width: 11em;
+  color: var(--orange-muted, #aaa);
 }
 .tbn-live {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;

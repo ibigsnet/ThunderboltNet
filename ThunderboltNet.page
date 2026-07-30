@@ -71,20 +71,26 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
 <?php
   $links = $status['links'] ?? tbn_link_summaries();
   $local_ctrl = $status['local_controller'] ?? tbn_sysfs_str('/sys/bus/thunderbolt/devices/0-0/device_name');
+  $local_mfg = $status['local_manufacturer'] ?? tbn_sysfs_str('/sys/bus/thunderbolt/devices/0-0/vendor_name');
 ?>
   <div class="tbn-section">
     <h3>This host</h3>
+    <p class="tbn-note">
+      OS hostname is from Unraid. Controller product and manufacturer come from the local Thunderbolt host
+      router (sysfs <code>0-0</code>) — usually the motherboard or add-in card name and OEM.
+    </p>
     <table class="tbn-table tbn-summary">
-      <tr><td>Hostname</td><td><code><?= htmlspecialchars($status['hostname']) ?></code></td></tr>
-      <tr><td>Controller</td><td><?= htmlspecialchars($local_ctrl !== '' ? $local_ctrl : '—') ?></td></tr>
+      <tr><td>OS hostname</td><td><code><?= htmlspecialchars($status['hostname']) ?></code></td></tr>
+      <tr><td>Controller product</td><td><?= htmlspecialchars($local_ctrl !== '' ? $local_ctrl : '—') ?></td></tr>
+      <tr><td>Manufacturer</td><td><?= htmlspecialchars($local_mfg !== '' ? $local_mfg : '—') ?></td></tr>
       <tr><td>Domain security</td><td><code><?= htmlspecialchars($status['security'] ?: '(none/unknown)') ?></code></td></tr>
-      <tr><td>Modules</td>
+      <tr><td>Kernel modules</td>
         <td><code>thunderbolt</code> <?= htmlspecialchars($mod_tb) ?> ·
             <code>thunderbolt_net</code> <?= htmlspecialchars($mod_net) ?></td></tr>
       <tr><td>Listening includes</td>
         <td><code><?= htmlspecialchars(implode(' ', $include) ?: '(none)') ?></code>
-          <span class="tbn-muted"> (network-extra; edit per-link on tbnN or Interface Extra)</span></td></tr>
-      <tr><td>Link tabs</td>
+          <span class="tbn-muted"> — interfaces Unraid services may bind on (network-extra)</span></td></tr>
+      <tr><td>Interface tabs</td>
         <td>
 <?php if (!$ifaces): ?>
           <span class="tbn-muted">No thunderbolt* netdevs yet</span>
@@ -99,77 +105,117 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
   </div>
 
   <div class="tbn-section">
-    <h3>Links (local ↔ remote)</h3>
+    <h3>Links</h3>
     <p class="tbn-note">
-      Far-side name and link rate come from the Thunderbolt fabric (sysfs).
-      LLDP is optional and usually unavailable on stock Unraid.
-      Address/bond settings for each link are on its <strong>tbnN</strong> tab.
+      Each row compares <strong>this Unraid host</strong> with the <strong>far-side peer</strong> on that cable.
+      Thunderbolt advertises peer <em>name</em> and <em>stack</em> separately from OEM branding:
+      local manufacturer is often the board vendor (e.g. ASUS); remote “stack” on Linux peers is often
+      <code>Linux</code> (the TB software identity), while peer name is usually that machine’s hostname.
+      Link speed/lanes are the trained fabric rate. IP and bond settings are on each <strong>tbnN</strong> tab.
     </p>
 <?php if (!$links): ?>
     <p class="tbn-muted">No active Thunderbolt network interfaces.</p>
 <?php else: ?>
-<?php foreach ($links as $L): $loc = $L['local']; $rem = $L['remote']; $lldp = $L['lldp']; ?>
+<?php foreach ($links as $L):
+  $loc = $L['local'];
+  $rem = $L['remote'];
+  $lldp = $L['lldp'];
+  $mem = !empty($loc['membership']) ? implode(' ', $loc['membership']) : (!empty($loc['master']) ? $loc['master'] : 'none');
+?>
     <table class="tbn-table tbn-wide tbn-link-card">
       <thead>
         <tr>
-          <th colspan="2">
+          <th style="width:11em"></th>
+          <th>Local (this host)</th>
+          <th>Remote (peer)</th>
+        </tr>
+        <tr>
+          <th colspan="3" class="tbn-link-title">
             <a href="/Settings/NetworkSettings" onclick="return tbnGotoNetTab('<?= htmlspecialchars($L['label'], ENT_QUOTES) ?>', event)"><?= htmlspecialchars($L['label']) ?></a>
-            <span class="tbn-muted"> · <code><?= htmlspecialchars($L['iface']) ?></code></span>
+            <span class="tbn-muted"> · kernel <code><?= htmlspecialchars($L['iface']) ?></code>
+              · settings on the tbn tab</span>
           </th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td class="tbn-side-label">Local</td>
-          <td>
-            <strong><?= htmlspecialchars($loc['hostname'] !== '' ? $loc['hostname'] : '—') ?></strong>
-            <?php if (!empty($loc['controller_name'])): ?>
-              <span class="tbn-muted"> (<?= htmlspecialchars($loc['controller_name']) ?>)</span>
-            <?php endif; ?>
-            <br>
-            MAC <code><?= htmlspecialchars(strtoupper($loc['mac'] ?: '—')) ?></code>
-            · state <?= htmlspecialchars($loc['operstate'] ?: '—') ?>
-            · carrier <?= htmlspecialchars($loc['carrier'] === '' ? 'n/a' : $loc['carrier']) ?>
-            · MTU <?= htmlspecialchars($loc['mtu'] !== '' ? $loc['mtu'] : '—') ?>
-            <br>
-            IPv4 <code><?= htmlspecialchars($loc['addrs'] ? implode(', ', $loc['addrs']) : '—') ?></code>
-            <br>
-            Listening: <?= !empty($loc['listening']) ? 'yes' : 'no' ?>
-            · Bond/bridge:
-            <?php if (!empty($loc['membership'])): ?>
-              <code><?= htmlspecialchars(implode(' ', $loc['membership'])) ?></code>
-            <?php elseif (!empty($loc['master'])): ?>
-              <code><?= htmlspecialchars($loc['master']) ?></code>
-            <?php else: ?>
-              none
-            <?php endif; ?>
-          </td>
+          <td>Name</td>
+          <td><code><?= htmlspecialchars($loc['os_hostname'] !== '' ? $loc['os_hostname'] : '—') ?></code>
+            <span class="tbn-muted"> (OS hostname)</span></td>
+          <td><code><?= htmlspecialchars($rem['peer_name'] !== '' ? $rem['peer_name'] : '—') ?></code>
+            <span class="tbn-muted"> (peer name from fabric)</span></td>
         </tr>
         <tr>
-          <td class="tbn-side-label">Remote</td>
+          <td>Product / identity</td>
+          <td><?= htmlspecialchars($loc['product'] !== '' ? $loc['product'] : '—') ?>
+            <span class="tbn-muted"> (TB controller product)</span></td>
+          <td><?= htmlspecialchars($rem['peer_name'] !== '' ? $rem['peer_name'] : '—') ?>
+            <span class="tbn-muted"> (same as peer name when only one string is advertised)</span></td>
+        </tr>
+        <tr>
+          <td>Manufacturer / stack</td>
+          <td><?= htmlspecialchars($loc['manufacturer'] !== '' ? $loc['manufacturer'] : '—') ?>
+            <span class="tbn-muted"> (OEM / board vendor)</span></td>
+          <td><?= htmlspecialchars($rem['stack'] !== '' ? $rem['stack'] : '—') ?>
+            <span class="tbn-muted"> (TB stack identity; often “Linux” on Linux peers)</span></td>
+        </tr>
+        <tr>
+          <td>Link RX / TX</td>
+          <td class="tbn-muted">— (rate is end-to-end on the peer hop)</td>
           <td>
-            <strong><?= htmlspecialchars($rem['hostname'] !== '' ? $rem['hostname'] : '(no peer / unknown)') ?></strong>
-            <?php if ($rem['vendor'] !== ''): ?>
-              <span class="tbn-muted"> · <?= htmlspecialchars($rem['vendor']) ?></span>
-            <?php endif; ?>
-            <br>
-            Link RX/TX:
             <strong><?= htmlspecialchars($rem['rx_speed'] !== '' ? $rem['rx_speed'] : '—') ?></strong>
             /
             <strong><?= htmlspecialchars($rem['tx_speed'] !== '' ? $rem['tx_speed'] : '—') ?></strong>
-            · lanes
-            <?= htmlspecialchars(($rem['rx_lanes'] !== '' ? $rem['rx_lanes'] : '—') . ' / ' . ($rem['tx_lanes'] !== '' ? $rem['tx_lanes'] : '—')) ?>
-            <br>
-            <?php if ($rem['unique_id'] !== ''): ?>
-              UUID <code><?= htmlspecialchars($rem['unique_id']) ?></code>
-              <?php if ($rem['service'] !== ''): ?> · service <code><?= htmlspecialchars($rem['service']) ?></code><?php endif; ?>
-            <?php else: ?>
-              <span class="tbn-muted">No far-side fabric entry (cable/peer down or not trained).</span>
-            <?php endif; ?>
-            <br>
-            LLDP:
-            <span class="tbn-muted"><?= htmlspecialchars($lldp['summary'] !== '' ? $lldp['summary'] : 'n/a') ?></span>
           </td>
+        </tr>
+        <tr>
+          <td>Lanes RX / TX</td>
+          <td class="tbn-muted">—</td>
+          <td><?= htmlspecialchars(($rem['rx_lanes'] !== '' ? $rem['rx_lanes'] : '—') . ' / ' . ($rem['tx_lanes'] !== '' ? $rem['tx_lanes'] : '—')) ?></td>
+        </tr>
+        <tr>
+          <td>Interface state</td>
+          <td><?= htmlspecialchars($loc['operstate'] ?: '—') ?>
+            · carrier <?= htmlspecialchars($loc['carrier'] === '' ? 'n/a' : $loc['carrier']) ?>
+            · MTU <?= htmlspecialchars($loc['mtu'] !== '' ? $loc['mtu'] : '—') ?></td>
+          <td class="tbn-muted">See peer name / speeds above</td>
+        </tr>
+        <tr>
+          <td>MAC</td>
+          <td><code><?= htmlspecialchars(strtoupper($loc['mac'] ?: '—')) ?></code></td>
+          <td class="tbn-muted">—</td>
+        </tr>
+        <tr>
+          <td>IPv4 (live)</td>
+          <td><code><?= htmlspecialchars($loc['addrs'] ? implode(', ', $loc['addrs']) : '—') ?></code></td>
+          <td class="tbn-muted">Not visible from this host without probing</td>
+        </tr>
+        <tr>
+          <td>Listening include</td>
+          <td><?= !empty($loc['listening']) ? 'yes' : 'no' ?></td>
+          <td class="tbn-muted">—</td>
+        </tr>
+        <tr>
+          <td>Bond / bridge</td>
+          <td><code><?= htmlspecialchars($mem) ?></code></td>
+          <td class="tbn-muted">—</td>
+        </tr>
+        <tr>
+          <td>Fabric UUID / service</td>
+          <td class="tbn-muted">local controller UUID on devices table</td>
+          <td>
+<?php if ($rem['unique_id'] !== ''): ?>
+            <code><?= htmlspecialchars($rem['unique_id']) ?></code>
+            <?php if ($rem['service'] !== ''): ?><br>service <code><?= htmlspecialchars($rem['service']) ?></code><?php endif; ?>
+<?php else: ?>
+            <span class="tbn-muted">No peer fabric entry (link down or not trained)</span>
+<?php endif; ?>
+          </td>
+        </tr>
+        <tr>
+          <td>LLDP</td>
+          <td colspan="2" class="tbn-muted"><?= htmlspecialchars($lldp['summary'] !== '' ? $lldp['summary'] : 'n/a') ?>
+            — optional; TB fabric data above is primary</td>
         </tr>
       </tbody>
     </table>
@@ -179,6 +225,11 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
 
   <div class="tbn-section">
     <h3>PCI / IOMMU / VFIO</h3>
+    <p class="tbn-note">
+      Shows how the Thunderbolt controller is attached to the CPU/PCIe fabric.
+      If the NHI (host interface) is bound to <code>vfio-pci</code>, Unraid cannot use host Thunderbolt networking
+      until that device is returned to the host driver. Warnings appear above the details button when relevant.
+    </p>
 <?php
   $tbn_pci_uid = 'overview';
   require '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-pci-panel.php';
@@ -186,18 +237,44 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
   </div>
 
   <div class="tbn-section">
-    <h3>Thunderbolt devices</h3>
+    <h3>Fabric devices</h3>
+    <p class="tbn-note">
+      Raw Thunderbolt topology. <strong>Name</strong> is the advertised device name.
+      <strong>Manufacturer / stack</strong> is the TB <code>vendor_name</code> field: for the local host router
+      this is usually the OEM (e.g. ASUS); for a Linux peer it is often the software stack (<code>Linux</code>), not the chassis brand.
+    </p>
 <?php if (!$devices): ?>
     <p class="tbn-muted">No entries under <code>/sys/bus/thunderbolt/devices</code>.</p>
 <?php else: ?>
     <table class="tbn-table tbn-wide">
       <thead>
-        <tr><th>ID</th><th>Name</th><th>Vendor</th><th>RX / TX</th><th>Lanes</th><th>Netdevs</th></tr>
+        <tr>
+          <th>ID</th>
+          <th>Role</th>
+          <th>Name</th>
+          <th>Manufacturer / stack</th>
+          <th>RX / TX</th>
+          <th>Lanes</th>
+          <th>Netdevs</th>
+        </tr>
       </thead>
       <tbody>
-<?php foreach ($devices as $d): ?>
+<?php foreach ($devices as $d):
+  $id = $d['id'];
+  $role = 'node';
+  if ($id === 'domain0') {
+    $role = 'domain';
+  } elseif ($id === '0-0') {
+    $role = 'local controller';
+  } elseif (preg_match('/^\d+-\d+$/', $id) && $id !== '0-0') {
+    $role = 'peer';
+  } elseif (preg_match('/\.\d+$/', $id)) {
+    $role = 'service';
+  }
+?>
         <tr>
-          <td><code><?= htmlspecialchars($d['id']) ?></code></td>
+          <td><code><?= htmlspecialchars($id) ?></code></td>
+          <td><?= htmlspecialchars($role) ?></td>
           <td><?= htmlspecialchars($d['device_name'] ?: '—') ?></td>
           <td><?= htmlspecialchars($d['vendor_name'] ?: '—') ?></td>
           <td><?= htmlspecialchars(trim(($d['rx_speed'] ?: '—') . ' / ' . ($d['tx_speed'] ?: '—'))) ?></td>
@@ -210,33 +287,12 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
 <?php endif; ?>
   </div>
 
-  <div class="tbn-section">
-    <h3>Live netdevs</h3>
-<?php if (!$netdevs): ?>
-    <p class="tbn-muted">No <code>thunderbolt*</code> interfaces yet.</p>
-<?php else: ?>
-    <table class="tbn-table tbn-wide">
-      <thead>
-        <tr><th>Iface</th><th>UI tab</th><th>State</th><th>Carrier</th><th>MAC</th><th>IPv4</th></tr>
-      </thead>
-      <tbody>
-<?php foreach ($netdevs as $n): ?>
-        <tr>
-          <td><code><?= htmlspecialchars($n['iface']) ?></code></td>
-          <td><code><?= htmlspecialchars(tbn_label_for_iface($n['iface'])) ?></code></td>
-          <td><?= htmlspecialchars($n['operstate']) ?></td>
-          <td><?= htmlspecialchars($n['carrier'] === '' ? 'n/a' : $n['carrier']) ?></td>
-          <td><code><?= htmlspecialchars($n['address']) ?></code></td>
-          <td><code><?= htmlspecialchars($n['addrs'] ? implode(', ', $n['addrs']) : '—') ?></code></td>
-        </tr>
-<?php endforeach; ?>
-      </tbody>
-    </table>
-<?php endif; ?>
-  </div>
-
-  <div class="tbn-section">
+  <div class="tbn-section tbn-section-drivers">
     <h3>Driver options</h3>
+    <p class="tbn-note">
+      These options only affect how Unraid loads the Thunderbolt kernel drivers when you click Apply here.
+      They do not change Ethernet, Docker, or VMs. Interface IP settings are on each <strong>tbnN</strong> tab.
+    </p>
     <form method="POST" action="/update.php" target="progressFrame">
       <input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">
       <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update.php">
@@ -261,7 +317,12 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
             <?= mk_option($cfg['load_modules'] ?? 'yes', 'yes', 'Yes') ?>
             <?= mk_option($cfg['load_modules'] ?? 'yes', 'no', 'No') ?>
           </select>
-          <span class="tbn-hint"><code>thunderbolt</code> + <code>thunderbolt_net</code> (does not unbind NHI)</span>
+          <span class="tbn-hint">
+            When Yes, Apply runs <code>modprobe thunderbolt</code> and <code>modprobe thunderbolt_net</code>
+            so the controller and host-to-host network function can appear.
+            Does <strong>not</strong> unbind the NHI from the host driver (that can wedge some controllers).
+            Choose No only if you load these modules yourself (e.g. in <code>go</code>).
+          </span>
         </dd>
 
         <dt>E2E flow control:</dt>
@@ -270,7 +331,11 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
             <?= mk_option($cfg['e2e_flow_control'] ?? 'no', 'no', 'No (e2e=0)') ?>
             <?= mk_option($cfg['e2e_flow_control'] ?? 'no', 'yes', 'Yes (driver default)') ?>
           </select>
-          <span class="tbn-hint">Often leave No for cross-host links</span>
+          <span class="tbn-hint">
+            Sets the <code>thunderbolt_net</code> module option <code>e2e</code> (end-to-end flow control).
+            Many cross-host (Unraid ↔ Linux desktop) links behave more reliably with <strong>No (e2e=0)</strong>.
+            Use Yes only if you need the driver default for a specific peer.
+          </span>
         </dd>
       </dl>
 

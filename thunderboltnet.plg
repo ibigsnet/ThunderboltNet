@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.07.29at">
+<!ENTITY version "2026.07.29au">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -34,6 +34,8 @@
 
 <CHANGES>
 ###&version;
+- Clearer local vs remote identity (hostname, product, manufacturer/stack); unified link table; more driver help and spacing.
+
 - Wording: Enable default route (default No) instead of Never default route Yes.
 
 - Settings forms use Unraid-style dl/dt/dd (eth0-like label column).

@@ -257,17 +257,19 @@ function tbn_link_summaries() {
       }
     }
 
-    $local_host = tbn_sysfs_str('/sys/bus/thunderbolt/devices/0-0/device_name');
-    if ($local_host === '') {
-      $local_host = gethostname() ?: '';
-    }
+    // Local 0-0 is the TB host router/controller (board product + OEM).
+    // Remote device_name is usually the peer OS hostname on Linux; vendor_name is
+    // often the software stack ("Linux"), not a chassis OEM like "ASUS".
+    $ctrl_product = tbn_sysfs_str('/sys/bus/thunderbolt/devices/0-0/device_name');
+    $ctrl_mfg = tbn_sysfs_str('/sys/bus/thunderbolt/devices/0-0/vendor_name');
 
     $entry = [
       'iface' => $if,
       'label' => tbn_label_for_iface($if),
       'local' => [
-        'hostname' => gethostname() ?: '',
-        'controller_name' => $local_host,
+        'os_hostname' => gethostname() ?: '',
+        'product' => $ctrl_product,
+        'manufacturer' => $ctrl_mfg,
         'mac' => tbn_sysfs_str($base . '/address'),
         'operstate' => tbn_sysfs_str($base . '/operstate'),
         'carrier' => tbn_sysfs_str($base . '/carrier'),
@@ -278,8 +280,8 @@ function tbn_link_summaries() {
         'listening' => !empty($include_map[$if]) || ($master !== '' && !empty($include_map[$master])),
       ],
       'remote' => [
-        'hostname' => '',
-        'vendor' => '',
+        'peer_name' => '',
+        'stack' => '',
         'unique_id' => '',
         'rx_speed' => '',
         'tx_speed' => '',
@@ -291,8 +293,8 @@ function tbn_link_summaries() {
     ];
 
     if ($peer_path && is_dir($peer_path)) {
-      $entry['remote']['hostname'] = tbn_sysfs_str($peer_path . '/device_name');
-      $entry['remote']['vendor'] = tbn_sysfs_str($peer_path . '/vendor_name');
+      $entry['remote']['peer_name'] = tbn_sysfs_str($peer_path . '/device_name');
+      $entry['remote']['stack'] = tbn_sysfs_str($peer_path . '/vendor_name');
       $entry['remote']['unique_id'] = tbn_sysfs_str($peer_path . '/unique_id');
       $entry['remote']['rx_speed'] = tbn_sysfs_str($peer_path . '/rx_speed');
       $entry['remote']['tx_speed'] = tbn_sysfs_str($peer_path . '/tx_speed');
@@ -491,6 +493,7 @@ function tbn_status() {
     'hardware' => $probe,
     'has_hardware' => !empty($probe['has_hardware']),
     'local_controller' => tbn_sysfs_str('/sys/bus/thunderbolt/devices/0-0/device_name'),
+    'local_manufacturer' => tbn_sysfs_str('/sys/bus/thunderbolt/devices/0-0/vendor_name'),
     'devices' => tbn_list_tb_devices(),
     'netdevs' => tbn_list_netdevs(),
     'links' => tbn_link_summaries(),
