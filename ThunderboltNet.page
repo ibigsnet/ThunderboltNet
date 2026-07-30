@@ -290,9 +290,5 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
 
 <?php endif; ?>
 
-  <p class="tbn-muted tbn-footer">
-    Version <code><?= htmlspecialchars($ver) ?></code>
-    · <a href="https://github.com/ibigsnet/ThunderboltNet" target="_blank" rel="noopener">GitHub</a>
-  </p>
 </div>
 <script src="/plugins/ThunderboltNet/thunderboltnet.js?v=<?= htmlspecialchars($ver) ?>"></script>

@@ -1,3 +1,3 @@
 **Thunderbolt Net**
 
-Thunderbolt / USB4 networking on Unraid: controller status, per-link tabs (tbn0, tbn1, …), optional addressing and listening-interface include.
+Thunderbolt / USB4 networking on Unraid: Thunderbolt tab for controller/fabric; tbn0/tbn1 tabs for per-link interface settings.

@@ -21,6 +21,25 @@
     return true;
   };
 
+  window.tbnTogglePciDetails = function (btn) {
+    if (!btn) {
+      return;
+    }
+    var id = btn.getAttribute('data-target');
+    var el = id ? document.getElementById(id) : null;
+    if (!el) {
+      return;
+    }
+    var hidden = el.classList.contains('tbn-hidden');
+    if (hidden) {
+      el.classList.remove('tbn-hidden');
+      btn.value = btn.getAttribute('data-hide') || 'Hide PCI / IOMMU details';
+    } else {
+      el.classList.add('tbn-hidden');
+      btn.value = btn.getAttribute('data-show') || 'Show PCI / IOMMU details';
+    }
+  };
+
   window.tbnCopyDiagnostics = function () {
     var el = document.getElementById('tbn-diagnostics');
     if (!el) {
