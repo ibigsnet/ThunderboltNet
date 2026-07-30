@@ -1251,6 +1251,12 @@ function tbn_iface_defaults($if = 'thunderbolt0') {
     'GATEWAY' => '',
     // Install a system default route via this iface? Default no (peer-local only).
     'DEFAULT_ROUTE' => 'no',
+    // IPv6 (shown when PROTOCOL is ipv6 or ipv4+ipv6)
+    'USE_DHCP6' => 'no',
+    'IPADDR6' => '',
+    'NETMASK6' => '64',
+    'GATEWAY6' => '',
+    'DEFAULT_ROUTE6' => 'no',
     'MTU' => '',
     'USE_MTU' => 'no',
     'INCLUDE_LISTENING' => 'no',
@@ -1460,6 +1466,9 @@ function tbn_sync_iface_pages() {
     $label = 'tbn' . $n;
     $page = $root . '/Tbn' . $n . '.page';
     // Markdown=false: Unraid runs page text through Markdown by default, which breaks <?php.
+    // Use require (not require_once): Network Settings evaluates every TbnN.page in one
+    // request. require_once would run the shared template only for the first tab and leave
+    // tbn1, tbn2, … completely blank.
     $body = <<<PAGE
 Menu="NetworkSettings:{$menu}"
 Title="Thunderbolt {$label}"
@@ -1470,7 +1479,7 @@ Cond="file_exists('/sys/class/net/{$if}')"
 <?php
 \$tbn_if = '{$if}';
 \$tbn_label = '{$label}';
-require_once '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-iface-page.php';
+require '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-iface-page.php';
 
 PAGE;
     @file_put_contents($page, $body);
