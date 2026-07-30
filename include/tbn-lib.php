@@ -750,11 +750,50 @@ function tbn_activity_html(array $act) {
 }
 
 /**
- * Local host controller capability (from 0-0 sysfs) — max potential, not trained path.
+ * Normalize rate strings for UI.
+ * Use SI **Gb/s** (capital G = giga, lowercase b = bit — not GB/s bytes).
  *
- * Returns:
- *   gen, usb4, label (short class), max_short (e.g. "~40G · 2-lane"),
- *   max_html_lines (for LOCAL column), can_dual, detail
+ * @param mixed $raw  "20.0 Gb/s", 20, "20G", null
+ * @return string e.g. "20 Gb/s" or ""
+ */
+function tbn_format_gbps($raw) {
+  if ($raw === null || $raw === '') {
+    return '';
+  }
+  if (is_numeric($raw)) {
+    $n = (float)$raw;
+  } elseif (preg_match('/([\d.]+)/', (string)$raw, $m)) {
+    $n = (float)$m[1];
+  } else {
+    return trim((string)$raw);
+  }
+  if ($n <= 0) {
+    return '';
+  }
+  // Drop trailing .0 for whole numbers
+  if (abs($n - round($n)) < 0.05) {
+    return (string)(int)round($n) . ' Gb/s';
+  }
+  return rtrim(rtrim(number_format($n, 1, '.', ''), '0'), '.') . ' Gb/s';
+}
+
+/** Compact max line: "~40 Gb/s · 2-lane" */
+function tbn_format_max_line($gbps, $lanes = 2) {
+  $g = tbn_format_gbps($gbps);
+  if ($g === '') {
+    return '';
+  }
+  // Prefer "~40 Gb/s" style
+  $g = '~' . preg_replace('/^~/', '', $g);
+  $lanes = (int)$lanes;
+  if ($lanes > 0) {
+    return $g . ' · ' . $lanes . '-lane';
+  }
+  return $g;
+}
+
+/**
+ * Local host controller capability (from 0-0 sysfs) — max potential, not trained path.
  */
 function tbn_controller_capability() {
   $gen = tbn_sysfs_str('/sys/bus/thunderbolt/devices/0-0/generation');
@@ -768,7 +807,6 @@ function tbn_controller_capability() {
 
   $gen_i = ($gen !== '' && ctype_digit($gen)) ? (int)$gen : 0;
   // Marketing-class ceilings when path + peer + cable allow (not a cable EEPROM read).
-  // Gen numbers follow Linux thunderbolt "generation" on the host router.
   $max_gbps = 40;
   $max_lanes = 2;
   $class = 'TB/USB4 host';
@@ -802,15 +840,7 @@ function tbn_controller_capability() {
     $ctrl .= ' / USB4 ' . $usb4;
   }
 
-  $max_short = '~' . $max_gbps . 'G · ' . $max_lanes . '-lane';
-  // One-line + subline for LOCAL column
-  $lines = [
-    'Max potential ' . $max_short,
-    $ctrl . ($class !== '' ? ' · ' . $class : ''),
-  ];
-  if ($product !== '') {
-    $lines[] = $product . ($mfg !== '' ? ' (' . $mfg . ')' : '');
-  }
+  $max_short = tbn_format_max_line($max_gbps, $max_lanes);
 
   return [
     'gen' => $gen,
@@ -821,8 +851,7 @@ function tbn_controller_capability() {
     'max_lanes' => $max_lanes,
     'max_short' => $max_short,
     'can_dual' => ($gen_i === 0 || $gen_i >= 3 || $usb4 !== ''),
-    'detail' => $ctrl . '; max class ~' . $max_gbps . 'G / ' . $max_lanes . ' lanes when path allows',
-    'lines' => $lines,
+    'detail' => $ctrl . '; max class ' . $max_short . ' when path allows',
     'product' => $product,
     'mfg' => $mfg,
   ];
@@ -830,23 +859,24 @@ function tbn_controller_capability() {
 
 /**
  * Human speed label from USB root-hub sysfs speed (Mbps integer string).
+ * Always use Gb/s (bits), never GB/s (bytes).
  */
 function tbn_usb_speed_label($speed_mbps) {
   $s = (float)$speed_mbps;
   if ($s >= 20000) {
-    return ['short' => '20G', 'label' => 'USB 3.2 20 Gb/s class', 'mbps' => 20000];
+    return ['short' => '20 Gb/s', 'label' => 'USB 3.2 SuperSpeed 20 Gb/s', 'mbps' => 20000];
   }
   if ($s >= 10000) {
-    return ['short' => '10G', 'label' => 'USB 3.1/3.2 10 Gb/s class', 'mbps' => 10000];
+    return ['short' => '10 Gb/s', 'label' => 'USB 3.1/3.2 SuperSpeed 10 Gb/s', 'mbps' => 10000];
   }
   if ($s >= 5000) {
-    return ['short' => '5G', 'label' => 'USB 3.0/3.1 5 Gb/s class', 'mbps' => 5000];
+    return ['short' => '5 Gb/s', 'label' => 'USB 3 SuperSpeed 5 Gb/s', 'mbps' => 5000];
   }
   if ($s >= 480) {
-    return ['short' => '480M', 'label' => 'USB 2.0 HS', 'mbps' => 480];
+    return ['short' => '480 Mb/s', 'label' => 'USB 2.0 High Speed', 'mbps' => 480];
   }
   if ($s > 0) {
-    return ['short' => (string)(int)$s . 'M', 'label' => (int)$s . ' Mb/s', 'mbps' => (int)$s];
+    return ['short' => (string)(int)$s . ' Mb/s', 'label' => (int)$s . ' Mb/s', 'mbps' => (int)$s];
   }
   return ['short' => '?', 'label' => 'unknown', 'mbps' => 0];
 }
@@ -918,8 +948,9 @@ function tbn_list_local_ports(array $cap = null) {
     'attached' => null,
   ];
 
-  // 2) Active TB peer ports (only appear when something is linked)
+  // 2) Active TB peer ports — host max vs trained (what this plugin cares about)
   $tb_ports = 0;
+  $host_max = $cap['max_short'] ?? tbn_format_max_line($cap['max_gbps'] ?? 40, $cap['max_lanes'] ?? 2);
   foreach (@scandir('/sys/bus/thunderbolt/devices') ?: [] as $id) {
     if ($id === '.' || $id === '..' || $id === 'domain0' || $id === '0-0') {
       continue;
@@ -936,13 +967,28 @@ function tbn_list_local_ports(array $cap = null) {
       continue;
     }
     $tb_ports++;
-    $lanes = ($rl !== '' ? $rl . '-lane' : '');
+    $rx_n = 0.0;
+    if (preg_match('/([\d.]+)/', $rx, $m)) {
+      $rx_n = (float)$m[1];
+    }
+    $rl_i = ($rl !== '' && ctype_digit($rl)) ? (int)$rl : 0;
+    $trained = tbn_format_gbps($rx);
+    if ($rl_i > 0) {
+      $trained .= ($trained !== '' ? ' · ' : '') . $rl_i . '-lane';
+    }
+    $max_gbps = (float)($cap['max_gbps'] ?? 40);
+    $below = ($rx_n > 0 && $max_gbps > 0 && $rx_n < ($max_gbps * 0.75))
+      || ($rl_i === 1 && !empty($cap['can_dual']));
     $rows[] = [
       'kind' => 'tb-link',
-      'title' => 'TB port ' . $id,
-      'detail' => trim(($name !== '' ? $name . ' · ' : '') . $rx . ($lanes !== '' ? ' · ' . $lanes : '')),
+      'title' => 'Port ' . $id,
+      'peer' => $name,
+      'max_line' => $host_max,
+      'trained' => $trained,
+      'below' => $below,
+      'detail' => '',
       'ports' => 1,
-      'speed_short' => $rx !== '' ? preg_replace('/\s*Gb\/s.*/i', 'G', $rx) : '',
+      'speed_short' => $trained,
       'attached' => true,
     ];
   }
@@ -975,15 +1021,15 @@ function tbn_list_local_ports(array $cap = null) {
         $attached++;
       }
     }
+    $nports = $maxchild > 0 ? $maxchild : 0;
     $usb_roots[] = [
       'kind' => $is_tb ? 'usb-tb' : 'usb-ss',
-      'title' => $is_tb
-        ? ('TB USB-C · ' . $sl['short'] . ' USB path')
-        : ('USB-C/SS · ' . $sl['short']),
-      'detail' => $bn . ($bdf !== '' ? ' · PCI ' . $bdf : '') . ' · ' . $sl['label']
-        . ($maxchild > 0 ? ' · ' . $maxchild . ' port' . ($maxchild === 1 ? '' : 's') : '')
-        . ($attached + $empty > 0 ? ' · ' . $attached . ' in use' : ''),
-      'ports' => $maxchild > 0 ? $maxchild : null,
+      'title' => $is_tb ? 'USB-C on TB controller' : 'USB SuperSpeed',
+      'detail' => $sl['short']
+        . ($nports > 0 ? ' · ' . $nports . ' port' . ($nports === 1 ? '' : 's') : '')
+        . ($attached > 0 ? ' · ' . $attached . ' in use' : '')
+        . ' · ' . $bn,
+      'ports' => $nports > 0 ? $nports : null,
       'speed_short' => $sl['short'],
       'attached' => $attached,
       'mbps' => $sl['mbps'],
@@ -1024,7 +1070,8 @@ function tbn_list_local_ports(array $cap = null) {
 }
 
 /**
- * HTML for LOCAL column — host max + brief port / speed list.
+ * HTML for LOCAL column — host max + TB links (boxed) + optional USB SuperSpeed list.
+ * Rates always use Gb/s (bits). Compact: wrap text; keep column width bounded via CSS.
  */
 function tbn_controller_capability_html(array $cap = null) {
   if ($cap === null) {
@@ -1033,43 +1080,93 @@ function tbn_controller_capability_html(array $cap = null) {
   if (empty($cap['max_short'])) {
     return '<span class="tbn-muted">Controller capability unknown</span>';
   }
-  $html = '<strong class="tbn-cap-max">' . htmlspecialchars('Max ' . $cap['max_short']) . '</strong>';
-  $html .= '<p class="tbn-cap-meta tbn-muted">' . htmlspecialchars($cap['label'] ?? '') . '</p>';
+
+  $html = '<div class="tbn-cap-block">';
+  $html .= '<strong class="tbn-cap-max">' . htmlspecialchars('Max ' . $cap['max_short']) . '</strong>';
+  $html .= '<p class="tbn-cap-meta">' . htmlspecialchars($cap['label'] ?? '') . '</p>';
   if (!empty($cap['class'])) {
     $html .= '<p class="tbn-cap-class tbn-muted">'
-      . htmlspecialchars($cap['class'] . ' fabric ceiling (host networking when path trains fully)')
+      . htmlspecialchars($cap['class'] . ' host — ceiling when cable + peer train fully')
       . '</p>';
   }
   if (!empty($cap['product'])) {
-    $html .= '<p class="tbn-cap-product tbn-muted"><code>'
+    $html .= '<p class="tbn-cap-product tbn-muted">'
       . htmlspecialchars($cap['product'])
-      . '</code></p>';
+      . '</p>';
   }
 
   $ports = tbn_list_local_ports($cap);
-  if ($ports) {
-    $html .= '<ul class="tbn-port-list">';
-    foreach ($ports as $p) {
-      if (($p['kind'] ?? '') === 'tb-host') {
-        continue; // already shown as Max line
+  $tb = [];
+  $usb = [];
+  foreach ($ports as $p) {
+    $k = $p['kind'] ?? '';
+    if ($k === 'tb-host') {
+      continue;
+    }
+    if ($k === 'tb-link') {
+      $tb[] = $p;
+    } elseif ($k === 'usb-tb' || $k === 'usb-ss') {
+      $usb[] = $p;
+    }
+  }
+
+  // Thunderbolt fabric ports — primary (this plugin)
+  $html .= '<div class="tbn-port-box tbn-port-box-tb">';
+  $html .= '<div class="tbn-port-box-hd">Thunderbolt links</div>';
+  if (!$tb) {
+    $html .= '<p class="tbn-muted tbn-port-empty">No live TB peer — plug a host cable to see trained rate vs Max.</p>';
+  } else {
+    $html .= '<ul class="tbn-port-list tbn-port-list-tb">';
+    foreach ($tb as $p) {
+      $below = !empty($p['below']);
+      $cls = $below ? 'tbn-port-tb-link tbn-port-below' : 'tbn-port-tb-link tbn-port-ok';
+      $html .= '<li class="' . $cls . '">';
+      $html .= '<div class="tbn-port-line1">';
+      $html .= '<span class="tbn-port-title">' . htmlspecialchars($p['title'] ?? '') . '</span>';
+      if (!empty($p['peer'])) {
+        $html .= ' <span class="tbn-port-peer">' . htmlspecialchars($p['peer']) . '</span>';
       }
-      $title = htmlspecialchars($p['title'] ?? '');
-      $detail = htmlspecialchars($p['detail'] ?? '');
-      $spd = trim((string)($p['speed_short'] ?? ''));
-      $badge = $spd !== ''
-        ? '<span class="tbn-port-spd">' . htmlspecialchars($spd) . '</span> '
-        : '';
-      $html .= '<li class="tbn-port-' . htmlspecialchars($p['kind'] ?? 'usb') . '">'
-        . $badge . '<span class="tbn-port-title">' . $title . '</span>'
-        . ($detail !== '' ? '<span class="tbn-port-detail tbn-muted"> — ' . $detail . '</span>' : '')
-        . '</li>';
+      $html .= '</div>';
+      $html .= '<div class="tbn-port-line2 tbn-muted">Host max '
+        . htmlspecialchars($p['max_line'] ?? $cap['max_short'])
+        . '</div>';
+      $html .= '<div class="tbn-port-line3">';
+      $html .= '<span class="tbn-port-spd' . ($below ? ' tbn-port-spd-warn' : ' tbn-port-spd-ok') . '">'
+        . htmlspecialchars($p['trained'] !== '' ? $p['trained'] : '—')
+        . '</span>';
+      $html .= ' <span class="tbn-muted">' . ($below ? 'trained (below max)' : 'trained') . '</span>';
+      $html .= '</div>';
+      if ($below) {
+        $html .= '<div class="tbn-port-hint tbn-muted">Often cable or port path — try a certified high-rate TB/USB4 cable.</div>';
+      }
+      $html .= '</li>';
     }
     $html .= '</ul>';
-    $html .= '<p class="tbn-cap-footnote tbn-muted">'
-      . '10G/20G rows are USB SuperSpeed roots (Type-C often silkscreened with a TB/lightning icon but not full dual-lane TB net). '
-      . 'Yellow remote badges compare trained TB path vs fabric Max above.'
-      . '</p>';
   }
+  $html .= '</div>';
+
+  // Other USB SuperSpeed banks — secondary, collapsed by default
+  if ($usb) {
+    $n = count($usb);
+    $html .= '<details class="tbn-port-box tbn-port-box-usb">';
+    $html .= '<summary>Other USB SuperSpeed (' . (int)$n . ' bank'
+      . ($n === 1 ? '' : 's') . ')</summary>';
+    $html .= '<p class="tbn-port-usb-note tbn-muted">Type-C may show a TB icon but these are USB data paths, not full TB host networking.</p>';
+    $html .= '<ul class="tbn-port-list tbn-port-list-usb">';
+    foreach ($usb as $p) {
+      $html .= '<li class="tbn-port-' . htmlspecialchars($p['kind'] ?? 'usb-ss') . '">';
+      $html .= '<span class="tbn-port-spd tbn-port-spd-usb">'
+        . htmlspecialchars($p['speed_short'] ?? '')
+        . '</span> ';
+      $html .= '<span class="tbn-port-detail">'
+        . htmlspecialchars($p['detail'] ?? $p['title'] ?? '')
+        . '</span>';
+      $html .= '</li>';
+    }
+    $html .= '</ul></details>';
+  }
+
+  $html .= '</div>';
   return $html;
 }
 
@@ -1129,154 +1226,184 @@ function tbn_link_quality(array $remote, array $status = []) {
     return $empty;
   }
 
-  $trained = trim($rx . ' · ' . ($rl > 0 ? $rl . ' lane' . ($rl === 1 ? '' : 's') : 'lanes n/a'));
-  if ($tx !== '' && $tx !== $rx) {
-    $trained .= ' (TX ' . $tx . ($tl > 0 ? ' · ' . $tl . ' lane' . ($tl === 1 ? '' : 's') : '') . ')';
+  $rx_fmt = tbn_format_gbps($rx);
+  $tx_fmt = tbn_format_gbps($tx);
+  $trained = $rx_fmt;
+  if ($rl > 0) {
+    $trained .= ($trained !== '' ? ' · ' : '') . $rl . '-lane';
   }
+  if ($tx_fmt !== '' && $tx_fmt !== $rx_fmt) {
+    $trained .= ' (TX ' . $tx_fmt . ($tl > 0 ? ' · ' . $tl . '-lane' : '') . ')';
+  }
+  if ($trained === '') {
+    $trained = 'linked';
+  }
+  $badge_trained = $rx_fmt !== ''
+    ? ($rx_fmt . ($rl > 0 ? ' · ' . $rl . '-lane' : ''))
+    : 'Linked';
 
-  // Strong signal: capable controller, single-lane ~20G both directions
+  // Strong signal: capable controller, single-lane ~20 Gb/s both directions
   if ($ctrl_can_dual && $rl === 1 && $symmetric_20) {
     return [
       'level' => 'warn',
-      'label' => '20G · 1-lane',
-      'lead' => 'Below host max ' . $max_short . ' — likely cable or port path.',
-      'note' => "This host’s controller max class is {$max_short} ({$ctrl}). "
-        . "Trained path is only {$trained} both directions — yellow because trained ≪ local max.",
-      'likely' => 'Most likely a cable or cable-path limit: a 20G-class / single-lane USB-C cable, '
-        . 'a long passive cable that only trains one lane, or a port that is not full Thunderbolt/USB4 bandwidth '
-        . '(front-panel headers are a common weak path).',
-      'suggestion' => 'For higher speeds: use a certified 40 Gbps Thunderbolt 4 or USB4 cable '
-        . '(prefer short passive, or active if you need length). Re-seat both ends, try the other rear TB/USB4 ports, '
-        . 'and avoid front-panel USB-C unless you know it is wired for full bandwidth.',
-      'less_likely' => 'Less likely: one host “capping” the other when both sides are Gen3+/USB4-class. '
-        . 'BIOS/firmware can still force a lower mode — check Thunderbolt/USB4 security and port mode if a known-good 40G cable still trains 20G×1.',
-      'detail' => "Max {$max_short} ({$ctrl}); trained {$trained}; likely cable/path limit",
+      'label' => $badge_trained,
+      'status' => 'Below max',
+      'lead' => 'Trained below host max ' . $max_short . '.',
+      'note' => 'Host can do ' . $max_short . '. This path trained at ' . $trained . '.',
+      'likely' => 'Usually the cable or which physical port you used (front-panel / weak USB-C path is common).',
+      'suggestion' => 'Try a short certified Thunderbolt 4 or USB4 cable (40 Gb/s class), re-seat both ends, use rear full-bandwidth ports.',
+      'less_likely' => 'Less often: BIOS port mode, or a peer that only trains one lane.',
+      'detail' => 'Max ' . $max_short . '; trained ' . $trained . '; likely cable/path',
       'controller' => $cap,
+      'trained' => $trained,
+      'max_short' => $max_short,
     ];
   }
 
   if ($rl >= 2 && $gbps >= 30) {
     return [
       'level' => 'ok',
-      'label' => 'High rate',
-      'lead' => 'Near host max ' . $max_short . ' — path looks healthy.',
-      'note' => "Trained at a high dual-lane rate ({$trained}). Host max class: {$max_short} ({$ctrl}).",
-      'likely' => 'Path looks healthy for high-speed host-to-host Thunderbolt networking.',
+      'label' => 'Near max',
+      'status' => 'Healthy',
+      'lead' => 'Dual-lane high rate — looks healthy for this host.',
+      'note' => 'Trained ' . $trained . ' · host max ' . $max_short . '.',
+      'likely' => '',
       'suggestion' => '',
       'less_likely' => '',
-      'detail' => "Max {$max_short}; trained {$trained}",
+      'detail' => 'Max ' . $max_short . '; trained ' . $trained,
       'controller' => $cap,
+      'trained' => $trained,
+      'max_short' => $max_short,
     ];
   }
 
   if ($ctrl_can_dual && $rl >= 2 && $gbps > 0 && $gbps < 30) {
     return [
       'level' => 'info',
-      'label' => $trained !== '' ? $trained : 'Linked',
-      'lead' => 'Two lanes; still under host max ' . $max_short . '.',
-      'note' => "Dual-lane link at {$trained}. Host max class: {$max_short} ({$ctrl}).",
-      'likely' => 'Link trained with 2 lanes; rate is moderate — cable, peer, or intermediate hop may still limit peak Gb/s.',
-      'suggestion' => 'If you expected ~40G, try a certified 40 Gbps TB4/USB4 cable and confirm the peer also supports dual-lane high rate.',
+      'label' => $badge_trained,
+      'status' => 'Moderate',
+      'lead' => 'Two lanes, but under host max ' . $max_short . '.',
+      'note' => 'Trained ' . $trained . '.',
+      'likely' => 'Cable, peer, or intermediate hop may still limit peak rate.',
+      'suggestion' => 'If you expected ' . $max_short . ', try a certified high-rate TB/USB4 cable on both ends.',
       'less_likely' => '',
-      'detail' => "Max {$max_short}; trained {$trained}",
+      'detail' => 'Max ' . $max_short . '; trained ' . $trained,
       'controller' => $cap,
+      'trained' => $trained,
+      'max_short' => $max_short,
     ];
   }
 
   if ($gbps > 0) {
     return [
       'level' => 'info',
-      'label' => $trained !== '' ? $trained : 'Linked',
-      'lead' => 'Trained rate below; host max is ' . $max_short . '.',
-      'note' => "Trained path: {$trained}. Host max class: {$max_short} ({$ctrl}).",
+      'label' => $badge_trained,
+      'status' => 'Linked',
+      'lead' => 'Trained ' . $trained . ' · host max ' . $max_short . '.',
+      'note' => '',
       'likely' => '',
       'suggestion' => '',
       'less_likely' => '',
-      'detail' => "Max {$max_short}; trained {$trained}",
+      'detail' => 'Max ' . $max_short . '; trained ' . $trained,
       'controller' => $cap,
+      'trained' => $trained,
+      'max_short' => $max_short,
     ];
   }
 
   return [
     'level' => 'info',
     'label' => 'Linked',
-    'lead' => 'Interface present; host max ' . $max_short . '.',
+    'status' => 'Linked',
+    'lead' => 'Host max ' . $max_short . '.',
     'note' => '',
     'likely' => '',
     'suggestion' => '',
     'less_likely' => '',
-    'detail' => "Max {$max_short} ({$ctrl})",
+    'detail' => 'Max ' . $max_short . ' (' . $ctrl . ')',
     'controller' => $cap,
+    'trained' => '',
+    'max_short' => $max_short,
   ];
 }
 
 /**
- * HTML block for a quality result (badge + structured advice). Safe for Settings pages.
- *
- * $compact: table-friendly layout — badge + short line; long text under <details>.
+ * HTML for REMOTE link-quality cell — matches LOCAL styling language.
+ * Status badge + trained rate + host max; details collapsed.
  */
 function tbn_link_quality_html(array $q, $compact = true) {
   $level = htmlspecialchars($q['level'] ?? 'info');
   $label = htmlspecialchars($q['label'] ?? '');
+  $status = htmlspecialchars($q['status'] ?? '');
   $detail = htmlspecialchars($q['detail'] ?? '');
-  $html = '<span class="tbn-badge tbn-badge-' . $level . '" title="' . $detail . '">' . $label . '</span>';
+  $max = htmlspecialchars($q['max_short'] ?? (($q['controller']['max_short'] ?? '') ?: ''));
+  $trained = htmlspecialchars($q['trained'] ?? $q['label'] ?? '');
+
+  $html = '<div class="tbn-q-remote tbn-q-' . $level . '">';
+  if ($status !== '') {
+    $html .= '<span class="tbn-badge tbn-badge-' . $level . '" title="' . $detail . '">'
+      . $status . '</span> ';
+  }
+  $html .= '<span class="tbn-badge tbn-badge-rate tbn-badge-' . $level . '" title="' . $detail . '">'
+    . $label . '</span>';
+
+  if ($max !== '' && ($q['level'] ?? '') !== 'unknown') {
+    $html .= '<p class="tbn-q-maxline tbn-muted">Host max ' . $max . '</p>';
+  }
 
   $likely = trim((string)($q['likely'] ?? ''));
   $note = trim((string)($q['note'] ?? ''));
   $suggestion = trim((string)($q['suggestion'] ?? ''));
   $less = trim((string)($q['less_likely'] ?? ''));
-  $has_body = ($likely !== '' || $note !== '' || $suggestion !== '' || $less !== '');
-
-  if (!$has_body) {
-    return $html;
+  $lead = trim((string)($q['lead'] ?? ''));
+  if ($lead === '') {
+    $lead = $likely !== '' ? $likely : $note;
   }
 
-  if ($compact) {
-    // Complete short sentence only (no mid-sentence "…"); full text under details
-    $lead = trim((string)($q['lead'] ?? ''));
-    if ($lead === '') {
-      $lead = $likely !== '' ? $likely : $note;
-    }
-    if ($lead !== '') {
-      $html .= '<p class="tbn-quality-lead">' . htmlspecialchars($lead) . '</p>';
-    }
+  if ($lead !== '') {
+    $html .= '<p class="tbn-quality-lead">' . htmlspecialchars($lead) . '</p>';
+  }
+
+  $has_body = ($likely !== '' || $note !== '' || $suggestion !== '' || $less !== '');
+  if ($has_body && $compact) {
     $html .= '<details class="tbn-quality-details">';
-    $html .= '<summary>Full explanation &amp; what to try</summary>';
+    $html .= '<summary>Why &amp; what to try</summary>';
     $html .= '<div class="tbn-quality-advice">';
-    if ($note !== '') {
+    if ($note !== '' && $note !== $lead) {
       $html .= '<p class="tbn-quality-note">' . htmlspecialchars($note) . '</p>';
     }
     if ($likely !== '') {
-      $html .= '<p class="tbn-quality-likely"><strong>Likely limit:</strong> '
+      $html .= '<p class="tbn-quality-likely"><strong>Likely:</strong> '
         . htmlspecialchars($likely) . '</p>';
     }
     if ($suggestion !== '') {
-      $html .= '<p class="tbn-quality-suggest"><strong>Suggestion:</strong> '
+      $html .= '<p class="tbn-quality-suggest"><strong>Try:</strong> '
         . htmlspecialchars($suggestion) . '</p>';
     }
     if ($less !== '') {
       $html .= '<p class="tbn-quality-less tbn-muted">' . htmlspecialchars($less) . '</p>';
     }
     $html .= '</div></details>';
-    return $html;
+  } elseif ($has_body && !$compact) {
+    $html .= '<div class="tbn-quality-advice">';
+    if ($note !== '') {
+      $html .= '<p class="tbn-quality-note">' . htmlspecialchars($note) . '</p>';
+    }
+    if ($likely !== '') {
+      $html .= '<p class="tbn-quality-likely"><strong>Likely:</strong> '
+        . htmlspecialchars($likely) . '</p>';
+    }
+    if ($suggestion !== '') {
+      $html .= '<p class="tbn-quality-suggest"><strong>Try:</strong> '
+        . htmlspecialchars($suggestion) . '</p>';
+    }
+    if ($less !== '') {
+      $html .= '<p class="tbn-quality-less tbn-muted">' . htmlspecialchars($less) . '</p>';
+    }
+    $html .= '</div>';
   }
 
-  $parts = [];
-  if ($note !== '') {
-    $parts[] = '<p class="tbn-quality-note">' . htmlspecialchars($note) . '</p>';
-  }
-  if ($likely !== '') {
-    $parts[] = '<p class="tbn-quality-likely"><strong>Likely limit:</strong> '
-      . htmlspecialchars($likely) . '</p>';
-  }
-  if ($suggestion !== '') {
-    $parts[] = '<p class="tbn-quality-suggest"><strong>Suggestion:</strong> '
-      . htmlspecialchars($suggestion) . '</p>';
-  }
-  if ($less !== '') {
-    $parts[] = '<p class="tbn-quality-less tbn-muted">' . htmlspecialchars($less) . '</p>';
-  }
-  $html .= '<div class="tbn-quality-advice">' . implode('', $parts) . '</div>';
+  $html .= '</div>';
   return $html;
 }
 

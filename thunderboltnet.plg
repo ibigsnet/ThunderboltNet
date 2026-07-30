@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.07.30ap">
+<!ENTITY version "2026.07.30aq">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -34,6 +34,8 @@
 
 <CHANGES>
 ###&version;
+- Link quality: compact columns, Gb/s notation, TB ports boxed (max vs trained), USB SuperSpeed collapsed; clearer remote badges.
+
 - Link quality LOCAL: host Max + brief port list (TB peers, 10G/20G USB-C SuperSpeed roots with counts).
 
 - Link quality LOCAL column: host max potential (e.g. Max ~40G · 2-lane) so yellow 20G has a ceiling to compare.

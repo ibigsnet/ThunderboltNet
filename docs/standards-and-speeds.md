@@ -40,32 +40,38 @@ Linux sysfs often exposes:
 
 Thunderbolt Net’s **Link quality** badge compares **trained path** vs **controller capability**.
 
+## Rate notation (Gb/s vs GB/s)
+
+| Write | Means |
+|-------|--------|
+| **Gb/s** | Gigabit per second (signaling / link rate). **G** = giga (SI), **b** = **bit**. This is what sysfs and this plugin use. |
+| **GB/s** | Gigabyte per second (≈ 8× larger than Gb/s). **Do not** use for TB link rate. |
+| **Mb/s** | Megabit per second (USB 2.0 class, etc.) |
+
+UI and docs use **Gb/s** consistently (e.g. `20 Gb/s · 1-lane`, `Max ~40 Gb/s · 2-lane`). Avoid bare `20G` / `40G` in user-facing strings.
+
 ## Rate vs lanes
 
 - **Gb/s** in sysfs is the trained signaling rate on the path.  
-- **Lanes** (1 vs 2) often decide whether you see ~20&nbsp;G or ~40&nbsp;G class behavior on TB3/4-era paths.  
+- **Lanes** (1 vs 2) often decide whether you see ~20&nbsp;Gb/s or ~40&nbsp;Gb/s class behavior on TB3/4-era paths.  
 - A **high-gen host** (TB4/USB4/TB5 class) that only trains **20&nbsp;Gb/s · 1-lane** is usually limited by **cable or port path**, not by “the other host capping you.”
 
 ### Link quality messages (plugin)
 
 | Column | What you see |
 |--------|----------------|
-| **LOCAL** | **Max** fabric class from TB controller (`0-0`), plus a **brief port list**: live TB peer ports (trained rate), and **USB SuperSpeed roots** (5G / 10G / 20G) with port counts. Many Type-C ports wear a Thunderbolt icon but only expose a 10G or 20G **USB** path — they still appear here so you know the bank exists. |
-| **REMOTE** (per tbnN) | **Trained path** badge (yellow **20G · 1-lane**, green **High rate**, …) vs that fabric Max |
+| **LOCAL** | Host **Max** (e.g. ~40&nbsp;Gb/s · 2-lane), then a **Thunderbolt links** box: each live port with **host max** vs **trained** rate + peer name. Other USB SuperSpeed banks (10/20&nbsp;Gb/s Type-C) sit under a collapsed “Other USB SuperSpeed” list — not full TB networking. |
+| **REMOTE** | Status badge (**Below max** / **Healthy** / …) + trained rate; short lead; details under **Why & what to try**. |
 
-Empty physical TB ports rarely appear in sysfs until something trains; USB `usbN-port*` + root-hub **speed** (10000 / 20000 Mb/s) is how we count 10G/20G Type-C banks.
+| Remote status | Meaning |
+|---------------|---------|
+| **Below max** (yellow) | Trained ≪ host Max — often cable/path |
+| **Healthy** / near max | Dual-lane high rate for this class |
+| **Moderate** / **Linked** | Up, but not at ceiling |
 
-| Badge (remote) | Meaning |
-|----------------|---------|
-| **High rate** | Dual-lane high rate trained — near host max for that class |
-| **20G · 1-lane** (yellow) | Host max is higher (see LOCAL); trained low single-lane — **likely cable/path** |
-| Other | Linked at reported rate; see note if present |
+Yellow means “this path is weaker than what **this** host can do,” not “20&nbsp;Gb/s is always wrong.”
 
-Yellow is “trained ≪ LOCAL max,” not “20G is always bad.” A pure TB2 host maxing at ~20G would not use the same warning story.
-
-For **20G · 1-lane** the UI suggests: certified high-rate **Thunderbolt / USB4** cable (often 40&nbsp;Gbps class for TB4-era, higher-rated for TB5 when both ends support it), re-seat, try other **rear** full-bandwidth ports, avoid unknown front-panel USB-C.
-
-Linux does **not** expose a reliable “this cable SKU is 20G” EEPROM for this UI — the badge is **inference** from capability vs training.
+Linux does **not** expose a reliable cable-SKU EEPROM — inference is capability vs training.
 
 ## Cables
 

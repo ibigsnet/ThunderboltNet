@@ -294,11 +294,17 @@
 }
 .tbn-compare .tbn-col-local {
   min-width: 11rem;
+  max-width: 16.5rem;
+  width: 16.5rem;
   background: rgba(80, 140, 200, 0.06);
+  vertical-align: top;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 .tbn-compare .tbn-col-remote {
   min-width: 11rem;
-  max-width: 20rem;
+  max-width: 15rem;
   vertical-align: top;
   word-wrap: break-word;
   overflow-wrap: anywhere;
@@ -307,8 +313,10 @@
 .tbn-compare td.tbn-quality-warn,
 .tbn-compare td.tbn-quality-ok,
 .tbn-compare td.tbn-quality-info,
-.tbn-compare td.tbn-quality-unknown {
-  max-width: 20rem;
+.tbn-compare td.tbn-quality-unknown,
+.tbn-compare td.tbn-cap-local {
+  max-width: 16.5rem;
+  vertical-align: top;
 }
 .tbn-compare .tbn-uuid {
   font-size: 0.8em;
@@ -478,58 +486,139 @@
   font-size: 1.05em;
 }
 
-/* LOCAL column: host max potential + port list (link quality row) */
-.tbn-wrap .tbn-cap-local .tbn-cap-max {
+/* LOCAL link quality: compact host max + boxed TB ports */
+.tbn-wrap .tbn-cap-block {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-wrap: break-word;
+  text-align: left;
+}
+.tbn-wrap .tbn-cap-max {
   display: block;
   font-size: 1.05em;
   color: var(--orange-bold, #e68a2e);
+  line-height: 1.3;
 }
-.tbn-wrap .tbn-cap-local .tbn-cap-meta,
-.tbn-wrap .tbn-cap-local .tbn-cap-class,
-.tbn-wrap .tbn-cap-local .tbn-cap-product,
-.tbn-wrap .tbn-cap-local .tbn-cap-footnote {
-  margin: 0.2rem 0 0;
-  font-size: 0.88em;
-  line-height: 1.35;
+.tbn-wrap .tbn-cap-meta,
+.tbn-wrap .tbn-cap-class,
+.tbn-wrap .tbn-cap-product {
+  margin: 0.15rem 0 0;
+  font-size: 0.84em;
+  line-height: 1.3;
   white-space: normal;
+  overflow-wrap: anywhere;
 }
-.tbn-wrap .tbn-cap-local .tbn-cap-footnote {
-  margin-top: 0.45rem;
-  font-size: 0.82em;
+.tbn-wrap .tbn-port-box {
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid rgba(128, 128, 128, 0.28);
+  background: rgba(0, 0, 0, 0.08);
+  text-align: left;
+}
+.tbn-wrap .tbn-port-box-tb {
+  border-color: rgba(200, 140, 40, 0.45);
+  background: rgba(200, 140, 40, 0.08);
+}
+.tbn-wrap .tbn-port-box-hd {
+  font-size: 0.78em;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--orange-muted, #aaa);
+  margin: 0 0 0.3rem;
+}
+.tbn-wrap .tbn-port-empty {
+  margin: 0;
+  font-size: 0.84em;
+  line-height: 1.3;
 }
 .tbn-wrap ul.tbn-port-list {
   list-style: none;
-  margin: 0.45rem 0 0;
+  margin: 0;
   padding: 0;
   text-align: left;
 }
-.tbn-wrap ul.tbn-port-list li {
-  margin: 0.2rem 0;
-  padding: 0.15rem 0;
+.tbn-wrap ul.tbn-port-list-tb li {
+  margin: 0.35rem 0 0;
+  padding: 0.35rem 0 0;
+  border-top: 1px solid rgba(128, 128, 128, 0.2);
   font-size: 0.86em;
-  line-height: 1.35;
-  white-space: normal;
-  border-top: 1px solid rgba(128, 128, 128, 0.15);
+  line-height: 1.3;
 }
-.tbn-wrap ul.tbn-port-list li:first-child {
-  border-top: none;
+.tbn-wrap ul.tbn-port-list-tb li:first-child {
+  margin-top: 0;
   padding-top: 0;
+  border-top: none;
 }
-.tbn-wrap .tbn-port-spd {
-  display: inline-block;
-  min-width: 2.4em;
+.tbn-wrap .tbn-port-line1 .tbn-port-title {
   font-weight: 700;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  color: var(--orange-bold, #e68a2e);
 }
-.tbn-wrap .tbn-port-tb-link .tbn-port-spd {
-  color: #6abf69;
-}
-.tbn-wrap .tbn-port-title {
+.tbn-wrap .tbn-port-peer {
   font-weight: 600;
 }
-.tbn-wrap .tbn-port-detail {
-  font-weight: 400;
+.tbn-wrap .tbn-port-line2,
+.tbn-wrap .tbn-port-line3,
+.tbn-wrap .tbn-port-hint {
+  margin-top: 0.12rem;
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+}
+.tbn-wrap .tbn-port-spd {
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.tbn-wrap .tbn-port-spd-warn {
+  color: var(--orange-bold, #e68a2e);
+}
+.tbn-wrap .tbn-port-spd-ok {
+  color: #6abf69;
+}
+.tbn-wrap .tbn-port-spd-usb {
+  color: var(--orange-muted, #999);
+  min-width: 4.5em;
+  display: inline-block;
+}
+.tbn-wrap .tbn-port-box-usb {
+  margin-top: 0.4rem;
+  font-size: 0.84em;
+}
+.tbn-wrap .tbn-port-box-usb summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--orange-muted, #999);
+  user-select: none;
+}
+.tbn-wrap .tbn-port-usb-note {
+  margin: 0.35rem 0 0.25rem;
+  font-size: 0.9em;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.tbn-wrap ul.tbn-port-list-usb li {
+  margin: 0.2rem 0;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+/* REMOTE quality cells — same language as LOCAL */
+.tbn-wrap .tbn-q-remote {
+  text-align: left;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.tbn-wrap .tbn-q-maxline {
+  margin: 0.3rem 0 0;
+  font-size: 0.84em;
+  line-height: 1.3;
+}
+.tbn-wrap .tbn-badge-rate {
+  margin-left: 0.15rem;
+}
+.tbn-wrap .tbn-badge {
+  white-space: normal;
+  max-width: 100%;
+  line-height: 1.25;
 }
 
 /* Keep address + / + CIDR on one baseline (Unraid often makes dd children block/100% wide) */

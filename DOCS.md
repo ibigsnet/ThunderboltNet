@@ -62,7 +62,7 @@ The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt l
 3. On **Thunderbolt → Driver options**, leave **E2E flow control = No** unless a peer scenario says otherwise.
 4. When `thunderbolt0` appears, open **tbn0**, set a **static** IPv4 (e.g. `10.255.0.2/24`), Apply.
 5. On the peer, set a matching address (e.g. `10.255.0.1/24`) on its Thunderbolt network interface (macOS: Thunderbolt Bridge, etc.).
-6. Ping both ways. If the link quality badge says **20G · 1-lane** on a capable host, try a better cable first ([speeds](docs/standards-and-speeds.md)).
+6. Ping both ways. If link quality shows **Below max** / **20 Gb/s · 1-lane** on a host that can do ~40&nbsp;Gb/s, try a better cable first ([speeds](docs/standards-and-speeds.md)).
 
 ---
 

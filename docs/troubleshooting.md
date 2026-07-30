@@ -77,7 +77,7 @@ More topology detail: [links-and-topology.md](links-and-topology.md).
 4. Unraid E2E **No**; **reseat** once; retest ([driver-options.md](driver-options.md)).  
 5. Keep default route **No** so you aren’t blackholing other traffic while testing.
 
-## 20G · 1-lane on a capable host
+## Below max / 20 Gb/s · 1-lane on a capable host
 
 - **Most likely cable or port path** — try certified 40&nbsp;Gbps short cable, other rear ports.  
 - Not usually “the peer OS is capping you” when both ends are high-gen hosts.  

@@ -128,7 +128,7 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
       <strong>REMOTE</strong> columns — one per live link. Header shows tab name (<code>tbn0</code>) and kernel
       iface (<code>thunderbolt0</code>). Click the tab name to open that link’s settings.<br><br>
       <strong>Link quality</strong> compares trained rate/lanes to what this controller can usually do.
-      A <em>20G · 1-lane</em> badge on a Gen3+/USB4 host usually means a cable or port-path limit
+      A yellow <em>Below max</em> / <em>20 Gb/s · 1-lane</em> badge on a Gen3+/USB4 host usually means a cable or port-path limit
       (try a certified 40&nbsp;Gbps TB4/USB4 cable), not one host capping the other.<br><br>
       <strong>Local IPv4 / MAC / state</strong> under each REMOTE column are <em>this Unraid end</em> of that
       link (each thunderboltN has its own address). Peer IPv4 is not visible without probing the far host.
@@ -244,9 +244,13 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
   $rem = $L['remote'];
 ?>
           <td class="tbn-col-remote">
-            <strong><?= htmlspecialchars($rem['rx_speed'] !== '' ? $rem['rx_speed'] : '—') ?></strong>
+            <strong><?= htmlspecialchars(function_exists('tbn_format_gbps') && $rem['rx_speed'] !== ''
+              ? tbn_format_gbps($rem['rx_speed'])
+              : ($rem['rx_speed'] !== '' ? $rem['rx_speed'] : '—')) ?></strong>
             /
-            <strong><?= htmlspecialchars($rem['tx_speed'] !== '' ? $rem['tx_speed'] : '—') ?></strong>
+            <strong><?= htmlspecialchars(function_exists('tbn_format_gbps') && $rem['tx_speed'] !== ''
+              ? tbn_format_gbps($rem['tx_speed'])
+              : ($rem['tx_speed'] !== '' ? $rem['tx_speed'] : '—')) ?></strong>
           </td>
 <?php endforeach; ?>
         </tr>
@@ -768,7 +772,7 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
   </dl>
   <blockquote class="inline_help">
     Prefer certified <strong>Thunderbolt 4 / USB4 40&nbsp;Gbps</strong> cables for host-to-host links.
-    A path that trains at 20&nbsp;Gb/s · 1-lane on a Gen3+/USB4 controller is usually a cable or port-path
+    A path that trains at 20&nbsp;Gb/s · 1-lane on a Gen3+/USB4 host (Max ~40&nbsp;Gb/s) is usually a cable or port-path
     limit, not one host “capping” the other.<br><br>
     <strong>Never</strong> unbind the Thunderbolt NHI from the host driver to “fix” networking — that can
     wedge the controller until reboot. Use this plugin’s driver options and per-link tbn tabs instead.
