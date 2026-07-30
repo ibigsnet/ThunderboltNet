@@ -477,3 +477,28 @@
   margin: 0 0 0.5rem;
   font-size: 1.05em;
 }
+
+/* Keep address + / + CIDR on one baseline (Unraid dd can stack block children) */
+.tbn-wrap dd.tbn-cidr-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.45rem;
+}
+.tbn-wrap dd.tbn-cidr-row .tbn-cidr-slash {
+  display: inline-block;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0 0.1rem;
+}
+.tbn-wrap dd.tbn-cidr-row input.tbn-ip {
+  max-width: 11rem;
+}
+.tbn-wrap dd.tbn-cidr-row input.tbn-ip6 {
+  max-width: 18rem;
+}
+.tbn-wrap dd.tbn-cidr-row select.narrow,
+.tbn-wrap dd.tbn-cidr-row input.narrow {
+  max-width: 5.5rem !important;
+  vertical-align: middle;
+}

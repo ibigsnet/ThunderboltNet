@@ -1612,6 +1612,7 @@ function tbn_apply_ip_block($dev, array $cfg, $prefix = '') {
   if ($do4) {
     $use = $cfg[$prefix . 'USE_DHCP'] ?? ($prefix === '' ? ($cfg['USE_DHCP'] ?? 'no') : 'no');
     if ($use === 'yes') {
+      // TB iface is a DHCP *client* (asks peer for a lease). Not Unraid serving DHCP.
       @exec("dhcpcd -n {$ife} 2>/dev/null || dhclient -1 {$ife} 2>/dev/null || true");
     } else {
       $ip = $cfg[$prefix . 'IPADDR'] ?? '';
@@ -1624,12 +1625,11 @@ function tbn_apply_ip_block($dev, array $cfg, $prefix = '') {
         $cidr = (string)tbn_mask_to_prefix($nm);
       }
       if ($ip !== '' && filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+        // Flush existing global IPv4 first — "replace" only updates one address; old
+        // subnets from earlier Applies would otherwise stack (e.g. .0.2 and .1.2).
+        @exec("ip -4 addr flush dev {$ife} scope global 2>/dev/null");
         $target = escapeshellarg($ip . '/' . $cidr);
-        @exec("ip -4 addr replace {$target} dev {$ife} 2>/dev/null", $o, $rc);
-        if ($rc !== 0) {
-          @exec("ip -4 addr flush dev {$ife} 2>/dev/null");
-          @exec("ip -4 addr add {$target} dev {$ife} 2>/dev/null");
-        }
+        @exec("ip -4 addr add {$target} dev {$ife} 2>/dev/null");
         $gw = $cfg[$prefix . 'GATEWAY'] ?? '';
         $dr = $cfg[$prefix . 'DEFAULT_ROUTE'] ?? 'no';
         if ($gw !== '' && $dr === 'yes') {
@@ -1650,11 +1650,9 @@ function tbn_apply_ip_block($dev, array $cfg, $prefix = '') {
         $p6 = 64;
       }
       if ($ip6 !== '' && filter_var($ip6, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+        @exec("ip -6 addr flush dev {$ife} scope global 2>/dev/null");
         $target6 = escapeshellarg($ip6 . '/' . $p6);
-        @exec("ip -6 addr replace {$target6} dev {$ife} 2>/dev/null", $o6, $rc6);
-        if ($rc6 !== 0) {
-          @exec("ip -6 addr add {$target6} dev {$ife} 2>/dev/null");
-        }
+        @exec("ip -6 addr add {$target6} dev {$ife} 2>/dev/null");
         $gw6 = $cfg[$prefix . 'GATEWAY6'] ?? '';
         $dr6 = $cfg[$prefix . 'DEFAULT_ROUTE6'] ?? 'no';
         if ($gw6 !== '' && $dr6 === 'yes') {

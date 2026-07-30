@@ -217,7 +217,9 @@ if (strpos($nm, '.') === false) {
           </dd>
         </dl>
         <blockquote class="inline_help">
-          Select which live TB interfaces join this bond (needs two+ paths). Empty selection falls back to all live TB ifaces.
+          Checkboxes list <em>currently live</em> <code>thunderbolt*</code> interfaces (eth0 uses a multi-select
+          of fixed eth ports). TB members appear and disappear with cables, so checkboxes fit better than a
+          static dropdown. Needs two+ paths for a useful bond. Empty selection = all live TB ifaces.
         </blockquote>
       </div>
     </div>
@@ -244,7 +246,10 @@ if (strpos($nm, '.') === false) {
               value="<?= htmlspecialchars($cfg['BR_NAME'] ?? 'br-tb0') ?>">
           </dd>
         </dl>
-        <blockquote class="inline_help">Use <code>br-tb0</code> style — not Unraid <code>br0</code>.</blockquote>
+        <blockquote class="inline_help">
+          Unraid eth uses fixed names (<code>br0</code> with eth0, often one management bridge).
+          For TB use <code>br-tb0</code>, <code>br-tb1</code>, … if you ever need separate bridges — never steal <code>br0</code>.
+        </blockquote>
       </div>
     </div>
 
@@ -279,9 +284,9 @@ if (strpos($nm, '.') === false) {
         <div class="tbn-static-ipv4 tbn-hidden">
           <dl>
             <dt>IPv4 address:</dt>
-            <dd>
-              <input type="text" name="IPADDR" maxlength="15" value="<?= htmlspecialchars($cfg['IPADDR'] ?? '') ?>">
-              /
+            <dd class="tbn-cidr-row">
+              <input type="text" name="IPADDR" class="tbn-ip" maxlength="15" value="<?= htmlspecialchars($cfg['IPADDR'] ?? '') ?>">
+              <span class="tbn-cidr-slash">/</span>
               <?php tbn_render_netmask_select('NETMASK', $nm_dotted, $masks); ?>
             </dd>
           </dl>
@@ -325,10 +330,10 @@ if (strpos($nm, '.') === false) {
         <div class="tbn-static-ipv6 tbn-hidden">
           <dl>
             <dt>IPv6 address:</dt>
-            <dd>
-              <input type="text" name="IPADDR6" maxlength="39" value="<?= htmlspecialchars($cfg['IPADDR6'] ?? '') ?>"
+            <dd class="tbn-cidr-row">
+              <input type="text" name="IPADDR6" class="tbn-ip6" maxlength="39" value="<?= htmlspecialchars($cfg['IPADDR6'] ?? '') ?>"
                 placeholder="fd00:…">
-              /
+              <span class="tbn-cidr-slash">/</span>
               <input type="number" name="NETMASK6" class="narrow" min="1" max="128"
                 value="<?= htmlspecialchars($cfg['NETMASK6'] ?? '64') ?>">
             </dd>

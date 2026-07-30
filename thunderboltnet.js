@@ -230,14 +230,37 @@
     }
   };
 
-  function tbnShow(el, on) {
+  function tbnShow(el, on, animate) {
     if (!el) {
+      return;
+    }
+    var $ = window.jQuery || window.$;
+    var useAnim = animate !== false && $ && typeof $.fn.show === 'function';
+    if (useAnim) {
+      var $el = $(el);
+      if (on) {
+        $el.removeClass('tbn-hidden');
+        // eth0 uses show('slow') / hide('slow') for bond/protocol blocks
+        if ($el.is(':hidden') || $el.css('display') === 'none') {
+          $el.stop(true, true).hide().show('slow');
+        }
+      } else {
+        if ($el.is(':visible')) {
+          $el.stop(true, true).hide('slow', function () {
+            $el.addClass('tbn-hidden');
+          });
+        } else {
+          $el.addClass('tbn-hidden').hide();
+        }
+      }
       return;
     }
     if (on) {
       el.classList.remove('tbn-hidden');
+      el.style.display = '';
     } else {
       el.classList.add('tbn-hidden');
+      el.style.display = 'none';
     }
   }
 
