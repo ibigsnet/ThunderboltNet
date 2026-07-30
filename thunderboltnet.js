@@ -229,4 +229,175 @@
       } catch (e3) { /* ignore */ }
     }
   };
+
+  function tbnShow(el, on) {
+    if (!el) {
+      return;
+    }
+    if (on) {
+      el.classList.remove('tbn-hidden');
+    } else {
+      el.classList.add('tbn-hidden');
+    }
+  }
+
+  function tbnSyncBondMembers(form) {
+    if (!form) {
+      return;
+    }
+    var hidden = form.querySelector('#tbn-bond-members-hidden') || form.querySelector('input[name="BOND_MEMBERS"]');
+    if (!hidden) {
+      return;
+    }
+    var boxes = form.querySelectorAll('input.tbn-bond-member:checked');
+    var vals = [];
+    for (var i = 0; i < boxes.length; i++) {
+      vals.push(boxes[i].value);
+    }
+    hidden.value = vals.join(' ');
+  }
+
+  /**
+   * eth0-like show/hide for protocol, DHCP static, bonding, bridging, VLANs.
+   * Also enables Apply (Unraid greys Apply until change; Network Settings may bind late).
+   */
+  window.tbnFormSync = function (form) {
+    if (!form) {
+      return;
+    }
+    var slave = form.getAttribute('data-tbn-slave') === '1';
+    var proto = (form.PROTOCOL && form.PROTOCOL.value) || 'ipv4';
+    var show4 = proto === 'ipv4' || proto === 'ipv4+ipv6';
+    var show6 = proto === 'ipv6' || proto === 'ipv4+ipv6';
+    tbnShow(form.querySelector('.tbn-proto-ipv4'), show4 && !slave);
+    tbnShow(form.querySelector('.tbn-proto-ipv6'), show6 && !slave);
+
+    var dhcp4 = form.USE_DHCP ? form.USE_DHCP.value : 'no';
+    var dhcp6 = form.USE_DHCP6 ? form.USE_DHCP6.value : 'no';
+    tbnShow(form.querySelector('.tbn-static-ipv4'), show4 && dhcp4 === 'no' && !slave);
+    tbnShow(form.querySelector('.tbn-static-ipv6'), show6 && dhcp6 === 'no' && !slave);
+
+    var bond = form.BONDING ? form.BONDING.value : 'no';
+    tbnShow(form.querySelector('.tbn-bond-opts'), bond === 'yes' && !slave);
+
+    var bridge = form.BRIDGING ? form.BRIDGING.value : 'no';
+    tbnShow(form.querySelector('.tbn-bridge-opts'), bridge === 'yes' && !slave);
+
+    var vlan = form.VLAN_ENABLE ? form.VLAN_ENABLE.value : 'no';
+    tbnShow(form.querySelector('.tbn-vlan-opts'), vlan === 'yes' && !slave);
+
+    tbnSyncBondMembers(form);
+  };
+
+  window.tbnEnableFormApply = function (form) {
+    if (!form) {
+      return;
+    }
+    var list = form.querySelectorAll(
+      'select,input[type=text],input[type=number],input[type=password],input[type=checkbox],input[type=radio],textarea'
+    );
+    for (var i = 0; i < list.length; i++) {
+      list[i].addEventListener('input', function () {
+        tbnUnlockApply(form);
+        tbnFormSync(form);
+      });
+      list[i].addEventListener('change', function () {
+        tbnUnlockApply(form);
+        tbnFormSync(form);
+      });
+    }
+    form.addEventListener('submit', function () {
+      tbnSyncBondMembers(form);
+    });
+  };
+
+  function tbnUnlockApply(form) {
+    if (!form) {
+      return;
+    }
+    var subs = form.querySelectorAll('input[type=submit]');
+    for (var i = 0; i < subs.length; i++) {
+      var v = subs[i].value || '';
+      if (v === 'Apply' || v.indexOf('Apply') === 0 || v.indexOf('Harden') === 0) {
+        subs[i].disabled = false;
+      }
+    }
+  }
+
+  window.tbnInitIfaceForm = function (form) {
+    if (!form) {
+      return;
+    }
+    tbnEnableFormApply(form);
+    tbnFormSync(form);
+  };
+
+  /** Wire all ThunderboltNet forms (listening, iface, harden) for Apply enable. */
+  function tbnWireAllForms() {
+    var wraps = document.querySelectorAll('.tbn-wrap form');
+    for (var i = 0; i < wraps.length; i++) {
+      tbnEnableFormApply(wraps[i]);
+      if (wraps[i].classList.contains('tbn-iface-form')) {
+        tbnFormSync(wraps[i]);
+      }
+    }
+  }
+
+  /** Light live refresh: activity / IPs without full page reload. */
+  function tbnLivePoll() {
+    if (!document.querySelector('.tbn-wrap')) {
+      return;
+    }
+    var url = '/plugins/ThunderboltNet/include/get-status.php';
+    fetch(url, { credentials: 'same-origin', cache: 'no-store' })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (data) {
+        if (!data || !data.links) {
+          return;
+        }
+        data.links.forEach(function (L) {
+          var ifc = L.iface;
+          var loc = L.local || {};
+          var el4 = document.querySelector('[data-tbn-live-ip4="' + ifc + '"]');
+          if (el4) {
+            el4.textContent = loc.addrs && loc.addrs.length ? loc.addrs.join(', ') : '—';
+          }
+          var el6 = document.querySelector('[data-tbn-live-ip6="' + ifc + '"]');
+          // status JSON may not include v6 yet — optional
+          if (el6 && loc.addrs6) {
+            el6.textContent = loc.addrs6.length ? loc.addrs6.join(', ') : '—';
+          }
+          var act = L.activity;
+          var elA = document.querySelector('[data-tbn-live-act="' + ifc + '"]');
+          if (elA && act && typeof tbnActivityHtmlClient !== 'undefined') {
+            /* placeholder */
+          }
+        });
+      })
+      .catch(function () { /* ignore */ });
+  }
+
+  function tbnBootUi() {
+    tbnWireAllForms();
+    tbnBindInlineHelp();
+    tbnLivePoll();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+      setTimeout(tbnBootUi, 50);
+      setTimeout(tbnBootUi, 400);
+      setTimeout(tbnBootUi, 1200);
+    });
+  } else {
+    setTimeout(tbnBootUi, 50);
+    setTimeout(tbnBootUi, 400);
+  }
+  // Periodic: re-wire (tab paint) + light status poll for sampling/activity
+  setInterval(function () {
+    tbnWireAllForms();
+    tbnLivePoll();
+  }, 5000);
 })();

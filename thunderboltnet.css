@@ -456,3 +456,24 @@
   margin-top: 1rem;
   padding-top: 0.5rem;
 }
+.tbn-hidden {
+  display: none !important;
+}
+.tbn-disabled-block {
+  opacity: 0.55;
+  pointer-events: none;
+}
+.tbn-bond-members .tbn-check {
+  display: block;
+  margin: 0.25rem 0;
+}
+.tbn-vlan-card {
+  border: 1px solid rgba(128, 128, 128, 0.28);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  margin: 0.75rem 0;
+}
+.tbn-vlan-card h4 {
+  margin: 0 0 0.5rem;
+  font-size: 1.05em;
+}

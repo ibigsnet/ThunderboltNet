@@ -944,6 +944,44 @@ function tbn_iface_addrs($if) {
   return $addrs;
 }
 
+/** Global (and optional link-local) IPv6 addresses on iface. */
+function tbn_iface_addrs6($if, $include_ll = false) {
+  $addrs = [];
+  $cmd = 'ip -6 -o addr show dev ' . escapeshellarg($if) . ' 2>/dev/null';
+  $lines = [];
+  @exec($cmd, $lines);
+  foreach ($lines as $line) {
+    if (preg_match('/inet6\s+(\S+)/', $line, $m)) {
+      $a = $m[1];
+      if (!$include_ll && strpos($a, 'fe80:') === 0) {
+        continue;
+      }
+      $addrs[] = $a;
+    }
+  }
+  return $addrs;
+}
+
+/**
+ * Parse BOND_MEMBERS cfg: space-separated thunderboltN list.
+ * Empty = all live thunderbolt* (legacy behavior).
+ */
+function tbn_parse_bond_members($raw, $fallback_all = true) {
+  $raw = trim((string)$raw);
+  $all = tbn_list_tb_iface_names();
+  if ($raw === '') {
+    return $fallback_all ? $all : [];
+  }
+  $want = preg_split('/[\s,]+/', $raw, -1, PREG_SPLIT_NO_EMPTY);
+  $out = [];
+  foreach ($want as $m) {
+    if (preg_match('/^thunderbolt\d+$/', $m) && in_array($m, $all, true)) {
+      $out[] = $m;
+    }
+  }
+  return array_values(array_unique($out));
+}
+
 function tbn_domain_security() {
   return tbn_sysfs_str('/sys/bus/thunderbolt/devices/domain0/security');
 }
@@ -1387,8 +1425,13 @@ function tbn_iface_defaults($if = 'thunderbolt0') {
     'BONDING' => 'no',
     'BONDING_MODE' => 'balance-rr',
     'BOND_NAME' => 'bond-tb0',
+    // Space-separated thunderboltN members; empty = all live TB ifaces
+    'BOND_MEMBERS' => '',
     'BRIDGING' => 'no',
-    'BR_NAME' => 'br-tb',
+    'BR_NAME' => 'br-tb0',
+    // VLANs on this TB iface (subinterfaces if.VID) — eth-like subset
+    'VLAN_ENABLE' => 'no',
+    'VLAN_LIST' => '',
     'PROTOCOL' => 'ipv4',
     'USE_DHCP' => 'no',
     // Address plan: small-lan | p2p | custom — see docs/addressing.md
@@ -1508,12 +1551,134 @@ function tbn_write_iface_cfg($if, array $cfg) {
   }
   $defaults = tbn_iface_defaults($if);
   $merged = array_merge($defaults, $cfg);
+  $keys = array_keys($defaults);
+  foreach (array_keys($merged) as $k) {
+    // Persist dynamic per-VLAN keys (VLAN_10_IPADDR, …)
+    if (preg_match('/^VLAN_\d+_/', $k) && !in_array($k, $keys, true)) {
+      $keys[] = $k;
+    }
+  }
   $lines = ['; ThunderboltNet iface ' . $if, ''];
-  foreach ($defaults as $k => $_) {
+  foreach ($keys as $k) {
     $v = isset($merged[$k]) ? $merged[$k] : '';
+    if (is_array($v)) {
+      $v = implode(' ', $v);
+    }
     $lines[] = $k . '="' . str_replace(['\\', '"'], ['\\\\', '\\"'], (string)$v) . '"';
   }
   return @file_put_contents(tbn_iface_cfg_path($if), implode("\n", $lines) . "\n") !== false;
+}
+
+/**
+ * Apply IPv4/IPv6 from a flat key prefix ('' for parent, or 'VLAN_10_' for VLAN).
+ */
+function tbn_apply_ip_block($dev, array $cfg, $prefix = '') {
+  if (!is_dir('/sys/class/net/' . $dev)) {
+    return;
+  }
+  $ife = escapeshellarg($dev);
+  $proto = $cfg[$prefix . 'PROTOCOL'] ?? ($prefix === '' ? ($cfg['PROTOCOL'] ?? 'ipv4') : 'ipv4');
+  // VLAN blocks only store assignment keys; inherit protocol from parent when empty
+  if ($prefix !== '' && !isset($cfg[$prefix . 'PROTOCOL'])) {
+    $proto = $cfg['PROTOCOL'] ?? 'ipv4';
+  }
+  $do4 = ($proto === 'ipv4' || $proto === 'ipv4+ipv6');
+  $do6 = ($proto === 'ipv6' || $proto === 'ipv4+ipv6');
+  // VLAN rows may only have USE_DHCP / IP fields without PROTOCOL — treat as dual-capable
+  if ($prefix !== '' && !isset($cfg[$prefix . 'PROTOCOL'])) {
+    $do4 = true;
+    $do6 = (($cfg[$prefix . 'IPADDR6'] ?? '') !== '' || ($cfg[$prefix . 'USE_DHCP6'] ?? 'no') === 'yes');
+  }
+
+  if ($do4) {
+    $use = $cfg[$prefix . 'USE_DHCP'] ?? ($prefix === '' ? ($cfg['USE_DHCP'] ?? 'no') : 'no');
+    if ($use === 'yes') {
+      @exec("dhcpcd -n {$ife} 2>/dev/null || dhclient -1 {$ife} 2>/dev/null || true");
+    } else {
+      $ip = $cfg[$prefix . 'IPADDR'] ?? '';
+      $nm = $cfg[$prefix . 'NETMASK'] ?? ($prefix === '' ? ($cfg['NETMASK'] ?? '24') : '24');
+      $cidr = preg_replace('/\D/', '', (string)$nm);
+      if ($cidr === '') {
+        $cidr = '24';
+      }
+      if (strpos((string)$nm, '.') !== false) {
+        $cidr = (string)tbn_mask_to_prefix($nm);
+      }
+      if ($ip !== '' && filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+        $target = escapeshellarg($ip . '/' . $cidr);
+        @exec("ip -4 addr replace {$target} dev {$ife} 2>/dev/null", $o, $rc);
+        if ($rc !== 0) {
+          @exec("ip -4 addr flush dev {$ife} 2>/dev/null");
+          @exec("ip -4 addr add {$target} dev {$ife} 2>/dev/null");
+        }
+        $gw = $cfg[$prefix . 'GATEWAY'] ?? '';
+        $dr = $cfg[$prefix . 'DEFAULT_ROUTE'] ?? 'no';
+        if ($gw !== '' && $dr === 'yes') {
+          @exec('ip -4 route replace default via ' . escapeshellarg($gw) . ' dev ' . $ife . ' 2>/dev/null');
+        }
+      }
+    }
+  }
+
+  if ($do6) {
+    $use6 = $cfg[$prefix . 'USE_DHCP6'] ?? 'no';
+    if ($use6 === 'yes') {
+      @exec("dhcpcd -6 -n {$ife} 2>/dev/null || dhclient -6 -1 {$ife} 2>/dev/null || true");
+    } else {
+      $ip6 = trim((string)($cfg[$prefix . 'IPADDR6'] ?? ''));
+      $p6 = (int)preg_replace('/\D/', '', (string)($cfg[$prefix . 'NETMASK6'] ?? '64'));
+      if ($p6 < 1 || $p6 > 128) {
+        $p6 = 64;
+      }
+      if ($ip6 !== '' && filter_var($ip6, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+        $target6 = escapeshellarg($ip6 . '/' . $p6);
+        @exec("ip -6 addr replace {$target6} dev {$ife} 2>/dev/null", $o6, $rc6);
+        if ($rc6 !== 0) {
+          @exec("ip -6 addr add {$target6} dev {$ife} 2>/dev/null");
+        }
+        $gw6 = $cfg[$prefix . 'GATEWAY6'] ?? '';
+        $dr6 = $cfg[$prefix . 'DEFAULT_ROUTE6'] ?? 'no';
+        if ($gw6 !== '' && $dr6 === 'yes') {
+          @exec('ip -6 route replace default via ' . escapeshellarg($gw6) . ' dev ' . $ife . ' 2>/dev/null');
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Create/configure VLAN subinterfaces parent.VID (e.g. thunderbolt0.10).
+ */
+function tbn_apply_vlans($parent, array $cfg) {
+  if (($cfg['VLAN_ENABLE'] ?? 'no') !== 'yes') {
+    return;
+  }
+  if (!is_dir('/sys/class/net/' . $parent)) {
+    return;
+  }
+  $list = preg_split('/[\s,]+/', trim((string)($cfg['VLAN_LIST'] ?? '')), -1, PREG_SPLIT_NO_EMPTY);
+  foreach ($list as $vid) {
+    if (!preg_match('/^\d+$/', $vid)) {
+      continue;
+    }
+    $id = (int)$vid;
+    if ($id < 1 || $id > 4094) {
+      continue;
+    }
+    $vname = $parent . '.' . $id;
+    if (!is_dir('/sys/class/net/' . $vname)) {
+      @exec(
+        'ip link add link ' . escapeshellarg($parent)
+        . ' name ' . escapeshellarg($vname)
+        . ' type vlan id ' . $id . ' 2>/dev/null'
+      );
+    }
+    if (!is_dir('/sys/class/net/' . $vname)) {
+      continue;
+    }
+    @exec('ip link set ' . escapeshellarg($vname) . ' up 2>/dev/null');
+    tbn_apply_ip_block($vname, $cfg, 'VLAN_' . $id . '_');
+  }
 }
 
 function tbn_reset_iface_cfg($if) {
@@ -1659,51 +1824,22 @@ function tbn_apply_iface($if) {
       @exec("ip link set {$ife} mtu {$mtu} 2>/dev/null");
     }
   }
-  $proto = $cfg['PROTOCOL'] ?? 'ipv4';
-  if ($proto === 'ipv4' || $proto === 'ipv4+ipv6') {
-    if (($cfg['USE_DHCP'] ?? 'no') === 'yes') {
-      // Best-effort DHCP; many Unraid systems lack a long-lived dhclient for TB
-      @exec("dhcpcd -n {$ife} 2>/dev/null || dhclient -1 {$ife} 2>/dev/null || true");
-    } else {
-      $ip = $cfg['IPADDR'] ?? '';
-      $cidr = preg_replace('/\D/', '', $cfg['NETMASK'] ?? '24');
-      if ($cidr === '') {
-        $cidr = '24';
-      }
-      // Accept classic netmask in NETMASK field
-      if (strpos($cfg['NETMASK'] ?? '', '.') !== false) {
-        $cidr = (string)tbn_mask_to_prefix($cfg['NETMASK']);
-      }
-      if ($ip !== '' && filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-        $target = escapeshellarg($ip . '/' . $cidr);
-        @exec("ip addr replace {$target} dev {$ife} 2>/dev/null", $o, $rc);
-        if ($rc !== 0) {
-          @exec("ip addr flush dev {$ife} 2>/dev/null");
-          @exec("ip addr add {$target} dev {$ife} 2>/dev/null");
-        }
-        // DEFAULT_ROUTE=yes + gateway → install system default via this iface (uncommon for TB)
-        if (($cfg['GATEWAY'] ?? '') !== '' && ($cfg['DEFAULT_ROUTE'] ?? 'no') === 'yes') {
-          $gw = escapeshellarg($cfg['GATEWAY']);
-          @exec("ip route replace default via {$gw} dev {$ife} 2>/dev/null");
-        }
-      }
-    }
+  // If this iface is enslaved to a bond, do not fight the bond master (eth-like).
+  $master = tbn_iface_master($if);
+  $is_bond_slave = ($master !== '' && (
+    preg_match('/^bond-tb/', $master) || is_dir('/sys/class/net/' . $master . '/bonding')
+  ));
+
+  if (!$is_bond_slave) {
+    tbn_apply_ip_block($if, $cfg, '');
+    tbn_apply_vlans($if, $cfg);
   }
+
   // Listening include for this iface only
-  $current = tbn_read_include_interfaces();
-  if (($cfg['INCLUDE_LISTENING'] ?? 'no') === 'yes') {
-    if (!in_array($if, $current, true)) {
-      $current[] = $if;
-      tbn_write_include_interfaces($current);
-    }
-  } else {
-    $current = array_values(array_filter($current, function ($x) use ($if) {
-      return $x !== $if;
-    }));
-    tbn_write_include_interfaces($current);
-  }
-  // Bonding (simplified TB-only bond)
-  if (($cfg['BONDING'] ?? 'no') === 'yes') {
+  tbn_set_listening_for_iface($if, ($cfg['INCLUDE_LISTENING'] ?? 'no') === 'yes' ? 'yes' : 'no');
+
+  // Bonding — only when this form enables it (not when we are a slave)
+  if (!$is_bond_slave && ($cfg['BONDING'] ?? 'no') === 'yes') {
     tbn_apply_simple_bond($cfg, $if);
   }
   return ['ok' => true, 'iface' => $if, 'cfg' => $cfg, 'netdevs' => tbn_list_netdevs()];
@@ -1739,7 +1875,17 @@ function tbn_apply_simple_bond(array $cfg, $primary_if) {
   if (!is_dir('/sys/class/net/' . $bond)) {
     @exec('ip link add ' . escapeshellarg($bond) . ' type bond mode ' . (int)$mi . ' 2>/dev/null');
   }
-  $members = tbn_list_tb_iface_names();
+  $members = tbn_parse_bond_members($cfg['BOND_MEMBERS'] ?? '', true);
+  if (!$members && $primary_if !== '') {
+    $members = [$primary_if];
+  }
+  // Release TB ifaces not in this bond that still slave under it
+  foreach (tbn_list_tb_iface_names() as $m) {
+    $cur = tbn_iface_master($m);
+    if ($cur === $bond && !in_array($m, $members, true)) {
+      @exec('ip link set ' . escapeshellarg($m) . ' nomaster 2>/dev/null');
+    }
+  }
   foreach ($members as $m) {
     @exec('ip link set ' . escapeshellarg($m) . ' down 2>/dev/null');
     @exec('ip link set ' . escapeshellarg($m) . ' master ' . escapeshellarg($bond) . ' 2>/dev/null');

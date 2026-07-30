@@ -1,6 +1,7 @@
 <?php
 /**
- * Per-link tab (Thunderbolt tbnN) — eth0-style dl/dt/dd form layout.
+ * Per-link tab (Thunderbolt tbnN) — eth0-style dynamic form:
+ * protocol (ipv4 / ipv6 / both), automatic/static, bonding members, VLANs.
  */
 if (!isset($tbn_if) || $tbn_if === '') {
   echo '<p class="tbn-muted">Missing interface context.</p>';
@@ -25,8 +26,22 @@ $mac = $live['address'] ?? tbn_sysfs_str('/sys/class/net/' . $if . '/address');
 $oper = $live['operstate'] ?? tbn_sysfs_str('/sys/class/net/' . $if . '/operstate');
 $carrier = $live['carrier'] ?? tbn_sysfs_str('/sys/class/net/' . $if . '/carrier');
 $addrs = $live['addrs'] ?? tbn_iface_addrs($if);
+$addrs6 = tbn_iface_addrs6($if);
 $master = $live['master'] ?? tbn_iface_master($if);
 $membership = $live['masters'] ?? tbn_iface_membership_labels($if, $master);
+$is_bond_slave = ($master !== '' && (
+  preg_match('/^bond-tb/', $master) || is_dir('/sys/class/net/' . $master . '/bonding')
+));
+$tb_ifaces = tbn_list_tb_iface_names();
+$bond_members_sel = tbn_parse_bond_members($cfg['BOND_MEMBERS'] ?? '', false);
+if (!$bond_members_sel && ($cfg['BOND_MEMBERS'] ?? '') === '') {
+  // empty means “all” for display check-all
+  $bond_members_sel = $tb_ifaces;
+}
+$vlan_ids = preg_split('/[\s,]+/', trim((string)($cfg['VLAN_LIST'] ?? '')), -1, PREG_SPLIT_NO_EMPTY);
+$vlan_ids = array_values(array_filter($vlan_ids, function ($v) {
+  return preg_match('/^\d+$/', $v) && (int)$v >= 1 && (int)$v <= 4094;
+}));
 
 $peer = $rx = $tx = $rl = $tl = '';
 $parent = @realpath('/sys/class/net/' . $if . '/device');
@@ -62,6 +77,17 @@ if (strpos($nm, '.') === false) {
 } else {
   $nm_dotted = $nm;
 }
+
+/**
+ * Render netmask <select> for IPv4.
+ */
+function tbn_render_netmask_select($name, $nm_dotted, $masks) {
+  echo '<select name="' . htmlspecialchars($name) . '" class="narrow">';
+  foreach ($masks as $mask => $pref) {
+    echo mk_option($nm_dotted, $mask, $pref);
+  }
+  echo '</select>';
+}
 ?>
 <link rel="stylesheet" href="/plugins/ThunderboltNet/thunderboltnet.css?v=<?= htmlspecialchars($ver) ?>">
 
@@ -90,16 +116,30 @@ if (strpos($nm, '.') === false) {
     · <?= htmlspecialchars(($rx ?: '—') . ' / ' . ($tx ?: '—')) ?>
       (lanes <?= htmlspecialchars(($rl ?: '—') . '/' . ($tl ?: '—')) ?>)
 <?php endif; ?>
+<?php if ($is_bond_slave): ?>
+    · <strong>member of <?= htmlspecialchars($master) ?></strong>
+<?php endif; ?>
   </p>
 
-  <form method="POST" action="/update.php" target="progressFrame" id="tbn-form-<?= htmlspecialchars($label) ?>">
+<?php if ($is_bond_slave): ?>
+  <div class="tbn-notice" role="status">
+    <h4>Bond member</h4>
+    <p>
+      This interface is enslaved to <code><?= htmlspecialchars($master) ?></code>.
+      Addressing and VLAN setup are done on the bond (or leave bonding managed from the tab that created it),
+      same idea as eth0 when it is in bond0.
+    </p>
+  </div>
+<?php endif; ?>
+
+  <form method="POST" action="/update.php" target="progressFrame"
+    id="tbn-form-<?= htmlspecialchars($label) ?>" class="tbn-iface-form"
+    data-tbn-slave="<?= $is_bond_slave ? '1' : '0' ?>">
     <input type="hidden" name="#file" value="ThunderboltNet/ifaces/<?= htmlspecialchars($if) ?>.cfg">
     <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update-iface.php">
     <input type="hidden" name="#arg[1]" value="<?= htmlspecialchars($if) ?>">
     <input type="hidden" name="tbn_iface" value="<?= htmlspecialchars($if) ?>">
-    <input type="hidden" name="BR_NAME" value="<?= htmlspecialchars($cfg['BR_NAME'] ?? 'br-tb') ?>">
-
-    <?php /* One <dl> per field, then blockquote.inline_help as next sibling — required for Unraid HelpButton + clickable dt labels (BodyInlineJS). */ ?>
+    <input type="hidden" name="BOND_MEMBERS" id="tbn-bond-members-hidden" value="<?= htmlspecialchars(trim((string)($cfg['BOND_MEMBERS'] ?? ''))) ?>">
 
     <dl>
       <dt>Interface description:</dt>
@@ -108,192 +148,311 @@ if (strpos($nm, '.') === false) {
           value="<?= htmlspecialchars($cfg['DESCRIPTION'] ?? '') ?>">
       </dd>
     </dl>
-    <blockquote class="inline_help">
-      Optional label for this link (not the OS hostname). Useful when you have several Thunderbolt peers
-      (e.g. “Holo workstation”, “laptop”). Stored only in this plugin’s per-iface config.
-    </blockquote>
+    <blockquote class="inline_help">Optional label for this link (stored in plugin config only).</blockquote>
 
     <dl>
       <dt>MAC address:</dt>
       <dd><span class="tbn-live"><?= htmlspecialchars(strtoupper($mac)) ?></span></dd>
     </dl>
-    <blockquote class="inline_help">
-      Hardware address of kernel interface <code><?= htmlspecialchars($if) ?></code>. Read-only from sysfs.
-      Each Thunderbolt netdev has its own MAC; do not expect it to match eth0.
-    </blockquote>
+    <blockquote class="inline_help">Read-only kernel address for <code><?= htmlspecialchars($if) ?></code>.</blockquote>
 
     <dl>
       <dt>Enable interface:</dt>
       <dd>
-        <select name="ENABLE">
+        <select name="ENABLE" <?= $is_bond_slave ? 'disabled' : '' ?>>
           <?= mk_option($cfg['ENABLE'] ?? 'yes', 'yes', 'Yes') ?>
           <?= mk_option($cfg['ENABLE'] ?? 'yes', 'no', 'No') ?>
         </select>
       </dd>
     </dl>
     <blockquote class="inline_help">
-      <strong>Yes</strong> (default) — Apply brings the link <code>up</code> and applies addressing options below.<br>
-      <strong>No</strong> — Apply sets the interface <code>down</code> and skips IP/bond apply for this iface.
+      Yes brings the link up and applies addressing. No sets it down (skipped when this iface is a bond member).
     </blockquote>
 
-    <dl>
-      <dt>Enable bonding:</dt>
-      <dd>
-        <select name="BONDING">
-          <?= mk_option($cfg['BONDING'] ?? 'no', 'no', 'No') ?>
-          <?= mk_option($cfg['BONDING'] ?? 'no', 'yes', 'Yes') ?>
-        </select>
-      </dd>
-    </dl>
-    <blockquote class="inline_help">
-      Builds a <strong>Thunderbolt-only</strong> Linux bond (not Unraid’s main <code>bond0</code> on eth ports).
-      Members are live <code>thunderbolt*</code> interfaces. Only useful when you have <em>two</em> separate
-      TB network interfaces to the same peer fabric (two host paths). Two cables to the same peer often
-      still enumerate as one path — bonding cannot invent a second netdev.
-    </blockquote>
+    <div class="tbn-section-bond">
+      <dl>
+        <dt>Enable bonding:</dt>
+        <dd>
+          <select name="BONDING" class="tbn-ctl-bond" <?= $is_bond_slave ? 'disabled' : '' ?>>
+            <?= mk_option($cfg['BONDING'] ?? 'no', 'no', 'No') ?>
+            <?= mk_option($cfg['BONDING'] ?? 'no', 'yes', 'Yes') ?>
+          </select>
+        </dd>
+      </dl>
+      <blockquote class="inline_help">
+        Thunderbolt-only Linux bond (<code>bond-tb0</code>, …), not Unraid eth <code>bond0</code>.
+        When Yes, mode / name / members appear (like eth0).
+      </blockquote>
 
-    <dl>
-      <dt>Bonding mode:</dt>
-      <dd>
-        <select name="BONDING_MODE">
-          <?= mk_option($cfg['BONDING_MODE'] ?? 'balance-rr', 'balance-rr', 'balance-rr (0)') ?>
-          <?= mk_option($cfg['BONDING_MODE'] ?? 'balance-rr', 'active-backup', 'active-backup (1)') ?>
-          <?= mk_option($cfg['BONDING_MODE'] ?? 'balance-rr', 'balance-xor', 'balance-xor (2)') ?>
-          <?= mk_option($cfg['BONDING_MODE'] ?? 'balance-rr', '802.3ad', '802.3ad (4)') ?>
-        </select>
-      </dd>
-    </dl>
-    <blockquote class="inline_help">
-      Linux bonding mode for the TB bond. <strong>balance-rr</strong> stripes packets (can reorder);
-      <strong>active-backup</strong> fails over; <strong>802.3ad</strong> needs LACP on both ends (unusual for host↔host TB).
-      Applied only when Enable bonding is Yes.
-    </blockquote>
+      <div class="tbn-bond-opts tbn-hidden">
+        <dl>
+          <dt>Bonding mode:</dt>
+          <dd>
+            <select name="BONDING_MODE">
+              <?= mk_option($cfg['BONDING_MODE'] ?? 'balance-rr', 'balance-rr', 'balance-rr (0)') ?>
+              <?= mk_option($cfg['BONDING_MODE'] ?? 'balance-rr', 'active-backup', 'active-backup (1)') ?>
+              <?= mk_option($cfg['BONDING_MODE'] ?? 'balance-rr', 'balance-xor', 'balance-xor (2)') ?>
+              <?= mk_option($cfg['BONDING_MODE'] ?? 'balance-rr', '802.3ad', '802.3ad (4)') ?>
+            </select>
+          </dd>
+        </dl>
+        <blockquote class="inline_help">Linux bonding mode for bond-tbN.</blockquote>
 
-    <dl>
-      <dt>Bond name:</dt>
-      <dd>
-        <input type="text" name="BOND_NAME" class="narrow" maxlength="15"
-          value="<?= htmlspecialchars($cfg['BOND_NAME'] ?? 'bond-tb0') ?>">
-      </dd>
-    </dl>
-    <blockquote class="inline_help">
-      Netdev name for this Thunderbolt-only bond. Default <code>bond-tb0</code> (use <code>bond-tb1</code>, … if you
-      ever create more than one). Do <strong>not</strong> reuse Unraid’s eth bonds <code>bond0</code> / <code>bond1</code>.
-      Linux interface names max 15 characters.
-    </blockquote>
+        <dl>
+          <dt>Bond name:</dt>
+          <dd>
+            <input type="text" name="BOND_NAME" class="narrow" maxlength="15"
+              value="<?= htmlspecialchars($cfg['BOND_NAME'] ?? 'bond-tb0') ?>">
+          </dd>
+        </dl>
+        <blockquote class="inline_help">Default <code>bond-tb0</code>. Do not reuse <code>bond0</code>.</blockquote>
 
-    <dl>
-      <dt>Enable bridging:</dt>
-      <dd>
-        <select name="BRIDGING">
-          <?= mk_option($cfg['BRIDGING'] ?? 'no', 'no', 'No') ?>
-          <?= mk_option($cfg['BRIDGING'] ?? 'no', 'yes', 'Yes') ?>
-        </select>
-      </dd>
-    </dl>
-    <blockquote class="inline_help">
-      Reserved for a future TB bridge (e.g. <code>br-tb</code>). <strong>Not applied automatically yet</strong> —
-      leave No unless you are testing manual bridge setup yourself.
-    </blockquote>
-
-    <dl>
-      <dt>Network protocol:</dt>
-      <dd>
-        <select name="PROTOCOL">
-          <?= mk_option($cfg['PROTOCOL'] ?? 'ipv4', 'ipv4', 'IPv4 only') ?>
-          <?= mk_option($cfg['PROTOCOL'] ?? 'ipv4', 'ipv4+ipv6', 'IPv4 + IPv6') ?>
-        </select>
-      </dd>
-    </dl>
-    <blockquote class="inline_help">
-      Which address families Apply configures. IPv6 handling is limited today; most host-to-host TB setups use
-      <strong>IPv4 only</strong> with static addresses on both peers.
-    </blockquote>
-
-    <dl>
-      <dt>IPv4 address assignment:</dt>
-      <dd>
-        <select name="USE_DHCP">
-          <?= mk_option($cfg['USE_DHCP'] ?? 'no', 'no', 'Static') ?>
-          <?= mk_option($cfg['USE_DHCP'] ?? 'no', 'yes', 'Automatic') ?>
-        </select>
-      </dd>
-    </dl>
-    <blockquote class="inline_help">
-      <strong>Static</strong> (default) — use the IPv4 address and netmask below. Recommended for Thunderbolt
-      peer links (no DHCP server on the cable).<br>
-      <strong>Automatic</strong> — best-effort DHCP on this iface (often fails on pure host↔host links).
-    </blockquote>
-
-    <dl>
-      <dt>IPv4 address:</dt>
-      <dd>
-        <input type="text" name="IPADDR" maxlength="15" value="<?= htmlspecialchars($cfg['IPADDR'] ?? '') ?>">
-        /
-        <select name="NETMASK" class="narrow">
-<?php foreach ($masks as $mask => $pref): ?>
-          <?= mk_option($nm_dotted, $mask, $pref) ?>
+        <dl>
+          <dt>Bond members:</dt>
+          <dd class="tbn-bond-members">
+<?php if (!$tb_ifaces): ?>
+            <span class="tbn-muted">No live thunderbolt* interfaces</span>
+<?php else: ?>
+<?php foreach ($tb_ifaces as $mif):
+  $checked = in_array($mif, $bond_members_sel, true);
+  $mlb = tbn_label_for_iface($mif);
+?>
+            <label class="tbn-check">
+              <input type="checkbox" class="tbn-bond-member" value="<?= htmlspecialchars($mif) ?>"
+                <?= $checked ? 'checked' : '' ?>>
+              <code><?= htmlspecialchars($mlb) ?></code> (<code><?= htmlspecialchars($mif) ?></code>)
+            </label>
 <?php endforeach; ?>
-        </select>
-      </dd>
-    </dl>
-    <blockquote class="inline_help">
-      Static IPv4 and prefix for this link. Each <code>tbnN</code> should use its <strong>own subnet</strong>
-      (e.g. tbn0 = <code>10.255.0.2/24</code>, tbn1 = <code>10.255.1.2/24</code>) so dual peers do not share one route.<br>
-      <strong>/24 (Small LAN)</strong> — room for VMs/aliases on the peer; product-friendly default.<br>
-      <strong>/30 (point-to-point)</strong> — two usable hosts only; pure host↔host pipe.<br>
-      Put the peer on the matching network (often <code>.1</code> if Unraid is <code>.2</code>).<br><br>
-      <strong>Examples:</strong> Unraid↔Linux or Mac — Unraid <code>10.255.0.2/24</code>, peer <code>10.255.0.1/24</code>.
-      Two peers — use <code>10.255.0.0/24</code> on tbn0 and <code>10.255.1.0/24</code> on tbn1.
-      A dock’s RJ45 is usually USB Ethernet (eth), not this address.
-      <?= tbn_help_docs_footer('docs/addressing.md', 'Addressing guide') ?>
-      · <?= tbn_docs_more_html('docs/peer-scenarios.md', 'Peer scenarios ↗') ?>
-    </blockquote>
+<?php endif; ?>
+          </dd>
+        </dl>
+        <blockquote class="inline_help">
+          Select which live TB interfaces join this bond (needs two+ paths). Empty selection falls back to all live TB ifaces.
+        </blockquote>
+      </div>
+    </div>
 
-    <dl>
-      <dt>IPv4 default gateway:</dt>
-      <dd>
-        <input type="text" name="GATEWAY" maxlength="15" value="<?= htmlspecialchars($cfg['GATEWAY'] ?? '') ?>">
-      </dd>
-    </dl>
-    <blockquote class="inline_help">
-      Optional next hop on this Thunderbolt link. Leave empty for normal peer-to-peer (you only need on-link
-      routes to the other host). Set a gateway only if the peer is intentionally routing for you.
-    </blockquote>
+    <div class="tbn-section-bridge">
+      <dl>
+        <dt>Enable bridging:</dt>
+        <dd>
+          <select name="BRIDGING" class="tbn-ctl-bridge" <?= $is_bond_slave ? 'disabled' : '' ?>>
+            <?= mk_option($cfg['BRIDGING'] ?? 'no', 'no', 'No') ?>
+            <?= mk_option($cfg['BRIDGING'] ?? 'no', 'yes', 'Yes') ?>
+          </select>
+        </dd>
+      </dl>
+      <blockquote class="inline_help">
+        Reserved: shows name field when Yes. Full auto-bridge apply is still limited — prefer manual
+        <code>br-tb0</code> if you need a bridge today.
+      </blockquote>
+      <div class="tbn-bridge-opts tbn-hidden">
+        <dl>
+          <dt>Bridge name:</dt>
+          <dd>
+            <input type="text" name="BR_NAME" class="narrow" maxlength="15"
+              value="<?= htmlspecialchars($cfg['BR_NAME'] ?? 'br-tb0') ?>">
+          </dd>
+        </dl>
+        <blockquote class="inline_help">Use <code>br-tb0</code> style — not Unraid <code>br0</code>.</blockquote>
+      </div>
+    </div>
 
-    <dl>
-      <dt>Enable default route:</dt>
-      <dd>
-        <select name="DEFAULT_ROUTE">
-          <?= mk_option($cfg['DEFAULT_ROUTE'] ?? 'no', 'no', 'No') ?>
-          <?= mk_option($cfg['DEFAULT_ROUTE'] ?? 'no', 'yes', 'Yes') ?>
-        </select>
-      </dd>
-    </dl>
-    <blockquote class="inline_help">
-      <strong>No</strong> (default) — do not install a system-wide default route via this Thunderbolt iface.
-      Keep general internet traffic on eth0/br0; use TB only for peer subnets.
-      Recommended for Unraid↔Linux, Mac, Windows, and multi-peer labs so Wi‑Fi/Ethernet WAN is unchanged.<br>
-      <strong>Yes</strong> — rare; only if this link should become the machine’s default route for all traffic.
-      <?= tbn_help_docs_footer('docs/addressing.md', 'Addressing & routing') ?>
-    </blockquote>
+    <div class="tbn-addressing <?= $is_bond_slave ? 'tbn-disabled-block' : '' ?>">
+      <dl>
+        <dt>Network protocol:</dt>
+        <dd>
+          <select name="PROTOCOL" class="tbn-ctl-proto" <?= $is_bond_slave ? 'disabled' : '' ?>>
+            <?= mk_option($cfg['PROTOCOL'] ?? 'ipv4', 'ipv4', 'IPv4 only') ?>
+            <?= mk_option($cfg['PROTOCOL'] ?? 'ipv4', 'ipv6', 'IPv6 only') ?>
+            <?= mk_option($cfg['PROTOCOL'] ?? 'ipv4', 'ipv4+ipv6', 'IPv4 + IPv6') ?>
+          </select>
+        </dd>
+      </dl>
+      <blockquote class="inline_help">
+        Same idea as eth0: choosing IPv4, IPv6, or both shows the matching assignment fields (no page reload).
+      </blockquote>
+
+      <div class="tbn-proto-ipv4 tbn-hidden">
+        <dl>
+          <dt>IPv4 address assignment:</dt>
+          <dd>
+            <select name="USE_DHCP" class="tbn-ctl-dhcp4">
+              <?= mk_option($cfg['USE_DHCP'] ?? 'no', 'no', 'Static') ?>
+              <?= mk_option($cfg['USE_DHCP'] ?? 'no', 'yes', 'Automatic') ?>
+            </select>
+          </dd>
+        </dl>
+        <blockquote class="inline_help">
+          <strong>Static</strong> (usual for TB P2P). <strong>Automatic</strong> tries DHCP (often no server on the cable).
+        </blockquote>
+        <div class="tbn-static-ipv4 tbn-hidden">
+          <dl>
+            <dt>IPv4 address:</dt>
+            <dd>
+              <input type="text" name="IPADDR" maxlength="15" value="<?= htmlspecialchars($cfg['IPADDR'] ?? '') ?>">
+              /
+              <?php tbn_render_netmask_select('NETMASK', $nm_dotted, $masks); ?>
+            </dd>
+          </dl>
+          <blockquote class="inline_help">
+            Unique subnet per tbnN (e.g. tbn0 <code>10.255.0.2/24</code>, tbn1 <code>10.255.1.2/24</code>).
+            <?= tbn_help_docs_footer('docs/addressing.md', 'Addressing') ?>
+          </blockquote>
+          <dl>
+            <dt>IPv4 default gateway:</dt>
+            <dd>
+              <input type="text" name="GATEWAY" maxlength="15" value="<?= htmlspecialchars($cfg['GATEWAY'] ?? '') ?>">
+            </dd>
+          </dl>
+          <blockquote class="inline_help">Usually empty for peer-to-peer.</blockquote>
+          <dl>
+            <dt>Enable default route (IPv4):</dt>
+            <dd>
+              <select name="DEFAULT_ROUTE">
+                <?= mk_option($cfg['DEFAULT_ROUTE'] ?? 'no', 'no', 'No') ?>
+                <?= mk_option($cfg['DEFAULT_ROUTE'] ?? 'no', 'yes', 'Yes') ?>
+              </select>
+            </dd>
+          </dl>
+          <blockquote class="inline_help">Default No — keep internet on eth0/br0.</blockquote>
+        </div>
+      </div>
+
+      <div class="tbn-proto-ipv6 tbn-hidden">
+        <dl>
+          <dt>IPv6 address assignment:</dt>
+          <dd>
+            <select name="USE_DHCP6" class="tbn-ctl-dhcp6">
+              <?= mk_option($cfg['USE_DHCP6'] ?? 'no', 'no', 'Static') ?>
+              <?= mk_option($cfg['USE_DHCP6'] ?? 'no', 'yes', 'Automatic') ?>
+            </select>
+          </dd>
+        </dl>
+        <blockquote class="inline_help">
+          TB is Ethernet-like: IPv6 works when both ends configure it. Static is typical for P2P.
+        </blockquote>
+        <div class="tbn-static-ipv6 tbn-hidden">
+          <dl>
+            <dt>IPv6 address:</dt>
+            <dd>
+              <input type="text" name="IPADDR6" maxlength="39" value="<?= htmlspecialchars($cfg['IPADDR6'] ?? '') ?>"
+                placeholder="fd00:…">
+              /
+              <input type="number" name="NETMASK6" class="narrow" min="1" max="128"
+                value="<?= htmlspecialchars($cfg['NETMASK6'] ?? '64') ?>">
+            </dd>
+          </dl>
+          <blockquote class="inline_help">Prefix length (e.g. 64). Use a unique ULA/prefix per link when dual-peer.</blockquote>
+          <dl>
+            <dt>IPv6 default gateway:</dt>
+            <dd>
+              <input type="text" name="GATEWAY6" maxlength="39" value="<?= htmlspecialchars($cfg['GATEWAY6'] ?? '') ?>">
+            </dd>
+          </dl>
+          <blockquote class="inline_help">Usually empty for peer-to-peer.</blockquote>
+          <dl>
+            <dt>Enable default route (IPv6):</dt>
+            <dd>
+              <select name="DEFAULT_ROUTE6">
+                <?= mk_option($cfg['DEFAULT_ROUTE6'] ?? 'no', 'no', 'No') ?>
+                <?= mk_option($cfg['DEFAULT_ROUTE6'] ?? 'no', 'yes', 'Yes') ?>
+              </select>
+            </dd>
+          </dl>
+          <blockquote class="inline_help">Default No.</blockquote>
+        </div>
+      </div>
+    </div>
+
+    <div class="tbn-section-vlan <?= $is_bond_slave ? 'tbn-disabled-block' : '' ?>">
+      <dl>
+        <dt>Enable VLANs:</dt>
+        <dd>
+          <select name="VLAN_ENABLE" class="tbn-ctl-vlan" <?= $is_bond_slave ? 'disabled' : '' ?>>
+            <?= mk_option($cfg['VLAN_ENABLE'] ?? 'no', 'no', 'No') ?>
+            <?= mk_option($cfg['VLAN_ENABLE'] ?? 'no', 'yes', 'Yes') ?>
+          </select>
+        </dd>
+      </dl>
+      <blockquote class="inline_help">
+        Creates Linux VLAN subinterfaces <code><?= htmlspecialchars($if) ?>.VID</code> (802.1Q), similar to eth trunk ports.
+      </blockquote>
+      <div class="tbn-vlan-opts tbn-hidden">
+        <dl>
+          <dt>VLAN list:</dt>
+          <dd>
+            <input type="text" name="VLAN_LIST" class="tbn-vlan-list" maxlength="120"
+              value="<?= htmlspecialchars($cfg['VLAN_LIST'] ?? '') ?>"
+              placeholder="e.g. 10 20 30">
+          </dd>
+        </dl>
+        <blockquote class="inline_help">
+          Space- or comma-separated VLAN IDs (1–4094). Apply creates/updates each
+          <code><?= htmlspecialchars($if) ?>.ID</code>. Change list and Apply to rebuild rows’ saved addresses.
+        </blockquote>
+<?php foreach ($vlan_ids as $vid):
+  $p = 'VLAN_' . $vid . '_';
+  $v4 = $cfg[$p . 'IPADDR'] ?? '';
+  $vnm = $cfg[$p . 'NETMASK'] ?? '24';
+  if (strpos($vnm, '.') === false) {
+    $vnm_d = array_search($vnm, $masks, true);
+    if ($vnm_d === false) {
+      $vnm_d = '255.255.255.0';
+    }
+  } else {
+    $vnm_d = $vnm;
+  }
+?>
+        <div class="tbn-vlan-card">
+          <h4>VLAN <?= (int)$vid ?> · <code><?= htmlspecialchars($if . '.' . $vid) ?></code></h4>
+          <dl>
+            <dt>IPv4 assignment:</dt>
+            <dd>
+              <select name="<?= htmlspecialchars($p) ?>USE_DHCP">
+                <?= mk_option($cfg[$p . 'USE_DHCP'] ?? 'no', 'no', 'Static') ?>
+                <?= mk_option($cfg[$p . 'USE_DHCP'] ?? 'no', 'yes', 'Automatic') ?>
+              </select>
+            </dd>
+          </dl>
+          <dl>
+            <dt>IPv4 address:</dt>
+            <dd>
+              <input type="text" name="<?= htmlspecialchars($p) ?>IPADDR" maxlength="15" value="<?= htmlspecialchars($v4) ?>">
+              /
+              <?php tbn_render_netmask_select($p . 'NETMASK', $vnm_d, $masks); ?>
+            </dd>
+          </dl>
+          <dl>
+            <dt>IPv6 address:</dt>
+            <dd>
+              <input type="text" name="<?= htmlspecialchars($p) ?>IPADDR6" maxlength="39"
+                value="<?= htmlspecialchars($cfg[$p . 'IPADDR6'] ?? '') ?>">
+              /
+              <input type="number" name="<?= htmlspecialchars($p) ?>NETMASK6" class="narrow" min="1" max="128"
+                value="<?= htmlspecialchars($cfg[$p . 'NETMASK6'] ?? '64') ?>">
+            </dd>
+          </dl>
+        </div>
+<?php endforeach; ?>
+<?php if ($vlan_ids && ($cfg['VLAN_ENABLE'] ?? 'no') === 'yes'): ?>
+        <p class="tbn-hint">After changing the VLAN list, Apply once, reopen this tab to edit addresses for new IDs.</p>
+<?php endif; ?>
+      </div>
+    </div>
 
     <dl>
       <dt>Desired MTU:</dt>
       <dd>
         <input type="number" name="MTU" class="narrow" min="68" max="9198" placeholder="1500"
-          value="<?= htmlspecialchars($cfg['MTU'] ?? '') ?>">
-        <select name="USE_MTU" class="narrow">
+          value="<?= htmlspecialchars($cfg['MTU'] ?? '') ?>" <?= $is_bond_slave ? 'disabled' : '' ?>>
+        <select name="USE_MTU" class="narrow" <?= $is_bond_slave ? 'disabled' : '' ?>>
           <?= mk_option($cfg['USE_MTU'] ?? 'no', 'no', 'Default') ?>
           <?= mk_option($cfg['USE_MTU'] ?? 'no', 'yes', 'Custom') ?>
         </select>
       </dd>
     </dl>
-    <blockquote class="inline_help">
-      <strong>Default</strong> — leave the kernel/driver MTU alone (usually 1500).<br>
-      <strong>Custom</strong> — Apply sets the number you enter (68–9198). Both ends should match; jumbo frames
-      only help if the path and peer allow them.
-    </blockquote>
+    <blockquote class="inline_help">Custom MTU only when both ends and the path allow it.</blockquote>
 
     <dl>
       <dt>Include listening interface:</dt>
@@ -305,44 +464,36 @@ if (strpos($nm, '.') === false) {
       </dd>
     </dl>
     <blockquote class="inline_help">
-      Same as <strong>Host services on Thunderbolt links</strong> on the overview tab (preferred place to manage this).
-      <strong>Yes</strong> — add this iface to Unraid <code>network-extra.cfg</code> include list so host services
-      (SMB, NFS, SSH, web UI, …) can listen on the TB IP. <strong>Recommended for bulk transfers.</strong><br>
-      <strong>No</strong> (default) — safer; IP/ping still work, but shares/UI usually will not on this address.
-      Preference is remembered per peer when set from the overview table.
+      Prefer the overview <strong>Known peers / Host services</strong> controls. Yes = Unraid host services
+      (SMB/NFS/web UI) may listen on this TB IP.
     </blockquote>
 
     <dl>
       <dt>IPv4 (live):</dt>
-      <dd><span class="tbn-live"><?= htmlspecialchars($addrs ? implode(', ', $addrs) : '—') ?></span></dd>
+      <dd><span class="tbn-live" data-tbn-live-ip4="<?= htmlspecialchars($if) ?>"><?= htmlspecialchars($addrs ? implode(', ', $addrs) : '—') ?></span></dd>
     </dl>
-    <blockquote class="inline_help">
-      Addresses currently assigned on the live netdev (from <code>ip addr</code>). Compare with the static
-      fields above after Apply. Empty usually means the link is down or no address was applied yet.
-    </blockquote>
-
+    <dl>
+      <dt>IPv6 (live):</dt>
+      <dd><span class="tbn-live" data-tbn-live-ip6="<?= htmlspecialchars($if) ?>"><?= htmlspecialchars($addrs6 ? implode(', ', $addrs6) : '—') ?></span></dd>
+    </dl>
     <dl>
       <dt>Bond / bridge membership:</dt>
       <dd>
         <span class="tbn-live"><?= htmlspecialchars($membership ? implode(' ', $membership) : ($master !== '' ? $master : 'none')) ?></span>
       </dd>
     </dl>
-    <blockquote class="inline_help">
-      Read-only view of whether this interface is enslaved to a bond or bridge right now.
-    </blockquote>
+    <blockquote class="inline_help">Read-only live membership.</blockquote>
 
     <p class="tbn-actions">
-      <input type="submit" name="#apply" value="Apply">
+      <input type="submit" name="#apply" value="Apply" <?= $is_bond_slave ? '' : 'disabled' ?>>
       <input type="submit" name="#apply" value="Reset" onclick="return tbnConfirmReset(this.form);">
       <input type="button" value="Done" onclick="done()">
     </p>
   </form>
 
   <p class="tbn-note">
-    Controller, fabric, driver options (including <strong>host-wide E2E</strong>), and PCI/IOMMU:
+    Overview / fabric / driver options:
     <a href="/Settings/NetworkSettings" onclick="return tbnGotoNetTab('Thunderbolt', event)">Thunderbolt</a>
-    · <?= tbn_docs_more_html('docs/driver-options.md', 'Driver options docs ↗') ?>
-    · <?= tbn_docs_more_html('docs/peer-scenarios.md', 'Peer scenarios ↗') ?>
   </p>
 
   <?= tbn_docs_bar_html('iface') ?>
@@ -351,3 +502,10 @@ if (strpos($nm, '.') === false) {
 
 </div>
 <script src="/plugins/ThunderboltNet/thunderboltnet.js?v=<?= htmlspecialchars($ver) ?>"></script>
+<script>
+(function () {
+  if (typeof tbnInitIfaceForm === 'function') {
+    tbnInitIfaceForm(document.getElementById('tbn-form-<?= htmlspecialchars($label, ENT_QUOTES) ?>'));
+  }
+})();
+</script>
