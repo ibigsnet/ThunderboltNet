@@ -561,6 +561,8 @@ function tbn_link_quality(array $remote, array $status = []) {
   $empty = [
     'level' => 'unknown',
     'label' => 'No link',
+    // lead = short complete sentence for table cells (never mid-word "…")
+    'lead' => '',
     'note' => '',
     'likely' => '',
     'suggestion' => '',
@@ -614,14 +616,16 @@ function tbn_link_quality(array $remote, array $status = []) {
     return [
       'level' => 'warn',
       'label' => '20G · 1-lane',
+      'lead' => 'Likely cable or port path (not the peer OS “capping” you).',
       'note' => "This host’s controller looks capable of higher rates ({$ctrl}, often up to ~40G / 2-lane). "
         . "Trained path is {$trained} both directions.",
-      'likely' => 'Most likely a cable or cable-path limit — a 20G-class / single-lane USB-C cable, '
-        . 'a long passive cable that only trains one lane, or a port that is not full USB4/TB bandwidth.',
+      'likely' => 'Most likely a cable or cable-path limit: a 20G-class / single-lane USB-C cable, '
+        . 'a long passive cable that only trains one lane, or a port that is not full Thunderbolt/USB4 bandwidth '
+        . '(front-panel headers are a common weak path).',
       'suggestion' => 'For higher speeds: use a certified 40 Gbps Thunderbolt 4 or USB4 cable '
         . '(prefer short passive, or active if you need length). Re-seat both ends, try the other rear TB/USB4 ports, '
-        . 'and avoid front-panel USB-C unless you know it is wired for full USB4.',
-      'less_likely' => 'Less likely: one host “capping” the other when both sides are Gen3+/USB4. '
+        . 'and avoid front-panel USB-C unless you know it is wired for full bandwidth.',
+      'less_likely' => 'Less likely: one host “capping” the other when both sides are Gen3+/USB4-class. '
         . 'BIOS/firmware can still force a lower mode — check Thunderbolt/USB4 security and port mode if a known-good 40G cable still trains 20G×1.',
       'detail' => "Controller {$ctrl}; trained {$trained}; likely cable/path limit",
     ];
@@ -631,6 +635,7 @@ function tbn_link_quality(array $remote, array $status = []) {
     return [
       'level' => 'ok',
       'label' => 'High rate',
+      'lead' => 'Dual-lane high rate — path looks healthy.',
       'note' => "Trained at a high dual-lane rate ({$trained}). Controller: {$ctrl}.",
       'likely' => 'Path looks healthy for high-speed host-to-host Thunderbolt networking.',
       'suggestion' => '',
@@ -643,6 +648,7 @@ function tbn_link_quality(array $remote, array $status = []) {
     return [
       'level' => 'info',
       'label' => $trained !== '' ? $trained : 'Linked',
+      'lead' => 'Two lanes trained; rate is moderate for this controller class.',
       'note' => "Dual-lane link at {$trained} on {$ctrl}.",
       'likely' => 'Link trained with 2 lanes; rate is moderate — cable, peer, or intermediate hop may still limit peak Gb/s.',
       'suggestion' => 'If you expected ~40G, try a certified 40 Gbps TB4/USB4 cable and confirm the peer also supports dual-lane high rate.',
@@ -655,6 +661,7 @@ function tbn_link_quality(array $remote, array $status = []) {
     return [
       'level' => 'info',
       'label' => $trained !== '' ? $trained : 'Linked',
+      'lead' => 'Link is up at the trained rate shown above.',
       'note' => "Trained path: {$trained}. Controller: {$ctrl}.",
       'likely' => '',
       'suggestion' => '',
@@ -666,6 +673,7 @@ function tbn_link_quality(array $remote, array $status = []) {
   return [
     'level' => 'info',
     'label' => 'Linked',
+    'lead' => 'Interface present; little rate detail from sysfs.',
     'note' => '',
     'likely' => '',
     'suggestion' => '',
@@ -696,14 +704,16 @@ function tbn_link_quality_html(array $q, $compact = true) {
   }
 
   if ($compact) {
-    // One short lead line in the cell; rest collapsible so the table does not explode
-    $lead = $likely !== '' ? $likely : $note;
-    if (strlen($lead) > 140) {
-      $lead = rtrim(substr($lead, 0, 137)) . '…';
+    // Complete short sentence only (no mid-sentence "…"); full text under details
+    $lead = trim((string)($q['lead'] ?? ''));
+    if ($lead === '') {
+      $lead = $likely !== '' ? $likely : $note;
     }
-    $html .= '<p class="tbn-quality-lead">' . htmlspecialchars($lead) . '</p>';
+    if ($lead !== '') {
+      $html .= '<p class="tbn-quality-lead">' . htmlspecialchars($lead) . '</p>';
+    }
     $html .= '<details class="tbn-quality-details">';
-    $html .= '<summary>Details &amp; suggestion</summary>';
+    $html .= '<summary>Full explanation &amp; what to try</summary>';
     $html .= '<div class="tbn-quality-advice">';
     if ($note !== '') {
       $html .= '<p class="tbn-quality-note">' . htmlspecialchars($note) . '</p>';

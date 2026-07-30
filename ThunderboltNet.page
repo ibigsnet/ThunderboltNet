@@ -543,17 +543,45 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
 <?php endforeach; ?>
       </tbody>
     </table>
+    <p class="tbn-note tbn-fabric-legend">
+      <strong>How to read IDs</strong> (example with two peers):
+      <code>0-0</code> = this Unraid host router ·
+      <code>0-1</code> / <code>0-3</code> = remote machines (peer name, RX/TX, lanes) ·
+      <code>0-1.0</code> / <code>0-3.0</code> = services under those peers (often blank Name; netdev already on the peer row) ·
+      <code>domain0</code> = domain container (security), not a cable. Services and domain stay hidden until you expand above.
+    </p>
     <dl>
-      <dt>Fabric roles:</dt>
-      <dd class="tbn-muted">What domain / service / peer mean</dd>
+      <dt>Fabric roles (detail):</dt>
+      <dd class="tbn-muted">Local controller, peer, service, domain</dd>
     </dl>
     <blockquote class="inline_help">
-      <strong>local controller (<code>0-0</code>)</strong> — this machine’s Thunderbolt host router (board product + OEM).<br>
-      <strong>peer (<code>0-1</code>, <code>0-3</code>, …)</strong> — remote host on a trained path; rates/lanes live here.<br>
-      <strong>service (<code>0-1.0</code>, …)</strong> — kernel service node under a peer (e.g. networking). Name/stack are often blank;
-      the useful netdev name is usually already on the parent peer row. Hidden by default.<br>
-      <strong>domain (<code>domain0</code>)</strong> — container for this host controller’s Thunderbolt domain
-      (security level and domain-wide state live under this in sysfs). Not a cable peer; hidden by default.
+      <strong>local controller — <code>0-0</code></strong><br>
+      This machine’s Thunderbolt <em>host router</em> (the silicon/firmware on the motherboard or add-in card).
+      <em>Name</em> is usually the board product (e.g. <code>ROG CROSSHAIR X670E EXTREME</code>);
+      <em>Manufacturer / stack</em> is usually the OEM (e.g. <code>ASUS</code>).
+      RX/TX and lanes are often blank here — rates are reported on the <em>peer</em> rows.<br><br>
+
+      <strong>peer — <code>0-1</code>, <code>0-3</code>, <code>0-5</code>, …</strong><br>
+      A remote host that completed path training with this domain.
+      Numbers are topology IDs (not “port 1 on the back panel” in a simple 1:1 way).
+      Example: <code>0-1</code> might be a laptop named <code>ZENBURN</code> with stack <code>Intel Corp.</code>;
+      <code>0-3</code> might be a desktop <code>HoloX3D</code> with stack <code>Linux</code>.
+      <em>RX / TX</em> and <em>Lanes</em> for that hop live on this row.
+      <em>Netdevs</em> lists the kernel interface for that peer (e.g. <code>thunderbolt1</code> → Settings tab <strong>tbn1</strong>).<br><br>
+
+      <strong>service — <code>0-1.0</code>, <code>0-3.0</code>, …</strong><br>
+      A child of a peer: a protocol service on that path (host networking is the usual one).
+      The <code>.0</code> (or <code>.1</code>, …) is the service index under parent <code>0-1</code> / <code>0-3</code>.
+      <em>Name</em> and <em>Manufacturer / stack</em> are often empty — that is normal, not a bug.
+      When a netdev is listed (e.g. <code>thunderbolt1</code>), it is the same interface already shown on the parent peer row.
+      Hidden by default to save space; use <em>Show services &amp; domain</em> if you are debugging topology.<br><br>
+
+      <strong>domain — <code>domain0</code></strong><br>
+      The software container for this host controller’s Thunderbolt domain
+      (one domain per controller is typical). Domain-wide settings such as
+      <em>security</em> are associated here in sysfs. It is <strong>not</strong> a remote PC and not a cable.
+      Hidden by default.
+      <?= tbn_help_docs_footer('docs/links-and-topology.md', 'Links and topology') ?>
     </blockquote>
 <?php endif; ?>
   </div>
