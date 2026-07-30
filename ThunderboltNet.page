@@ -48,42 +48,36 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
 <?= tbn_docs_bar_html('overview') ?>
 
 <?php if (!$has_hw): ?>
-  <div class="tbn-nohw-layout">
-    <div class="tbn-nohw-left">
-      <div class="tbn-notice" role="status">
-        <h4>No Thunderbolt host controller detected</h4>
-        <p>
-          Linux does not see a Thunderbolt host interface that can run host-to-host networking
-          (Thunderbolt&nbsp;3 /&nbsp;4 /&nbsp;5 or USB4-class host controllers, when the kernel exposes them).
-          Ordinary USB&nbsp;2/3 ports alone do not provide this path.
-        </p>
-        <p>
-          This plugin is not required on this system unless you add compatible hardware.
-          Use the port marks on the right to confirm what your case silkscreen shows.
-        </p>
-        <p class="tbn-notice-issue">
-          If that seems wrong, copy the plugin diagnostics below and open an issue:<br>
-          <a href="<?= htmlspecialchars($issues_url) ?>" target="_blank" rel="noopener"><?= htmlspecialchars($issues_url) ?></a>
-        </p>
-        <p class="tbn-notice-tools">
-          For a full Unraid package (logs, lspci, etc.), also run
-          <a href="/Tools/Diagnostics">Tools → Diagnostics</a>
-          and attach that zip when filing the issue.
-        </p>
-        <label class="tbn-diag-label" for="tbn-diagnostics">Plugin diagnostics</label>
-        <textarea id="tbn-diagnostics" class="tbn-diag" readonly rows="12" spellcheck="false"><?= htmlspecialchars($diag) ?></textarea>
-        <p class="tbn-actions">
-          <input type="button" value="Copy diagnostics" onclick="tbnCopyDiagnostics()">
-          <input type="button" value="Refresh" onclick="location.reload()">
-          <input type="button" value="Done" onclick="done()">
-        </p>
-      </div>
-    </div>
-    <div class="tbn-nohw-right">
-      <?= tbn_port_icons_legend_html('side') ?>
-    </div>
+  <div class="tbn-notice" role="status">
+    <h4>No Thunderbolt host controller detected</h4>
+    <p>
+      Linux does not see a Thunderbolt host interface that can run host-to-host networking
+      (Thunderbolt&nbsp;3 /&nbsp;4 /&nbsp;5 or USB4-class host controllers, when the kernel exposes them).
+      Ordinary USB&nbsp;2/3 ports alone do not provide this path.
+    </p>
+    <p>
+      This plugin is not required on this system unless you add compatible hardware.
+      Rear-panel marks (Thunderbolt lightning /&nbsp;40 vs SuperSpeed SS only): see
+      <a href="<?= htmlspecialchars(tbn_docs_url('docs/port-icons.md')) ?>" target="_blank" rel="noopener">port icons guide</a>.
+    </p>
+    <p class="tbn-notice-issue">
+      If that seems wrong, copy the plugin diagnostics below and open an issue:<br>
+      <a href="<?= htmlspecialchars($issues_url) ?>" target="_blank" rel="noopener"><?= htmlspecialchars($issues_url) ?></a>
+    </p>
+    <p class="tbn-notice-tools">
+      For a full Unraid package (logs, lspci, etc.), also run
+      <a href="/Tools/Diagnostics">Tools → Diagnostics</a>
+      and attach that zip when filing the issue.
+    </p>
+    <label class="tbn-diag-label" for="tbn-diagnostics">Plugin diagnostics</label>
+    <textarea id="tbn-diagnostics" class="tbn-diag" readonly rows="14" spellcheck="false"><?= htmlspecialchars($diag) ?></textarea>
+    <p class="tbn-actions">
+      <input type="button" value="Copy diagnostics" onclick="tbnCopyDiagnostics()">
+      <input type="button" value="Refresh" onclick="location.reload()">
+      <input type="button" value="Done" onclick="done()">
+    </p>
   </div>
-  <?= tbn_docs_bar_html('ports') ?>
+  <?= tbn_docs_bar_html('overview') ?>
 
 <?php else: ?>
 
@@ -394,24 +388,38 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
         </tr>
         <tr>
           <th scope="row">Link RX / TX</th>
-          <td class="tbn-col-local tbn-muted">— (rate is end-to-end on each peer hop)</td>
+          <td class="tbn-col-local tbn-muted">
+<?php
+  $max_rx = !empty($tbn_cap['max_short'])
+    ? $tbn_cap['max_short']
+    : '—';
+  // LOCAL = host ceiling; live rates are only meaningful on each REMOTE hop
+  echo htmlspecialchars($max_rx !== '—' ? ('Max ' . $max_rx) : '—');
+?>
+          </td>
 <?php foreach ($links as $L):
   $rem = $L['remote'];
+  $rxf = function_exists('tbn_format_gbps') && ($rem['rx_speed'] ?? '') !== ''
+    ? tbn_format_gbps($rem['rx_speed'])
+    : (($rem['rx_speed'] ?? '') !== '' ? $rem['rx_speed'] : '—');
+  $txf = function_exists('tbn_format_gbps') && ($rem['tx_speed'] ?? '') !== ''
+    ? tbn_format_gbps($rem['tx_speed'])
+    : (($rem['tx_speed'] ?? '') !== '' ? $rem['tx_speed'] : '—');
 ?>
           <td class="tbn-col-remote">
-            <strong><?= htmlspecialchars(function_exists('tbn_format_gbps') && $rem['rx_speed'] !== ''
-              ? tbn_format_gbps($rem['rx_speed'])
-              : ($rem['rx_speed'] !== '' ? $rem['rx_speed'] : '—')) ?></strong>
+            <strong><?= htmlspecialchars($rxf) ?></strong>
             /
-            <strong><?= htmlspecialchars(function_exists('tbn_format_gbps') && $rem['tx_speed'] !== ''
-              ? tbn_format_gbps($rem['tx_speed'])
-              : ($rem['tx_speed'] !== '' ? $rem['tx_speed'] : '—')) ?></strong>
+            <strong><?= htmlspecialchars($txf) ?></strong>
           </td>
 <?php endforeach; ?>
         </tr>
         <tr>
           <th scope="row">Lanes RX / TX</th>
-          <td class="tbn-col-local tbn-muted">—</td>
+          <td class="tbn-col-local tbn-muted">
+            <?= !empty($tbn_cap['max_lanes'])
+              ? htmlspecialchars('Max ' . (int)$tbn_cap['max_lanes'] . '-lane')
+              : '—' ?>
+          </td>
 <?php foreach ($links as $L):
   $rem = $L['remote'];
 ?>
@@ -424,10 +432,7 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
           <th scope="row">Link quality</th>
           <td class="tbn-col-local tbn-cap-local">
 <?php
-  // LOCAL = this host’s max class (why yellow 20G is a warning). REMOTE cells = trained path.
-  $tbn_cap = function_exists('tbn_controller_capability')
-    ? tbn_controller_capability()
-    : ['max_short' => '', 'label' => ''];
+  // LOCAL = this host’s max class + ports. REMOTE cells = trained path vs max.
   echo function_exists('tbn_controller_capability_html')
     ? tbn_controller_capability_html($tbn_cap)
     : '<span class="tbn-muted">Controller capability vs trained path</span>';
@@ -771,10 +776,6 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
     <?= tbn_help_docs_footer('docs/standards-and-speeds.md', 'Standards & speeds') ?>
     · <?= tbn_docs_more_html('docs/troubleshooting.md', 'Troubleshooting ↗') ?>
   </blockquote>
-
-  <div class="tbn-legend-footer">
-    <?= tbn_port_icons_legend_html('half') ?>
-  </div>
 
   <?= tbn_docs_bar_html('overview') ?>
 

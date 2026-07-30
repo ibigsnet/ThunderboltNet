@@ -1,13 +1,10 @@
 # Port icons and silkscreen (do I have Thunderbolt?)
 
-Use the marks **printed next to the physical ports** on the motherboard rear I/O or laptop side. The plugin’s **Identify ports on your case** table shows the **Thunderbolt lightning mark** (as on certified TB ports) and **USB SuperSpeed (SS + rate)** style marks so you can match your case.
+Use the marks **printed next to the physical ports** on the motherboard rear I/O or laptop side. This guide is **docs-only** (not drawn in the Unraid UI — silkscreen logos are hard to render cleanly in-plugin).
 
-| Host type | Where the table sits |
-|-----------|----------------------|
-| **No TB controller** (e.g. many secondary boxes) | Right of the “no controller” message |
-| **Has TB** | Half-width panel at the **bottom-right** of the Thunderbolt tab |
+**Short rule:** Thunderbolt lightning and/or printed **40** next to Type‑C → TB/USB4 class. **SS¹⁰ / SS²⁰** alone → USB SuperSpeed only (not this plugin’s host networking path). DisplayPort **D** alone is not enough.
 
-Thunderbolt is a trademark of Intel Corporation. USB SuperSpeed / trident marks are associated with USB‑IF. The plugin graphics are for identification against silkscreen.
+Thunderbolt is a trademark of Intel Corporation. USB SuperSpeed marks are associated with USB‑IF.
 
 ---
 
