@@ -239,7 +239,7 @@ if (strpos($nm, '.') === false) {
 
   <p class="tbn-note">
     Controller, modules, fabric devices, and PCI/IOMMU details:
-    <a href="/Settings/ThunderboltNet">Thunderbolt</a> tab.
+    <a href="/Settings/NetworkSettings" onclick="return tbnGotoNetTab('Thunderbolt', event)">Thunderbolt</a> tab.
   </p>
 
 <?php endif; ?>
