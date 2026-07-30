@@ -2111,6 +2111,121 @@ function tbn_docs_url($path = 'DOCS.md') {
  * Compact docs nav for Settings pages (overview + tbnN).
  * $active: overview | iface | addressing | speeds | requirements | topology | troubleshoot
  */
+/**
+ * Port silkscreen legend — always shown (with or without TB hardware).
+ * Helps users match rear-panel icons to “do I have Thunderbolt/USB4 host networking?”
+ * Marks are typical OEM silkscreen patterns, not official trademark artwork.
+ */
+function tbn_port_icons_legend_html() {
+  $html = '<div class="tbn-section tbn-port-legend" id="tbn-port-icons">';
+  $html .= '<h3>Identify ports on your case</h3>';
+  $html .= '<p class="tbn-note">';
+  $html .= 'Match the <strong>icons printed next to the ports</strong> on your motherboard or laptop. ';
+  $html .= 'If you only have SuperSpeed USB marks (SS<sup>10</sup> / SS<sup>20</sup>) and no 40 / lightning-style Thunderbolt family marks, ';
+  $html .= 'you usually <strong>do not</strong> have a Thunderbolt/USB4 host controller for this plugin.';
+  $html .= '</p>';
+
+  $html .= '<table class="tbn-table tbn-wide tbn-icon-table">';
+  $html .= '<thead><tr>';
+  $html .= '<th>Typical mark</th><th>What it means</th><th>Host-to-host TB net?</th>';
+  $html .= '</tr></thead><tbody>';
+
+  // Row: TB / USB4 40
+  $html .= '<tr class="tbn-icon-row-yes">';
+  $html .= '<td class="tbn-icon-cell">';
+  $html .= '<span class="tbn-silk tbn-silk-tb40" title="Typical 40 Gb/s Thunderbolt / USB4 silkscreen" aria-hidden="true">';
+  $html .= '<span class="tbn-silk-bolt">⚡</span><span class="tbn-silk-num">40</span>';
+  $html .= '</span>';
+  $html .= '<span class="tbn-silk tbn-silk-tb" title="Thunderbolt-family mark" aria-hidden="true">';
+  $html .= '<svg class="tbn-silk-svg" viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">';
+  $html .= '<path fill="currentColor" d="M11 2 L7 13h4l-1 9 7-12h-4l2-8z"/>';
+  $html .= '</svg></span>';
+  $html .= '<div class="tbn-silk-caption">Lightning + <strong>40</strong> (often next to USB‑C)</div>';
+  $html .= '</td>';
+  $html .= '<td><strong>Thunderbolt 4 / USB4 · 40&nbsp;Gb/s class</strong><br>';
+  $html .= '<span class="tbn-muted">Host router can tunnel PCIe/DP and host networking when the OS exposes it. May also show a small DisplayPort “D”.</span></td>';
+  $html .= '<td><span class="tbn-badge tbn-badge-ok">Yes — use these</span></td>';
+  $html .= '</tr>';
+
+  // TB3 / older lightning only
+  $html .= '<tr class="tbn-icon-row-yes">';
+  $html .= '<td class="tbn-icon-cell">';
+  $html .= '<span class="tbn-silk tbn-silk-tb" title="Thunderbolt mark only" aria-hidden="true">';
+  $html .= '<svg class="tbn-silk-svg" viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">';
+  $html .= '<path fill="currentColor" d="M11 2 L7 13h4l-1 9 7-12h-4l2-8z"/>';
+  $html .= '</svg></span>';
+  $html .= '<div class="tbn-silk-caption">Lightning alone (TB3/TB4 era)</div>';
+  $html .= '</td>';
+  $html .= '<td><strong>Thunderbolt-family Type‑C</strong><br>';
+  $html .= '<span class="tbn-muted">Often TB3 (~40&nbsp;Gb/s class dual-lane) or TB4. Check the manual if no “40” is printed.</span></td>';
+  $html .= '<td><span class="tbn-badge tbn-badge-ok">Usually yes</span></td>';
+  $html .= '</tr>';
+
+  // SS 20
+  $html .= '<tr class="tbn-icon-row-no">';
+  $html .= '<td class="tbn-icon-cell">';
+  $html .= '<span class="tbn-silk tbn-silk-ss" aria-hidden="true">SS<sup>20</sup></span>';
+  $html .= '<div class="tbn-silk-caption">SuperSpeed 20 only</div>';
+  $html .= '</td>';
+  $html .= '<td><strong>USB 3.2 Gen 2×2 · 20&nbsp;Gb/s USB data</strong><br>';
+  $html .= '<span class="tbn-muted">Fast USB Type‑C. Not full Thunderbolt host networking by itself.</span></td>';
+  $html .= '<td><span class="tbn-badge tbn-badge-unknown">No (USB only)</span></td>';
+  $html .= '</tr>';
+
+  // SS 10
+  $html .= '<tr class="tbn-icon-row-no">';
+  $html .= '<td class="tbn-icon-cell">';
+  $html .= '<span class="tbn-silk tbn-silk-ss" aria-hidden="true">SS<sup>10</sup></span>';
+  $html .= '<div class="tbn-silk-caption">SuperSpeed 10 (Type‑C or red USB‑A)</div>';
+  $html .= '</td>';
+  $html .= '<td><strong>USB 3.2 Gen 2 · 10&nbsp;Gb/s</strong><br>';
+  $html .= '<span class="tbn-muted">Common USB SuperSpeed. Storage, hubs, keyboards — not TB net.</span></td>';
+  $html .= '<td><span class="tbn-badge tbn-badge-unknown">No</span></td>';
+  $html .= '</tr>';
+
+  // SS 5 / plain
+  $html .= '<tr class="tbn-icon-row-no">';
+  $html .= '<td class="tbn-icon-cell">';
+  $html .= '<span class="tbn-silk tbn-silk-ss" aria-hidden="true">SS<sup>5</sup></span>';
+  $html .= '<span class="tbn-silk tbn-silk-usb2" aria-hidden="true">USB</span>';
+  $html .= '<div class="tbn-silk-caption">SS<sup>5</sup> or plain USB</div>';
+  $html .= '</td>';
+  $html .= '<td><strong>USB 3.0/3.1 5&nbsp;Gb/s or USB 2.0</strong></td>';
+  $html .= '<td><span class="tbn-badge tbn-badge-unknown">No</span></td>';
+  $html .= '</tr>';
+
+  // DP only
+  $html .= '<tr class="tbn-icon-row-maybe">';
+  $html .= '<td class="tbn-icon-cell">';
+  $html .= '<span class="tbn-silk tbn-silk-dp" aria-hidden="true">D</span>';
+  $html .= '<div class="tbn-silk-caption">DisplayPort “D” only</div>';
+  $html .= '</td>';
+  $html .= '<td><strong>DisplayPort Alt Mode on Type‑C</strong><br>';
+  $html .= '<span class="tbn-muted">Video-capable USB‑C. <em>Alone</em> does not prove Thunderbolt — look for lightning / 40 as well.</span></td>';
+  $html .= '<td><span class="tbn-badge tbn-badge-info">Not enough</span></td>';
+  $html .= '</tr>';
+
+  $html .= '</tbody></table>';
+
+  $html .= '<p class="tbn-legend-rule"><strong>Rule of thumb:</strong> ';
+  $html .= 'Thunderbolt/USB4 host networking needs a controller Linux can see — almost always ports marked with a ';
+  $html .= '<em>lightning-style Thunderbolt family mark</em> and/or <strong>40</strong> (sometimes USB4 wording in the manual). ';
+  $html .= 'SS<sup>10</sup> / SS<sup>20</sup> only → ordinary USB SuperSpeed.</p>';
+
+  $html .= '<p class="tbn-muted tbn-legend-legal">';
+  $html .= 'Icons above are <em>simplified silkscreen-style</em> helpers for matching your case. ';
+  $html .= 'Thunderbolt is a trademark of Intel; USB SuperSpeed marks follow USB‑IF style. ';
+  $html .= 'Always confirm with the motherboard manual if unsure.';
+  $html .= '</p>';
+  $html .= '<p class="tbn-muted">'
+    . tbn_docs_more_html('docs/port-icons.md', 'Port icons guide ↗')
+    . ' · '
+    . tbn_docs_more_html('docs/standards-and-speeds.md', 'Standards & speeds ↗')
+    . '</p>';
+  $html .= '</div>';
+  return $html;
+}
+
 function tbn_docs_bar_html($active = 'overview') {
   $links = [
     'guide' => ['DOCS.md', 'Docs home'],
@@ -2119,6 +2234,7 @@ function tbn_docs_bar_html($active = 'overview') {
     'addressing' => ['docs/addressing.md', 'Addressing'],
     'mtu' => ['docs/mtu-and-throughput.md', 'MTU & throughput'],
     'speeds' => ['docs/standards-and-speeds.md', 'Standards & speeds'],
+    'ports' => ['docs/port-icons.md', 'Port icons'],
     'requirements' => ['docs/requirements.md', 'Requirements'],
     'topology' => ['docs/links-and-topology.md', 'Links & topology'],
     'troubleshoot' => ['docs/troubleshooting.md', 'Troubleshooting'],

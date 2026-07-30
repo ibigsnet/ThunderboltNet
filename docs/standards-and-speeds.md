@@ -14,6 +14,10 @@ Thunderbolt Net uses the Linux **`thunderbolt`** + **`thunderbolt_net`** stack: 
 
 We do **not** lock the product to one marketing number (TB4-only or USB4-only). If Linux sees a host domain and a `thunderboltN` netdev, this plugin is for that link.
 
+## Port silkscreen (case / rear I/O)
+
+Match printed marks on the metal panel to decide if a Type‑C is Thunderbolt/USB4 or only SuperSpeed USB. Full table + icons live in the plugin (**Identify ports on your case**) and [port-icons.md](port-icons.md). Short form: **lightning / 40** → TB-class; **SS¹⁰ / SS²⁰ only** → USB SuperSpeed, not this plugin’s path.
+
 ## What is *not* the same thing
 
 | Name | Relation to Thunderbolt Net |

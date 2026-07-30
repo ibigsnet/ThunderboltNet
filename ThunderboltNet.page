@@ -76,6 +76,10 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
     </p>
   </div>
 
+  <?php // Always show on no-TB hosts (e.g. PLUSH) so users can match rear-panel silkscreen ?>
+  <?= tbn_port_icons_legend_html() ?>
+  <?= tbn_docs_bar_html('ports') ?>
+
 <?php else: ?>
 
 <?php
@@ -83,6 +87,8 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
   $local_ctrl = $status['local_controller'] ?? tbn_sysfs_str('/sys/bus/thunderbolt/devices/0-0/device_name');
   $local_mfg = $status['local_manufacturer'] ?? tbn_sysfs_str('/sys/bus/thunderbolt/devices/0-0/vendor_name');
 ?>
+  <?= tbn_port_icons_legend_html() ?>
+
   <div class="tbn-section">
     <h3>This host</h3>
     <p class="tbn-note">
