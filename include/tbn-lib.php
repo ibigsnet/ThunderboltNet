@@ -41,11 +41,25 @@ function tbn_load_cfg() {
     'bond_name' => 'bond-tb',
     'bond_mode' => 'balance-rr',
   ];
-  $cfg = function_exists('parse_plugin_cfg')
-    ? parse_plugin_cfg(tbn_plugin_name())
-    : [];
-  if (!is_array($cfg)) {
-    $cfg = [];
+  $cfg = [];
+  if (function_exists('parse_plugin_cfg')) {
+    $parsed = parse_plugin_cfg(tbn_plugin_name());
+    if (is_array($parsed)) {
+      $cfg = $parsed;
+    }
+  } elseif (is_readable(tbn_cfg_path())) {
+    // CLI / no Helpers: parse .cfg key="value" lines ourselves
+    foreach (file(tbn_cfg_path(), FILE_IGNORE_NEW_LINES) ?: [] as $line) {
+      $line = trim($line);
+      if ($line === '' || $line[0] === ';' || $line[0] === '#') {
+        continue;
+      }
+      if (preg_match('/^([A-Za-z0-9_]+)="([^"]*)"/', $line, $m)) {
+        $cfg[$m[1]] = $m[2];
+      } elseif (preg_match('/^([A-Za-z0-9_]+)=(.*)$/', $line, $m)) {
+        $cfg[$m[1]] = trim($m[2], " \t\"'");
+      }
+    }
   }
   return array_merge($defaults, $cfg);
 }

@@ -1,13 +1,23 @@
 <?php
 /**
- * Apply ThunderboltNet actions (POST).
- * Develop locally; ship via plugin install from GitHub.
+ * Apply ThunderboltNet actions (POST or CLI ?action=).
  */
-header('Content-Type: application/json; charset=utf-8');
-header('Cache-Control: no-store');
+if (PHP_SAPI !== 'cli') {
+  header('Content-Type: application/json; charset=utf-8');
+  header('Cache-Control: no-store');
+}
 
-$docroot = $_SERVER['DOCUMENT_ROOT'] ?? '/usr/local/emhttp';
-require_once "$docroot/webGui/include/Helpers.php";
+$docroot = $_SERVER['DOCUMENT_ROOT'] ?? '';
+if ($docroot === '' || !is_dir($docroot)) {
+  $docroot = '/usr/local/emhttp';
+}
+$_SERVER['DOCUMENT_ROOT'] = $docroot;
+
+$helpers = $docroot . '/webGui/include/Helpers.php';
+if (is_file($helpers)) {
+  require_once $helpers;
+}
+
 require_once __DIR__ . '/tbn-lib.php';
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';

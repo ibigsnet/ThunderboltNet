@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.07.29ad">
+<!ENTITY version "2026.07.29ae">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -34,7 +34,11 @@
 
 <CHANGES>
 ###&version;
-- Settings help: user-facing cable/NHI notes only (no developer workflow text).
+- CLI/JSON status works over SSH without a broken Helpers path; cfg readable without web context.
+- Static IP apply still brings the iface up first (needed for carrier on host TB links).
+
+###2026.07.29ad
+- Settings help: user-facing cable/NHI notes only.
 
 ###2026.07.29ac
 - Cleaner install/remove: refresh plugin files on install; remove clears plugin files and TB listening-interface entries; settings under /boot are kept.
