@@ -191,11 +191,15 @@ if (strpos($nm, '.') === false) {
         <dl>
           <dt>Bond name:</dt>
           <dd>
-            <input type="text" name="BOND_NAME" class="narrow" maxlength="15"
-              value="<?= htmlspecialchars($cfg['BOND_NAME'] ?? 'bond-tb0') ?>">
+            <input type="text" name="BOND_NAME" class="tbn-ifname" maxlength="15"
+              value="<?= htmlspecialchars($cfg['BOND_NAME'] ?? 'bond-tb0') ?>"
+              placeholder="bond-tb0">
           </dd>
         </dl>
-        <blockquote class="inline_help">Default <code>bond-tb0</code>. Do not reuse <code>bond0</code>.</blockquote>
+        <blockquote class="inline_help">
+          Default <code>bond-tb0</code> (then <code>bond-tb1</code>, …). Do not reuse Unraid eth <code>bond0</code>.
+          Only shown when bonding is Yes.
+        </blockquote>
 
         <dl>
           <dt>Bond members:</dt>
@@ -242,13 +246,14 @@ if (strpos($nm, '.') === false) {
         <dl>
           <dt>Bridge name:</dt>
           <dd>
-            <input type="text" name="BR_NAME" class="narrow" maxlength="15"
-              value="<?= htmlspecialchars($cfg['BR_NAME'] ?? 'br-tb0') ?>">
+            <input type="text" name="BR_NAME" class="tbn-ifname" maxlength="15"
+              value="<?= htmlspecialchars($cfg['BR_NAME'] ?? 'br-tb0') ?>"
+              placeholder="br-tb0">
           </dd>
         </dl>
         <blockquote class="inline_help">
-          Unraid eth uses fixed names (<code>br0</code> with eth0, often one management bridge).
-          For TB use <code>br-tb0</code>, <code>br-tb1</code>, … if you ever need separate bridges — never steal <code>br0</code>.
+          Default <code>br-tb0</code> (then <code>br-tb1</code>, …). Unraid management stays on <code>br0</code> —
+          never reuse that name. Only shown when bridging is Yes. Auto-create is still limited.
         </blockquote>
       </div>
     </div>
@@ -412,18 +417,18 @@ if (strpos($nm, '.') === false) {
           </dl>
           <dl>
             <dt>IPv4 address:</dt>
-            <dd>
-              <input type="text" name="<?= htmlspecialchars($p) ?>IPADDR" maxlength="15" value="<?= htmlspecialchars($v4) ?>">
-              /
+            <dd class="tbn-cidr-row">
+              <input type="text" name="<?= htmlspecialchars($p) ?>IPADDR" class="tbn-ip" maxlength="15" value="<?= htmlspecialchars($v4) ?>">
+              <span class="tbn-cidr-slash">/</span>
               <?php tbn_render_netmask_select($p . 'NETMASK', $vnm_d, $masks); ?>
             </dd>
           </dl>
           <dl>
             <dt>IPv6 address:</dt>
-            <dd>
-              <input type="text" name="<?= htmlspecialchars($p) ?>IPADDR6" maxlength="39"
+            <dd class="tbn-cidr-row">
+              <input type="text" name="<?= htmlspecialchars($p) ?>IPADDR6" class="tbn-ip6" maxlength="39"
                 value="<?= htmlspecialchars($cfg[$p . 'IPADDR6'] ?? '') ?>">
-              /
+              <span class="tbn-cidr-slash">/</span>
               <input type="number" name="<?= htmlspecialchars($p) ?>NETMASK6" class="narrow" min="1" max="128"
                 value="<?= htmlspecialchars($cfg[$p . 'NETMASK6'] ?? '64') ?>">
             </dd>
@@ -459,8 +464,14 @@ if (strpos($nm, '.') === false) {
       </dd>
     </dl>
     <blockquote class="inline_help">
-      Prefer the overview <strong>Known peers / Host services</strong> controls. Yes = Unraid host services
-      (SMB/NFS/web UI) may listen on this TB IP.
+      Puts this <strong>netdev</strong> (<code><?= htmlspecialchars($if) ?></code>) into Unraid
+      <code>network-extra.cfg</code> <em>include_interfaces</em> so host SMB / NFS / SSH / web UI can bind on
+      its address. This is an interface list — not a peer list.<br><br>
+      Day-to-day: prefer overview <strong>Known peers → Unraid services</strong> (remembers Yes/No per host and
+      re-applies when that peer reconnects). This tab control is the live override for this iface (useful when
+      the IP lives on the TB iface itself). Bond/bridge names (<code>bond-tb0</code> / <code>br-tb0</code>)
+      are reserved for when addressing sits on those masters; host-service include today keys off
+      <code>thunderboltN</code> via peers/tabs.
     </blockquote>
 
     <dl>

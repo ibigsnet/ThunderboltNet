@@ -1623,6 +1623,13 @@ function tbn_load_iface_cfg($if) {
     $raw['DEFAULT_ROUTE'] = (($raw['NEVER_DEFAULT'] ?? 'yes') === 'yes') ? 'no' : 'yes';
     unset($raw['NEVER_DEFAULT']);
   }
+  // Legacy short names (pre bond-tb0 / br-tb0) → numbered defaults
+  if (isset($raw['BOND_NAME']) && ($raw['BOND_NAME'] === 'bond-tb' || $raw['BOND_NAME'] === '')) {
+    $raw['BOND_NAME'] = 'bond-tb0';
+  }
+  if (isset($raw['BR_NAME']) && ($raw['BR_NAME'] === 'br-tb' || $raw['BR_NAME'] === '')) {
+    $raw['BR_NAME'] = 'br-tb0';
+  }
   return array_merge(tbn_iface_defaults($if), $raw);
 }
 

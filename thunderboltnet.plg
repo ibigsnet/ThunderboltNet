@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.07.30ak">
+<!ENTITY version "2026.07.30al">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -34,6 +34,8 @@
 
 <CHANGES>
 ###&version;
+- IPv4/IPv6 CIDR row alignment; bond-tb0/br-tb0 name fields + legacy bond-tb/br-tb migrate; listening help.
+
 - Link down / no carrier: note says fine to unplug (not "usually").
 
 - Fix activity sampling (no more too-close samples); compact services row; live activity poll.

@@ -478,27 +478,51 @@
   font-size: 1.05em;
 }
 
-/* Keep address + / + CIDR on one baseline (Unraid dd can stack block children) */
+/* Keep address + / + CIDR on one baseline (Unraid often makes dd children block/100% wide) */
 .tbn-wrap dd.tbn-cidr-row {
-  display: flex;
-  flex-wrap: wrap;
+  display: flex !important;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 0.35rem 0.45rem;
+  gap: 0.4rem;
+  white-space: nowrap;
 }
 .tbn-wrap dd.tbn-cidr-row .tbn-cidr-slash {
   display: inline-block;
+  flex: 0 0 auto;
   font-weight: 600;
   line-height: 1;
-  padding: 0 0.1rem;
+  padding: 0 0.05rem;
+  width: auto !important;
+}
+.tbn-wrap dd.tbn-cidr-row input.tbn-ip,
+.tbn-wrap dd.tbn-cidr-row input.tbn-ip6,
+.tbn-wrap dd.tbn-cidr-row select,
+.tbn-wrap dd.tbn-cidr-row input.narrow {
+  display: inline-block !important;
+  float: none !important;
+  width: auto !important;
+  max-width: none;
+  margin: 0 !important;
+  vertical-align: middle;
+  box-sizing: border-box;
 }
 .tbn-wrap dd.tbn-cidr-row input.tbn-ip {
-  max-width: 11rem;
+  width: 11.5rem !important;
+  min-width: 9rem;
 }
 .tbn-wrap dd.tbn-cidr-row input.tbn-ip6 {
-  max-width: 18rem;
+  width: 18rem !important;
+  min-width: 12rem;
 }
 .tbn-wrap dd.tbn-cidr-row select.narrow,
 .tbn-wrap dd.tbn-cidr-row input.narrow {
-  max-width: 5.5rem !important;
-  vertical-align: middle;
+  width: 5.75rem !important;
+  min-width: 4.5rem;
+}
+/* bond-tb0 / br-tb0 — not Unraid "narrow" (too tight for those names) */
+.tbn-wrap input.tbn-ifname {
+  display: inline-block !important;
+  width: 9.5rem !important;
+  max-width: 12rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
