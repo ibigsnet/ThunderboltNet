@@ -27,11 +27,13 @@ function tbn_network_extra_path() {
  */
 function tbn_load_cfg() {
   $defaults = [
+    'tbn_defaults' => '',
     'load_modules' => 'yes',
     'e2e_flow_control' => 'no',
     // Default IPv4 plan for new/Reset iface tabs: small-lan | p2p | custom
     'address_plan' => 'small-lan',
     'include_listening' => 'no',
+    // Legacy global IP path (tbn tabs own addressing; leave manage_ip=no)
     'manage_ip' => 'no',
     'ip_addr' => '10.255.0.2',
     'ip_cidr' => '24',
@@ -41,7 +43,7 @@ function tbn_load_cfg() {
     'iface_secondary' => 'thunderbolt1',
     'bond_enable' => 'no',
     'bond_name' => 'bond-tb0',
-    'bond_mode' => 'balance-rr',
+    'bond_mode' => 'active-backup',
     // Space-separated warning keys the user chose to hide globally (e.g. vfio:0000:11:00.0)
     'ignore_warnings' => '',
   ];
@@ -2703,10 +2705,14 @@ function tbn_write_global_cfg(array $cfg) {
     'iface_secondary' => 'thunderbolt1',
     'bond_enable' => 'no',
     'bond_name' => 'bond-tb0',
-    'bond_mode' => 'balance-rr',
+    'bond_mode' => 'active-backup',
     'ignore_warnings' => '',
   ];
   $merged = array_merge($defaults, $cfg);
+  // Normalize legacy bond mode default
+  if (($merged['bond_mode'] ?? '') === 'balance-rr' && ($cfg['bond_mode'] ?? '') === '') {
+    $merged['bond_mode'] = 'active-backup';
+  }
   $dir = tbn_cfg_dir();
   if (!is_dir($dir)) {
     @mkdir($dir, 0755, true);
