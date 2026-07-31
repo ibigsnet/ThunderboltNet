@@ -12,7 +12,10 @@ Thunderbolt Net uses the Linux **`thunderbolt`** + **`thunderbolt_net`** stack: 
 | **USB4** (incl. 20G / 40G product tiers) | **Optional** host-to-host in the USB4 spec; works when the platform implements USB4 host router + networking | Same Linux driver family as Thunderbolt on modern kernels |
 | **USB4 Version 2.0** | Same idea at higher PHY rates (e.g. 80&nbsp;Gb/s class) when controllers/cables allow | Often discussed alongside TB5; not a separate plugin mode |
 
-We do **not** lock the product to one marketing number (TB4-only or USB4-only). If Linux sees a host domain and a `thunderboltN` netdev, this plugin is for that link.
+We do **not** lock the product to one marketing number (not TB4-only, not “40G only”).  
+If Linux sees a host domain and a `thunderboltN` netdev — whether that host is TB3, TB4, TB5, USB4 20G/40G-class, or USB4 v2 80G-class — this plugin is for that link.
+
+**Trained 20 Gb/s · 1-lane** is usually a **path result** (how the link trained), not a separate “20G Thunderbolt product mode” you opted into. Dual-capable hosts still often land there on host-to-host under Linux.
 
 ## Port silkscreen (case / rear I/O)
 

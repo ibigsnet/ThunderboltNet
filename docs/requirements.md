@@ -14,7 +14,10 @@
 
 ## Cable
 
-- Prefer a **certified Thunderbolt / USB4** cable rated for both ends (40&nbsp;Gbps class is the usual TB4-era pick; higher-rated cables for TB5/USB4 v2 when both hosts support it).  
+- Prefer a **certified Thunderbolt / USB4-class** cable that matches **both** hosts:
+  - TB3/TB4 era: often 40&nbsp;Gbps-class passive  
+  - TB5 / USB4 v2: 80&nbsp;Gbps-class when both ends support it  
+- Not SS-only SuperSpeed USB ports/cables (no host-net tunnel).  
 - Details: [standards-and-speeds.md](standards-and-speeds.md).
 
 ## BIOS / firmware (typical checklist)

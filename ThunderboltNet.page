@@ -296,7 +296,7 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
       (NO-CARRIER, no peer, weird addresses). Software cleanup alone may not fix it.<br><br>
       <strong>1.</strong> Unplug <em>all</em> Thunderbolt / USB4 host cables from <em>both ends on both machines</em>.<br>
       <strong>2.</strong> Wait a few seconds until peers disappear.<br>
-      <strong>3.</strong> Plug back <em>exactly one</em> known-good TB4/USB4 cable (40G-class ports only).<br>
+      <strong>3.</strong> Plug back <em>exactly one</em> known-good Thunderbolt/USB4-class cable on full TB/USB4 host ports (not SS-only USB).<br>
       <strong>4.</strong> Confirm one peer and one <code>thunderboltN</code>, then Apply IP / services on the tbn tab.<br><br>
       Soft “port power cycle” is not available; physical unplug is the reliable retrain.
       <?= tbn_help_docs_footer('docs/troubleshooting.md', 'Troubleshooting') ?>
@@ -792,9 +792,11 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
     <dd class="tbn-muted">One cable · never unbind NHI</dd>
   </dl>
   <blockquote class="inline_help">
-    Prefer a single certified <strong>Thunderbolt 4 / USB4</strong> cable on full TB ports (not SS-only 20G USB).
-    <em>Single-lane</em> / 20&nbsp;Gb/s · 1-lane on a dual-capable host is common for Linux host-to-host — not a failed install.
-    Sticker “40&nbsp;Gb/s” is dual-lane class; trained path is what you get.<br><br>
+    Prefer a single certified <strong>Thunderbolt / USB4-class</strong> cable that matches both hosts
+    (TB3 40G-class, TB4, TB5 / USB4 v2 80G-class when both ends support it — not SS-only SuperSpeed USB).
+    Plugin works on any generation Linux exposes as a TB host + <code>thunderbolt_net</code>.
+    <em>Single-lane</em> / 20&nbsp;Gb/s · 1-lane is a common <em>trained</em> result on dual-capable hosts under Linux host-to-host — not “this port is only 20G” and not a failed install.
+    Sticker rates (40&nbsp;Gb/s, 80&nbsp;Gb/s, …) are capability class; <strong>trained</strong> rate and lanes are what you get.<br><br>
     <strong>Never</strong> unbind the Thunderbolt NHI to “fix” networking — that can wedge the controller until reboot.
     <?= tbn_help_docs_footer('docs/standards-and-speeds.md', 'Standards & speeds') ?>
     · <?= tbn_docs_more_html('docs/troubleshooting.md', 'Troubleshooting ↗') ?>
