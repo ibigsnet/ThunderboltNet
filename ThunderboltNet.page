@@ -277,7 +277,7 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
       <code>rx_speed</code> is per lane; dual-lane would still show ~20&nbsp;Gb/s with <strong>2-lane</strong>.
       Single-lane (~20&nbsp;Gb/s · 1-lane) is common for TB host-to-host under Linux.<br><br>
       <strong>Link quality</strong> — trained rate first; yellow <em>Single-lane</em> means below controller class max,
-      not a failed install. ~10–15&nbsp;Gbit/s TCP is normal for 1-lane. MTU&nbsp;9000 both ends helps CPU, not dual-lane.<br><br>
+      not a failed install. ~10–15&nbsp;Gbit/s TCP is normal for 1-lane. Optional MTU&nbsp;9000 on <em>both</em> ends can cut retrans/CPU a bit — not negotiated, and not dual-lane.<br><br>
       <strong>Local IPv4 / MAC / state</strong> under REMOTE are <em>this Unraid end</em> of that link.
       Set addresses on each <strong>tbnN</strong> tab. Happy path: <strong>one cable, one peer, one IP</strong>.
       Do not dual-cable the same peer to bond for speed.

@@ -1976,11 +1976,11 @@ function tbn_iface_defaults($if = 'thunderbolt0') {
     'NETMASK6' => '64',
     'GATEWAY6' => '',
     'DEFAULT_ROUTE6' => 'no',
-    // MTU_MODE: default (kernel 1500) | 9000 (recommended TB bulk) | custom
-    // Product default 9000 for bulk host-net; peer must match or PMTU pain.
-    'MTU_MODE' => '9000',
+    // MTU_MODE: default (kernel 1500) | 9000 (optional jumbo, both ends) | custom
+    // Product default 1500 for first-plug compatibility; 9000 only when both ends set it.
+    'MTU_MODE' => 'default',
     'MTU' => '9000',
-    'USE_MTU' => 'yes', // kept in sync with MTU_MODE for older logic
+    'USE_MTU' => 'no', // kept in sync with MTU_MODE for older logic
     'INCLUDE_LISTENING' => 'no',
   ];
 }

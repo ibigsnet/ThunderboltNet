@@ -61,8 +61,8 @@ The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt l
 1. Confirm a Thunderbolt-family **host controller** is visible (Thunderbolt tab shows hardware, not the empty state).
 2. Use **one** certified Thunderbolt / USB4-class cable that matches both hosts (TB3/4/5, USB4, USB4 v2 as applicable — not SS-only SuperSpeed USB). Do not dual-cable the same peer for bonding.
 3. On **Thunderbolt → Driver options**, leave **E2E flow control = No** unless a peer scenario says otherwise.
-4. When `thunderbolt0` appears, open **tbn0**, set a **static** IPv4 (e.g. `10.255.0.2/24`), **MTU 9000** (both ends), Apply.
-5. On the peer, matching address (e.g. `10.255.0.1/24`) and matching MTU on its Thunderbolt network interface.
+4. When `thunderbolt0` appears, open **tbn0**, set a **static** IPv4 (e.g. `10.255.0.2/24`), leave **MTU 1500** unless both ends will set jumbo, Apply.
+5. On the peer, matching address (e.g. `10.255.0.1/24`). MTU is not auto-negotiated — only raise to 9000 if you set **both** ends.
 6. Ping both ways. **Trained** rate can be less than the port sticker (e.g. **20 Gb/s · 1-lane** on a dual-capable TB4 host is common under Linux). Expect roughly **~10–15 Gbit/s** TCP on that path — not full sticker 40G/80G TCP ([speeds](docs/standards-and-speeds.md)).
 7. If dual-cable experiments wedged the fabric: unplug **all** TB cables on **both** machines, wait, plug **one** cable only ([troubleshooting](docs/troubleshooting.md)).
 
