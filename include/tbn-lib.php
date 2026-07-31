@@ -2709,10 +2709,6 @@ function tbn_write_global_cfg(array $cfg) {
     'ignore_warnings' => '',
   ];
   $merged = array_merge($defaults, $cfg);
-  // Normalize legacy bond mode default
-  if (($merged['bond_mode'] ?? '') === 'balance-rr' && ($cfg['bond_mode'] ?? '') === '') {
-    $merged['bond_mode'] = 'active-backup';
-  }
   $dir = tbn_cfg_dir();
   if (!is_dir($dir)) {
     @mkdir($dir, 0755, true);

@@ -34,7 +34,7 @@
 
 <CHANGES>
 ###&version;
-- Clean defaults: 10.255.0.2/24 + address_plan small-lan; bond_mode active-backup; MTU 1500; comments for legacy global keys.
+- Clean defaults: 10.255.0.2/24 + address_plan small-lan; bond_mode active-backup; MTU 1500; document legacy global keys.
 
 ###2026.07.30bc
 - Default IPv4 10.255.0.2/24 for thunderbolt0 (not 10.255.1.2); matches tbnN → 10.255.N.2 plan.
