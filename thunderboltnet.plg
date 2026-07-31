@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.07.30bb">
+<!ENTITY version "2026.07.30bc">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -34,6 +34,9 @@
 
 <CHANGES>
 ###&version;
+- Default IPv4 10.255.0.2/24 for thunderbolt0 (not 10.255.1.2); matches tbnN → 10.255.N.2 plan.
+
+###2026.07.30bb
 - MTU product default back to 1500 for compatibility; 9000 optional both ends (not negotiated to peer; little TCP gain on 1-lane in lab).
 
 ###2026.07.30ba
