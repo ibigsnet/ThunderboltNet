@@ -34,6 +34,8 @@ $ifaces = tbn_list_tb_iface_names();
 
 $mod_tb = !empty($mods['thunderbolt']) ? 'loaded' : 'not loaded';
 $mod_net = !empty($mods['thunderbolt_net']) ? 'loaded' : 'not loaded';
+$usb4stream = $status['usb4stream'] ?? (function_exists('tbn_usb4stream_status') ? tbn_usb4stream_status() : []);
+$mod_stream = !empty($usb4stream['loaded']) ? 'loaded' : (!empty($usb4stream['available']) ? 'available (not loaded)' : 'not in kernel');
 $peer_count = 0;
 foreach ($devices as $d) {
   if (preg_match('/^\d+-\d+$/', $d['id']) && $d['id'] !== '0-0' && ($d['device_name'] !== '' || $d['rx_speed'] !== '')) {
@@ -93,14 +95,25 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
       <tr><td>Domain security</td><td><code><?= htmlspecialchars($status['security'] ?: '(none/unknown)') ?></code></td></tr>
       <tr><td>Kernel modules</td>
         <td><code>thunderbolt</code> <?= htmlspecialchars($mod_tb) ?> ·
-            <code>thunderbolt_net</code> <?= htmlspecialchars($mod_net) ?></td></tr>
+            <code>thunderbolt_net</code> <?= htmlspecialchars($mod_net) ?> ·
+            <code>thunderbolt_stream</code> <?= htmlspecialchars($mod_stream) ?></td></tr>
+      <tr><td>USB4STREAM</td>
+        <td>
+<?php if (!empty($usb4stream['devices'])): ?>
+          <code><?= htmlspecialchars(implode(' ', $usb4stream['devices'])) ?></code>
+<?php elseif (!empty($usb4stream['available'])): ?>
+          <span class="tbn-muted">module available — enable under Driver options when ready</span>
+<?php else: ?>
+          <span class="tbn-muted">needs Linux ~7.2+ (raw stream path; not InfiniBand)</span>
+<?php endif; ?>
+        </td></tr>
       <tr><td>Listening includes</td>
         <td><code><?= htmlspecialchars(implode(' ', $include) ?: '(none)') ?></code>
           <span class="tbn-muted"> — Unraid services bind list</span></td></tr>
     </table>
     <dl>
       <dt>This host fields:</dt>
-      <dd class="tbn-muted">Domain security · modules · listening</dd>
+      <dd class="tbn-muted">Domain security · modules · USB4STREAM · listening</dd>
     </dl>
     <blockquote class="inline_help">
       <strong>Domain security</strong> — from sysfs (<code>none</code>, <code>user</code>, <code>secure</code>, …).
@@ -108,10 +121,13 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
       the cable may not open full access. <code>none</code> means that gate is open (common for lab host-to-host).
       <code>user</code> / <code>secure</code> mean you (or a key) must approve devices — more like production ACL.<br><br>
       <strong>Kernel modules</strong> — <code>thunderbolt</code> = host controller stack;
-      <code>thunderbolt_net</code> = <code>thunderboltN</code> network interfaces.<br><br>
+      <code>thunderbolt_net</code> = <code>thunderboltN</code> IP network interfaces (what tbn tabs configure);
+      <code>thunderbolt_stream</code> = optional <strong>USB4STREAM</strong> raw host↔host path (Linux ~7.2+),
+      separate from Ethernet-over-TB.<br><br>
       <strong>Listening includes</strong> — names in <code>network-extra.cfg</code> so SMB / NFS / SSH / web UI
       may bind there. Set per peer under <strong>Known peers</strong> or on each tbn tab.
       <?= tbn_help_docs_footer('docs/requirements.md', 'Requirements') ?>
+      · <?= tbn_docs_more_html('docs/usb4stream.md', 'USB4STREAM ↗') ?>
     </blockquote>
   </div>
 
@@ -778,6 +794,29 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
         configure them like eth, not tbn.
         <?= tbn_help_docs_footer('docs/driver-options.md', 'E2E & modules guide') ?>
         · <?= tbn_docs_more_html('docs/peer-scenarios.md', 'Peer scenarios (Mac / Linux / Windows / docks) ↗') ?>
+      </blockquote>
+
+      <dl>
+        <dt>Enable USB4STREAM:</dt>
+        <dd>
+          <select name="enable_usb4stream" <?= empty($usb4stream['available']) ? 'title="Module not in this kernel"' : '' ?>>
+            <?= mk_option($cfg['enable_usb4stream'] ?? 'no', 'no', 'No (default)') ?>
+            <?= mk_option($cfg['enable_usb4stream'] ?? 'no', 'yes', 'Yes — load thunderbolt_stream when available') ?>
+          </select>
+        </dd>
+      </dl>
+      <blockquote class="inline_help">
+        <strong>USB4STREAM</strong> is a separate Linux path from <code>thunderbolt_net</code> (tbn0 IP networking).
+        On kernels that ship it (~7.2+), it can expose raw stream devices
+        (<code>/dev/tbstream*</code>) for high-speed host↔host transfers without the IP stack.<br><br>
+        <strong>This is not InfiniBand.</strong> IB-style RDMA over TB is research / out-of-tree
+        (e.g. thunderbolt-ibverbs demos) — the plugin does not load those modules.<br><br>
+        <strong>Status on this host:</strong>
+        <?= htmlspecialchars($usb4stream['note'] ?? 'unknown') ?><br><br>
+        <strong>No</strong> (default) — only use IP host-net (tbn tabs). Safe on Unraid 6.x / older kernels.<br>
+        <strong>Yes</strong> — on Apply, also <code>modprobe thunderbolt_stream</code> if the kernel has it;
+        ignored cleanly if the module is missing. Peer must support stream too for a useful path.
+        <?= tbn_help_docs_footer('docs/usb4stream.md', 'USB4STREAM guide') ?>
       </blockquote>
 
       <p class="tbn-actions">

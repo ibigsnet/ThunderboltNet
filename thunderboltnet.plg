@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.07.30bd">
+<!ENTITY version "2026.08.05">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -34,6 +34,13 @@
 
 <CHANGES>
 ###&version;
+- USB4STREAM awareness: detect thunderbolt_stream, optional load on Apply, status/diagnostics, docs (not InfiniBand; needs kernel ~7.2+).
+- Dashboard network: include thunderboltN (tbnN), bond-tbN, br-tbN in Interface dropdown, throughput graph, counters, and errors (same poller as eth/bond/wlan).
+
+###2026.08.03
+- Dashboard network: include thunderboltN (tbnN), bond-tbN, br-tbN in Interface dropdown, throughput graph, counters, and errors (same poller as eth/bond/wlan).
+
+###2026.07.30bd
 - Clean defaults: 10.255.0.2/24 + address_plan small-lan; bond_mode active-backup; MTU 1500; document legacy global keys.
 
 ###2026.07.30bc
@@ -258,10 +265,20 @@ Plug-and-play host-to-host networking over Thunderbolt-family ports on Unraid (T
 <URL>&raw;/scripts/tbn-status?v=&version;</URL>
 </FILE>
 
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports">
+<URL>&raw;/scripts/tbn-dashboard-ports?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/event/started">
+<URL>&raw;/event/started?v=&version;</URL>
+</FILE>
+
 <FILE Run="/bin/bash">
 <INLINE><![CDATA[
 echo "ThunderboltNet: finishing install..."
 chmod 755 /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-status 2>/dev/null || true
+chmod 755 /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports 2>/dev/null || true
+chmod 755 /usr/local/emhttp/plugins/ThunderboltNet/event/started 2>/dev/null || true
 mkdir -p /boot/config/plugins/ThunderboltNet/ifaces
 if [ ! -f /boot/config/plugins/ThunderboltNet/ThunderboltNet.cfg ]; then
   if [ -f /usr/local/emhttp/plugins/ThunderboltNet/default.cfg ]; then
@@ -271,6 +288,10 @@ if [ ! -f /boot/config/plugins/ThunderboltNet/ThunderboltNet.cfg ]; then
 fi
 # Generate tbnN tabs for any live thunderbolt* ifaces
 php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; tbn_sync_iface_pages();' 2>/dev/null || true
+# Dashboard Interface list: thunderboltN / bond-tbN / br-tbN (throughput + errors)
+if [ -x /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports ]; then
+  /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports apply || true
+fi
 echo "ThunderboltNet: install complete. Settings → Network Settings → Thunderbolt / tbnN (hard-refresh)."
 ls -la /usr/local/emhttp/plugins/ThunderboltNet/ || true
 ls -la /usr/local/emhttp/plugins/ThunderboltNet/Tbn*.page 2>/dev/null || true
@@ -313,6 +334,11 @@ do
 done
 if [ -d /boot/config/modprobe.d ] && [ -z "$(ls -A /boot/config/modprobe.d 2>/dev/null)" ]; then
   rmdir /boot/config/modprobe.d 2>/dev/null || true
+fi
+
+# Restore stock Dashboard port lists before removing scripts
+if [ -x /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports ]; then
+  /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports remove || true
 fi
 
 rm -rf /usr/local/emhttp/plugins/ThunderboltNet

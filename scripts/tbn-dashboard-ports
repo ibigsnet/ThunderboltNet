@@ -1,0 +1,163 @@
+#!/bin/bash
+# Include Thunderbolt host-net ifaces on Unraid Dashboard network throughput.
+#
+# Stock dynamix only lists bondN / ethN / wlanN (+ lo). Kernel names for this
+# plugin are thunderboltN (Settings tabs tbn0, tbn1, …), plus optional bond-tbN
+# and br-tbN. Patch the two places that build the port list:
+#   - plugins/dynamix/nchan/update_3   (live rates, counters, errors → graph)
+#   - plugins/dynamix/DashStats.page   (port dropdown on Dashboard)
+#
+# Usage: tbn-dashboard-ports apply|remove|status
+# Safe to re-run; backs up stock files once; reversible on uninstall.
+
+set -euo pipefail
+
+MARKER='ThunderboltNet-dashboard-ports'
+UPDATE3="/usr/local/emhttp/plugins/dynamix/nchan/update_3"
+DASH="/usr/local/emhttp/plugins/dynamix/DashStats.page"
+BACKUP_DIR="/boot/config/plugins/ThunderboltNet/dashboard-ports-backup"
+
+# Exact stock / patched fragments (must match LimeTech strings)
+STOCK_GREP="grep -Po '^(bond|eth|wlan)\\d+$'"
+# bond0|eth0|wlan0|thunderbolt0  +  bond-tb0|br-tb0
+TBN_GREP="grep -Po '^(bond|eth|wlan|thunderbolt)\\d+$|^(bond-tb|br-tb)\\d+$'"
+
+log() { echo "ThunderboltNet dashboard-ports: $*"; }
+
+backup_once() {
+  local f="$1" base
+  base=$(basename "$f")
+  mkdir -p "$BACKUP_DIR"
+  if [ ! -f "$BACKUP_DIR/$base.stock" ]; then
+    cp -a "$f" "$BACKUP_DIR/$base.stock"
+    log "backed up stock $base → $BACKUP_DIR/$base.stock"
+  fi
+}
+
+apply_file() {
+  local f="$1"
+  if [ ! -f "$f" ]; then
+    log "skip missing $f"
+    return 0
+  fi
+  if grep -qF "$MARKER" "$f" 2>/dev/null && grep -qF 'thunderbolt' "$f" 2>/dev/null; then
+    log "already applied: $f"
+    return 0
+  fi
+  if ! grep -qF "grep -Po '^(bond|eth|wlan)" "$f" 2>/dev/null; then
+    log "WARN: ports grep not found in $f — Unraid layout may have changed; skip"
+    return 0
+  fi
+  backup_once "$f"
+  python3 - "$f" <<'PY'
+import sys
+from pathlib import Path
+path = Path(sys.argv[1])
+text = path.read_text()
+marker = "ThunderboltNet-dashboard-ports"
+stock = "grep -Po '^(bond|eth|wlan)\\d+$'"
+patched = "grep -Po '^(bond|eth|wlan|thunderbolt)\\d+$|^(bond-tb|br-tb)\\d+$' # " + marker
+if marker in text and "thunderbolt" in text:
+    print("already ok", path)
+    raise SystemExit(0)
+if stock not in text:
+    # maybe already partial
+    if "thunderbolt" in text and "grep -Po" in text:
+        print("partial/unknown", path)
+        raise SystemExit(0)
+    print("stock pattern missing", path)
+    raise SystemExit(1)
+text2 = text.replace(stock, patched, 1)
+if text2 == text:
+    print("no change", path)
+    raise SystemExit(1)
+path.write_text(text2)
+print("patched", path)
+PY
+  log "applied: $f"
+}
+
+remove_file() {
+  local f="$1" base
+  base=$(basename "$f")
+  if [ ! -f "$f" ]; then
+    return 0
+  fi
+  if [ -f "$BACKUP_DIR/$base.stock" ]; then
+    if grep -qF "$MARKER" "$f" 2>/dev/null || grep -qF 'thunderbolt)\\d' "$f" 2>/dev/null; then
+      cp -a "$BACKUP_DIR/$base.stock" "$f"
+      log "restored stock: $f"
+    fi
+    return 0
+  fi
+  python3 - "$f" <<'PY'
+import sys
+from pathlib import Path
+path = Path(sys.argv[1])
+if not path.is_file():
+    raise SystemExit(0)
+text = path.read_text()
+marker = "ThunderboltNet-dashboard-ports"
+stock = "grep -Po '^(bond|eth|wlan)\\d+$'"
+patched_marked = (
+    "grep -Po '^(bond|eth|wlan|thunderbolt)\\d+$|^(bond-tb|br-tb)\\d+$' # " + marker
+)
+patched_bare = "grep -Po '^(bond|eth|wlan|thunderbolt)\\d+$|^(bond-tb|br-tb)\\d+$'"
+if patched_marked in text:
+    text2 = text.replace(patched_marked, stock, 1)
+elif patched_bare in text:
+    text2 = text.replace(patched_bare, stock, 1)
+else:
+    raise SystemExit(0)
+path.write_text(text2)
+print("reverted", path)
+PY
+  log "reverted: $f"
+}
+
+restart_nchan_update3() {
+  if pgrep -f 'plugins/dynamix/nchan/update_3' >/dev/null 2>&1; then
+    pkill -f 'plugins/dynamix/nchan/update_3' 2>/dev/null || true
+    log "restarted nchan update_3 (Dashboard network poller)"
+  fi
+}
+
+status_file() {
+  local f="$1"
+  if [ ! -f "$f" ]; then
+    echo "  missing: $f"
+    return
+  fi
+  if grep -qF "$MARKER" "$f" 2>/dev/null; then
+    echo "  patched: $f"
+  elif grep -qF "grep -Po '^(bond|eth|wlan)\\d+$'" "$f" 2>/dev/null; then
+    echo "  stock:   $f"
+  else
+    echo "  other:   $f"
+  fi
+}
+
+cmd="${1:-status}"
+case "$cmd" in
+  apply)
+    apply_file "$UPDATE3"
+    apply_file "$DASH"
+    restart_nchan_update3
+    log "done — hard-refresh Dashboard; choose thunderbolt0 in the Interface dropdown"
+    ;;
+  remove)
+    remove_file "$UPDATE3"
+    remove_file "$DASH"
+    restart_nchan_update3
+    log "removed dashboard port patches"
+    ;;
+  status)
+    log "status"
+    status_file "$UPDATE3"
+    status_file "$DASH"
+    ;;
+  *)
+    echo "Usage: $0 apply|remove|status" >&2
+    exit 2
+    ;;
+esac

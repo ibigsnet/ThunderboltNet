@@ -30,6 +30,9 @@ function tbn_load_cfg() {
     'tbn_defaults' => '',
     'load_modules' => 'yes',
     'e2e_flow_control' => 'no',
+    // USB4STREAM (thunderbolt-stream): raw host↔host path, separate from thunderbolt_net
+    // Default no until kernel ≥ ~7.2 ships the module; plugin detects and enables gracefully.
+    'enable_usb4stream' => 'no',
     // Default IPv4 plan for new/Reset iface tabs: small-lan | p2p | custom
     'address_plan' => 'small-lan',
     'include_listening' => 'no',
@@ -1521,11 +1524,76 @@ function tbn_domain_security() {
 function tbn_modules_loaded() {
   $txt = @file_get_contents('/proc/modules');
   if ($txt === false) {
-    return ['thunderbolt' => false, 'thunderbolt_net' => false];
+    return [
+      'thunderbolt' => false,
+      'thunderbolt_net' => false,
+      'thunderbolt_stream' => false,
+    ];
   }
+  // /proc/modules uses underscores; modprobe may accept thunderbolt-stream
+  $stream = (strpos($txt, 'thunderbolt_stream ') !== false
+    || preg_match('/^thunderbolt_stream\s/m', $txt)
+    || strpos($txt, 'thunderbolt-stream ') !== false);
   return [
     'thunderbolt' => (strpos($txt, 'thunderbolt ') !== false || preg_match('/^thunderbolt\s/m', $txt)),
     'thunderbolt_net' => (strpos($txt, 'thunderbolt_net ') !== false || preg_match('/^thunderbolt_net\s/m', $txt)),
+    'thunderbolt_stream' => $stream,
+  ];
+}
+
+/**
+ * Whether the running kernel can load USB4STREAM (module present in tree).
+ * Module name: thunderbolt_stream / thunderbolt-stream (Linux 7.2+).
+ */
+function tbn_usb4stream_module_available() {
+  static $cached = null;
+  if ($cached !== null) {
+    return $cached;
+  }
+  $out = [];
+  @exec('modinfo thunderbolt_stream 2>/dev/null', $out, $rc1);
+  if ($rc1 === 0 && $out) {
+    $cached = true;
+    return true;
+  }
+  $out = [];
+  @exec('modinfo thunderbolt-stream 2>/dev/null', $out, $rc2);
+  $cached = ($rc2 === 0 && $out);
+  return $cached;
+}
+
+/**
+ * USB4STREAM status for UI / JSON (raw host↔host stream, not IP).
+ *
+ * Returns: available, loaded, devices[], configfs, note
+ */
+function tbn_usb4stream_status() {
+  $mods = tbn_modules_loaded();
+  $available = tbn_usb4stream_module_available();
+  $loaded = !empty($mods['thunderbolt_stream']);
+  $devs = [];
+  foreach (@glob('/dev/tbstream*') ?: [] as $p) {
+    $devs[] = basename($p);
+  }
+  sort($devs);
+  $configfs = is_dir('/sys/kernel/config/thunderbolt/stream')
+    || is_dir('/sys/kernel/config/usb4stream');
+  $note = '';
+  if (!$available) {
+    $note = 'Kernel has no thunderbolt_stream module (USB4STREAM needs Linux ~7.2+). thunderbolt_net still works.';
+  } elseif (!$loaded) {
+    $note = 'Module available but not loaded. Enable USB4STREAM under Driver options and Apply, or modprobe thunderbolt-stream.';
+  } elseif (!$devs) {
+    $note = 'Module loaded; no /dev/tbstream* yet — configure stream via configfs when a peer is up (see docs/usb4stream.md).';
+  } else {
+    $note = 'USB4STREAM devices present: ' . implode(', ', $devs);
+  }
+  return [
+    'available' => $available,
+    'loaded' => $loaded,
+    'devices' => $devs,
+    'configfs' => $configfs,
+    'note' => $note,
   ];
 }
 
@@ -1603,6 +1671,10 @@ function tbn_diagnostics_text() {
   $out[] = 'domain0: ' . ($probe['domain0'] ? 'yes' : 'no');
   $out[] = 'module_thunderbolt: ' . (!empty($probe['modules']['thunderbolt']) ? 'loaded' : 'not loaded');
   $out[] = 'module_thunderbolt_net: ' . (!empty($probe['modules']['thunderbolt_net']) ? 'loaded' : 'not loaded');
+  $stream = tbn_usb4stream_status();
+  $out[] = 'usb4stream_available: ' . (!empty($stream['available']) ? 'yes' : 'no');
+  $out[] = 'module_thunderbolt_stream: ' . (!empty($stream['loaded']) ? 'loaded' : 'not loaded');
+  $out[] = 'usb4stream_devices: ' . (implode(' ', $stream['devices'] ?? []) ?: '(none)');
   $out[] = 'domain_security: ' . (tbn_domain_security() ?: '(none)');
   $out[] = '--- lspci (thunderbolt/USB4 matches) ---';
   if ($probe['pci_lines']) {
@@ -1655,6 +1727,7 @@ function tbn_status() {
     'time' => date('c'),
     'security' => tbn_domain_security(),
     'modules' => tbn_modules_loaded(),
+    'usb4stream' => tbn_usb4stream_status(),
     'hardware' => $probe,
     'has_hardware' => !empty($probe['has_hardware']),
     'local_controller' => tbn_sysfs_str('/sys/bus/thunderbolt/devices/0-0/device_name'),
@@ -1766,6 +1839,11 @@ function tbn_load_modules() {
     '/etc/modprobe.d/thunderbolt_net.conf',
     "options thunderbolt_net e2e={$e2e}\n"
   );
+  // USB4STREAM — optional raw path; never fails the net stack if missing
+  if (($cfg['enable_usb4stream'] ?? 'no') === 'yes' && tbn_usb4stream_module_available()) {
+    @exec('modprobe thunderbolt_stream 2>/dev/null');
+    @exec('modprobe thunderbolt-stream 2>/dev/null');
+  }
   return tbn_modules_loaded();
 }
 
@@ -2694,6 +2772,7 @@ function tbn_write_global_cfg(array $cfg) {
     'tbn_defaults' => '',
     'load_modules' => 'yes',
     'e2e_flow_control' => 'no',
+    'enable_usb4stream' => 'no',
     'address_plan' => 'small-lan',
     'include_listening' => 'no',
     'manage_ip' => 'no',

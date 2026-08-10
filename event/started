@@ -1,0 +1,7 @@
+#!/bin/bash
+# Re-apply Dashboard port list patch after array start / OS upgrade
+# (LimeTech may replace nchan/update_3 and DashStats.page).
+SCRIPT=/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports
+if [ -x "$SCRIPT" ]; then
+  "$SCRIPT" apply
+fi

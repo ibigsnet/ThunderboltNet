@@ -9,8 +9,19 @@ They affect the **whole Unraid host**, not a single `tbnN` tab.
 
 | Value | Meaning |
 |-------|---------|
-| **Yes** (default) | Apply runs `modprobe thunderbolt` and `modprobe thunderbolt_net` |
+| **Yes** (default) | Apply runs `modprobe thunderbolt` and `modprobe thunderbolt_net` (and optionally stream — see below) |
 | **No** | Apply does not load modules — only if you load them yourself (e.g. in `/boot/config/go`) |
+
+---
+
+## Enable USB4STREAM
+
+| Value | Meaning |
+|-------|---------|
+| **No** (default) | Do not load `thunderbolt_stream` — IP host-net only (`thunderbolt_net` / tbn tabs) |
+| **Yes** | On Apply (with Load modules = Yes), also try `modprobe thunderbolt_stream` if the kernel ships it |
+
+Requires Linux **~7.2+** with the USB4STREAM driver. On older Unraid kernels the option is harmless (modprobe fails quietly). This is **not** InfiniBand; see [usb4stream.md](usb4stream.md).
 
 ### When to use Yes
 

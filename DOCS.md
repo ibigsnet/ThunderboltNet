@@ -48,6 +48,8 @@ The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt l
 | `/24` vs `/30`, unique subnets per link | [docs/addressing.md](docs/addressing.md) |
 | TB3–5, USB4/USB4 v2, rates, lanes, cables (not USB3-only) | [docs/standards-and-speeds.md](docs/standards-and-speeds.md) |
 | MTU 1500 vs 9000, PPS overhead, both-ends setup | [docs/mtu-and-throughput.md](docs/mtu-and-throughput.md) |
+| Dashboard throughput / errors for tbn (thunderboltN) | [docs/dashboard-network.md](docs/dashboard-network.md) |
+| USB4STREAM (raw TB stream, Linux ~7.2+) | [docs/usb4stream.md](docs/usb4stream.md) |
 | Port silkscreen guide (TB lightning / SS¹⁰ / SS²⁰) | [docs/port-icons.md](docs/port-icons.md) (docs only) |
 | Hardware, BIOS, modules, security | [docs/requirements.md](docs/requirements.md) |
 | Topology, dual cables, hubs with NICs | [docs/links-and-topology.md](docs/links-and-topology.md) |
