@@ -7,7 +7,7 @@ Full product intro: [../DOCS.md](../DOCS.md).
 | [driver-options.md](driver-options.md) | Load modules, **E2E flow control** (host-wide), when to change |
 | [peer-scenarios.md](peer-scenarios.md) | Unraid ↔ Linux, macOS, Windows, docks/hubs with NICs |
 | [addressing.md](addressing.md) | `/24` vs `/30`, unique subnets, examples |
-| [standards-and-speeds.md](standards-and-speeds.md) | Directionality, **expected bandwidth by class**, lanes, cables, quality badge |
+| [standards-and-speeds.md](standards-and-speeds.md) | **Directionality**, bandwidth **table**, **mixing** gens/cables/lanes, FAQ |
 | [port-icons.md](port-icons.md) | Rear-panel silkscreen: lightning/40 vs SS¹⁰/SS²⁰ — do I have TB? |
 | [mtu-and-throughput.md](mtu-and-throughput.md) | MTU 1500 vs 9000, packet-rate overhead, both-ends jumbo |
 | [dashboard-network.md](dashboard-network.md) | Dashboard Interface list: thunderboltN / bond-tbN graphs & errors |

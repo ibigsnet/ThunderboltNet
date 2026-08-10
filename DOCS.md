@@ -48,7 +48,7 @@ The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt l
 | Driver options (`e2e`, modules) — **host-wide** | [docs/driver-options.md](docs/driver-options.md) |
 | Unraid ↔ Mac / Linux / Windows / docks & hubs | [docs/peer-scenarios.md](docs/peer-scenarios.md) |
 | `/24` vs `/30`, unique subnets per link | [docs/addressing.md](docs/addressing.md) |
-| TB3–5, USB4/USB4 v2, **directionality** (simplex lanes vs PCIe), rates, cables | [docs/standards-and-speeds.md](docs/standards-and-speeds.md) |
+| TB3–5 / USB4: **directionality**, bandwidth table, **mixing** gens/cables/lanes, FAQ | [docs/standards-and-speeds.md](docs/standards-and-speeds.md) |
 | MTU 1500 vs 9000, PPS overhead, both-ends setup | [docs/mtu-and-throughput.md](docs/mtu-and-throughput.md) |
 | Dashboard throughput / errors for tbn (thunderboltN) | [docs/dashboard-network.md](docs/dashboard-network.md) |
 | USB4STREAM (raw TB stream, Linux ~7.2+) | [docs/usb4stream.md](docs/usb4stream.md) |
