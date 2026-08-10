@@ -12,11 +12,12 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.08.05">
+<!ENTITY version "2026.08.05aa">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
 <!ENTITY raw "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main">
+<!ENTITY forum "https://forums.unraid.net/topic/200065-plugin-thunderbolt-net-host-to-host-networking-over-thunderbolt-345-and-usb44v2/">
 <!ENTITY plugdir "/usr/local/emhttp/plugins/ThunderboltNet">
 <!ENTITY configdir "/boot/config/plugins/ThunderboltNet">
 ]>
@@ -28,12 +29,15 @@
   pluginURL="&pluginURL;"
   icon="sitemap"
   min="6.12.0"
-  support="https://github.com/&github;"
+  support="&forum;"
   project="https://github.com/&github;"
   readme="https://raw.githubusercontent.com/&github;/main/README.md">
 
 <CHANGES>
 ###&version;
+- Support link → Unraid forum thread; Project stays GitHub (CA shows both).
+
+###2026.08.05
 - USB4STREAM awareness: detect thunderbolt_stream, optional load on Apply, status/diagnostics, docs (not InfiniBand; needs kernel ~7.2+).
 - Dashboard network: include thunderboltN (tbnN), bond-tbN, br-tbN in Interface dropdown, throughput graph, counters, and errors (same poller as eth/bond/wlan).
 

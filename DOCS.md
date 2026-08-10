@@ -6,7 +6,9 @@ That includes **Thunderbolt 3, 4, and 5**, and **USB4 / USB4 v2** host controlle
 **Install:** Plugins → Install Plugin →  
 `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg`
 
-**Source:** [github.com/ibigsnet/ThunderboltNet](https://github.com/ibigsnet/ThunderboltNet)  
+**Source / project:** [github.com/ibigsnet/ThunderboltNet](https://github.com/ibigsnet/ThunderboltNet)  
+**Support (Unraid forum):** [Plugin support thread](https://forums.unraid.net/topic/200065-plugin-thunderbolt-net-host-to-host-networking-over-thunderbolt-345-and-usb44v2/)  
+**Issues / code:** [GitHub Issues](https://github.com/ibigsnet/ThunderboltNet/issues)  
 **Support development:** [Patreon](https://www.patreon.com/cw/IBIGSNet) · [PayPal](https://www.paypal.com/paypalme/RifleJock)
 
 `README.md` is only the short Unraid Plugins-list blurb. This file and [`docs/`](docs/README.md) are the full documentation.
