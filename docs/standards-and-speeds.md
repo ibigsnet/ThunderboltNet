@@ -63,6 +63,34 @@ Always trust **sysfs trained** `rx_speed` / `tx_speed` and **lanes**, not the re
 
 Design storage jobs around **measured** iperf/rsync, not “40G cable ⇒ 5&nbsp;GB/s.”
 
+### Expected bandwidth by standard / class (planning table)
+
+Numbers below are **order-of-magnitude** for **host-to-host** when the path actually trains that class.  
+**Both ends + cable** must support the row. Linux host-net often trains **below** the max row (commonly **20&nbsp;Gb/s · 1-lane** even on dual-capable hosts).
+
+| Marketing / class | Lanes (typical USB4-style) | Max **each direction** at once (signaling) | Max **both ways at once** (sum) | Rough **one-way TCP/iperf** to plan for* | Notes |
+|-------------------|----------------------------|--------------------------------------------|--------------------------------|------------------------------------------|--------|
+| **USB 3.2 Gen 2×1** (SS10) | USB SuperSpeed, not TB fabric | ~10&nbsp;Gb/s | ~10&nbsp;G each way if full duplex USB | — | **Not** `thunderbolt_net`. Dongle eth is separate. |
+| **USB 3.2 Gen 2×2** (SS20) | SuperSpeed | ~20&nbsp;Gb/s | — | — | Still not TB host-net. |
+| **USB4 20G** / single-lane class | Often 1× ~20&nbsp;G class path | ~**20&nbsp;Gb/s** | ~**20+20** if dual dir trains | **~10–15&nbsp;Gbit/s** | Many “USB4” cables/hosts land here. |
+| **Thunderbolt 3** | 2 TX + 2 RX @ ~20&nbsp;G/lane (simplex) | ~**20&nbsp;Gb/s** | ~**40&nbsp;Gb/s** sticker sum | **~10–15&nbsp;Gbit/s** typical 1-lane train; higher if dual-lane | “40G” ≠ 40 each way. |
+| **Thunderbolt 4** / **USB4 40G** | same pattern as TB3 when full | ~**20&nbsp;Gb/s** | ~**40&nbsp;Gb/s** sticker sum | **~10–15&nbsp;Gbit/s** on common 1-lane host-net; dual-lane higher | Same simplex rule. |
+| **USB4 v2 / Thunderbolt 5** (symmetric class) | higher per-lane (e.g. ~40&nbsp;G/lane class) | ~**40&nbsp;Gb/s** order | ~**80&nbsp;Gb/s** sticker sum | Measure; still not 80 each way | Asymmetric modes (e.g. more lanes one way) exist. |
+| **TB5 asymmetric** (e.g. 120/40 class) | 3+1 style lane allocation | Unequal (e.g. more A→B than B→A) | Sticker sum of dirs | Measure both directions | Direction matters for copies. |
+
+\*TCP/SMB/NBD after encoding, CPU, MTU, storage — **not** raw lane rate. Lab 1-lane TB host-net often ~**13–14&nbsp;Gbit/s** iperf.
+
+**How to read one row (TB4 example):**
+
+| Question | Answer |
+|----------|--------|
+| Port says **40**? | **Class** = up to ~20&nbsp;G each direction **simultaneously**. |
+| Sysfs `20 Gb/s` · `1-lane`? | Trained path; plan **~10–15&nbsp;Gbit/s** one-way bulk. |
+| Sysfs dual-lane high rate? | More capacity; still use **measured** TCP, not sticker÷8 as GB/s. |
+| PCIe x4 “~40G” comparison? | Different duplex model — **do not** equate stickers 1:1. |
+
+**Plugin UI:** Link quality **LOCAL** = controller class ceiling; **REMOTE** = **trained** path. Yellow *Single-lane* = below class max, often still normal for Linux host-net.
+
 ## What this plugin is aiming at
 
 | Generation / class | Host networking (when both ends + cable support it) | Notes for this plugin |
