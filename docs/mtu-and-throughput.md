@@ -4,6 +4,8 @@ Thunderbolt / USB4 host networking can train at **20 / 40 / 80&nbsp;Gb/s class**
 
 This page explains why that matters for **rsync, SMB, NFS, and large file copies**, what the plugin does, and how to raise MTU **on both ends**.
 
+**Directionality:** marketing **40&nbsp;Gb/s** is **not** PCIe-style full duplex 40 each way. USB4/TB lanes are **simplex**; a 40G-class path is typically **~20&nbsp;Gb/s each direction at once**. Details: [standards-and-speeds.md — Directionality](standards-and-speeds.md#directionality-read-this-first).
+
 ---
 
 ## Short answers
@@ -35,12 +37,15 @@ Payload per frame ≈ `MTU − IP − TCP` (≈ **1460 B** at MTU 1500, ≈ **89
 
 Approximate **minimum** packet rate to fill a pipe if every frame is full-sized (reality is worse with smaller writes and ACKs):
 
-| Link class (marketing) | ≈ bits/s | ≈ B/s | PPS @ MTU 1500 | PPS @ MTU 9000 | Ratio |
-|------------------------|----------|--------|----------------|----------------|-------|
-| 10&nbsp;Gb/s class | 1×10¹⁰ | ~1.25×10⁹ | ~**830 k** | ~**140 k** | ~6× |
-| 20&nbsp;Gb/s class | 2×10¹⁰ | ~2.5×10⁹ | ~**1.7 M** | ~**280 k** | ~6× |
-| 40&nbsp;Gb/s class | 4×10¹⁰ | ~5.0×10⁹ | ~**3.3 M** | ~**555 k** | ~6× |
-| 80&nbsp;Gb/s class | 8×10¹⁰ | ~1.0×10¹⁰ | ~**6.7 M** | ~**1.1 M** | ~6× |
+Use **one-direction** payload rate for planning (what iperf/rsync fill), not “sticker × 2 as each way.”
+
+| One-way fill target (payload) | Why | ≈ B/s | PPS @ MTU 1500 | PPS @ MTU 9000 |
+|-------------------------------|-----|--------|----------------|----------------|
+| ~10&nbsp;Gbit/s | Ethernet / soft paths | ~1.25×10⁹ | ~**830 k** | ~**140 k** |
+| ~20&nbsp;Gbit/s class | Full one way on classic 40G-class TB (20 each dir) | ~2.5×10⁹ | ~**1.7 M** | ~**280 k** |
+| ~40&nbsp;Gbit/s class one way | Higher-gen / dual-lane when trained | ~5.0×10⁹ | ~**3.3 M** | ~**555 k** |
+
+“40&nbsp;Gb/s Thunderbolt” marketing is usually the **sum of directions** (~20+20), so one-way bulk jobs should not assume 40&nbsp;Gbit/s TCP.
 
 PPS uses `B/s ÷ MTU` as a simple upper-bound stand-in (includes headers in the MTU bucket). Real TCP also sends ACKs the other way; storage and protocol chat add more. The takeaway is unchanged: **at multi‑20&nbsp;G rates, 1500&nbsp;B frames are millions of packets per second.**
 

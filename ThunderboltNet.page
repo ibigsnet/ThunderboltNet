@@ -290,10 +290,13 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
       <strong>Stack</strong> — TB vendor field (often <code>Linux</code> / software ID, not the chassis brand).<br><br>
       <strong>Link RX/TX &amp; lanes</strong> — <em>LOCAL</em> is this host’s class ceiling (not a live hop rate).
       Each <em>REMOTE</em> column is the <strong>trained</strong> path on that cable (end-to-end with that peer).
-      <code>rx_speed</code> is per lane; dual-lane would still show ~20&nbsp;Gb/s with <strong>2-lane</strong>.
+      USB4/TB <strong>lanes are simplex</strong> (TX or RX), not PCIe-style full duplex at the sticker number.
+      A marketing <strong>40&nbsp;Gb/s</strong> class path is typically <strong>~20&nbsp;Gb/s each direction at once</strong> (20+20), not 40 each way.
+      <code>rx_speed</code> is per lane; dual-lane often still shows ~20&nbsp;Gb/s with <strong>2-lane</strong>.
       Single-lane (~20&nbsp;Gb/s · 1-lane) is common for TB host-to-host under Linux.<br><br>
       <strong>Link quality</strong> — trained rate first; yellow <em>Single-lane</em> means below controller class max,
-      not a failed install. ~10–15&nbsp;Gbit/s TCP is normal for 1-lane. Optional MTU&nbsp;9000 on <em>both</em> ends can cut retrans/CPU a bit — not negotiated, and not dual-lane.<br><br>
+      not a failed install. ~10–15&nbsp;Gbit/s TCP is normal for 1-lane. Optional MTU&nbsp;9000 on <em>both</em> ends can cut retrans/CPU a bit — not negotiated, and not dual-lane.
+      <?= tbn_docs_more_html('docs/standards-and-speeds.md', 'Directionality &amp; speeds ↗') ?><br><br>
       <strong>Local IPv4 / MAC / state</strong> under REMOTE are <em>this Unraid end</em> of that link.
       Set addresses on each <strong>tbnN</strong> tab. Happy path: <strong>one cable, one peer, one IP</strong>.
       Do not dual-cable the same peer to bond for speed.
@@ -834,8 +837,10 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
     Prefer a single certified <strong>Thunderbolt / USB4-class</strong> cable that matches both hosts
     (TB3 40G-class, TB4, TB5 / USB4 v2 80G-class when both ends support it — not SS-only SuperSpeed USB).
     Plugin works on any generation Linux exposes as a TB host + <code>thunderbolt_net</code>.
+    Sticker <strong>40&nbsp;Gb/s</strong> is not PCIe full-duplex 40 each way: lanes are <strong>simplex</strong>, so 40G-class ≈ <strong>full-duplex ~20&nbsp;G</strong> (20 each direction at once).
     <em>Single-lane</em> / 20&nbsp;Gb/s · 1-lane is a common <em>trained</em> result on dual-capable hosts under Linux host-to-host — not “this port is only 20G” and not a failed install.
-    Sticker rates (40&nbsp;Gb/s, 80&nbsp;Gb/s, …) are capability class; <strong>trained</strong> rate and lanes are what you get.<br><br>
+    Sticker rates (40&nbsp;Gb/s, 80&nbsp;Gb/s, …) are capability class; <strong>trained</strong> rate and lanes are what you get.
+    <?= tbn_docs_more_html('docs/standards-and-speeds.md', 'Directionality &amp; speeds ↗') ?><br><br>
     <strong>Never</strong> unbind the Thunderbolt NHI to “fix” networking — that can wedge the controller until reboot.
     <?= tbn_help_docs_footer('docs/standards-and-speeds.md', 'Standards & speeds') ?>
     · <?= tbn_docs_more_html('docs/troubleshooting.md', 'Troubleshooting ↗') ?>

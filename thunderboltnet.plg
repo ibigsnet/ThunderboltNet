@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.08.05aa">
+<!ENTITY version "2026.08.05ab">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -35,6 +35,9 @@
 
 <CHANGES>
 ###&version;
+- Docs/UI: directionality — USB4/TB simplex lanes vs PCIe full-duplex; 40G-class ≈ 20G each way, not 40 each way.
+
+###2026.08.05aa
 - Support link → Unraid forum thread; Project stays GitHub (CA shows both).
 
 ###2026.08.05

@@ -48,7 +48,7 @@ The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt l
 | Driver options (`e2e`, modules) — **host-wide** | [docs/driver-options.md](docs/driver-options.md) |
 | Unraid ↔ Mac / Linux / Windows / docks & hubs | [docs/peer-scenarios.md](docs/peer-scenarios.md) |
 | `/24` vs `/30`, unique subnets per link | [docs/addressing.md](docs/addressing.md) |
-| TB3–5, USB4/USB4 v2, rates, lanes, cables (not USB3-only) | [docs/standards-and-speeds.md](docs/standards-and-speeds.md) |
+| TB3–5, USB4/USB4 v2, **directionality** (simplex lanes vs PCIe), rates, cables | [docs/standards-and-speeds.md](docs/standards-and-speeds.md) |
 | MTU 1500 vs 9000, PPS overhead, both-ends setup | [docs/mtu-and-throughput.md](docs/mtu-and-throughput.md) |
 | Dashboard throughput / errors for tbn (thunderboltN) | [docs/dashboard-network.md](docs/dashboard-network.md) |
 | USB4STREAM (raw TB stream, Linux ~7.2+) | [docs/usb4stream.md](docs/usb4stream.md) |
@@ -67,7 +67,7 @@ The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt l
 3. On **Thunderbolt → Driver options**, leave **E2E flow control = No** unless a peer scenario says otherwise.
 4. When `thunderbolt0` appears, open **tbn0**, set a **static** IPv4 (e.g. `10.255.0.2/24`), leave **MTU 1500** unless both ends will set jumbo, Apply.
 5. On the peer, matching address (e.g. `10.255.0.1/24`). MTU is not auto-negotiated — only raise to 9000 if you set **both** ends.
-6. Ping both ways. **Trained** rate can be less than the port sticker (e.g. **20 Gb/s · 1-lane** on a dual-capable TB4 host is common under Linux). Expect roughly **~10–15 Gbit/s** TCP on that path — not full sticker 40G/80G TCP ([speeds](docs/standards-and-speeds.md)).
+6. Ping both ways. **Trained** rate can be less than the port sticker (e.g. **20 Gb/s · 1-lane** on a dual-capable TB4 host is common under Linux). A sticker **40 Gb/s** class path is typically **~20 G each direction** (simplex lanes), not PCIe-style 40 each way — expect roughly **~10–15 Gbit/s** TCP one way on a 1-lane train ([speeds / directionality](docs/standards-and-speeds.md)).
 7. If dual-cable experiments wedged the fabric: unplug **all** TB cables on **both** machines, wait, plug **one** cable only ([troubleshooting](docs/troubleshooting.md)).
 
 ---

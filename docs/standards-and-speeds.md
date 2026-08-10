@@ -2,6 +2,67 @@
 
 Thunderbolt Net uses the Linux **`thunderbolt`** + **`thunderbolt_net`** stack: host-to-host networking over a Thunderbolt **fabric**, not plain USB gadget/Ethernet dongles.
 
+## Directionality (read this first)
+
+Thunderbolt / USB4 **is not PCIe-style “full duplex at the sticker number.”**
+
+People often treat **PCIe** as: *“40&nbsp;Gb/s” ≈ 40&nbsp;Gbit/s in each direction at once* (true full duplex on the link).  
+**USB4 / Thunderbolt lanes are simplex:** each lane is either **TX or RX**, not both.
+
+| Concept | PCIe (common mental model) | USB4 / Thunderbolt (typical) |
+|---------|----------------------------|------------------------------|
+| Lane | Full duplex (send **and** receive on the path) | **Simplex** — each lane is TX **or** RX |
+| “40&nbsp;Gb/s” sticker | Often heard as 40 each way | **~20&nbsp;Gb/s each direction at once** on a classic 40G-class path |
+| Simultaneous both ways | Sticker ≈ one-way capacity | Sticker is **sum of directional capacity** (TX pool + RX pool) |
+
+### Classic 40&nbsp;Gb/s-class path (TB3 / TB4 / USB4 40G)
+
+USB4-class hosts use **four lanes**, each up to **~20&nbsp;Gb/s**, and each lane is **one direction only**:
+
+```text
+  Host A ──► Host B   up to ~20 Gb/s   (one or more TX lanes)
+  Host A ◄── Host B   up to ~20 Gb/s   (one or more RX lanes)
+
+  Marketing “40 Gb/s” ≈ 20 + 20  (both directions at once)
+  Not ≈ 40 A→B and 40 B→A at the same time
+```
+
+So:
+
+| Phrase | What it should mean for TB host-net |
+|--------|-------------------------------------|
+| **40&nbsp;Gb/s standard / class** | About **20&nbsp;Gb/s A→B** and **20&nbsp;Gb/s B→A** **simultaneously** (“full duplex 20&nbsp;G”) |
+| **Trained 20&nbsp;Gb/s · 1-lane** | Sysfs often shows **per-lane** rate; **1-lane** trained is common for Linux host↔host — roughly one ~20&nbsp;G hop class, not dual-lane |
+| **iperf / TCP ~13–15&nbsp;Gbit/s** | Normal payload after protocol/CPU/storage — **not** a failed 40G port |
+
+That matches lab experience: a dual-capable “40G” host that trains **20&nbsp;Gb/s · 1-lane** still often delivers **~14&nbsp;Gbit/s** TCP one way — fine for bulk copies, not “half a PCIe x4.”
+
+### Higher classes (USB4 v2 / Thunderbolt 5)
+
+Same simplex-lane idea; **per-lane** rate goes up (e.g. toward **40&nbsp;Gb/s per lane**). Modes can be:
+
+| Mode (simplified) | Rough simultaneous budget |
+|-------------------|---------------------------|
+| Symmetric “80G class” | e.g. **~40&nbsp;G each way** (still not 80 each way) |
+| Asymmetric TB5-style | e.g. more lanes one way (marketing **120/40**-style) |
+
+Always trust **sysfs trained** `rx_speed` / `tx_speed` and **lanes**, not the rear-panel “40” alone.
+
+### Mental model (one sentence)
+
+> **Sticker 40&nbsp;Gb/s Thunderbolt ≈ full-duplex 20&nbsp;Gbit/s class** (20 each direction at once),  
+> **not** full-duplex 40&nbsp;Gbit/s like many people assume for PCIe.
+
+### For Unraid bulk copies (rsync, NBD, SMB on tbn)
+
+| Trained path (typical) | Planning number (TCP payload, order of) |
+|------------------------|-------------------------------------------|
+| 20&nbsp;Gb/s · 1-lane | **~10–15&nbsp;Gbit/s** one way |
+| Dual-lane high train (when you get it) | Higher; still not sticker×2 as “each way” |
+| Soft-RoCE / RDMA experiments on top of TB-net | Often **lower bandwidth** than plain TCP; different use case |
+
+Design storage jobs around **measured** iperf/rsync, not “40G cable ⇒ 5&nbsp;GB/s.”
+
 ## What this plugin is aiming at
 
 | Generation / class | Host networking (when both ends + cable support it) | Notes for this plugin |
@@ -32,12 +93,14 @@ Match printed marks on the metal panel to decide if a Type‑C is Thunderbolt/US
 
 ## Generations (simplified)
 
-| Marketing / class | Typical aggregate | Lanes (common) | Notes |
-|-------------------|-------------------|----------------|-------|
-| Thunderbolt 3 | up to ~40&nbsp;Gb/s | 2× ~20&nbsp;G | USB-C connector era for many desktops |
-| Thunderbolt 4 | 40&nbsp;Gb/s class | 2-lane | Stricter cable/cert than many “USB4 20G” leads |
-| USB4 | 20&nbsp;G or 40&nbsp;G class | 1 or 2 | Label and certification matter |
-| USB4 v2 / Thunderbolt 5 | higher (e.g. 80&nbsp;G class, TB5 asymmetric modes) | implementation-specific | Still depends on **both** ends + cable |
+Marketing numbers below are **class labels**. For simultaneous both-ways capacity, see **Directionality** above (40G-class ≈ **20 each way**, not 40 each way).
+
+| Marketing / class | Class label | Simultaneous both ways (order of) | Notes |
+|-------------------|-------------|-------------------------------------|--------|
+| Thunderbolt 3 | ~40&nbsp;Gb/s class | ~**20&nbsp;G** A→B + ~**20&nbsp;G** B→A | USB-C era; lanes simplex |
+| Thunderbolt 4 | 40&nbsp;Gb/s class | same order when fully trained | Stricter cert than many “USB4 20G” leads |
+| USB4 | 20&nbsp;G or 40&nbsp;G class | 20G-class ≈ less; 40G-class ≈ 20+20 | Label and certification matter |
+| USB4 v2 / Thunderbolt 5 | 80&nbsp;G class / asymmetric | e.g. ~40+40 or 120/40-style modes | Still both ends + cable |
 
 Linux sysfs often exposes:
 
@@ -55,14 +118,15 @@ Thunderbolt Net’s **Link quality** badge compares **trained path** vs **contro
 | **GB/s** | Gigabyte per second (≈ 8× larger than Gb/s). **Do not** use for TB link rate. |
 | **Mb/s** | Megabit per second (USB 2.0 class, etc.) |
 
-UI and docs use **Gb/s** consistently (e.g. `20 Gb/s · 1-lane`, `Max ~40 Gb/s · 2-lane`). Avoid bare `20G` / `40G` in user-facing strings.
+UI and docs use **Gb/s** consistently (e.g. `20 Gb/s · 1-lane`, `Max ~40 Gb/s · 2-lane`). Avoid bare `20G` / `40G` in user-facing strings without “class” or “per direction.”
 
 ## Rate vs lanes
 
-- **Gb/s** in sysfs is the **per-lane** trained signaling rate.  
-- **Lanes** (1 vs 2) decide single-lane (~20&nbsp;Gb/s class) vs dual-lane (~40&nbsp;Gb/s class) on TB3/4-era paths.  
+- **Gb/s** in sysfs is typically the **per-lane** trained signaling rate.  
+- **Lanes** are **directional** (RX lanes vs TX lanes in sysfs). More lanes one way = more capacity that way — not “PCIe dual-simplex free.”  
+- On TB3/4-era paths, **1-lane trained** often pairs with ~**20&nbsp;Gb/s** per-lane display; **2-lane** is the dual-lane class people expect from a “40G” sticker.  
 - A **high-gen host** that trains **20&nbsp;Gb/s · 1-lane** is **common for Linux host-to-host** (firmware ICM). Not a failed install. Cable can matter for some pairs, but a short certified TB4 cable often stays 1-lane too.  
-- Sticker “40&nbsp;Gb/s” is dual-lane **class** capability — not a promise of dual-lane host-net or ~40&nbsp;Gbit/s TCP.
+- Sticker **“40&nbsp;Gb/s”** = **class** (often dual-lane / 20+20 both ways when fully trained) — **not** “40&nbsp;Gbit/s TCP each direction like full-duplex PCIe.”
 
 ### Link quality messages (plugin)
 
