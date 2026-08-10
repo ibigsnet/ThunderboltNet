@@ -1,0 +1,379 @@
+<?xml version='1.0' standalone='yes'?>
+<!DOCTYPE PLUGIN [
+<!ENTITY name "ThunderboltNet">
+<!ENTITY author "RifleJock">
+<!--
+  Versioning — Unraid plugin updates use strcmp() (lexicographic), NOT version_compare.
+  No hyphens. Bump only this entity; asset ?v= uses it.
+
+  Rules (same as StorageGuard):
+    YYYY.MM.DD       first release that calendar day
+    YYYY.MM.DDaa     2nd same day, then ab, ac, ... az, ba, bb, ...
+  Two-letter only after the bare date — never single a–z on new days
+  (avoids strcmp treating "aa" as older than "z").
+-->
+<!ENTITY version "2026.08.05ad">
+<!ENTITY launch "Settings/ThunderboltNet">
+<!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
+<!ENTITY github "ibigsnet/ThunderboltNet">
+<!ENTITY raw "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main">
+<!ENTITY forum "https://forums.unraid.net/topic/200065-plugin-thunderbolt-net-host-to-host-networking-over-thunderbolt-345-and-usb44v2/">
+<!ENTITY plugdir "/usr/local/emhttp/plugins/ThunderboltNet">
+<!ENTITY configdir "/boot/config/plugins/ThunderboltNet">
+]>
+
+<PLUGIN name="&name;"
+  author="&author;"
+  version="&version;"
+  launch="&launch;"
+  pluginURL="&pluginURL;"
+  icon="sitemap"
+  min="6.12.0"
+  support="&forum;"
+  project="https://github.com/&github;"
+  readme="https://raw.githubusercontent.com/&github;/main/README.md">
+
+<CHANGES>
+###&version;
+- Docs: full standards guide — directionality, bandwidth table, mixing gens/cables/lanes, FAQ.
+
+###2026.08.05ac
+- Docs: planning table — expected bandwidth by TB/USB4 class (each direction vs sticker sum vs TCP).
+
+###2026.08.05ab
+- Docs/UI: directionality — USB4/TB simplex lanes vs PCIe full-duplex; 40G-class ≈ 20G each way, not 40 each way.
+
+###2026.08.05aa
+- Support link → Unraid forum thread; Project stays GitHub (CA shows both).
+
+###2026.08.05
+- USB4STREAM awareness: detect thunderbolt_stream, optional load on Apply, status/diagnostics, docs (not InfiniBand; needs kernel ~7.2+).
+- Dashboard network: include thunderboltN (tbnN), bond-tbN, br-tbN in Interface dropdown, throughput graph, counters, and errors (same poller as eth/bond/wlan).
+
+###2026.08.03
+- Dashboard network: include thunderboltN (tbnN), bond-tbN, br-tbN in Interface dropdown, throughput graph, counters, and errors (same poller as eth/bond/wlan).
+
+###2026.07.30bd
+- Clean defaults: 10.255.0.2/24 + address_plan small-lan; bond_mode active-backup; MTU 1500; document legacy global keys.
+
+###2026.07.30bc
+- Default IPv4 10.255.0.2/24 for thunderbolt0 (not 10.255.1.2); matches tbnN → 10.255.N.2 plan.
+
+###2026.07.30bb
+- MTU product default back to 1500 for compatibility; 9000 optional both ends (not negotiated to peer; little TCP gain on 1-lane in lab).
+
+###2026.07.30ba
+- Clarify support across TB3/4/5 and USB4 / USB4 v2 (20G–80G class when Linux exposes host-net); trained rate ≠ sticker; not TB4-only.
+- Docs, README, UI cable/recovery help: generation-agnostic wording.
+
+###2026.07.30az
+- Promise single-link host-net: honest trained/lanes copy; Single-lane badge (not “Below max = fix cable”); recovery help for dual-cable wedge (unplug all both boxes).
+- Bonding experimental: hidden with one thunderbolt*; refuse Apply with &lt;2 members; active-backup preferred.
+- Docs/README match lab reality (~10–15 Gbit/s 1-lane normal).
+
+###2026.07.30ay
+- Restore Unraid form grid on tbn tabs; only IP/CIDR rows forced horizontal (not whole form left-smashed).
+
+- Remove in-UI port icon legend (docs-only port-icons guide); restore simple empty-state layout.
+
+- tbn form: IPv4/IPv6 address rows left-aligned (eth0-like); override full-width inputs.
+
+- Links LOCAL RX/TX and lanes show host Max ceiling; trained rates stay on REMOTE columns.
+
+- Simple-then-help copy: brief section notes; detail in blue helpers; domain security phone-lock analogy.
+
+- Port legend: Thunderbolt mark + SuperSpeed icons; no-TB layout error|legend; half-width bottom-right on TB hosts; Links after Known peers; column widths mid-size.
+
+- Port silkscreen legend (TB lightning/40 vs SS10/SS20) on overview with or without TB hardware.
+
+- Link quality: compact columns, Gb/s notation, TB ports boxed (max vs trained), USB SuperSpeed collapsed; clearer remote badges.
+
+- Link quality LOCAL: host Max + brief port list (TB peers, 10G/20G USB-C SuperSpeed roots with counts).
+
+- Link quality LOCAL column: host max potential (e.g. Max ~40G · 2-lane) so yellow 20G has a ceiling to compare.
+
+- MTU modes (1500 default / 9000 recommended / custom); overview labels; docs MTU PPS tables for high-speed bulk.
+
+- Fix stacked TB addresses/routes: flush L3 before Apply; drop stale defaults; listen form no longer pollutes iface cfg.
+
+- IPv4/IPv6 CIDR row alignment; bond-tb0/br-tb0 name fields + legacy bond-tb/br-tb migrate; listening help.
+
+- Link down / no carrier: note says fine to unplug (not "usually").
+
+- Fix activity sampling (no more too-close samples); compact services row; live activity poll.
+
+- Known peers: services column with instant save; remove duplicate host-services table.
+
+- Static IP flush (no stacked subnets); CIDR row align; eth-like show/hide animation; bond/bridge notes.
+
+- Fix Network Settings blank (eth0): move netmask helper out of per-tab include (redeclare fatal).
+
+- eth-like dynamic IPv4/IPv6 (static/auto), bonding members, VLANs; Apply enable fix.
+
+- Host services per peer (SMB/NFS/web UI listen); remember Yes/No; Harden all to No.
+
+- Default TB bond name bond-tb0 (bond-tbN pattern; avoid Unraid bond0).
+
+- Fix blank tbn1/tbnN tabs: use require (not require_once) so each tab re-renders the shared form.
+
+###2026.07.30ab
+- Link quality: short complete lead lines (no mid-sentence cutoffs); richer fabric role help with examples.
+- Install fix follow-up: ensure clean plg for Unraid wget (stale compressed main cache).
+
+###2026.07.30aa
+- Install fix follow-up: ensure clean plg for Unraid wget (stale compressed main cache).
+- Fix plg XML parse error (bare ampersand in CHANGES broke Install Plugin).
+- Fabric devices: hide service/domain rows by default; compact link quality cells.
+
+###2026.07.30
+- Fix plg XML parse error (bare ampersand in CHANGES broke Install Plugin).
+- Fabric devices: hide service/domain rows by default; compact link quality cells.
+
+###2026.07.29bb
+- Fabric devices: hide service/domain rows by default (expand for detail); link quality cells compact + wrap.
+
+###2026.07.29ba
+- Empty-state: clearer TB3–5/USB4 wording, spacing, link to Tools → Diagnostics.
+- Docs: standards matrix (TB3–5, USB4/v2; not USB3-only; no “USB5” brand).
+
+###2026.07.29az
+- Docs: reseating cables and multi-cable recovery; drop confusing E2E “already know” row; no “most common” peer claim.
+
+###2026.07.29ay
+- Plug-and-play groundwork: remembered peers, activity / safe-unplug hints; Plugins blurb updated.
+- Docs (DOCS.md + docs/*), Unraid blue helpers, LOCAL|REMOTE|REMOTE table, link quality cable advice.
+- Clearer description: Thunderbolt-compatible host networking (not one generation only).
+
+###2026.07.29ax
+- Clearer Plugins description: Thunderbolt-compatible host networking (not one USB/TB generation only).
+
+###2026.07.29aw
+- Docs treasure trove (DOCS.md + docs/*): driver E2E, peer scenarios (Linux/Mac/Windows/docks), addressing, speeds.
+- Unraid blue inline_help on driver and tbn fields; Documentation bar links to GitHub guides.
+- Link quality advice: likely cable limit + upgrade suggestion; LOCAL|REMOTE|REMOTE comparison table.
+
+###2026.07.29av
+- Compact Remote peers table (one row per tbnN); link quality badge vs controller capability.
+
+- Clearer local vs remote identity (hostname, product, manufacturer/stack); unified link table; more driver help and spacing.
+
+- Wording: Enable default route (default No) instead of Never default route Yes.
+
+- Settings forms use Unraid-style dl/dt/dd (eth0-like label column).
+
+- Link to tbnN switches Network Settings tab instead of leaving the tab strip.
+
+- Remove version/GitHub footer from Settings pages.
+
+- Drop version/GitHub footer from Settings pages (Plugins page already shows version).
+
+- Summary: local hostname/controller, listening includes, bond/bridge membership; per-link local↔remote (peer name, RX/TX, lanes); optional LLDP if tools exist.
+
+###2026.07.29am
+- Thunderbolt tab vs tbnN eth-style settings; cleaner form layout.
+
+- Neutral settings copy (remove personal use-case marketing from the UI).
+- Fix tbnN tabs showing raw PHP: set Markdown=false on generated pages.
+
+###2026.07.29aj
+- Fix blank Settings tab (absolute plugin paths).
+- Overview **Thunderbolt** plus per-link **tbn0** / **tbn1** tabs; eth-like per-iface settings; IOMMU/VFIO info.
+
+###2026.07.29ai
+- Empty state when no Thunderbolt hardware is detected.
+
+###2026.07.29ah
+- Thorough uninstall cleanup.
+
+###2026.07.29ag
+- Network Settings placement and host-to-host TB LAN UX.
+
+###2026.07.29ae
+- CLI/JSON status over SSH.
+
+###2026.07.29aa
+- Initial public release.
+
+</CHANGES>
+
+<FILE Run="/bin/bash">
+<INLINE><![CDATA[
+echo "ThunderboltNet: preparing directories..."
+rm -rf /usr/local/emhttp/plugins/ThunderboltNet
+rm -rf /usr/local/emhttp/plugins/thunderboltnet
+mkdir -p /usr/local/emhttp/plugins/ThunderboltNet/include
+mkdir -p /usr/local/emhttp/plugins/ThunderboltNet/scripts
+mkdir -p /boot/config/plugins/ThunderboltNet/ifaces
+echo "ThunderboltNet: directories ready."
+]]></INLINE>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/ThunderboltNet.page">
+<URL>&raw;/ThunderboltNet.page?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/default.cfg">
+<URL>&raw;/default.cfg?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/default-iface.cfg">
+<URL>&raw;/default-iface.cfg?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/README.md">
+<INLINE>
+<![CDATA[
+**Thunderbolt Net**
+
+Plug-and-play host-to-host networking over Thunderbolt-family ports on Unraid (Thunderbolt 3/4/5 and USB4-class hosts where Linux exposes them). Fabric overview, per-link settings (tbn0, tbn1, …), PCI/IOMMU, driver options, remembered peers, and activity hints—not locked to one generation.
+]]>
+</INLINE>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/thunderboltnet.css">
+<URL>&raw;/thunderboltnet.css?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/thunderboltnet.js">
+<URL>&raw;/thunderboltnet.js?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php">
+<URL>&raw;/include/tbn-lib.php?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-iface-page.php">
+<URL>&raw;/include/tbn-iface-page.php?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/get-status.php">
+<URL>&raw;/include/get-status.php?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-apply.php">
+<URL>&raw;/include/tbn-apply.php?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-update.php">
+<URL>&raw;/include/tbn-update.php?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-update-iface.php">
+<URL>&raw;/include/tbn-update-iface.php?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-update-listening.php">
+<URL>&raw;/include/tbn-update-listening.php?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-pci-panel.php">
+<URL>&raw;/include/tbn-pci-panel.php?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-ignore-warning.php">
+<URL>&raw;/include/tbn-ignore-warning.php?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-status">
+<URL>&raw;/scripts/tbn-status?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports">
+<URL>&raw;/scripts/tbn-dashboard-ports?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/event/started">
+<URL>&raw;/event/started?v=&version;</URL>
+</FILE>
+
+<FILE Run="/bin/bash">
+<INLINE><![CDATA[
+echo "ThunderboltNet: finishing install..."
+chmod 755 /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-status 2>/dev/null || true
+chmod 755 /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports 2>/dev/null || true
+chmod 755 /usr/local/emhttp/plugins/ThunderboltNet/event/started 2>/dev/null || true
+mkdir -p /boot/config/plugins/ThunderboltNet/ifaces
+if [ ! -f /boot/config/plugins/ThunderboltNet/ThunderboltNet.cfg ]; then
+  if [ -f /usr/local/emhttp/plugins/ThunderboltNet/default.cfg ]; then
+    cp -a /usr/local/emhttp/plugins/ThunderboltNet/default.cfg /boot/config/plugins/ThunderboltNet/ThunderboltNet.cfg
+    echo "ThunderboltNet: created default ThunderboltNet.cfg"
+  fi
+fi
+# Generate tbnN tabs for any live thunderbolt* ifaces
+php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; tbn_sync_iface_pages();' 2>/dev/null || true
+# Dashboard Interface list: thunderboltN / bond-tbN / br-tbN (throughput + errors)
+if [ -x /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports ]; then
+  /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports apply || true
+fi
+echo "ThunderboltNet: install complete. Settings → Network Settings → Thunderbolt / tbnN (hard-refresh)."
+ls -la /usr/local/emhttp/plugins/ThunderboltNet/ || true
+ls -la /usr/local/emhttp/plugins/ThunderboltNet/Tbn*.page 2>/dev/null || true
+]]></INLINE>
+</FILE>
+
+<FILE Run="/bin/bash" Method="remove">
+<INLINE><![CDATA[
+echo "ThunderboltNet: removing plugin (full cleanup)..."
+
+EXTRA=/boot/config/network-extra.cfg
+if [ -f "$EXTRA" ]; then
+  INC=$(sed -n 's/^include_interfaces="\(.*\)"/\1/p' "$EXTRA" | head -1)
+  EXC=$(sed -n 's/^exclude_interfaces="\(.*\)"/\1/p' "$EXTRA" | head -1)
+  NEW=""
+  for if in $INC; do
+    case "$if" in
+      thunderbolt*|bond-tb|bond-tb*|br-tb)
+        echo "ThunderboltNet: dropping $if from include_interfaces"
+        ;;
+      *)
+        NEW="${NEW}${NEW:+ }$if"
+        ;;
+    esac
+  done
+  {
+    echo "include_interfaces=\"${NEW}\""
+    echo "exclude_interfaces=\"${EXC}\""
+  } > "$EXTRA"
+fi
+
+for conf in \
+  /etc/modprobe.d/thunderbolt_net.conf \
+  /boot/config/modprobe.d/thunderbolt_net.conf
+do
+  if [ -f "$conf" ] && grep -q 'thunderbolt_net' "$conf" 2>/dev/null; then
+    rm -f "$conf"
+    echo "ThunderboltNet: removed $conf"
+  fi
+done
+if [ -d /boot/config/modprobe.d ] && [ -z "$(ls -A /boot/config/modprobe.d 2>/dev/null)" ]; then
+  rmdir /boot/config/modprobe.d 2>/dev/null || true
+fi
+
+# Restore stock Dashboard port lists before removing scripts
+if [ -x /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports ]; then
+  /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports remove || true
+fi
+
+rm -rf /usr/local/emhttp/plugins/ThunderboltNet
+rm -rf /usr/local/emhttp/plugins/thunderboltnet
+rm -rf /usr/local/emhttp/plugins/Thunderboltnet
+rm -f /usr/local/emhttp/webGui/Thunderbolt*.page /usr/local/emhttp/webGui/Tbn*.page 2>/dev/null || true
+rm -f /usr/local/emhttp/plugins/dynamix/Thunderbolt*.page /usr/local/emhttp/plugins/dynamix/Tbn*.page 2>/dev/null || true
+
+rm -rf /boot/config/plugins/ThunderboltNet
+rm -rf /boot/config/plugins/thunderboltnet
+rm -rf /boot/config/plugins/Thunderboltnet
+
+rm -f /tmp/plugins/thunderboltnet.plg /tmp/plugins/thunderboltnet.txt 2>/dev/null || true
+rm -f /tmp/plugins/ThunderboltNet* /tmp/inline*-thunderboltnet.sh 2>/dev/null || true
+
+if [ -e /usr/local/emhttp/plugins/ThunderboltNet ] || [ -e /usr/local/emhttp/plugins/thunderboltnet ]; then
+  echo "ThunderboltNet: WARNING — emhttp plugin path still present"
+else
+  echo "ThunderboltNet: emhttp plugin paths clear"
+fi
+echo "ThunderboltNet: removed."
+]]></INLINE>
+</FILE>
+
+</PLUGIN>
