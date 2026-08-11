@@ -49,7 +49,7 @@ Reference write-ups: [Phoronix USB4STREAM in 7.2](https://www.phoronix.com/news/
 | **Same cable class** | Yes — same USB4/TB ports you already use |
 | **Faster than TB-net + TCP?** | Possibly (less stack); still limited by **trained lanes/speed** (e.g. 20G×1) |
 | **Works if Unraid is “new enough” by product number?** | **No guarantee.** Unraid **7.x** today often still runs a **6.x** kernel without the module. |
-| **Works if only one peer has a 7.2+ kernel?** | **No** — both ends need a compatible stream path |
+| **Works if only one peer has `thunderbolt_stream`?** | **No** — both ends need a kernel that ships the module |
 
 Until both peers have the module, keep using **tbn + IP** (NBD, rsync, NFS, etc.).
 
