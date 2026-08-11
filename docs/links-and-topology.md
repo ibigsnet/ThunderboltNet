@@ -96,6 +96,8 @@ Path C→B→A→E→D:     cost ≈ 5+5+5+5 = 20  →  direct wins
 So C↔D stays on **C and D** under normal metrics. A/B/E become transit for that pair only if C–D is **down**, or metrics are set so the detour is cheaper (e.g. a very slow or penalized direct link).
 
 Full worked table, formula, and calculator-style references: [routing-openfabric.md — Path cost and metrics](routing-openfabric.md#path-cost-and-metrics).
+
+**Long-term lab:** Proxmox nodes A/B/C + Unraid D/E on one ring/mesh — [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md).
 ---
 
 ## Hubs and docks
