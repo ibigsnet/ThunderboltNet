@@ -82,6 +82,20 @@ Thunderbolt still provides **one L2 segment per path**. OpenFabric (FRR `fabricd
 
 Bonding is about **multiple netdevs on one host**; OpenFabric is about **reachability across a topology**. They complement; they are not substitutes.
 
+### Ring path cost (simple picture)
+
+OpenFabric does **not** send every flow the long way around a ring. For each possible path it **adds hop metrics** and picks the **lowest total** (same idea as OSPF/IS-IS SPF).
+
+Example: nodes **A–B–C–D–E–A**. Most cables train at **20G**; only **C–D** is **10G**.
+
+```text
+Path C→D direct:     cost ≈ 10
+Path C→B→A→E→D:     cost ≈ 5+5+5+5 = 20  →  direct wins
+```
+
+So C↔D stays on **C and D** under normal metrics. A/B/E become transit for that pair only if C–D is **down**, or metrics are set so the detour is cheaper (e.g. a very slow or penalized direct link).
+
+Full worked table, formula, and calculator-style references: [routing-openfabric.md — Path cost and metrics](routing-openfabric.md#path-cost-and-metrics).
 ---
 
 ## Hubs and docks

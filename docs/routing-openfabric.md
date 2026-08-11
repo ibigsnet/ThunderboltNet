@@ -138,6 +138,69 @@ Examples with reference **100000**:
 
 **Why inverse bandwidth?** Same spirit as OSPF auto-cost reference bandwidth: faster link → lower cost → SPF prefers it on a **ring** when both directions around the ring are available.
 
+### SPF in one sentence
+
+For each candidate path, **add the metrics of every hop**, then **use the path with the lowest total**. That is the whole idea (same family as OSPF/IS-IS SPF — not EIGRP composite metric).
+
+### Worked example: five-node ring (C–D is slower)
+
+```text
+        20G      20G      10G      20G      20G
+   A -------- B -------- C -------- D -------- E -------- (back to A)
+```
+
+With reference **100000**, approximate interface metrics:
+
+| Link class | Metric |
+|------------|--------|
+| 20G hops (A–B, B–C, D–E, E–A, …) | **5** each |
+| 10G hop (C–D only) | **10** |
+
+**Question:** how does the fabric treat traffic that must be *routed* from C toward D (e.g. loopback-to-loopback, or another prefix learned via OpenFabric)?
+
+| Candidate path | Path cost (sum of hop metrics) |
+|----------------|--------------------------------|
+| **Direct** C → D | **10** |
+| **Long way** C → B → A → E → D | 5+5+5+5 = **20** |
+
+**Result: use direct C–D** (10 &lt; 20). Nodes A, B, and E are **not** transit for normal C↔D flows.
+
+That answers the common fear: *“Won’t the ring shove C–D traffic all the way around and load every host?”*  
+**Not with sane metrics.** A slower *direct* link still beats several faster hops unless its metric is large enough that the detour wins (or the direct link is down).
+
+| If C–D were… | C–D metric (approx.) | vs long way (20) | Winner |
+|--------------|----------------------|------------------|--------|
+| 10G | 10 | 20 | **Direct** |
+| 20G | 5 | 20 | **Direct** |
+| ~1G | ~100 | 20 | **Long way** (detour is cheaper) |
+| Down / withdrawn | — | 20 | **Long way** (failover — why you built a ring) |
+
+**On-link vs SPF:** if C and D only talk using addresses **on the shared C–D underlay subnet**, the kernel often uses a **connected** route and never “picks” the long arc. SPF path choice matters most for **remote** prefixes (other nodes, loopbacks, multi-hop). Either way, adjacent 10G neighbors are **not** meant to hairpin around the ring by default.
+
+**Manual policy:** set C–D metric very high if you *want* the direct link to be backup-only (CCIE-style admin cost). Default auto-metric will not do that for a healthy 10G vs four 20G hops.
+
+### Calculators and “doing the math”
+
+There is no special Thunderbolt calculator required. Path math is:
+
+```text
+1) metric per link ≈ reference / trained_Mbps
+2) path cost = sum of metrics on that path
+3) best path = lowest path cost
+```
+
+Handy references (OSPF uses the **same inverse-bandwidth idea**; OpenFabric metrics are the same *style* of thinking):
+
+| Resource | Use |
+|----------|-----|
+| Pencil / spreadsheet | List links, assign metrics, sum two or three candidate paths — enough for lab rings |
+| [Study-CCNA: OSPF cost](https://study-ccna.com/ospf-cost-metric/) | Clear formula + examples (`cost = reference / bandwidth`) |
+| [NetworkLessons: OSPF reference bandwidth](https://networklessons.com/ospf/ospf-reference-bandwidth) | Why reference Mbps matters when links are multi-gig |
+| [ipwithease OSPF cost notes](https://ipwithease.com/ospf-cost-calculation/) | Another worked cost walkthrough |
+| Plugin UI (when FRR is up) | Per-link metric on Thunderbolt / tbn tabs; later: RIB / neighbor views via `vtysh` |
+
+You do **not** need a Cisco OSPF simulator for a TB ring — five nodes and a table of metrics is enough to reason about C→D vs the long arc.
+
 ### Manual override
 
 | Control | Use |
@@ -151,8 +214,8 @@ Examples with reference **100000**:
 
 - Metric does not invent dual-lane TCP or fix a wedged TB domain.  
 - Metric does not equal “user-visible Gbit/s” after TCP/CPU overhead ([standards-and-speeds](standards-and-speeds.md)).  
-- Until FRR is running, metrics are **planned/generated only** (dry-run conf still useful).
-
+- Until FRR is running, metrics are **planned/generated only** (dry-run conf still useful).  
+- Default metrics avoid hairpinning adjacent neighbors around a ring when a direct path is cheaper; they do not replace capacity planning for *transit* when a link is intentionally expensive or down.
 ---
 
 ## Supported topologies
