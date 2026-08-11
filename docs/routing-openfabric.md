@@ -285,16 +285,16 @@ Stages: detect peer → underlay IP (manual then auto-restore) → OpenFabric ad
 ```text
 ┌──────────────────────────────────────────────────────────┐
 │ Thunderbolt Net                                          │
-│  · TB sysfs / tbnN underlay                              │
+│  · TB sysfs / tbnN underlay (one or more peers)          │
 │  · metric policy + OpenFabric conf generate              │
-│  · FRR detect / (later) package                          │
+│  · Detect FRR (vtysh/fabricd); point at UnraidFRR        │
 │  · Apply, array-start, hotplug hooks                     │
-│  · UI: status, neighbors, routes, overrides              │
+│  · UI: status, overrides; neighbors when FRR live        │
 └────────────────────────────┬─────────────────────────────┘
-                             │
+                             │ uses when present
                              ▼
 ┌──────────────────────────────────────────────────────────┐
-│ FRR: zebra + fabricd                                     │
+│ FRR: zebra + fabricd  (UnraidFRR or other install)       │
 │  · router openfabric 1                                   │
 │  · TB ifaces + lo /32 (passive)                          │
 │  · interface metrics from policy                         │
@@ -310,7 +310,7 @@ Stages: detect peer → underlay IP (manual then auto-restore) → OpenFabric ad
 | **Router ID / loopback** | Stable host `/32` on `lo` (auto or configured) |
 | **Link addresses** | Existing tbn plan (`10.255.N.x/24` or `/30`); unique per link |
 | **OpenFabric NET** | Auto from router-id / machine-id; advanced override |
-| **Forwarding** | IPv4 forward on when OpenFabric enabled (IPv6 if fabric IPv6 on) |
+| **Forwarding** | IPv4 forward when OpenFabric is on **and** FRR is present (not when FRR is missing) |
 
 ---
 
@@ -318,15 +318,15 @@ Stages: detect peer → underlay IP (manual then auto-restore) → OpenFabric ad
 
 | Setting | Default | Override |
 |---------|---------|----------|
-| **OpenFabric** | **Yes** when FRR available | Global No |
+| **OpenFabric** | **Yes** (intent) when FRR available | Global No → static underlay only |
 | **Per-link participate** | **Yes** | no / passive |
 | **Metric** | **auto** from trained rate | manual |
-| **Auto-install FRR** | **Yes** when package path exists | no / system-only |
+| **FRR packages** | **Not installed by this plugin** | Use [UnraidFRR](https://github.com/ibigsnet/UnraidFRR) or hand-install FRR |
 | **IPv6 fabric** | Yes if addresses exist | force v4 |
 | **Default route via TB** | **No** | existing tbn option |
 | **br0/eth0 in fabric** | **No** | advanced passive (rare) |
 
-If FRR is missing: static underlay only; UI states *OpenFabric preferred; FRR not available*.
+If FRR is missing: static underlay only; UI states that OpenFabric is preferred but FRR is not available. Conf may still be generated for preview on flash.
 
 ---
 

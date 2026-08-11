@@ -1,13 +1,14 @@
 # Contributing to Thunderbolt Net
 
-Thunderbolt Net is developed in the open for Unraid users who need serious Thunderbolt/USB4 **host networking**, and longer-term **FRR/OpenFabric** multi-host fabrics (rings, meshes, hot-plug peers).
+Thunderbolt Net is developed in the open for Unraid users who need serious Thunderbolt/USB4 **host networking**, including multi-peer underlay and optional **FRR/OpenFabric** multi-host fabrics (rings, meshes, mixed Proxmox/Unraid labs).
 
 ## Ways to help
 
 | Area | Examples |
 |------|----------|
 | **Lab reports** | Peer OS, controller, trained rate/lanes, dual-cable behavior, ring diagrams |
-| **OpenFabric / FRR** | Conf snippets that interop with our generated markers; metric edge cases; packaging FRR for Unraid |
+| **OpenFabric / FRR** | Conf snippets that interop with our generated markers; metric edge cases |
+| **UnraidFRR packages** | Slackware/Unraid-compatible FRR `.txz` builds (separate repo: [UnraidFRR](https://github.com/ibigsnet/UnraidFRR)) |
 | **Device classes** | Strix Halo, Gorgon Halo, DGX Spark (and similar) hot-plug notes |
 | **Bonding** | Cases where two `thunderbolt*` netdevs appear to the same peer; bond mode results |
 | **UI / docs** | Clearer helpers, fixes to [docs/](docs/), translations later |
@@ -15,12 +16,14 @@ Thunderbolt Net is developed in the open for Unraid users who need serious Thund
 
 ## Development norms
 
-1. **Honesty over marketing** — trained rate ≠ sticker; dual-cable limits are documented, not denied; bonding and OpenFabric are **roadmaps with stages**, not vapor.
-2. **Defaults favor interconnect** — OpenFabric **on** when FRR is available; static **off** is always first-class.
-3. **Do not break br0** — default route stays on main LAN unless the user opts in on a tbn tab.
-4. **Versioning** — Unraid uses lexicographic plugin versions; see [RELEASES.md](RELEASES.md). No empty-file pushes.
-5. **Markers for generated FRR** — only edit inside `BEGIN/END ThunderboltNet OpenFabric` (or coordinated plugin APIs).
-
+1. **Honesty over marketing** — trained rate ≠ sticker; dual-cable same-peer limits are documented, not denied.  
+2. **Multi-peer underlay is real** — each `thunderboltN` is typically one peer path; multiple peers ⇒ multiple tbn tabs. Not a “single-link only” product.  
+3. **OpenFabric** — implemented when FRR is present (conf generate/apply, UI); full multi-hop needs live FRR (often via UnraidFRR). Stages remain for packages, neighbors UI, peer restore.  
+4. **Bonding** — available when ≥2 live TB netdevs; same-peer dual-cable multi-path is **roadmap**, not a non-goal.  
+5. **Defaults favor interconnect** — OpenFabric **on** when FRR is available; pure static always available.  
+6. **Do not break br0** — default route stays on main LAN unless the user opts in on a tbn tab.  
+7. **Versioning** — Unraid uses lexicographic plugin versions; see [RELEASES.md](RELEASES.md). No empty-file pushes.  
+8. **Markers for generated FRR** — only edit inside `BEGIN/END ThunderboltNet OpenFabric` (or coordinated plugin APIs). Never `require` UnraidFRR PHP from this plugin.
 ## Local notes
 
 Machine-local Grok/lab notes may live in `.grok-notes/` (gitignored). Design that should ship to users goes in `docs/` or `DOCS.md`.

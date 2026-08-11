@@ -3,12 +3,13 @@
 ## Product pillars (stable)
 
 1. Honest trained rate / no dual-lane fantasy  
-2. Static underlay always works without FRR  
-3. OpenFabric **on** when FRR available; off override first-class  
-4. FRR **packages** live in **UnraidFRR**, not this plugin  
-5. Dual-cable bonding = roadmap when two netdevs exist, not a non-goal  
-6. Rings/meshes with sum-of-metrics SPF (document + implement)  
-7. **Mixed fabric** Unraid + Proxmox/Debian FRR — conf parity with apt FRR  
+2. **Multi-peer underlay** — not a single-link-only product; one netdev per peer path  
+3. Static underlay always works without FRR  
+4. OpenFabric **on** (intent) when FRR available; off override first-class  
+5. FRR **packages** live in **UnraidFRR**, not this plugin  
+6. Dual-cable bonding = roadmap when two netdevs exist, not a non-goal  
+7. Rings/meshes with sum-of-metrics SPF (document + implement)  
+8. **Mixed fabric** Unraid + Proxmox/Debian FRR — conf parity with apt FRR  
 
 ## Stages (current)
 

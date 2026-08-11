@@ -54,11 +54,14 @@ The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt l
 | USB4STREAM (raw TB stream, Linux ~7.2+) | [docs/usb4stream.md](docs/usb4stream.md) |
 | Port silkscreen guide (TB lightning / SS¹⁰ / SS²⁰) | [docs/port-icons.md](docs/port-icons.md) (docs only) |
 | Hardware, BIOS, modules, security | [docs/requirements.md](docs/requirements.md) |
-| Topology, dual cables, hubs with NICs | [docs/links-and-topology.md](docs/links-and-topology.md) |
-| **FRR / OpenFabric** multi-host routing (LTS design) | [docs/routing-openfabric.md](docs/routing-openfabric.md) |
+| Topology: multi-peer, dual cable, bonding, rings | [docs/links-and-topology.md](docs/links-and-topology.md) |
+| **FRR / OpenFabric** multi-host routing | [docs/routing-openfabric.md](docs/routing-openfabric.md) |
+| Mixed Unraid + Proxmox/Debian fabric | [docs/fabric-proxmox-unraid.md](docs/fabric-proxmox-unraid.md) |
+| Topic index (all docs) | [docs/README.md](docs/README.md) |
 | Every Settings field | [docs/settings-reference.md](docs/settings-reference.md) |
 | Common failures | [docs/troubleshooting.md](docs/troubleshooting.md) |
 | Install, version strings, **git tags / ship checklist** | [RELEASES.md](RELEASES.md) |
+| Optional FRR packages on Unraid | [UnraidFRR](https://github.com/ibigsnet/UnraidFRR) (separate plugin) |
 
 ---
 

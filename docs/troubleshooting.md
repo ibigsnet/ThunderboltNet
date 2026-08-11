@@ -111,6 +111,17 @@ Software cleanup alone may not fix NO-CARRIER / missing peer:
 - Expect a dock RJ45 to show up as `thunderbolt0`.  
 - Debug with three variables at once (E2E + new cable + dual plug) — change one thing, then reseat.
 
+## OpenFabric / FRR (multi-hop)
+
+| Symptom | Check |
+|---------|--------|
+| OpenFabric On but “FRR not installed” | Expected without FRR. Static tbn still works. Optional: [UnraidFRR](https://github.com/ibigsnet/UnraidFRR) or install FRR another way. |
+| No multi-hop to a third host | Both ends need fabricd + matching **area**; underlay IPs up; unique subnets per link; IP forwarding only after FRR is present |
+| Routes look wrong / hairpin around ring | Metrics: lower sum wins — [routing-openfabric.md](routing-openfabric.md#path-cost-and-metrics) |
+| br0 / internet broken after experiments | Confirm tbn **default route = No**; OpenFabric should not enroll br0 by default |
+
+Deep design: [routing-openfabric.md](routing-openfabric.md). Mixed Unraid + Proxmox: [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md).
+
 ## Peer-specific notes
 
 [peer-scenarios.md](peer-scenarios.md)

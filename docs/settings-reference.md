@@ -2,16 +2,18 @@
 
 ## Global — Thunderbolt tab → Routing (OpenFabric / FRR)
 
+OpenFabric is the **control plane** for multi-hop fabrics. It does **not** install FRR packages — use optional companion [UnraidFRR](https://github.com/ibigsnet/UnraidFRR) or supply FRR yourself. Without FRR, leave OpenFabric on or off as you like; underlay static still works.
+
 | Field | Default | Scope | Summary |
 |-------|---------|-------|---------|
-| Enable OpenFabric | **Yes** | Host | Fabric control plane when FRR available; No = static only |
+| Enable OpenFabric | **Yes** | Host | Intent: fabric when FRR available; No = never manage fabricd |
 | OpenFabric IPv6 | Yes | Host | Also run IPv6 openfabric on ifaces |
 | OpenFabric area | 1 | Host | Must match peers in the same fabric |
 | Router ID | auto `10.254.x.y` | Host | `/32` on `lo`, passive |
 | OpenFabric NET | auto | Host | Advanced IS-IS style NET override |
 | Metric reference (Mb/s) | 100000 | Host | Auto metric ≈ ref / trained_Mbps (rings) |
 
-Full design, pros/cons, cost model, rings, hot-plug: [routing-openfabric.md](routing-openfabric.md).
+Full design, pros/cons, cost model, rings, mixed Proxmox/Unraid: [routing-openfabric.md](routing-openfabric.md) · [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md).
 
 ---
 

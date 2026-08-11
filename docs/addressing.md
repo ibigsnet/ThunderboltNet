@@ -105,7 +105,12 @@ A filled **gateway** without default route still only matters for routes you add
 
 ---
 
+## OpenFabric / multi-hop
+
+Underlay addressing above is still required when OpenFabric is on (link IPs + unique subnets). Multi-hop reachability usually uses **loopback /32 router-ids** learned via FRR, not by putting every host on one big TB subnet. See [routing-openfabric.md](routing-openfabric.md) and [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md).
+
 ## Related
 
 - Peer OS setup: [peer-scenarios.md](peer-scenarios.md)  
 - Settings fields: [settings-reference.md](settings-reference.md)  
+- Topology / multi-peer: [links-and-topology.md](links-and-topology.md)  

@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.08.11ab">
+<!ENTITY version "2026.08.11ac">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -35,6 +35,9 @@
 
 <CHANGES>
 ###&version;
+- Docs: full consistency pass — multi-peer underlay model, OpenFabric vs UnraidFRR roles, doc index map, troubleshooting FRR, RELEASES version table.
+
+###2026.08.11ab
 - Wording: drop “single-link only” product framing — multi-peer tbn paths and optional OpenFabric multi-host fabric; honest trained rates; dual-cable bonding only when multiple netdevs exist.
 
 ###2026.08.11aa

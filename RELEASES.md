@@ -140,11 +140,11 @@ develop on branch → merge to main → bump .plg version + CHANGES
 
 | Tag | Plugin version | Notes |
 |-----|----------------|--------|
-| `main` (Latest) | **2026.08.11** | OpenFabric/FRR scaffolding (degrades without FRR); not yet git-tagged — smoke-test before pinning |
-| [`v2026.08.05ad`](https://github.com/ibigsnet/ThunderboltNet/releases/tag/v2026.08.05ad) | **2026.08.05ad** | **Stable pin** before OpenFabric: standards guide (directionality, bandwidth table, mixing, FAQ) |
+| `main` (Latest) | **2026.08.11ac** | OpenFabric UI/conf (degrades without FRR); multi-peer wording; UnraidFRR companion; docs consistency pass — not yet a freeze tag |
+| [`v2026.08.05ad`](https://github.com/ibigsnet/ThunderboltNet/releases/tag/v2026.08.05ad) | **2026.08.05ad** | **Stable pin** before OpenFabric work: standards guide (directionality, bandwidth table, mixing, FAQ) |
 | [`v2026.08.05ac`](https://github.com/ibigsnet/ThunderboltNet/releases/tag/v2026.08.05ac) | **2026.08.05ac** | First GitHub Release: USB4STREAM awareness, Dashboard TB ports, forum + GitHub support links |
 
-Prefer **`v2026.08.05ad`** for freeze/rollback. Prefer **Latest** for newest (includes OpenFabric UI/docs; multi-hop needs FRR).
+Prefer **`v2026.08.05ad`** for freeze/rollback. Prefer **Latest** for newest (OpenFabric settings work when FRR is present; multi-hop needs FRR via [UnraidFRR](https://github.com/ibigsnet/UnraidFRR) or other install).
 ### Roll back to a tag
 
 1. **Plugins → Install Plugin** → paste that tag’s raw `.plg` URL (see table above / GitHub tags).  
