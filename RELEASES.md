@@ -28,9 +28,9 @@ CA is fed from the [unraid-templates](https://github.com/ibigsnet/unraid-templat
 | **Latest (`main`)** | Always get the newest published tree | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg` |
 | **Pinned tag** | Install/rollback to a fixed version | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/vVERSION/thunderboltnet.plg` |
 
-Example pinned URL for the first tagged release:
+**Recommended stable pin (pre-OpenFabric):**
 
-`https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/v2026.08.05ac/thunderboltnet.plg`
+`https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/v2026.08.05ad/thunderboltnet.plg`
 
 After install, confirm the version under **Plugins** (or the plugin version string on disk).
 
