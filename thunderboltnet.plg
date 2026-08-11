@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.08.11aa">
+<!ENTITY version "2026.08.11ab">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -35,6 +35,9 @@
 
 <CHANGES>
 ###&version;
+- Wording: drop “single-link only” product framing — multi-peer tbn paths and optional OpenFabric multi-host fabric; honest trained rates; dual-cable bonding only when multiple netdevs exist.
+
+###2026.08.11aa
 - OpenFabric: point at companion plugin UnraidFRR for FRR package install (separate, opt-in, not required for static TB); status UI shows companion presence.
 
 ###2026.08.11
@@ -234,7 +237,7 @@ echo "ThunderboltNet: directories ready."
 <![CDATA[
 **Thunderbolt Net**
 
-Plug-and-play host-to-host networking over Thunderbolt-family ports on Unraid (Thunderbolt 3/4/5 and USB4-class hosts where Linux exposes them). Fabric overview, per-link settings (tbn0, tbn1, …), PCI/IOMMU, driver options, remembered peers, and activity hints—not locked to one generation.
+Host-to-host networking over Thunderbolt-family ports on Unraid (Thunderbolt 3/4/5 and USB4-class hosts where Linux exposes them). Fabric overview, per-link tbn0/tbn1… settings (one or more peers), PCI/IOMMU, driver options, known peers, activity; optional OpenFabric multi-host fabric. Honest trained rates — not sticker dual-lane TCP.
 ]]>
 </INLINE>
 </FILE>

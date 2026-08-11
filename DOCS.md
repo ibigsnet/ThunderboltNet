@@ -103,7 +103,7 @@ These are **supported directions**, not throwaway experiments. Defaults favor in
 
 | Pillar | Intent | Default direction | Doc |
 |--------|--------|-------------------|-----|
-| **Host-net underlay** | Single-link TB/USB4 L3, honest trained rate | Static tbnN, MTU 1500, no default route via TB | This file, [addressing](docs/addressing.md) |
+| **Host-net underlay** | Per-path TB/USB4 L3 (one netdev per peer path), honest trained rate | Static tbnN, MTU 1500, no default route via TB | This file, [addressing](docs/addressing.md) |
 | **OpenFabric / FRR** | Multi-host mesh/**ring**/multi-hop; hot-plug device classes | **On** when FRR available; global/per-link **off** | [routing-openfabric.md](docs/routing-openfabric.md) |
 | **Mixed OpenFabric fabric** | Unraid + Proxmox/Debian (or other FRR) peers | Shared area/NET/metrics; FRR both sides | [fabric-proxmox-unraid.md](docs/fabric-proxmox-unraid.md) |
 | **UnraidFRR (companion)** | Opt-in install of FRR packages/daemons (invasive) | Separate plugin; not required for static TB | [ibigsnet/UnraidFRR](https://github.com/ibigsnet/UnraidFRR) |
