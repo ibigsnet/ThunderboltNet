@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.08.11al">
+<!ENTITY version "2026.08.11am">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -35,7 +35,10 @@
 
 <CHANGES>
 ###&version;
-- Companion copy: FRR packages live under Network Settings → Fabric routing (UnraidFRR tab).
+- Companion name: **Fabric Routing** / CA **Fabric Routing (FRR)** (UnraidFRR packages tab).
+
+###2026.08.11al
+- Companion copy: FRR packages live under Network Settings → Fabric Routing (UnraidFRR tab).
 
 ###2026.08.11ak
 - Links empty state: no broken one-column LOCAL compare table; clean host summary when no peers online. Recovery moved out of Links body.
@@ -368,7 +371,7 @@ echo "ThunderboltNet: Configure → Settings → Network Settings → Thunderbol
 echo "ThunderboltNet: Per-link IPs → Thunderbolt tbn0 / tbn1 tabs when a peer is online."
 echo "ThunderboltNet: CA Actions→Settings opens the Thunderbolt overview alone;"
 echo "ThunderboltNet:   use Network Settings for the full eth0 / Thunderbolt / tbn strip."
-echo "ThunderboltNet: Optional multi-hop → install UnraidFRR (Network Settings → Fabric routing) — not USB4STREAM."
+echo "ThunderboltNet: Optional multi-hop → install UnraidFRR (Network Settings → Fabric Routing) — not USB4STREAM."
 echo "ThunderboltNet: Hard-refresh the browser (Ctrl+Shift+R)."
 # One-time green notification (first install only; -x single ticket)
 MARKER=/boot/config/plugins/ThunderboltNet/first_run_notified
@@ -378,7 +381,7 @@ if [ ! -f "$MARKER" ] && [ -x /usr/local/emhttp/webGui/scripts/notify ]; then
     -s "Thunderbolt Net ready" \
     -d "Configure under Network Settings → Thunderbolt (tbn tabs for IPs)." \
     -i "normal" \
-    -m "CA Settings opens the Thunderbolt overview. For eth0 + tbn tabs together: Settings → Network Settings. Optional multi-hop: UnraidFRR (Network Settings → Fabric routing) — routing packages, not thunderbolt_stream/USB4STREAM. Optional disk imaging: Network Services → NBD." \
+    -m "CA Settings opens the Thunderbolt overview. For eth0 + tbn tabs together: Settings → Network Settings. Optional multi-hop: UnraidFRR (Network Settings → Fabric Routing) — routing packages, not thunderbolt_stream/USB4STREAM. Optional disk imaging: Network Services → NBD." \
     -l "/Settings/ThunderboltNet" \
     -x 2>/dev/null || true
   touch "$MARKER" 2>/dev/null || true

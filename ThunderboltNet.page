@@ -137,7 +137,7 @@ $of_mode_label = [
           <strong><?= htmlspecialchars($of_mode_label) ?></strong>
 <?php if ($frr_present): ?>
           <span class="tbn-muted"> — FRR present · OpenFabric <strong>policy</strong> under Advanced below · packages at
-            <a href="/Settings/UnraidFRR">Network Settings → Fabric routing</a></span>
+            <a href="/Settings/UnraidFRR">Network Settings → Fabric Routing</a></span>
 <?php else: ?>
           <span class="tbn-muted"> — static tbn IPs work without FRR · for rings / multi-hop see
             <a href="#tbn-companion-frr" class="tbn-jump-frr">companion card</a>
@@ -154,14 +154,14 @@ $of_mode_label = [
         <p><span class="tbn-companion-status tbn-status-ok">Ready</span>
           FRR packages live. OpenFabric <strong>policy</strong> is on this page
           (Advanced: multi-hop routing). Package/daemon manager:
-          <a href="/Settings/UnraidFRR">Network Settings → Fabric routing</a>.</p>
+          <a href="/Settings/UnraidFRR">Network Settings → Fabric Routing</a>.</p>
         <p class="tbn-muted tbn-companion-role">
           <strong>UnraidFRR</strong> = install/start FRR (<code>zebra</code>/<code>fabricd</code>).
           <strong>Thunderbolt Net</strong> = underlay tbn IPs + OpenFabric conf/metrics — not packages.
         </p>
 <?php elseif (!empty($unraidfrr['plugin_dir'])): ?>
         <p><span class="tbn-companion-status tbn-status-warn">Plugin installed · packages missing</span>
-          Open <a href="/Settings/UnraidFRR">Network Settings → Fabric routing</a> → ensure packages are present → <strong>Apply</strong>.
+          Open <a href="/Settings/UnraidFRR">Network Settings → Fabric Routing</a> → ensure packages are present → <strong>Apply</strong>.
           Then return here and Apply Thunderbolt Net so OpenFabric policy can start <code>fabricd</code>.</p>
         <p class="tbn-muted tbn-companion-role">
           When this card turns green, multi-hop rings/meshes can run. Static peer IPs never needed this.
@@ -173,7 +173,7 @@ $of_mode_label = [
         <p>
           Install <strong>UnraidFRR</strong> from Community Apps, or
           <a href="<?= htmlspecialchars($unraidfrr['install_url'] ?? 'https://raw.githubusercontent.com/ibigsnet/UnraidFRR/main/unraidfrr.plg') ?>" target="_blank" rel="noopener">Plugins → Install Plugin (raw .plg)</a>
-          → then <a href="/Settings/UnraidFRR">Network Settings → Fabric routing</a> → Apply.
+          → then <a href="/Settings/UnraidFRR">Network Settings → Fabric Routing</a> → Apply.
         </p>
         <p class="tbn-muted tbn-companion-role">
           Does <em>not</em> provide <code>thunderbolt_stream</code> / USB4STREAM.
@@ -910,7 +910,7 @@ $of_mode_label = [
     </p>
 <?php else: ?>
     <p class="tbn-note tbn-advanced-summary">
-      FRR is present — packages/daemons at <a href="/Settings/UnraidFRR">Network Settings → Fabric routing</a>.
+      FRR is present — packages/daemons at <a href="/Settings/UnraidFRR">Network Settings → Fabric Routing</a>.
       Policy (area, metrics, participate) is on this page.
       <?= tbn_docs_more_html('docs/routing-openfabric.md', 'OpenFabric guide ↗') ?>
       · <?= tbn_docs_more_html('docs/fabric-proxmox-unraid.md', 'Proxmox + Unraid fabric ↗') ?>
@@ -930,7 +930,7 @@ $of_mode_label = [
       (<?= tbn_docs_more_html('docs/fabric-proxmox-unraid.md', 'mixed fabric guide') ?>).
       <strong>When you can skip it:</strong> two hosts, one cable, static IPs only — leave packages uninstalled.<br><br>
       <strong>Who installs FRR?</strong> Not this plugin. Optional companion
-      <a href="#tbn-companion-frr">UnraidFRR</a> (Network Settings → Fabric routing; packages + daemons), or your own FRR.
+      <a href="#tbn-companion-frr">UnraidFRR</a> (Network Settings → Fabric Routing; packages + daemons), or your own FRR.
       UnraidFRR never installs <code>thunderbolt_stream</code> / USB4STREAM.
       <?= tbn_help_docs_footer('docs/routing-openfabric.md', 'FRR / OpenFabric (pros, cost, topologies)') ?>
     </blockquote>
@@ -1042,7 +1042,7 @@ $of_mode_label = [
     </dl>
     <blockquote class="inline_help">
       Apply updates host drivers, E2E, USB4STREAM load (if enabled), and OpenFabric <strong>policy</strong> above.
-      FRR <strong>packages</strong> are managed under <a href="/Settings/UnraidFRR">Network Settings → Fabric routing</a> when UnraidFRR is installed.
+      FRR <strong>packages</strong> are managed under <a href="/Settings/UnraidFRR">Network Settings → Fabric Routing</a> when UnraidFRR is installed.
       Per-link addresses and bonding are on each <strong>tbnN</strong> tab.
       <?= tbn_help_docs_footer('docs/driver-options.md', 'Driver options guide') ?>
     </blockquote>
@@ -1158,7 +1158,7 @@ $of_mode_label = [
       </p>
       <p class="tbn-muted tbn-apply-caption">
         Apply = drivers, E2E, USB4STREAM load, OpenFabric policy.
-        FRR packages → <a href="/Settings/UnraidFRR">Network Settings → Fabric routing</a>.
+        FRR packages → <a href="/Settings/UnraidFRR">Network Settings → Fabric Routing</a>.
         Per-link IPs → <strong>tbnN</strong> tabs in Network Settings.
       </p>
   </div>
