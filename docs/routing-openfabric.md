@@ -423,12 +423,18 @@ OPENFABRIC_METRIC=""            ; when manual
 | Peer | Expectation |
 |------|-------------|
 | Unraid + Thunderbolt Net | Happy path, both default On |
+| **Proxmox + FRR fabricd** | **First-class long-term** — same OpenFabric mesh as Unraid ([fabric-proxmox-unraid.md](fabric-proxmox-unraid.md)) |
 | Linux + FRR fabricd | Full OpenFabric interop |
 | Strix Halo / Gorgon Halo / DGX Spark (Linux) | Host-net + FRR when available; document per platform |
 | macOS / Windows | Static underlay; no fabricd |
 | FRR-less Linux | Static only |
 
-Sample peer `vtysh` patterns stay aligned with generated conf (area, passive lo, metrics). Contributions of tested peer snippets are welcome.
+### Flagship multi-node goal
+
+**A, B, C = Proxmox** · **D, E = Unraid** — one TB/OpenFabric fabric (ring or mesh), multi-hop and failover across platforms.  
+Design, address plan, lab phases L0–L6: **[fabric-proxmox-unraid.md](fabric-proxmox-unraid.md)**.
+
+Sample peer `vtysh` patterns stay aligned with generated conf (area, passive lo, metrics). Contributions of tested Proxmox snippets are welcome.
 
 ---
 

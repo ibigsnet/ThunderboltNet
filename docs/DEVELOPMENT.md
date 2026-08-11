@@ -8,6 +8,7 @@
 4. FRR **packages** live in **UnraidFRR**, not this plugin  
 5. Dual-cable bonding = roadmap when two netdevs exist, not a non-goal  
 6. Rings/meshes with sum-of-metrics SPF (document + implement)  
+7. **Proxmox A/B/C + Unraid D/E** one fabric — conf parity with apt FRR  
 
 ## Stages (current)
 
@@ -16,24 +17,31 @@
 | Done | Host-net UI, peers memory, docs, standards | Shipped | Ongoing |
 | Done | OpenFabric conf generate, detect, UI, degrade | Scaffold on main | Need FRR live |
 | Done | UnraidFRR companion pointer | Docs + detect | — |
-| **Next** | Lab: FRR present + 2-node OpenFabric adjacency | | **Yes** |
+| Done | Proxmox↔Unraid fabric design doc | [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md) | — |
+| **Next** | FRR live + **L2/L3** Proxmox↔Unraid adjacency | | **Yes** |
 | Next | Peer last-plan restore | | Light |
 | Next | Neighbors/routes panel from vtysh | | Yes |
 | Later | Bond multi-path; Halo/Spark hot-plug notes | | Yes |
-| Later | Ring 3–5 node metric failover | | **Yes** |
+| Later | **L5** full A–E ring failover | | **Yes** |
 
 ## Lab asks (when you’re ready)
 
-1. **Smoke Latest** — install `main` plg; OpenFabric section; no br0 breakage  
-2. **UnraidFRR idle** — companion alone, empty packages  
-3. **FRR packages** — when we have a `.txz`, install + `vtysh`  
-4. **2-node TB** — static then OpenFabric adjacency  
-5. **Ring** — C–D slower link cost story (optional)  
+| Phase | What | Gear |
+|-------|------|------|
+| L0 | TBN Latest smoke; OpenFabric UI; br0 OK | 1 Unraid |
+| L1 | UnraidFRR idle → packages / `vtysh` | 1 Unraid |
+| L2 | Proxmox ↔ Unraid **static** TB ping | 1 PVE + 1 Unraid |
+| L3 | Same pair **OpenFabric** + loopbacks | 1 PVE + 1 Unraid |
+| L4 | 3-node multi-hop | +1 |
+| L5 | Full A–B–C–D–E ring failover | 3 PVE + 2 Unraid |
+| L6 | Mixed metrics (e.g. 10G C–D) | Full set |
 
-No need to re-hook hardware until stages marked **Lab? Yes** are ready to run.
+Full narrative: [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md).  
+L0 anytime; full ring only when you re-hook the lab.
 
 ## Related
 
 - [routing-openfabric.md](routing-openfabric.md)  
+- [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md)  
 - [UnraidFRR](https://github.com/ibigsnet/UnraidFRR)  
 - [RELEASES.md](../RELEASES.md)  
