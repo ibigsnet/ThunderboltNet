@@ -266,6 +266,30 @@
 }
 
 /* LOCAL | REMOTE | REMOTE comparison */
+/* Empty Links: simple host summary (not a broken one-column compare table) */
+.tbn-wrap .tbn-empty-links {
+  margin: 0.65rem 0 0.4rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 6px;
+  border: 1px dashed rgba(128, 128, 128, 0.4);
+  background: rgba(0, 0, 0, 0.04);
+}
+.tbn-wrap .tbn-empty-links-lead {
+  margin: 0 0 0.65rem;
+  line-height: 1.4;
+}
+.tbn-wrap .tbn-host-only {
+  max-width: 36em;
+  margin: 0;
+}
+.tbn-wrap .tbn-empty-peers {
+  margin: 0.4rem 0 0.6rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: 6px;
+  border: 1px dashed rgba(128, 128, 128, 0.35);
+  background: rgba(0, 0, 0, 0.03);
+  line-height: 1.4;
+}
 .tbn-compare-scroll {
   width: 100%;
   overflow-x: auto;
@@ -604,6 +628,61 @@
 }
 .tbn-wrap .tbn-chip-muted {
   opacity: 0.85;
+}
+/* Clickable status chip → companion strip */
+.tbn-wrap a.tbn-chip-link {
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid rgba(230, 138, 46, 0.55);
+  display: inline-block;
+}
+.tbn-wrap a.tbn-chip-link:hover,
+.tbn-wrap a.tbn-chip-link:focus {
+  background: rgba(230, 138, 46, 0.38);
+  outline: none;
+  text-decoration: underline;
+}
+.tbn-wrap a.tbn-jump-frr {
+  color: var(--orange-bold, #e68a2e);
+  font-weight: 700;
+  text-decoration: underline;
+}
+.tbn-wrap .tbn-frr-cta {
+  margin: 0.15rem 0 0.45rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 5px;
+  border-left: 3px solid var(--orange-bold, #e68a2e);
+  background: rgba(230, 138, 46, 0.1);
+  line-height: 1.4;
+}
+.tbn-wrap .tbn-companion-status {
+  display: inline-block;
+  font-size: 0.78em;
+  font-weight: 700;
+  padding: 0.08em 0.4em;
+  border-radius: 3px;
+  margin-right: 0.25em;
+  vertical-align: baseline;
+}
+.tbn-wrap .tbn-status-ok {
+  background: rgba(80, 160, 80, 0.28);
+  color: #6abf69;
+}
+.tbn-wrap .tbn-status-warn {
+  background: rgba(230, 138, 46, 0.25);
+  color: var(--orange-bold, #e68a2e);
+}
+.tbn-wrap .tbn-companion-role {
+  margin-top: 0.35rem !important;
+  font-size: 0.92em;
+}
+.tbn-wrap .tbn-companion-card.tbn-companion-flash {
+  animation: tbnCompanionFlash 1.6s ease-out 1;
+  box-shadow: 0 0 0 2px var(--orange-bold, #e68a2e);
+}
+@keyframes tbnCompanionFlash {
+  0% { box-shadow: 0 0 0 3px var(--orange-bold, #e68a2e); background: rgba(230, 138, 46, 0.22); }
+  100% { box-shadow: 0 0 0 0 transparent; }
 }
 .tbn-wrap .tbn-advanced-summary {
   margin: 0.2rem 0 0.4rem;

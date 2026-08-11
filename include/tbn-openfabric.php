@@ -630,15 +630,32 @@ function tbn_of_status_html() {
     ($st['frr']['version'] !== '' ? ' · <code>' . htmlspecialchars($st['frr']['version']) . '</code>' : '') .
     '</td></tr>';
   $uf = $st['frr']['unraidfrr'] ?? tbn_of_unraidfrr_companion();
+  $install = $uf['install_url'] ?? 'https://raw.githubusercontent.com/ibigsnet/UnraidFRR/main/unraidfrr.plg';
+  $project = $uf['project'] ?? 'https://github.com/ibigsnet/UnraidFRR';
   $html .= '<tr><td>UnraidFRR companion</td><td>';
-  if (!empty($uf['plugin_dir'])) {
-    $html .= 'Installed (Settings → FRR) — packages optional under flash <code>UnraidFRR/packages/</code>';
+  if (!empty($st['frr']['present'])) {
+    if (!empty($uf['plugin_dir'])) {
+      $html .= 'Installed · FRR live · <a href="/Settings/UnraidFRR">Settings → FRR</a>';
+    } else {
+      $html .= 'FRR present (packages not via UnraidFRR) · optional UI at '
+        . '<a href="' . htmlspecialchars($project) . '" target="_blank" rel="noopener">UnraidFRR</a>';
+    }
+  } elseif (!empty($uf['plugin_dir'])) {
+    $html .= '<strong>Plugin installed but FRR not live yet</strong> — open '
+      . '<a href="/Settings/UnraidFRR">Settings → FRR</a> → packages → Apply. '
+      . '<a href="#tbn-companion-frr" class="tbn-jump-frr">↑ Companion card</a>';
   } else {
-    $html .= 'Not installed — optional package manager for FRR. '
-      . '<a href="' . htmlspecialchars($uf['project'] ?? 'https://github.com/ibigsnet/UnraidFRR') . '" target="_blank" rel="noopener">GitHub</a>'
-      . ' · install plugin URL in UnraidFRR RELEASES';
+    $html .= '<strong>Not installed</strong> — optional. Only for rings / multi-hop / mixed Proxmox fabrics. '
+      . '<a href="#tbn-companion-frr" class="tbn-jump-frr">↑ Companion card (install path)</a> · '
+      . '<a href="' . htmlspecialchars($install) . '" target="_blank" rel="noopener">raw .plg</a> · '
+      . '<a href="' . htmlspecialchars($project) . '" target="_blank" rel="noopener">GitHub</a>';
   }
   $html .= '</td></tr>';
+  $html .= '<tr><td>Roles</td><td class="tbn-muted">'
+    . '<strong>UnraidFRR</strong> = FRR packages/daemons · '
+    . '<strong>Thunderbolt Net</strong> = tbn underlay + OpenFabric policy/metrics · '
+    . 'neither is USB4STREAM'
+    . '</td></tr>';
   $html .= '<tr><td>Router ID (lo)</td><td><code>' . htmlspecialchars($st['router_id']) . '</code></td></tr>';
   $html .= '<tr><td>NET</td><td><code>' . htmlspecialchars($st['net']) . '</code></td></tr>';
   $html .= '<tr><td>Metric reference</td><td>' . (int)$st['metric_reference_mbps'] . ' Mb/s (auto cost = ref / trained)</td></tr>';

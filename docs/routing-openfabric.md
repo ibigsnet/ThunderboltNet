@@ -7,14 +7,55 @@ This is **supported product design**. Defaults favor interconnectivity; pure sta
 
 ---
 
+## When do I need this? (read this first)
+
+| Your setup | Need OpenFabric / UnraidFRR? | What to do |
+|------------|------------------------------|------------|
+| **Two Unraid (or Unraid + laptop), one cable** | **No** | Static tbn IPs on each side. Skip FRR entirely. |
+| **Several peers, each on its own cable to this host only** (star, no multi-hop) | Usually **No** | Static underlay per tbn tab is enough if every peer is directly attached. |
+| **Ring or partial mesh** (A–B–C–A, or “reach C through B”) | **Yes** | Install [UnraidFRR](https://github.com/ibigsnet/UnraidFRR) for packages; enable OpenFabric on Thunderbolt Net. |
+| **Unraid + Proxmox (or other Linux FRR) multi-node fabric** | **Yes** | Same OpenFabric area/metrics both sides — see [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md). |
+| **Failover when one TB link dies** | **Yes** (topology must have another path) | Ring/mesh + OpenFabric SPF; metrics prefer trained rate. |
+| **Just want faster copy / SMB on TB** | **No** | Underlay + listening; NBD is a separate optional plugin for raw disks. |
+
+**Rule of thumb:** if every host you care about is **directly cabled** to this Unraid and you never need routes *through* a neighbor, you do **not** need FRR. If you are building a **ring**, a **lab mesh**, or **Proxmox↔Unraid multi-hop** (common in home labs and Ceph/backhaul write-ups), you do.
+
+Static tbn IPs **always** work without OpenFabric. Missing FRR is not a broken install — the UI chip **needs FRR packages** means multi-hop is waiting on optional packages, not that Thunderbolt Net failed.
+
+---
+
+## What each piece does (plugin roles)
+
+| Piece | Role | Installs FRR? | Installs kernel modules? |
+|-------|------|---------------|--------------------------|
+| **Thunderbolt Net** | TB discovery, **tbn underlay** IPs, OpenFabric **policy** (conf, metrics, participate, Apply) | **No** | Loads `thunderbolt` / `thunderbolt_net` (host-net). Optional USB4STREAM load if kernel has it. |
+| **UnraidFRR** (companion) | Opt-in **FRR packages + daemons** (`zebra`, `fabricd`, `vtysh`) | **Yes** | **No** — not `thunderbolt_stream`, not InfiniBand |
+| **FRR itself** | Routing suite (`fabricd` = OpenFabric) | — | — |
+| **NBD Export** (optional) | Whole-disk block export/import over a TB IP | No | No |
+| **USB4STREAM** | Kernel `thunderbolt_stream` raw path (mainline ~7.2+) | No | Kernel feature, not a plugin product |
+
+**Split (by design):** Thunderbolt Net never `require`s UnraidFRR PHP. UnraidFRR works without Thunderbolt Net. Without FRR, Thunderbolt Net stays on **static underlay** with a clear status line.
+
+**UI path on Unraid**
+
+1. Thunderbolt overview → **companion card “Multi-hop (FRR / OpenFabric)”** (top of page) — green when FRR is live.  
+2. If orange **needs FRR packages** chip on Advanced → OpenFabric: click it to jump to that card.  
+3. Install UnraidFRR (CA or raw `.plg`) → **Settings → FRR** → Apply packages.  
+4. Back on Thunderbolt Net → Advanced OpenFabric policy → Apply.
+
+Install plugin URL: `https://raw.githubusercontent.com/ibigsnet/UnraidFRR/main/unraidfrr.plg`
+
+---
+
 ## Why this exists on Unraid
 
 - Stock Unraid does **not** ship FRR, OpenFabric, OSPF, or IS-IS.
 - Multi-node labs need **automatic routes** when topology is more than one cable (ring, partial mesh, “through a neighbor”).
-- Community stacks (e.g. Proxmox + TB + FRR OpenFabric for Ceph/backhaul) already prove the model; Unraid should get **native UX + defaults**, not only manual `vtysh`.
+- Community stacks (e.g. **Proxmox + TB + FRR OpenFabric** for Ceph/backhaul, mixed Unraid nodes) already prove the model; Unraid should get **native UX + defaults**, not only manual `vtysh`.
 - Long-term **hot-plug** into modern USB4 / TB AI and mini workstations (e.g. **ASUS/AMD Strix Halo** class, **Gorgon Halo** class, **NVIDIA DGX Spark** class, and similar) should join a fabric with minimal reconfiguration.
 
 Thunderbolt Net owns: TB discovery, underlay addressing, generated FRR config, metrics, Apply/start hooks, status UI, static escape hatches, and docs.  
+**FRR packages** live in the companion [UnraidFRR](https://github.com/ibigsnet/UnraidFRR).  
 **Community contributions** for packaging, metrics, and peer OS interop are welcome — see [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ---
@@ -26,17 +67,17 @@ Thunderbolt Net owns: TB discovery, underlay addressing, generated FRR config, m
 | Advantage | Detail |
 |-----------|--------|
 | **Multi-hop reachability** | Host A can reach C through B when A–B and B–C have TB links — no static routes on every node. |
-| **Ring and partial-mesh topologies** | SPF recomputes when a link drops; a full ring has alternate paths (see [Topologies](#supported-topologies)). |
+| **Ring and partial-mesh topologies** | SPF recomputes when a link drops; a full ring has alternate paths (see [Topologies](#supported-topologies)). Classic home-lab pattern with Proxmox + Unraid nodes. |
 | **Hot-plug friendly** | New `thunderboltN` + participate → adjacency can form; routes appear without rewriting every peer’s static table. |
-| **Interop with Linux FRR peers** | Same OpenFabric area / NET style as common TB mesh write-ups. |
+| **Interop with Linux FRR peers** | Same OpenFabric area / NET style as common TB mesh write-ups (Proxmox `apt install frr`, Debian, etc.). |
 | **Sane underlay still works** | tbn static IPs remain; OpenFabric is the control plane on top. |
-| **Cost-aware paths (planned/metric)** | Prefer faster-trained links when multiple paths exist ([Path cost](#path-cost-and-metrics)). |
+| **Cost-aware paths** | Prefer faster-trained links when multiple paths exist ([Path cost](#path-cost-and-metrics)). |
 
 ### Disadvantages (why you might turn it **Off**)
 
 | Disadvantage | Detail |
 |--------------|--------|
-| **Extra software** | Needs FRR (`zebra` + `fabricd`). Unraid does not ship it; plugin detects or (later) installs a package. |
+| **Extra software** | Needs FRR (`zebra` + `fabricd`). Unraid does not ship it — install via **UnraidFRR** or supply FRR yourself. |
 | **Host becomes a router** | IP forwarding for TB prefixes; not a full edge firewall. Mis-advertising br0 is avoided by defaults but advanced knobs exist. |
 | **Two-node static is enough** | Single cable, two hosts, only file copy: pure static /24 is simpler; OpenFabric adds little. |
 | **Peer without FRR** | No adjacency; underlay static still works. Fabric side idles cleanly if timers are sane. |
@@ -45,8 +86,9 @@ Thunderbolt Net owns: TB discovery, underlay addressing, generated FRR config, m
 
 **Rule of thumb**
 
-- **Leave On** if you run (or plan) **3+ hosts**, **rings**, **multi-homed Unraid**, storage/VM backhaul over TB, or hot-plug laptops/mini-PCs into a lab fabric.  
-- **Turn Off** (global) if you only ever use **one peer cable**, never multi-hop, and want zero routing daemons.
+- **Leave On** if you run (or plan) **3+ hosts**, **rings**, **multi-homed Unraid**, storage/VM backhaul over TB, **Proxmox + Unraid** fabric, or hot-plug laptops/mini-PCs into a lab fabric.  
+- **Turn Off** (global) if you only ever use **one peer cable**, never multi-hop, and want zero routing daemons.  
+- **Do not install UnraidFRR at all** if you never need multi-hop — optional companion, not a dependency of Thunderbolt Net.
 
 Static override is always available: global **OpenFabric = No**, or per-link **Participate = No**.
 
@@ -66,7 +108,7 @@ Static override is always available: global **OpenFabric = No**, or per-link **P
 
 Upstream: [github.com/FRRouting/frr](https://github.com/FRRouting/frr) · docs: [docs.frrouting.org](https://docs.frrouting.org/en/latest/)
 
-On Unraid, FRR is **not** part of the base OS. The plugin **detects** an existing install and will **optionally manage a package** long-term (see [Packaging](#frr-on-unraid-packaging)).
+On Unraid, FRR is **not** part of the base OS. Thunderbolt Net **detects** an existing install; packages are supplied by the companion [UnraidFRR](https://github.com/ibigsnet/UnraidFRR) or a hand install (see [Packaging](#frr-on-unraid-packaging)).
 
 ### OpenFabric (`fabricd`)
 

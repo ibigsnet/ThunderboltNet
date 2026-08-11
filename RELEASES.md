@@ -140,7 +140,7 @@ develop on branch → merge to main → bump .plg version + CHANGES
 
 | Tag | Plugin version | Notes |
 |-----|----------------|--------|
-| `main` (Latest) | **2026.08.11ac** | OpenFabric UI/conf (degrades without FRR); multi-peer wording; UnraidFRR companion; docs consistency pass — not yet a freeze tag |
+| `main` (Latest) | **2026.08.11ak** | Links empty-state fix; uninstall keeps peers.json; entry banner only on CA launch; OpenFabric FRR chip |
 | [`v2026.08.05ad`](https://github.com/ibigsnet/ThunderboltNet/releases/tag/v2026.08.05ad) | **2026.08.05ad** | **Stable pin** before OpenFabric work: standards guide (directionality, bandwidth table, mixing, FAQ) |
 | [`v2026.08.05ac`](https://github.com/ibigsnet/ThunderboltNet/releases/tag/v2026.08.05ac) | **2026.08.05ac** | First GitHub Release: USB4STREAM awareness, Dashboard TB ports, forum + GitHub support links |
 

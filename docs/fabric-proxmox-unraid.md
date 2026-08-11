@@ -2,7 +2,19 @@
 
 Many labs run **Thunderbolt/USB4 host-net** between Unraid and other Linux systems (often **Proxmox**). This document describes a **general multi-node interop scenario**: one **OpenFabric (FRR)** mesh so Unraid and non-Unraid nodes are first-class peers — multi-hop, rings, and failover — not Unraid-only islands.
 
+**When this guide applies**
+
+- You cable several machines (Unraid + Proxmox/Debian) in a **ring or mesh**, not only one peer cable.  
+- You want host A to reach host C **through** B when there is no direct A–C link.  
+- You already run (or plan) **FRR OpenFabric** on the non-Unraid side (`apt install frr`, `fabricd`).
+
+**When you can skip it**
+
+- Unraid ↔ one Proxmox node, **one cable**, only static IPs and file copy / SMB — use Thunderbolt Net underlay alone; no UnraidFRR required.
+
 Use it as a **reference design and test matrix**. Node counts, brands, and cabling will differ per site.
+
+**Unraid side roles:** [UnraidFRR](https://github.com/ibigsnet/UnraidFRR) installs FRR packages; **Thunderbolt Net** owns tbn underlay + OpenFabric policy. See [routing-openfabric.md](routing-openfabric.md#what-each-piece-does-plugin-roles).
 
 ---
 

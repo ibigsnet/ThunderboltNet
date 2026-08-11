@@ -2,7 +2,9 @@
 
 ## Global — Thunderbolt tab → Routing (OpenFabric / FRR)
 
-OpenFabric is the **control plane** for multi-hop fabrics. It does **not** install FRR packages — use optional companion [UnraidFRR](https://github.com/ibigsnet/UnraidFRR) or supply FRR yourself. Without FRR, leave OpenFabric on or off as you like; underlay static still works.
+OpenFabric is the **control plane** for multi-hop fabrics (rings, “reach C through B”, mixed Proxmox/Unraid labs). It does **not** install FRR packages — use optional companion [UnraidFRR](https://github.com/ibigsnet/UnraidFRR) or supply FRR yourself. Without FRR, leave OpenFabric on or off as you like; underlay static still works. UI chip **needs FRR packages** links to the Multi-hop companion card at the top of the overview.
+
+**Skip OpenFabric / UnraidFRR** for a single peer cable with static tbn IPs. Details: [routing-openfabric.md](routing-openfabric.md#when-do-i-need-this-read-this-first).
 
 | Field | Default | Scope | Summary |
 |-------|---------|-------|---------|

@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.08.11ah">
+<!ENTITY version "2026.08.11ak">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -35,6 +35,17 @@
 
 <CHANGES>
 ###&version;
+- Links empty state: no broken one-column LOCAL compare table; clean host summary when no peers online. Recovery moved out of Links body.
+- Uninstall keeps peers.json + ifaces/ on flash so known peers survive remove/reinstall.
+
+###2026.08.11aj
+- Entry banner: hide when already on Network Settings (tabs visible); show only on standalone CA / Plugins launch.
+
+###2026.08.11ai
+- OpenFabric UX: **needs FRR packages** chip + CTAs jump to Multi-hop companion card (install UnraidFRR path); clearer when/why (rings, multi-hop, Proxmox) and plugin roles (TBN policy vs FRR packages vs USB4STREAM).
+- Docs: routing-openfabric “when do I need this”, ecosystem table in DOCS.md, fabric-proxmox intro, troubleshooting chip path.
+
+###2026.08.11ah
 - Dashboard ports patch: no python3 (use bash replace) so thunderboltN appears on Unraid stock kernels without python.
 
 ###2026.08.11ag
@@ -424,9 +435,29 @@ rm -rf /usr/local/emhttp/plugins/Thunderboltnet
 rm -f /usr/local/emhttp/webGui/Thunderbolt*.page /usr/local/emhttp/webGui/Tbn*.page 2>/dev/null || true
 rm -f /usr/local/emhttp/plugins/dynamix/Thunderbolt*.page /usr/local/emhttp/plugins/dynamix/Tbn*.page 2>/dev/null || true
 
+# Flash: wipe plugin tree but KEEP known peers + per-tbn iface settings (reinstall-safe)
+CFG=/boot/config/plugins/ThunderboltNet
+KEEP=/tmp/tbn-uninstall-keep-$$
+mkdir -p "$KEEP/ifaces"
+if [ -f "$CFG/peers.json" ]; then
+  cp -a "$CFG/peers.json" "$KEEP/peers.json" 2>/dev/null || true
+fi
+if [ -d "$CFG/ifaces" ]; then
+  cp -a "$CFG/ifaces/." "$KEEP/ifaces/" 2>/dev/null || true
+fi
 rm -rf /boot/config/plugins/ThunderboltNet
 rm -rf /boot/config/plugins/thunderboltnet
 rm -rf /boot/config/plugins/Thunderboltnet
+mkdir -p /boot/config/plugins/ThunderboltNet/ifaces
+if [ -f "$KEEP/peers.json" ]; then
+  cp -a "$KEEP/peers.json" /boot/config/plugins/ThunderboltNet/peers.json
+  echo "ThunderboltNet: kept known peers (peers.json)"
+fi
+if [ -d "$KEEP/ifaces" ] && [ -n "$(ls -A "$KEEP/ifaces" 2>/dev/null)" ]; then
+  cp -a "$KEEP/ifaces/." /boot/config/plugins/ThunderboltNet/ifaces/
+  echo "ThunderboltNet: kept per-iface settings (ifaces/)"
+fi
+rm -rf "$KEEP"
 
 rm -f /tmp/plugins/thunderboltnet.plg /tmp/plugins/thunderboltnet.txt 2>/dev/null || true
 rm -f /tmp/plugins/ThunderboltNet* /tmp/inline*-thunderboltnet.sh 2>/dev/null || true
@@ -436,7 +467,7 @@ if [ -e /usr/local/emhttp/plugins/ThunderboltNet ] || [ -e /usr/local/emhttp/plu
 else
   echo "ThunderboltNet: emhttp plugin paths clear"
 fi
-echo "ThunderboltNet: removed."
+echo "ThunderboltNet: removed (peers + iface settings preserved on flash)."
 ]]></INLINE>
 </FILE>
 

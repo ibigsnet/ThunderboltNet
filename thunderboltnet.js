@@ -112,9 +112,111 @@
     }
   }
 
+  /**
+   * Jump links to #tbn-companion-frr (chip "needs FRR packages", CTA, status table).
+   * Scroll into view and briefly highlight the Multi-hop companion card.
+   */
+  function tbnFlashCompanion(id) {
+    var el = document.getElementById(id || 'tbn-companion-frr');
+    if (!el) {
+      return;
+    }
+    try {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch (e) {
+      el.scrollIntoView(true);
+    }
+    el.classList.remove('tbn-companion-flash');
+    // reflow so re-click retriggers animation
+    void el.offsetWidth;
+    el.classList.add('tbn-companion-flash');
+    try {
+      el.focus({ preventScroll: true });
+    } catch (e2) {
+      try { el.focus(); } catch (e3) { /* ignore */ }
+    }
+    window.setTimeout(function () {
+      el.classList.remove('tbn-companion-flash');
+    }, 1800);
+  }
+
+  function tbnInitCompanionJumps() {
+    document.addEventListener('click', function (ev) {
+      var a = ev.target;
+      while (a && a !== document && !(a.tagName === 'A' && a.getAttribute('href'))) {
+        a = a.parentNode;
+      }
+      if (!a || a === document) {
+        return;
+      }
+      var href = a.getAttribute('href') || '';
+      if (href.indexOf('#tbn-companion-') !== 0) {
+        return;
+      }
+      var id = href.slice(1);
+      if (!document.getElementById(id)) {
+        return;
+      }
+      if (ev.preventDefault) {
+        ev.preventDefault();
+      }
+      tbnFlashCompanion(id);
+      try {
+        if (history && history.replaceState) {
+          history.replaceState(null, '', href);
+        } else {
+          location.hash = href;
+        }
+      } catch (e) { /* ignore */ }
+      return false;
+    });
+    if (location.hash && location.hash.indexOf('#tbn-companion-') === 0) {
+      window.setTimeout(function () {
+        tbnFlashCompanion(location.hash.slice(1));
+      }, 80);
+    }
+  }
+
+  /**
+   * Entry banner is for CA / Plugins launch (/Settings/ThunderboltNet) where the
+   * eth0 · Thunderbolt · tbn… strip is missing. Hide when already on Network Settings
+   * or when those tabs are visible.
+   */
+  function tbnInNetworkSettingsStrip() {
+    var path = (location.pathname || '').toLowerCase();
+    if (path.indexOf('/settings/networksettings') !== -1) {
+      return true;
+    }
+    // Explicit standalone plugin page (CA Settings button, Plugins launch)
+    if (path.indexOf('/settings/thunderboltnet') !== -1) {
+      return false;
+    }
+    // Embedded / unusual paths: eth0 (or eth) + Thunderbolt tabs present
+    if (tbnFindTabButton('Thunderbolt') && (tbnFindTabButton('eth0') || tbnFindTabButton('eth'))) {
+      return true;
+    }
+    return false;
+  }
+
+  function tbnInitEntryBanner() {
+    var banner = document.getElementById('tbn-entry-banner');
+    if (!banner) {
+      return;
+    }
+    if (tbnInNetworkSettingsStrip()) {
+      banner.setAttribute('hidden', 'hidden');
+      banner.style.display = 'none';
+    } else {
+      banner.removeAttribute('hidden');
+      banner.style.display = '';
+    }
+  }
+
   function tbnOnReady() {
+    tbnInitEntryBanner();
     tbnApplyWantedTab();
     tbnInitAdvancedPanels();
+    tbnInitCompanionJumps();
   }
 
   if (document.readyState === 'loading') {
@@ -123,6 +225,7 @@
     tbnOnReady();
   }
   // Unraid may paint tabs slightly later
+  setTimeout(tbnInitEntryBanner, 200);
   setTimeout(tbnApplyWantedTab, 200);
   setTimeout(tbnApplyWantedTab, 600);
   setTimeout(tbnInitAdvancedPanels, 250);

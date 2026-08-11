@@ -55,13 +55,28 @@ The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt l
 | Port silkscreen guide (TB lightning / SS¹⁰ / SS²⁰) | [docs/port-icons.md](docs/port-icons.md) (docs only) |
 | Hardware, BIOS, modules, security | [docs/requirements.md](docs/requirements.md) |
 | Topology: multi-peer, dual cable, bonding, rings | [docs/links-and-topology.md](docs/links-and-topology.md) |
-| **FRR / OpenFabric** multi-host routing | [docs/routing-openfabric.md](docs/routing-openfabric.md) |
-| Mixed Unraid + Proxmox/Debian fabric | [docs/fabric-proxmox-unraid.md](docs/fabric-proxmox-unraid.md) |
+| **FRR / OpenFabric** multi-host routing (when/why, plugin roles) | [docs/routing-openfabric.md](docs/routing-openfabric.md) |
+| Mixed Unraid + Proxmox/Debian fabric (rings) | [docs/fabric-proxmox-unraid.md](docs/fabric-proxmox-unraid.md) |
 | Topic index (all docs) | [docs/README.md](docs/README.md) |
 | Every Settings field | [docs/settings-reference.md](docs/settings-reference.md) |
 | Common failures | [docs/troubleshooting.md](docs/troubleshooting.md) |
 | Install, version strings, **git tags / ship checklist** | [RELEASES.md](RELEASES.md) |
 | Optional FRR packages on Unraid | [UnraidFRR](https://github.com/ibigsnet/UnraidFRR) (separate plugin) |
+
+---
+
+## Ecosystem: what each plugin does
+
+Related **ibigsnet** pieces are optional companions. Install only what you need.
+
+| Product | What it does | When you want it | When you can skip it |
+|---------|--------------|------------------|----------------------|
+| **Thunderbolt Net** | TB/USB4 **host-net underlay** (`tbnN` IPs), peers, listening, OpenFabric **policy** | Any Unraid host-to-host TB networking | No TB host controller |
+| **UnraidFRR** | Installs **FRR packages/daemons** (`fabricd`, `vtysh`) | Rings, multi-hop, Proxmox/Linux FRR fabric | One cable + static IPs only |
+| **NBD Export** | Host or pull **raw disks** over NBD on a private IP | Imaging/cloning large disks over TB | File shares (SMB/NFS) are enough |
+| **USB4STREAM** | Not a plugin — **kernel** module `thunderbolt_stream` | Experimental raw stream when kernel has it | Always optional; not FRR |
+
+OpenFabric **settings** live on Thunderbolt Net (Advanced). FRR **packages** live under Settings → FRR when UnraidFRR is installed. The orange chip **needs FRR packages** jumps to the Multi-hop companion card on the Thunderbolt overview.
 
 ---
 
@@ -132,7 +147,7 @@ Goal: plug in a laptop or mini-PC (including future Strix Halo / Gorgon Halo / D
 
 **Install:** Apps (CA) or Plugins → Install Plugin — see [RELEASES.md](RELEASES.md) (same two-track pattern as Storage Guard).
 
-**Uninstall:** Plugins → Thunderbolt Net → Remove. The plugin remove script cleans TB listening includes, modprobe snippets, Dashboard port patches, emhttp paths, and flash config under `/boot/config/plugins/ThunderboltNet`. It does **not** remove UnraidFRR or FRR. Hard-refresh after remove.
+**Uninstall:** Plugins → Thunderbolt Net → Remove. The plugin remove script cleans TB listening includes, modprobe snippets, Dashboard port patches, and emhttp paths. It **keeps** flash `peers.json` (known peers) and `ifaces/` (per-tbn settings) so a reinstall does not forget HoloX3D-class peers. Other flash state under the plugin dir is removed. It does **not** remove UnraidFRR or FRR. Hard-refresh after remove.
 
 ## Releases
 

@@ -115,12 +115,13 @@ Software cleanup alone may not fix NO-CARRIER / missing peer:
 
 | Symptom | Check |
 |---------|--------|
-| OpenFabric On but “FRR not installed” | Expected without FRR. Static tbn still works. Optional: [UnraidFRR](https://github.com/ibigsnet/UnraidFRR) or install FRR another way. |
+| Chip / status **needs FRR packages** | Expected without FRR. Static tbn still works. Click the chip → Multi-hop companion card (top of overview) → install [UnraidFRR](https://github.com/ibigsnet/UnraidFRR) (CA or raw `.plg`) → **Settings → FRR** → Apply. Not required for one-cable static peers. |
+| OpenFabric On but “FRR not installed” | Same as above. Optional multi-hop only — not a broken Thunderbolt Net install. |
 | No multi-hop to a third host | Both ends need fabricd + matching **area**; underlay IPs up; unique subnets per link; IP forwarding only after FRR is present |
 | Routes look wrong / hairpin around ring | Metrics: lower sum wins — [routing-openfabric.md](routing-openfabric.md#path-cost-and-metrics) |
 | br0 / internet broken after experiments | Confirm tbn **default route = No**; OpenFabric should not enroll br0 by default |
 
-Deep design: [routing-openfabric.md](routing-openfabric.md). Mixed Unraid + Proxmox: [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md).
+When/why + plugin roles: [routing-openfabric.md](routing-openfabric.md). Mixed Unraid + Proxmox rings: [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md).
 
 ## Peer-specific notes
 

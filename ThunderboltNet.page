@@ -68,7 +68,8 @@ $of_mode_label = [
 <div class="tbn-wrap">
 <?= tbn_docs_bar_html('overview') ?>
 
-  <div class="tbn-entry-banner" role="note">
+  <?php /* Shown only on standalone /Settings/ThunderboltNet (CA launch). Hidden when already under Network Settings with eth0/tbn tabs. */ ?>
+  <div class="tbn-entry-banner" id="tbn-entry-banner" role="note" hidden>
     <div class="tbn-entry-banner-main">
       <strong>Network Settings · Thunderbolt overview</strong>
       <span class="tbn-muted"> — host fabric, peers, and drivers. Per-link IPs live on each <strong>tbnN</strong> tab when a peer is online.</span>
@@ -135,42 +136,64 @@ $of_mode_label = [
         <td>
           <strong><?= htmlspecialchars($of_mode_label) ?></strong>
 <?php if ($frr_present): ?>
-          <span class="tbn-muted"> — FRR present · policy under Advanced below · packages at
+          <span class="tbn-muted"> — FRR present · OpenFabric <strong>policy</strong> under Advanced below · packages at
             <a href="/Settings/UnraidFRR">Settings → FRR</a></span>
 <?php else: ?>
-          <span class="tbn-muted"> — static tbn IPs work without FRR · optional multi-hop needs
-            <a href="https://github.com/ibigsnet/UnraidFRR" target="_blank" rel="noopener">UnraidFRR</a>
-            (not a kernel module)</span>
+          <span class="tbn-muted"> — static tbn IPs work without FRR · for rings / multi-hop see
+            <a href="#tbn-companion-frr" class="tbn-jump-frr">companion card</a>
+            (install <strong>UnraidFRR</strong> — not a kernel module)</span>
 <?php endif; ?>
         </td></tr>
     </table>
 
     <div class="tbn-companion-strip" aria-label="Related plugins">
-      <div class="tbn-companion-card<?= $frr_present ? ' tbn-companion-ok' : '' ?>">
+      <div id="tbn-companion-frr" class="tbn-companion-card<?= $frr_present ? ' tbn-companion-ok' : '' ?>"
+           tabindex="-1">
         <div class="tbn-companion-title">Multi-hop (FRR / OpenFabric)</div>
 <?php if ($frr_present): ?>
-        <p>FRR is available. OpenFabric <strong>policy</strong> is on this page (Advanced). Package/daemon manager:
+        <p><span class="tbn-companion-status tbn-status-ok">Ready</span>
+          FRR packages live. OpenFabric <strong>policy</strong> is on this page
+          (Advanced: multi-hop routing). Package/daemon manager:
           <a href="/Settings/UnraidFRR">Settings → FRR</a>.</p>
+        <p class="tbn-muted tbn-companion-role">
+          <strong>UnraidFRR</strong> = install/start FRR (<code>zebra</code>/<code>fabricd</code>).
+          <strong>Thunderbolt Net</strong> = underlay tbn IPs + OpenFabric conf/metrics — not packages.
+        </p>
 <?php elseif (!empty($unraidfrr['plugin_dir'])): ?>
-        <p>UnraidFRR plugin is installed but FRR packages may still be empty — open
-          <a href="/Settings/UnraidFRR">Settings → FRR</a> → Apply.</p>
+        <p><span class="tbn-companion-status tbn-status-warn">Plugin installed · packages missing</span>
+          Open <a href="/Settings/UnraidFRR">Settings → FRR</a> → ensure packages are present → <strong>Apply</strong>.
+          Then return here and Apply Thunderbolt Net so OpenFabric policy can start <code>fabricd</code>.</p>
+        <p class="tbn-muted tbn-companion-role">
+          When this card turns green, multi-hop rings/meshes can run. Static peer IPs never needed this.
+        </p>
 <?php else: ?>
-        <p class="tbn-muted">Optional. Install <strong>UnraidFRR</strong> from CA (or
-          <a href="<?= htmlspecialchars($unraidfrr['install_url'] ?? 'https://raw.githubusercontent.com/ibigsnet/UnraidFRR/main/unraidfrr.plg') ?>" target="_blank" rel="noopener">raw .plg</a>)
-          for <code>fabricd</code> packages. Does <em>not</em> provide <code>thunderbolt_stream</code>.</p>
+        <p><span class="tbn-companion-status tbn-status-warn">Not installed</span>
+          Optional. Only if you need <strong>rings, multi-hop, or Proxmox/Linux FRR fabrics</strong>
+          (3+ hosts / alternate paths). Single-cable static peers: skip.</p>
+        <p>
+          Install <strong>UnraidFRR</strong> from Community Apps, or
+          <a href="<?= htmlspecialchars($unraidfrr['install_url'] ?? 'https://raw.githubusercontent.com/ibigsnet/UnraidFRR/main/unraidfrr.plg') ?>" target="_blank" rel="noopener">Plugins → Install Plugin (raw .plg)</a>
+          → then <a href="/Settings/UnraidFRR">Settings → FRR</a> → Apply.
+        </p>
+        <p class="tbn-muted tbn-companion-role">
+          Does <em>not</em> provide <code>thunderbolt_stream</code> / USB4STREAM.
+          After FRR is live, use Advanced → OpenFabric on this page for area, metrics, participate.
+        </p>
 <?php endif; ?>
       </div>
-      <div class="tbn-companion-card<?= $nbd_present ? ' tbn-companion-ok' : '' ?>">
+      <div id="tbn-companion-nbd" class="tbn-companion-card<?= $nbd_present ? ' tbn-companion-ok' : '' ?>">
         <div class="tbn-companion-title">Block export (NBD)</div>
 <?php if ($nbd_present): ?>
-        <p>Installed — <a href="/Settings/NbdExport">Network Services → NBD</a>. Bind exports to a TB IP when imaging large disks.</p>
+        <p><span class="tbn-companion-status tbn-status-ok">Installed</span>
+          <a href="/Settings/NbdExport">Network Services → NBD</a>.
+          Whole-disk imaging over a private TB IP — separate from SMB/NFS listening.</p>
 <?php else: ?>
-        <p class="tbn-muted">Optional. Whole-disk imaging over a private TB IP (separate from SMB/NFS listening).
-          Search <strong>NBD Export</strong> in CA when published, or see
+        <p class="tbn-muted">Optional. Host or pull raw disks over NBD (not a share protocol).
+          Search <strong>NBD Export</strong> in CA, or
           <a href="https://github.com/ibigsnet/NbdExport" target="_blank" rel="noopener">GitHub</a>.</p>
 <?php endif; ?>
       </div>
-      <div class="tbn-companion-card tbn-companion-muted">
+      <div id="tbn-companion-usb4stream" class="tbn-companion-card tbn-companion-muted">
         <div class="tbn-companion-title">USB4STREAM (kernel)</div>
         <p class="tbn-muted">
 <?php if (!empty($usb4stream['devices'])): ?>
@@ -226,7 +249,13 @@ $of_mode_label = [
       <strong>TX (to peer)</strong> and <strong>RX (from peer)</strong>.
     </p>
 <?php if (!$peers_mem): ?>
-    <p class="tbn-muted">No remembered peers yet — connect a host and open this tab once.</p>
+    <div class="tbn-empty-peers" role="status">
+      <p class="tbn-muted" style="margin:0">
+        <strong>No remembered peers yet.</strong>
+        Connect a host (e.g. HoloX3D), open this tab once — it is stored offline after unplug.
+        Full plugin reinstall used to wipe this list; current builds keep <code>peers.json</code> on uninstall.
+      </p>
+    </div>
 <?php else: ?>
     <table class="tbn-table tbn-wide tbn-peers-memory">
       <thead>
@@ -381,6 +410,7 @@ $of_mode_label = [
     <h3>Links</h3>
     <p class="tbn-note">
       <strong>LOCAL</strong> = this Unraid · each <strong>REMOTE</strong> = one live peer (tab <code>tbnN</code> / <code>thunderboltN</code>).
+      Compare table appears when a peer is online.
     </p>
     <dl>
       <dt>How to read Links:</dt>
@@ -406,52 +436,31 @@ $of_mode_label = [
       · <?= tbn_docs_more_html('docs/peer-scenarios.md', 'Peer scenarios ↗') ?>
     </blockquote>
 
-  <div class="tbn-section tbn-recovery">
-    <h3>Recovery (wedged fabric)</h3>
-    <dl>
-      <dt>If dual-cable experiments broke the link:</dt>
-      <dd class="tbn-muted">All cables out both boxes · wait · one cable only</dd>
-    </dl>
-    <blockquote class="inline_help">
-      Two TB cables to the <em>same</em> peer often still yield one netdev — and can leave the domain stuck
-      (NO-CARRIER, no peer, weird addresses). Software cleanup alone may not fix it.<br><br>
-      <strong>1.</strong> Unplug <em>all</em> Thunderbolt / USB4 host cables from <em>both ends on both machines</em>.<br>
-      <strong>2.</strong> Wait a few seconds until peers disappear.<br>
-      <strong>3.</strong> Plug back <em>exactly one</em> known-good Thunderbolt/USB4-class cable on full TB/USB4 host ports (not SS-only USB).<br>
-      <strong>4.</strong> Confirm one peer and one <code>thunderboltN</code>, then Apply IP / services on the tbn tab.<br><br>
-      Soft “port power cycle” is not available; physical unplug is the reliable retrain.
-      <?= tbn_help_docs_footer('docs/troubleshooting.md', 'Troubleshooting') ?>
-    </blockquote>
-  </div>
-
-<?php if (!$links): ?>
-    <p class="tbn-muted">No Thunderbolt network interfaces yet — plug a peer and Refresh.</p>
-    <table class="tbn-table tbn-wide tbn-compare">
-      <thead>
-        <tr>
-          <th class="tbn-compare-rowhead"></th>
-          <th>LOCAL</th>
+<?php if (!$links):
+  $tbn_cap = function_exists('tbn_controller_capability')
+    ? tbn_controller_capability()
+    : ['max_short' => '', 'max_lanes' => 2, 'max_gbps' => 0, 'label' => ''];
+?>
+    <div class="tbn-empty-links" role="status">
+      <p class="tbn-empty-links-lead">
+        <strong>No live peer paths</strong> — plug a Thunderbolt/USB4 host peer and Refresh.
+        The LOCAL / REMOTE compare table only appears when at least one <code>thunderboltN</code> link is up.
+      </p>
+      <table class="tbn-table tbn-summary tbn-host-only">
+        <tr><td>This host</td><td><code><?= htmlspecialchars($status['hostname'] !== '' ? $status['hostname'] : '—') ?></code></td></tr>
+        <tr><td>Controller</td><td><?= htmlspecialchars($local_ctrl !== '' ? $local_ctrl : '—') ?></td></tr>
+        <tr><td>Manufacturer</td><td><?= htmlspecialchars($local_mfg !== '' ? $local_mfg : '—') ?></td></tr>
+        <tr><td>Host max class</td>
+          <td><?php
+            $mx = $tbn_cap['max_short'] ?? '';
+            echo $mx !== '' ? htmlspecialchars('Max ' . $mx) : '—';
+            if (!empty($tbn_cap['max_lanes'])) {
+              echo ' · ' . htmlspecialchars((int)$tbn_cap['max_lanes'] . '-lane capable');
+            }
+          ?></td>
         </tr>
-        <tr class="tbn-compare-subhead">
-          <th class="tbn-compare-rowhead"></th>
-          <th>this host</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th scope="row">OS hostname</th>
-          <td><code><?= htmlspecialchars($status['hostname'] !== '' ? $status['hostname'] : '—') ?></code></td>
-        </tr>
-        <tr>
-          <th scope="row">Controller product</th>
-          <td><?= htmlspecialchars($local_ctrl !== '' ? $local_ctrl : '—') ?></td>
-        </tr>
-        <tr>
-          <th scope="row">Manufacturer</th>
-          <td><?= htmlspecialchars($local_mfg !== '' ? $local_mfg : '—') ?></td>
-        </tr>
-      </tbody>
-    </table>
+      </table>
+    </div>
 <?php else:
   $nLinks = count($links);
   $qualities = [];
@@ -717,6 +726,24 @@ $of_mode_label = [
 <?php endif; ?>
   </div>
 
+  <div class="tbn-section tbn-recovery">
+    <h3>Recovery (wedged fabric)</h3>
+    <dl>
+      <dt>If dual-cable experiments broke the link:</dt>
+      <dd class="tbn-muted">All cables out both boxes · wait · one cable only</dd>
+    </dl>
+    <blockquote class="inline_help">
+      Two TB cables to the <em>same</em> peer often still yield one netdev — and can leave the domain stuck
+      (NO-CARRIER, no peer, weird addresses). Software cleanup alone may not fix it.<br><br>
+      <strong>1.</strong> Unplug <em>all</em> Thunderbolt / USB4 host cables from <em>both ends on both machines</em>.<br>
+      <strong>2.</strong> Wait a few seconds until peers disappear.<br>
+      <strong>3.</strong> Plug back <em>exactly one</em> known-good Thunderbolt/USB4-class cable on full TB/USB4 host ports (not SS-only USB).<br>
+      <strong>4.</strong> Confirm one peer and one <code>thunderboltN</code>, then Apply IP / services on the tbn tab.<br><br>
+      Soft “port power cycle” is not available; physical unplug is the reliable retrain.
+      <?= tbn_help_docs_footer('docs/troubleshooting.md', 'Troubleshooting') ?>
+    </blockquote>
+  </div>
+
   <div class="tbn-section">
     <h3>PCI / IOMMU / VFIO</h3>
     <p class="tbn-note">Where the TB controller sits on PCIe — and whether the host still owns it.</p>
@@ -859,27 +886,51 @@ $of_mode_label = [
       <button type="button" class="tbn-advanced-toggle" data-tbn-adv-toggle="openfabric"
         data-show="Show OpenFabric settings"
         data-hide="Hide OpenFabric settings">Show OpenFabric settings</button>
-      <span class="tbn-advanced-chip<?= $frr_present ? ' tbn-chip-ok' : ' tbn-chip-warn' ?>"><?= htmlspecialchars($of_mode_label) ?></span>
+<?php if ($frr_present): ?>
+      <span class="tbn-advanced-chip tbn-chip-ok"><?= htmlspecialchars($of_mode_label) ?></span>
+<?php elseif ($of_mode === 'openfabric-want-frr'): ?>
+      <a class="tbn-advanced-chip tbn-chip-warn tbn-chip-link" href="#tbn-companion-frr"
+         title="Jump to Multi-hop companion card (install UnraidFRR packages)"><?= htmlspecialchars($of_mode_label) ?> ↗</a>
+<?php else: ?>
+      <span class="tbn-advanced-chip tbn-chip-muted"><?= htmlspecialchars($of_mode_label) ?></span>
+<?php endif; ?>
     </div>
     <p class="tbn-note tbn-advanced-summary">
-      Optional IP fabric for <strong>rings / multi-hop</strong>. Static tbn IPs always work without this.
-      FRR packages are <strong>not</strong> USB4STREAM and <strong>not</strong> <code>thunderbolt_stream</code>.
-      <?= tbn_docs_more_html('docs/routing-openfabric.md', 'OpenFabric guide ↗') ?>
+      Optional <strong>IP routing fabric</strong> for <strong>rings, multi-hop, and mixed Proxmox/Unraid labs</strong>
+      (reach a host that is not directly cabled; failover when a link drops).
+      <strong>Skip this</strong> if you only use one peer cable with static tbn IPs — that always works without FRR.
     </p>
+<?php if (!$frr_present): ?>
+    <p class="tbn-note tbn-frr-cta">
+      <strong>Needs FRR packages</strong> (this plugin does not install them).
+      <a href="#tbn-companion-frr" class="tbn-jump-frr">↑ Jump to Multi-hop companion</a>
+      for install status and the UnraidFRR link — then return here for OpenFabric policy (area, metrics, participate).
+      FRR is <strong>not</strong> USB4STREAM / <code>thunderbolt_stream</code>.
+      <?= tbn_docs_more_html('docs/routing-openfabric.md', 'When to use OpenFabric ↗') ?>
+    </p>
+<?php else: ?>
+    <p class="tbn-note tbn-advanced-summary">
+      FRR is present — packages/daemons at <a href="/Settings/UnraidFRR">Settings → FRR</a>.
+      Policy (area, metrics, participate) is on this page.
+      <?= tbn_docs_more_html('docs/routing-openfabric.md', 'OpenFabric guide ↗') ?>
+      · <?= tbn_docs_more_html('docs/fabric-proxmox-unraid.md', 'Proxmox + Unraid fabric ↗') ?>
+    </p>
+<?php endif; ?>
     <div class="tbn-advanced-body" id="tbn-adv-openfabric"<?= $of_expand_default ? '' : ' hidden' ?>>
     <dl>
       <dt>OpenFabric status:</dt>
       <dd class="tbn-muted">FRR · router-id · metrics · participate</dd>
     </dl>
     <blockquote class="inline_help">
-      <strong>OpenFabric</strong> (FRR <code>fabricd</code>) is an IS-IS–derived fabric protocol. Thunderbolt Net generates config,
-      auto interface <strong>metrics</strong> from trained link rate (lower cost on faster paths — important for rings),
-      and applies when FRR is installed. Without FRR, underlay static IPs still work.<br><br>
-      <strong>Why On:</strong> multi-hop, rings, hot-plug labs, interop with Linux FRR peers.
-      <strong>Why Off:</strong> single peer cable only, no routing daemon wanted.<br><br>
-      <strong>FRR packages:</strong> this plugin does <em>not</em> install FRR. Use the optional companion
-      <a href="https://github.com/ibigsnet/UnraidFRR" target="_blank" rel="noopener">UnraidFRR</a>
-      (Settings → FRR; <code>installpkg</code> + daemons), or supply FRR yourself.
+      <strong>What this is:</strong> OpenFabric (FRR <code>fabricd</code>) is an IS-IS–derived <em>IP routing</em> protocol.
+      Thunderbolt Net generates conf, auto <strong>metrics</strong> from trained rate (prefer faster ring hops),
+      and applies when FRR is installed. It is <em>not</em> TB domain security and not a kernel module.<br><br>
+      <strong>When you want it:</strong> 3+ hosts, full/partial <strong>rings</strong>, multi-hop “through a neighbor”,
+      hot-plug labs, or interop with <strong>Proxmox/Debian FRR</strong> peers
+      (<?= tbn_docs_more_html('docs/fabric-proxmox-unraid.md', 'mixed fabric guide') ?>).
+      <strong>When you can skip it:</strong> two hosts, one cable, static IPs only — leave packages uninstalled.<br><br>
+      <strong>Who installs FRR?</strong> Not this plugin. Optional companion
+      <a href="#tbn-companion-frr">UnraidFRR</a> (Settings → FRR; packages + daemons), or your own FRR.
       UnraidFRR never installs <code>thunderbolt_stream</code> / USB4STREAM.
       <?= tbn_help_docs_footer('docs/routing-openfabric.md', 'FRR / OpenFabric (pros, cost, topologies)') ?>
     </blockquote>
