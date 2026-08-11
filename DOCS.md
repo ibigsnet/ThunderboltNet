@@ -128,6 +128,12 @@ Goal: plug in a laptop or mini-PC (including future Strix Halo / Gorgon Halo / D
 
 ---
 
+## Install / uninstall
+
+**Install:** Apps (CA) or Plugins → Install Plugin — see [RELEASES.md](RELEASES.md) (same two-track pattern as Storage Guard).
+
+**Uninstall:** Plugins → Thunderbolt Net → Remove. The plugin remove script cleans TB listening includes, modprobe snippets, Dashboard port patches, emhttp paths, and flash config under `/boot/config/plugins/ThunderboltNet`. It does **not** remove UnraidFRR or FRR. Hard-refresh after remove.
+
 ## Releases
 
 Install / update URLs: [RELEASES.md](RELEASES.md).
