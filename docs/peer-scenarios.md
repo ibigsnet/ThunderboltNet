@@ -13,7 +13,7 @@ E2E is **host-wide** — see [driver-options.md](driver-options.md).
 | Peer | What appears on Unraid | Unraid E2E | Addressing | Notes |
 |------|------------------------|------------|------------|-------|
 | **Linux** (desktop/server) | `thunderboltN` + peer name in fabric | **No** first | Static /24 or /30 both ends | Best documented path for this plugin |
-| **Proxmox** (Debian + FRR) | Same as Linux TB netdev | **No** first | Static underlay + **OpenFabric** for multi-hop | Flagship interop with Unraid D/E — [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md) |
+| **Proxmox** (Debian + FRR) | Same as Linux TB netdev | **No** first | Static underlay + **OpenFabric** for multi-hop | Mixed fabric with Unraid — [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md) |
 | **Another Unraid** | Same as Linux | **No** first | Static, unique subnet per link; OpenFabric when FRR present | Same stack both sides |
 | **macOS** | Often works as TB network peer | **No** first; try **Yes** only if needed | Static or macOS Thunderbolt Bridge DHCP/self-assigned | “Thunderbolt Bridge” on Mac; behavior varies by macOS version |
 | **Windows** | OEM-dependent | **No** first | Static if a TB network adapter appears | Many PCs expose TB for displays/docks only; networking not guaranteed |

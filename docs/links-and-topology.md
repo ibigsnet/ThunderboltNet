@@ -97,7 +97,7 @@ So C↔D stays on **C and D** under normal metrics. A/B/E become transit for tha
 
 Full worked table, formula, and calculator-style references: [routing-openfabric.md — Path cost and metrics](routing-openfabric.md#path-cost-and-metrics).
 
-**Long-term lab:** Proxmox nodes A/B/C + Unraid D/E on one ring/mesh — [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md).
+**Mixed sites:** Proxmox/Debian + Unraid on one ring/mesh — [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md).
 ---
 
 ## Hubs and docks

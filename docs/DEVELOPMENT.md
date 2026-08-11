@@ -8,7 +8,7 @@
 4. FRR **packages** live in **UnraidFRR**, not this plugin  
 5. Dual-cable bonding = roadmap when two netdevs exist, not a non-goal  
 6. Rings/meshes with sum-of-metrics SPF (document + implement)  
-7. **Proxmox A/B/C + Unraid D/E** one fabric — conf parity with apt FRR  
+7. **Mixed fabric** Unraid + Proxmox/Debian FRR — conf parity with apt FRR  
 
 ## Stages (current)
 
@@ -17,28 +17,26 @@
 | Done | Host-net UI, peers memory, docs, standards | Shipped | Ongoing |
 | Done | OpenFabric conf generate, detect, UI, degrade | Scaffold on main | Need FRR live |
 | Done | UnraidFRR companion pointer | Docs + detect | — |
-| Done | Proxmox↔Unraid fabric design doc | [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md) | — |
-| **Next** | FRR live + **L2/L3** Proxmox↔Unraid adjacency | | **Yes** |
+| Done | Mixed Proxmox/Unraid fabric reference doc | [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md) | — |
+| **Next** | FRR live + **L2/L3** heterogeneous adjacency | | **Yes** |
 | Next | Peer last-plan restore | | Light |
 | Next | Neighbors/routes panel from vtysh | | Yes |
 | Later | Bond multi-path; Halo/Spark hot-plug notes | | Yes |
-| Later | **L5** full A–E ring failover | | **Yes** |
+| Later | **L5** multi-node ring/mesh failover | | **Yes** |
 
-## Lab asks (when you’re ready)
+## Lab phases (general)
 
-| Phase | What | Gear |
-|-------|------|------|
+| Phase | What | Minimum gear |
+|-------|------|----------------|
 | L0 | TBN Latest smoke; OpenFabric UI; br0 OK | 1 Unraid |
 | L1 | UnraidFRR idle → packages / `vtysh` | 1 Unraid |
-| L2 | Proxmox ↔ Unraid **static** TB ping | 1 PVE + 1 Unraid |
-| L3 | Same pair **OpenFabric** + loopbacks | 1 PVE + 1 Unraid |
-| L4 | 3-node multi-hop | +1 |
-| L5 | Full A–B–C–D–E ring failover | 3 PVE + 2 Unraid |
-| L6 | Mixed metrics (e.g. 10G C–D) | Full set |
+| L2 | Linux/Proxmox ↔ Unraid **static** TB | 1 Linux + 1 Unraid |
+| L3 | Same pair **OpenFabric** + loopbacks | Same + FRR both sides |
+| L4 | Multi-hop (3+ nodes) | 3+ hosts |
+| L5 | Ring/mesh failover | Topology with alternate path |
+| L6 | Mixed trained rates / metrics | Multi-link lab |
 
-Full narrative: [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md).  
-L0 anytime; full ring only when you re-hook the lab.
-
+Reference design: [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md).
 ## Related
 
 - [routing-openfabric.md](routing-openfabric.md)  

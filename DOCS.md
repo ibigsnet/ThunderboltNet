@@ -105,7 +105,7 @@ These are **supported directions**, not throwaway experiments. Defaults favor in
 |--------|--------|-------------------|-----|
 | **Host-net underlay** | Single-link TB/USB4 L3, honest trained rate | Static tbnN, MTU 1500, no default route via TB | This file, [addressing](docs/addressing.md) |
 | **OpenFabric / FRR** | Multi-host mesh/**ring**/multi-hop; hot-plug device classes | **On** when FRR available; global/per-link **off** | [routing-openfabric.md](docs/routing-openfabric.md) |
-| **Proxmox ↔ Unraid fabric** | A/B/C Proxmox + D/E Unraid, one OpenFabric mesh | Shared area/NET/metrics; FRR on both sides | [fabric-proxmox-unraid.md](docs/fabric-proxmox-unraid.md) |
+| **Mixed OpenFabric fabric** | Unraid + Proxmox/Debian (or other FRR) peers | Shared area/NET/metrics; FRR both sides | [fabric-proxmox-unraid.md](docs/fabric-proxmox-unraid.md) |
 | **UnraidFRR (companion)** | Opt-in install of FRR packages/daemons (invasive) | Separate plugin; not required for static TB | [ibigsnet/UnraidFRR](https://github.com/ibigsnet/UnraidFRR) |
 | **Bonding multi-path** | TB-only `bond-tb*` when ≥2 netdevs | Off by default; dual-cable same-peer **roadmap** | [links-and-topology.md](docs/links-and-topology.md) |
 | **Peer memory** | Remember hosts and last address plan | Store peers today; auto-restore plan next | Below |
