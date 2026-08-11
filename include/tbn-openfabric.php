@@ -52,6 +52,26 @@ function tbn_of_enabled(array $cfg = null) {
  *   fabricd_enabled:bool,running:bool,note:string
  * }
  */
+/**
+ * Optional companion plugin UnraidFRR (package install) — never required.
+ */
+function tbn_of_unraidfrr_companion() {
+  $out = [
+    'plugin_dir' => is_dir('/usr/local/emhttp/plugins/UnraidFRR'),
+    'marker' => null,
+    'install_url' => 'https://raw.githubusercontent.com/ibigsnet/UnraidFRR/main/unraidfrr.plg',
+    'project' => 'https://github.com/ibigsnet/UnraidFRR',
+  ];
+  $marker = '/boot/config/plugins/UnraidFRR/companion.json';
+  if (is_readable($marker)) {
+    $j = json_decode((string)@file_get_contents($marker), true);
+    if (is_array($j)) {
+      $out['marker'] = $j;
+    }
+  }
+  return $out;
+}
+
 function tbn_of_frr_detect() {
   $out = [
     'present' => false,
@@ -61,6 +81,7 @@ function tbn_of_frr_detect() {
     'fabricd_enabled' => false,
     'running' => false,
     'note' => 'FRR not found on this Unraid host',
+    'unraidfrr' => tbn_of_unraidfrr_companion(),
   ];
 
   $vtysh = '';
@@ -127,6 +148,16 @@ function tbn_of_frr_detect() {
     : ($out['fabricd_enabled']
       ? 'FRR present; fabricd enabled in daemons but not confirmed running'
       : 'FRR present; enable fabricd and apply plugin config to start OpenFabric');
+
+  // Enrich note when companion plugin can supply packages
+  if (!$out['present']) {
+    $c = $out['unraidfrr'];
+    if (!empty($c['plugin_dir'])) {
+      $out['note'] = 'UnraidFRR installed but FRR binaries not live yet — add packages under /boot/config/plugins/UnraidFRR/packages/ and Apply there';
+    } else {
+      $out['note'] = 'FRR not found — install companion plugin UnraidFRR for packaged FRR, or provide vtysh/fabricd yourself';
+    }
+  }
 
   return $out;
 }
@@ -598,6 +629,16 @@ function tbn_of_status_html() {
   $html .= '<tr><td>FRR</td><td>' . htmlspecialchars($st['frr']['note'] ?? '') .
     ($st['frr']['version'] !== '' ? ' · <code>' . htmlspecialchars($st['frr']['version']) . '</code>' : '') .
     '</td></tr>';
+  $uf = $st['frr']['unraidfrr'] ?? tbn_of_unraidfrr_companion();
+  $html .= '<tr><td>UnraidFRR companion</td><td>';
+  if (!empty($uf['plugin_dir'])) {
+    $html .= 'Installed (Settings → FRR) — packages optional under flash <code>UnraidFRR/packages/</code>';
+  } else {
+    $html .= 'Not installed — optional package manager for FRR. '
+      . '<a href="' . htmlspecialchars($uf['project'] ?? 'https://github.com/ibigsnet/UnraidFRR') . '" target="_blank" rel="noopener">GitHub</a>'
+      . ' · install plugin URL in UnraidFRR RELEASES';
+  }
+  $html .= '</td></tr>';
   $html .= '<tr><td>Router ID (lo)</td><td><code>' . htmlspecialchars($st['router_id']) . '</code></td></tr>';
   $html .= '<tr><td>NET</td><td><code>' . htmlspecialchars($st['net']) . '</code></td></tr>';
   $html .= '<tr><td>Metric reference</td><td>' . (int)$st['metric_reference_mbps'] . ' Mb/s (auto cost = ref / trained)</td></tr>';

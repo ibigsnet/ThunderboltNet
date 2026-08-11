@@ -746,7 +746,10 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
       auto interface <strong>metrics</strong> from trained link rate (lower cost on faster paths — important for rings),
       and applies when FRR is installed. Without FRR, underlay static IPs still work.<br><br>
       <strong>Why On:</strong> multi-hop, rings, hot-plug labs, interop with Linux FRR peers.
-      <strong>Why Off:</strong> single peer cable only, no routing daemon wanted.
+      <strong>Why Off:</strong> single peer cable only, no routing daemon wanted.<br><br>
+      <strong>FRR packages:</strong> this plugin does <em>not</em> install FRR. Use the optional companion
+      <a href="https://github.com/ibigsnet/UnraidFRR" target="_blank" rel="noopener">UnraidFRR</a>
+      (more invasive: <code>installpkg</code> + daemons), or supply FRR yourself. Either works; neither is required for static tbn.
       <?= tbn_help_docs_footer('docs/routing-openfabric.md', 'FRR / OpenFabric (pros, cost, topologies)') ?>
     </blockquote>
     <?php

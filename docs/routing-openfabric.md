@@ -330,22 +330,36 @@ If FRR is missing: static underlay only; UI states *OpenFabric preferred; FRR no
 
 ---
 
-## FRR on Unraid (packaging)
+## FRR on Unraid (packaging) — separate companion plugin
 
-| Option | Role |
-|--------|------|
-| **A. Plugin-managed package** | Download/install FRR to flash + RAM root on boot |
-| **B. System FRR** | Honor existing `vtysh` / `fabricd` if version OK |
-| **C. A + B (target)** | Prefer managed when missing; use system when present |
+Thunderbolt Net does **not** install FRR packages. That work is intentionally **split out** (same idea as Unassigned Devices vs optional companions): package install is more invasive than TB Settings UI.
 
-Config written by the plugin lives under `/boot/config/plugins/ThunderboltNet/` (survives reboot).  
-Managed snippets use markers so we do not clobber unrelated FRR config:
+| Plugin | Repo | Role |
+|--------|------|------|
+| **UnraidFRR** | [ibigsnet/UnraidFRR](https://github.com/ibigsnet/UnraidFRR) | Opt-in: place/install FRR `.txz`, enable `zebra` / `fabricd`, array-start hooks |
+| **Thunderbolt Net** | this repo | TB underlay + OpenFabric *policy* when FRR is already present |
+
+| Option | Who | Status |
+|--------|-----|--------|
+| **A. UnraidFRR packages** | Companion + flash `packages/` | Scaffold ready; real `.txz` builds fill in over time |
+| **B. System / hand-installed FRR** | Any source of `vtysh`/`fabricd` | Thunderbolt Net **detects** and uses it |
+| **C. A + B** | Product target | Detect first; point users at UnraidFRR when missing |
+
+**Rules:** neither plugin `require`s the other’s PHP; UnraidFRR works **without** Thunderbolt Net; Thunderbolt Net without FRR stays on **static underlay**.
+
+Install UnraidFRR (after the repo is published):
+
+`https://raw.githubusercontent.com/ibigsnet/UnraidFRR/main/unraidfrr.plg`
+
+OpenFabric conf this plugin writes lives under `/boot/config/plugins/ThunderboltNet/` and uses marked FRR blocks:
 
 ```text
 ! BEGIN ThunderboltNet OpenFabric
 ...
 ! END ThunderboltNet OpenFabric
 ```
+
+Integration notes: [UnraidFRR docs](https://github.com/ibigsnet/UnraidFRR/blob/main/docs/integration-thunderboltnet.md).
 
 ---
 
@@ -355,6 +369,7 @@ Global (`ThunderboltNet.cfg`):
 
 ```ini
 openfabric_enable="yes"
+; Reserved / UI hint only — package install lives in UnraidFRR, not this plugin
 openfabric_auto_install_frr="yes"
 openfabric_ipv6="yes"
 openfabric_area="1"
@@ -443,7 +458,7 @@ OpenFabric is **stage-1 control plane**. Optional later (contrib-friendly):
 | **0** | Design + release process docs |
 | **1** | Detect FRR; keys; UI; conf generate + dry-run; metric policy |
 | **2** | Apply: write conf, fabricd, participate; defaults On |
-| **3** | Plugin-managed FRR package |
+| **3** | **UnraidFRR** companion: real FRR `.txz` builds + CA listing |
 | **4** | Neighbors/routes UI; hot-plug polish; device-class notes |
 | **5** | Peer last-plan restore + fabric coexist |
 | **6** | Bonding improvements + bond-in-fabric metrics |

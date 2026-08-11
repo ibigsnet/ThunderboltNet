@@ -140,11 +140,11 @@ develop on branch → merge to main → bump .plg version + CHANGES
 
 | Tag | Plugin version | Notes |
 |-----|----------------|--------|
-| *(pending ship)* `v2026.08.11` | **2026.08.11** | OpenFabric/FRR stage 1–2 scaffolding, routing docs, bonding roadmap language |
-| [`v2026.08.05ac`](https://github.com/ibigsnet/ThunderboltNet/releases/tag/v2026.08.05ac) | **2026.08.05ac** | First tagged release: directionality/bandwidth docs, USB4STREAM awareness, Dashboard TB ports, forum + GitHub support links |
+| `main` (Latest) | **2026.08.11** | OpenFabric/FRR scaffolding (degrades without FRR); not yet git-tagged — smoke-test before pinning |
+| [`v2026.08.05ad`](https://github.com/ibigsnet/ThunderboltNet/releases/tag/v2026.08.05ad) | **2026.08.05ad** | **Stable pin** before OpenFabric: standards guide (directionality, bandwidth table, mixing, FAQ) |
+| [`v2026.08.05ac`](https://github.com/ibigsnet/ThunderboltNet/releases/tag/v2026.08.05ac) | **2026.08.05ac** | First GitHub Release: USB4STREAM awareness, Dashboard TB ports, forum + GitHub support links |
 
-Prefer **Latest** (`main`) for newest; prefer a **tag** for freeze/rollback. Tag `v2026.08.11` when this tree is pushed and smoke-tested.
-
+Prefer **`v2026.08.05ad`** for freeze/rollback. Prefer **Latest** for newest (includes OpenFabric UI/docs; multi-hop needs FRR).
 ### Roll back to a tag
 
 1. **Plugins → Install Plugin** → paste that tag’s raw `.plg` URL (see table above / GitHub tags).  
@@ -161,3 +161,4 @@ Prefer **Latest** (`main`) for newest; prefer a **tag** for freeze/rollback. Tag
 | **Unraid forum (support)** | https://forums.unraid.net/topic/200065-plugin-thunderbolt-net-host-to-host-networking-over-thunderbolt-345-and-usb44v2/ |
 | **Docs** | [DOCS.md](https://github.com/ibigsnet/ThunderboltNet/blob/main/DOCS.md) · [docs/](https://github.com/ibigsnet/ThunderboltNet/tree/main/docs) |
 | **OpenFabric / FRR (LTS design)** | [docs/routing-openfabric.md](docs/routing-openfabric.md) |
+| **UnraidFRR companion** (optional FRR packages) | https://github.com/ibigsnet/UnraidFRR |
