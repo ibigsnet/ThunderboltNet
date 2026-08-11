@@ -73,7 +73,7 @@ Related **ibigsnet** pieces are optional companions. Install only what you need.
 |---------|--------------|------------------|----------------------|
 | **Thunderbolt Net** | TB/USB4 **host-net underlay** (`tbnN` IPs), peers, listening, OpenFabric **policy** | Any Unraid host-to-host TB networking | No TB host controller |
 | **Fabric Routing (FRR)** / UnraidFRR | Installs **FRR packages/daemons** (`fabricd`, `vtysh`) — Network Settings → **Fabric Routing** | Rings, multi-hop, Proxmox/Linux FRR fabric | One cable + static IPs only |
-| **NBD Export** | Host or pull **raw disks** over NBD — Network Services → **NBD** (Status · Host · Pull · Settings) | Imaging/cloning large disks over TB | File shares (SMB/NFS) are enough |
+| **NBD Export** | Host or pull **raw disks** over NBD — Network Services → **NBD** (Status · Host · Pull · Settings) | Imaging/cloning large disks over Thunderbolt | File shares (SMB/NFS) are enough |
 | **Storage Guard** | Free-space thresholds and main-page free-bar colors | Know when a failed disk still leaves room | Optional |
 | **USB4STREAM** | Not a plugin — **kernel** module `thunderbolt_stream` | Experimental raw stream when kernel has it | Always optional; not FRR |
 
