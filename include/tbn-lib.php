@@ -31,7 +31,8 @@ function tbn_load_cfg() {
     'load_modules' => 'yes',
     'e2e_flow_control' => 'no',
     // USB4STREAM (thunderbolt-stream): raw host↔host path, separate from thunderbolt_net
-    // Default no until kernel ≥ ~7.2 ships the module; plugin detects and enables gracefully.
+    // Default no until the *running* kernel ships thunderbolt_stream (mainline ~7.2+;
+    // not “Unraid 7.2”). Plugin detects and enables gracefully.
     'enable_usb4stream' => 'no',
     // Default IPv4 plan for new/Reset iface tabs: small-lan | p2p | custom
     'address_plan' => 'small-lan',
@@ -1634,7 +1635,8 @@ function tbn_modules_loaded() {
 
 /**
  * Whether the running kernel can load USB4STREAM (module present in tree).
- * Module name: thunderbolt_stream / thunderbolt-stream (Linux 7.2+).
+ * Module name: thunderbolt_stream / thunderbolt-stream
+ * (mainline Linux kernel ~7.2+; not Unraid product 7.2.x).
  */
 function tbn_usb4stream_module_available() {
   static $cached = null;
@@ -1669,11 +1671,21 @@ function tbn_usb4stream_status() {
   sort($devs);
   $configfs = is_dir('/sys/kernel/config/thunderbolt/stream')
     || is_dir('/sys/kernel/config/usb4stream');
+  $kver = trim((string)@shell_exec('uname -r 2>/dev/null'));
+  if ($kver === '') {
+    $kver = php_uname('r');
+  }
   $note = '';
   if (!$available) {
-    $note = 'Kernel has no thunderbolt_stream module (USB4STREAM needs Linux ~7.2+). thunderbolt_net still works.';
+    // Mainline landed stream in Linux kernel ~7.2 — NOT Unraid product 7.2.x
+    $note = 'No thunderbolt_stream in this kernel'
+      . ($kver !== '' ? ' (' . $kver . ')' : '')
+      . '. USB4STREAM needs a kernel build that ships the module (mainline ~7.2+); '
+      . 'Unraid version numbers do not imply it. thunderbolt_net (IP/tbn) still works.';
   } elseif (!$loaded) {
-    $note = 'Module available but not loaded. Enable USB4STREAM under Driver options and Apply, or modprobe thunderbolt-stream.';
+    $note = 'Module available but not loaded'
+      . ($kver !== '' ? ' on ' . $kver : '')
+      . '. Enable USB4STREAM under Advanced and Apply, or modprobe thunderbolt-stream.';
   } elseif (!$devs) {
     $note = 'Module loaded; no /dev/tbstream* yet — configure stream via configfs when a peer is up (see docs/usb4stream.md).';
   } else {
@@ -1684,6 +1696,7 @@ function tbn_usb4stream_status() {
     'loaded' => $loaded,
     'devices' => $devs,
     'configfs' => $configfs,
+    'kernel' => $kver,
     'note' => $note,
   ];
 }

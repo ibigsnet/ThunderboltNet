@@ -1,8 +1,32 @@
 # USB4STREAM and ThunderboltNet
 
-USB4STREAM is a **Linux kernel** feature (merged for **~7.2**) for **raw host↔host data** over a USB4 / Thunderbolt cable **without** the IP stack. It is **not** InfiniBand and **not** a replacement for Unraid’s normal Ethernet/`thunderboltN` networking.
+USB4STREAM is a **Linux kernel** feature (merged into mainline **Linux kernel ~7.2**) for **raw host↔host data** over a USB4 / Thunderbolt cable **without** the IP stack. It is **not** InfiniBand and **not** a replacement for Unraid’s normal Ethernet/`thunderboltN` networking.
 
 ThunderboltNet **detects and can load** the stream module when present. Full “one-click bulk copy” tooling is phased — see roadmap below.
+
+---
+
+## “Linux 7.2+” means the **kernel**, not Unraid 7.2
+
+This trips people up. Three different version numbers:
+
+| Version you might see | Example | Related to USB4STREAM? |
+|-----------------------|---------|-------------------------|
+| **Unraid product** | Unraid **7.3.2** | **No.** Bumping Unraid 6 → 7 → 7.2 → 7.3 does **not** by itself enable stream. |
+| **Linux kernel** (`uname -r`) | **6.18.38**-Unraid | **Yes — this is the one that matters.** Module must exist in *this* tree. |
+| **Mainline when feature landed** | kernel.org **Linux 7.2** | Historical: when upstream merged USB4STREAM. Unraid must *ship* a kernel that includes it. |
+
+**Not Slackware package versioning either.** Unraid is Slackware-based, but stream support is “does `modinfo thunderbolt_stream` work on the running kernel?” — not “is Slackware or Unraid ≥ some release number.”
+
+**How to check (trust this over any Unraid version number):**
+
+```bash
+uname -r
+modinfo thunderbolt_stream   # or thunderbolt-stream
+# If modinfo errors "not found", this Unraid build does not have USB4STREAM yet.
+```
+
+Example (lab): **Unraid 7.3.2** running kernel **6.18.38-Unraid** → **no** `thunderbolt_stream`. Updating Unraid alone will not help until Lime Technology’s kernel package includes the module (which may still be a **6.x** Unraid kernel with the feature backported, or a future **7.x** kernel — only `modinfo` / plugin status tell you).
 
 ---
 
@@ -11,21 +35,21 @@ ThunderboltNet **detects and can load** the stream module when present. Full “
 | Path | Kernel / software | What you get | Plugin role |
 |------|-------------------|--------------|-------------|
 | **USB4NET** (`thunderbolt_net`) | Long stable | `thunderbolt0`… IP NIC (tbn tabs) | **Primary** — already supported |
-| **USB4STREAM** (`thunderbolt_stream`) | Linux **~7.2+** | Raw stream, often `/dev/tbstream*` | **Detect + optional load** now; apply helpers later |
+| **USB4STREAM** (`thunderbolt_stream`) | Mainline **Linux kernel ~7.2+** (or a build that backports the module) | Raw stream, often `/dev/tbstream*` | **Detect + optional load** now; apply helpers later |
 | **IB verbs over TB** | Research / out-of-tree | Fake InfiniBand for RDMA/AI | **Out of scope** for this plugin |
 
 Reference write-ups: [Phoronix USB4STREAM in 7.2](https://www.phoronix.com/news/USB4STREAM-In-Linux-7.2), kernel admin-guide Thunderbolt section, experimental [thunderbolt-ibverbs](https://blog.hellas.ai/blog/thunderbolt-ibverbs/) (not shipped here).
 
 ---
 
-## Will it help Holo ↔ Unraid bulk copies?
+## Will it help host↔host bulk copies?
 
 | | |
 |--|--|
 | **Same cable class** | Yes — same USB4/TB ports you already use |
 | **Faster than TB-net + TCP?** | Possibly (less stack); still limited by **trained lanes/speed** (e.g. 20G×1) |
-| **Works on Unraid 6.12 / 7.x with 6.1x kernels?** | **No** until the **Unraid kernel** includes `thunderbolt_stream` |
-| **Works if only Holo has 7.2+?** | **No** — both ends need a compatible stream path |
+| **Works if Unraid is “new enough” by product number?** | **No guarantee.** Unraid **7.x** today often still runs a **6.x** kernel without the module. |
+| **Works if only one peer has a 7.2+ kernel?** | **No** — both ends need a compatible stream path |
 
 Until both peers have the module, keep using **tbn + IP** (NBD, rsync, NFS, etc.).
 
@@ -69,6 +93,7 @@ Plugin **does not** yet auto-create configfs streams or replace NBD/rsync. That 
 
 ## Operator tips
 
-- Leave **Enable USB4STREAM = No** on production Unraid until the **running kernel** shows the module under status.  
+- Leave **Enable USB4STREAM = No** on production Unraid until the **running kernel** shows the module under status (`modinfo`, not “I upgraded Unraid”).  
 - Do **not** unload `thunderbolt_net` to “try stream only” unless you accept losing IP/SMB/SSH on TB.  
-- Dual-lane / 40G training is still a **fabric** issue; stream does not fix single-lane 20G cables.
+- Dual-lane / 40G training is still a **fabric** issue; stream does not fix single-lane 20G cables.  
+- Do **not** upgrade Unraid solely for USB4STREAM unless release notes say the **kernel** includes `thunderbolt_stream` — verify with `uname -r` + `modinfo` after upgrade.

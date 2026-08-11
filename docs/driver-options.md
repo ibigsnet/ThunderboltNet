@@ -21,7 +21,7 @@ They affect the **whole Unraid host**, not a single `tbnN` tab.
 | **No** (default) | Do not load `thunderbolt_stream` — IP host-net only (`thunderbolt_net` / tbn tabs) |
 | **Yes** | On Apply (with Load modules = Yes), also try `modprobe thunderbolt_stream` if the kernel ships it |
 
-Requires Linux **~7.2+** with the USB4STREAM driver. On older Unraid kernels the option is harmless (modprobe fails quietly). This is **not** InfiniBand; see [usb4stream.md](usb4stream.md).
+Requires a **Linux kernel** that ships `thunderbolt_stream` (feature landed in mainline **kernel ~7.2**; Unraid product version is irrelevant — check `uname -r` / `modinfo`). On kernels without the module the option is harmless (modprobe fails quietly). This is **not** InfiniBand and **not** Unraid 7.2.x; see [usb4stream.md](usb4stream.md).
 
 ### When to use Yes
 

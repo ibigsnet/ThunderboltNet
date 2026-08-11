@@ -178,7 +178,9 @@ $of_mode_label = [
 <?php elseif ($stream_ready): ?>
           Module available — enable under Advanced below.
 <?php else: ?>
-          Not in this kernel (needs Linux ~7.2+). Raw stream path — <strong>not InfiniBand</strong>, <strong>not UnraidFRR</strong>.
+          Not in this kernel<?= !empty($usb4stream['kernel']) ? ' (<code>' . htmlspecialchars($usb4stream['kernel']) . '</code>)' : '' ?>.
+          Needs a <strong>Linux kernel</strong> that ships <code>thunderbolt_stream</code> (mainline ~7.2+) —
+          <strong>not</strong> “Unraid 7.2+”, not InfiniBand, not UnraidFRR.
 <?php endif; ?>
         </p>
       </div>
@@ -196,8 +198,10 @@ $of_mode_label = [
       <strong>IP host-net modules</strong> — <code>thunderbolt</code> = host controller stack;
       <code>thunderbolt_net</code> = <code>thunderboltN</code> IP interfaces (what tbn tabs configure).
       These are <em>not</em> FRR and not USB4STREAM.<br><br>
-      <strong>USB4STREAM</strong> (<code>thunderbolt_stream</code>) is an optional <em>kernel</em> raw path on Linux ~7.2+ —
-      separate from IP host-net. Installing <strong>UnraidFRR</strong> never adds this module.<br><br>
+      <strong>USB4STREAM</strong> (<code>thunderbolt_stream</code>) is an optional <em>kernel</em> raw path
+      (feature landed in mainline <strong>Linux kernel ~7.2</strong> — that is <code>uname -r</code> / kernel.org,
+      <strong>not</strong> Unraid product version 7.2.x). Separate from IP host-net.
+      Installing <strong>UnraidFRR</strong> never adds this module. Upgrading Unraid alone does not guarantee it.<br><br>
       <strong>OpenFabric / FRR</strong> is optional <em>IP routing</em> for multi-hop rings/meshes. Packages come from
       UnraidFRR (or your own FRR); this plugin only writes OpenFabric <em>policy</em>.<br><br>
       <strong>Listening includes</strong> — names in <code>network-extra.cfg</code> so SMB / NFS / SSH / web UI
@@ -1060,8 +1064,10 @@ $of_mode_label = [
           </span>
         </div>
         <p class="tbn-note tbn-advanced-summary tbn-muted">
-          Optional. Needs Linux ~7.2+ with <code>thunderbolt_stream</code>.
-          <strong>Not InfiniBand.</strong> <strong>Not UnraidFRR</strong> (FRR is IP routing packages).
+          Optional. Needs a kernel that includes <code>thunderbolt_stream</code>
+          (mainline Linux <strong>kernel</strong> ~7.2+ — <em>not</em> Unraid 7.2.x product version).
+          Running: <code><?= htmlspecialchars($usb4stream['kernel'] ?? php_uname('r')) ?></code>.
+          <strong>Not InfiniBand.</strong> <strong>Not UnraidFRR.</strong>
         </p>
         <div class="tbn-advanced-body" id="tbn-adv-usb4stream"<?= $stream_expand_default ? '' : ' hidden' ?>>
       <dl>
@@ -1075,15 +1081,19 @@ $of_mode_label = [
       </dl>
       <blockquote class="inline_help">
         <strong>USB4STREAM</strong> is a separate Linux <em>kernel</em> path from <code>thunderbolt_net</code> (tbn0 IP networking).
-        On kernels that ship it (~7.2+), it can expose raw stream devices
+        When the <strong>running kernel</strong> ships the module, it can expose raw stream devices
         (<code>/dev/tbstream*</code>) for high-speed host↔host transfers without the IP stack.<br><br>
+        <strong>“~7.2” = Linux kernel version</strong> (kernel.org / <code>uname -r</code>),
+        <strong>not Unraid 7.2.x</strong> and not Slackware package numbering.
+        Unraid 7.x can still run a 6.x kernel with no module — check status below, not the Unraid marketing version.
+        Do not upgrade Unraid expecting stream unless the new kernel actually includes <code>thunderbolt_stream</code>.<br><br>
         <strong>This is not InfiniBand.</strong> IB-style RDMA over TB is research / out-of-tree
         (e.g. thunderbolt-ibverbs demos) — the plugin does not load those modules.<br><br>
         <strong>This is not UnraidFRR.</strong> UnraidFRR installs FRR routing packages (<code>fabricd</code>, etc.);
         it never provides <code>thunderbolt_stream</code>.<br><br>
         <strong>Status on this host:</strong>
         <?= htmlspecialchars($usb4stream['note'] ?? 'unknown') ?><br><br>
-        <strong>No</strong> (default) — only use IP host-net (tbn tabs). Safe on Unraid 6.x / older kernels.<br>
+        <strong>No</strong> (default) — only use IP host-net (tbn tabs). Correct when the module is missing.<br>
         <strong>Yes</strong> — on Apply, also <code>modprobe thunderbolt_stream</code> if the kernel has it;
         ignored cleanly if the module is missing. Peer must support stream too for a useful path.
         <?= tbn_help_docs_footer('docs/usb4stream.md', 'USB4STREAM guide') ?>

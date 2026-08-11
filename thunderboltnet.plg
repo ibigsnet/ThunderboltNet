@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.08.11ae">
+<!ENTITY version "2026.08.11af">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -35,6 +35,9 @@
 
 <CHANGES>
 ###&version;
+- USB4STREAM: “Linux ~7.2” = **kernel** version (uname -r), not Unraid 7.2.x; show running kernel in status; docs warn upgrades alone do not enable stream.
+
+###2026.08.11ae
 - UX: Network Settings entry banner; companion strip (FRR / NBD / USB4STREAM); OpenFabric + USB4STREAM collapsed behind orange Show when not ready.
 - Wording: IP host-net modules separate from thunderbolt_stream; UnraidFRR ≠ USB4STREAM; first-run green notify + clearer install path.
 
