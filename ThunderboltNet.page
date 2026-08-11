@@ -35,7 +35,20 @@ $ifaces = tbn_list_tb_iface_names();
 $mod_tb = !empty($mods['thunderbolt']) ? 'loaded' : 'not loaded';
 $mod_net = !empty($mods['thunderbolt_net']) ? 'loaded' : 'not loaded';
 $usb4stream = $status['usb4stream'] ?? (function_exists('tbn_usb4stream_status') ? tbn_usb4stream_status() : []);
-$mod_stream = !empty($usb4stream['loaded']) ? 'loaded' : (!empty($usb4stream['available']) ? 'available (not loaded)' : 'not in kernel');
+$mod_stream = !empty($usb4stream['loaded']) ? 'loaded' : (!empty($usb4stream['available']) ? 'available (not loaded)' : 'not in this kernel');
+$stream_ready = !empty($usb4stream['available']) || !empty($usb4stream['loaded']);
+// OpenFabric / companions (soft detect — never require other plugins)
+if (!function_exists('tbn_of_status') && is_file('/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-openfabric.php')) {
+  require_once '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-openfabric.php';
+}
+$of_st = function_exists('tbn_of_status') ? tbn_of_status() : [];
+$of_mode = $of_st['mode'] ?? 'static-only';
+$frr_present = !empty($of_st['frr']['present']);
+$unraidfrr = function_exists('tbn_of_unraidfrr_companion') ? tbn_of_unraidfrr_companion() : [];
+$nbd_present = function_exists('tbn_nbdexport_present') && tbn_nbdexport_present();
+// Collapse advanced by default unless FRR is present (routing) / stream available
+$of_expand_default = $frr_present && ($of_mode === 'openfabric-ready' || $of_mode === 'openfabric-running');
+$stream_expand_default = $stream_ready;
 $peer_count = 0;
 foreach ($devices as $d) {
   if (preg_match('/^\d+-\d+$/', $d['id']) && $d['id'] !== '0-0' && ($d['device_name'] !== '' || $d['rx_speed'] !== '')) {
@@ -43,11 +56,29 @@ foreach ($devices as $d) {
   }
 }
 $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
+$of_mode_label = [
+  'openfabric-running' => 'OpenFabric running',
+  'openfabric-ready' => 'FRR ready',
+  'openfabric-want-frr' => 'needs FRR packages',
+  'static-only' => 'static underlay',
+][$of_mode] ?? $of_mode;
 ?>
 <link rel="stylesheet" href="/plugins/ThunderboltNet/thunderboltnet.css?v=<?= htmlspecialchars($ver) ?>">
 
 <div class="tbn-wrap">
 <?= tbn_docs_bar_html('overview') ?>
+
+  <div class="tbn-entry-banner" role="note">
+    <div class="tbn-entry-banner-main">
+      <strong>Network Settings · Thunderbolt overview</strong>
+      <span class="tbn-muted"> — host fabric, peers, and drivers. Per-link IPs live on each <strong>tbnN</strong> tab when a peer is online.</span>
+    </div>
+    <div class="tbn-entry-banner-actions">
+      <a class="tbn-btn-link" href="/Settings/NetworkSettings"
+         onclick="return tbnGotoNetTab('Thunderbolt', event)">Open full Network Settings strip (eth0 / Thunderbolt / tbn…)</a>
+      <span class="tbn-muted tbn-entry-hint">CA <em>Settings</em> opens this overview alone; use Network Settings for all interface tabs together.</span>
+    </div>
+  </div>
 
 <?php if (!$has_hw): ?>
   <div class="tbn-notice" role="status">
@@ -90,42 +121,87 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
 ?>
   <div class="tbn-section">
     <h3>This host</h3>
-    <p class="tbn-note">Controller, drivers, and who may listen on TB IPs — host-wide.</p>
+    <p class="tbn-note">Controller, IP host-net drivers, and who may listen on TB IPs — host-wide.</p>
     <table class="tbn-table tbn-summary">
       <tr><td>Domain security</td><td><code><?= htmlspecialchars($status['security'] ?: '(none/unknown)') ?></code></td></tr>
-      <tr><td>Kernel modules</td>
+      <tr><td>IP host-net modules</td>
         <td><code>thunderbolt</code> <?= htmlspecialchars($mod_tb) ?> ·
-            <code>thunderbolt_net</code> <?= htmlspecialchars($mod_net) ?> ·
-            <code>thunderbolt_stream</code> <?= htmlspecialchars($mod_stream) ?></td></tr>
-      <tr><td>USB4STREAM</td>
-        <td>
-<?php if (!empty($usb4stream['devices'])): ?>
-          <code><?= htmlspecialchars(implode(' ', $usb4stream['devices'])) ?></code>
-<?php elseif (!empty($usb4stream['available'])): ?>
-          <span class="tbn-muted">module available — enable under Driver options when ready</span>
-<?php else: ?>
-          <span class="tbn-muted">needs Linux ~7.2+ (raw stream path; not InfiniBand)</span>
-<?php endif; ?>
-        </td></tr>
+            <code>thunderbolt_net</code> <?= htmlspecialchars($mod_net) ?>
+          <span class="tbn-muted"> — what tbn tabs use</span></td></tr>
       <tr><td>Listening includes</td>
         <td><code><?= htmlspecialchars(implode(' ', $include) ?: '(none)') ?></code>
-          <span class="tbn-muted"> — Unraid services bind list</span></td></tr>
+          <span class="tbn-muted"> — SMB / NFS / SSH / web bind list</span></td></tr>
+      <tr><td>Multi-hop routing</td>
+        <td>
+          <strong><?= htmlspecialchars($of_mode_label) ?></strong>
+<?php if ($frr_present): ?>
+          <span class="tbn-muted"> — FRR present · policy under Advanced below · packages at
+            <a href="/Settings/UnraidFRR">Settings → FRR</a></span>
+<?php else: ?>
+          <span class="tbn-muted"> — static tbn IPs work without FRR · optional multi-hop needs
+            <a href="https://github.com/ibigsnet/UnraidFRR" target="_blank" rel="noopener">UnraidFRR</a>
+            (not a kernel module)</span>
+<?php endif; ?>
+        </td></tr>
     </table>
+
+    <div class="tbn-companion-strip" aria-label="Related plugins">
+      <div class="tbn-companion-card<?= $frr_present ? ' tbn-companion-ok' : '' ?>">
+        <div class="tbn-companion-title">Multi-hop (FRR / OpenFabric)</div>
+<?php if ($frr_present): ?>
+        <p>FRR is available. OpenFabric <strong>policy</strong> is on this page (Advanced). Package/daemon manager:
+          <a href="/Settings/UnraidFRR">Settings → FRR</a>.</p>
+<?php elseif (!empty($unraidfrr['plugin_dir'])): ?>
+        <p>UnraidFRR plugin is installed but FRR packages may still be empty — open
+          <a href="/Settings/UnraidFRR">Settings → FRR</a> → Apply.</p>
+<?php else: ?>
+        <p class="tbn-muted">Optional. Install <strong>UnraidFRR</strong> from CA (or
+          <a href="<?= htmlspecialchars($unraidfrr['install_url'] ?? 'https://raw.githubusercontent.com/ibigsnet/UnraidFRR/main/unraidfrr.plg') ?>" target="_blank" rel="noopener">raw .plg</a>)
+          for <code>fabricd</code> packages. Does <em>not</em> provide <code>thunderbolt_stream</code>.</p>
+<?php endif; ?>
+      </div>
+      <div class="tbn-companion-card<?= $nbd_present ? ' tbn-companion-ok' : '' ?>">
+        <div class="tbn-companion-title">Block export (NBD)</div>
+<?php if ($nbd_present): ?>
+        <p>Installed — <a href="/Settings/NbdExport">Network Services → NBD</a>. Bind exports to a TB IP when imaging large disks.</p>
+<?php else: ?>
+        <p class="tbn-muted">Optional. Whole-disk imaging over a private TB IP (separate from SMB/NFS listening).
+          Search <strong>NBD Export</strong> in CA when published, or see
+          <a href="https://github.com/ibigsnet/NbdExport" target="_blank" rel="noopener">GitHub</a>.</p>
+<?php endif; ?>
+      </div>
+      <div class="tbn-companion-card tbn-companion-muted">
+        <div class="tbn-companion-title">USB4STREAM (kernel)</div>
+        <p class="tbn-muted">
+<?php if (!empty($usb4stream['devices'])): ?>
+          Devices: <code><?= htmlspecialchars(implode(' ', $usb4stream['devices'])) ?></code>
+<?php elseif ($stream_ready): ?>
+          Module available — enable under Advanced below.
+<?php else: ?>
+          Not in this kernel (needs Linux ~7.2+). Raw stream path — <strong>not InfiniBand</strong>, <strong>not UnraidFRR</strong>.
+<?php endif; ?>
+        </p>
+      </div>
+    </div>
+
     <dl>
       <dt>This host fields:</dt>
-      <dd class="tbn-muted">Domain security · modules · USB4STREAM · listening</dd>
+      <dd class="tbn-muted">Domain security · IP modules · listening · companions</dd>
     </dl>
     <blockquote class="inline_help">
       <strong>Domain security</strong> — from sysfs (<code>none</code>, <code>user</code>, <code>secure</code>, …).
       Think of a phone that is locked or “privatized” on first media connection: until you authorize the peer,
       the cable may not open full access. <code>none</code> means that gate is open (common for lab host-to-host).
       <code>user</code> / <code>secure</code> mean you (or a key) must approve devices — more like production ACL.<br><br>
-      <strong>Kernel modules</strong> — <code>thunderbolt</code> = host controller stack;
-      <code>thunderbolt_net</code> = <code>thunderboltN</code> IP network interfaces (what tbn tabs configure);
-      <code>thunderbolt_stream</code> = optional <strong>USB4STREAM</strong> raw host↔host path (Linux ~7.2+),
-      separate from Ethernet-over-TB.<br><br>
+      <strong>IP host-net modules</strong> — <code>thunderbolt</code> = host controller stack;
+      <code>thunderbolt_net</code> = <code>thunderboltN</code> IP interfaces (what tbn tabs configure).
+      These are <em>not</em> FRR and not USB4STREAM.<br><br>
+      <strong>USB4STREAM</strong> (<code>thunderbolt_stream</code>) is an optional <em>kernel</em> raw path on Linux ~7.2+ —
+      separate from IP host-net. Installing <strong>UnraidFRR</strong> never adds this module.<br><br>
+      <strong>OpenFabric / FRR</strong> is optional <em>IP routing</em> for multi-hop rings/meshes. Packages come from
+      UnraidFRR (or your own FRR); this plugin only writes OpenFabric <em>policy</em>.<br><br>
       <strong>Listening includes</strong> — names in <code>network-extra.cfg</code> so SMB / NFS / SSH / web UI
-      may bind there. Set per peer under <strong>Known peers</strong> or on each tbn tab.
+      may bind there. Set per peer under <strong>Known peers</strong> or on each tbn tab. NBD bind is separate.
       <?= tbn_help_docs_footer('docs/requirements.md', 'Requirements') ?>
       · <?= tbn_docs_more_html('docs/usb4stream.md', 'USB4STREAM ↗') ?>
     </blockquote>
@@ -771,13 +847,22 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
       <input type="hidden" name="address_plan" value="<?= htmlspecialchars($cfg['address_plan'] ?? 'small-lan') ?>">
       <input type="hidden" name="openfabric_auto_install_frr" value="<?= htmlspecialchars($cfg['openfabric_auto_install_frr'] ?? 'yes') ?>">
 
-  <div class="tbn-section tbn-section-routing">
-    <h3>Routing (OpenFabric / FRR)</h3>
-    <p class="tbn-note">
-      Multi-host mesh, <strong>ring</strong>, and multi-hop over TB underlay. Default <strong>On</strong> when FRR is available;
-      pure static is always available if you turn this off. Hot-plug peers (Linux mini-PCs, Strix Halo / Gorgon Halo class, DGX Spark class, …) are a long-term support goal.
+  <div class="tbn-section tbn-section-routing tbn-advanced"
+       data-tbn-advanced="openfabric"
+       data-tbn-default-open="<?= $of_expand_default ? '1' : '0' ?>">
+    <div class="tbn-advanced-head">
+      <h3>Advanced: multi-hop routing (OpenFabric)</h3>
+      <button type="button" class="tbn-advanced-toggle" data-tbn-adv-toggle="openfabric"
+        data-show="Show OpenFabric settings"
+        data-hide="Hide OpenFabric settings">Show OpenFabric settings</button>
+      <span class="tbn-advanced-chip<?= $frr_present ? ' tbn-chip-ok' : ' tbn-chip-warn' ?>"><?= htmlspecialchars($of_mode_label) ?></span>
+    </div>
+    <p class="tbn-note tbn-advanced-summary">
+      Optional IP fabric for <strong>rings / multi-hop</strong>. Static tbn IPs always work without this.
+      FRR packages are <strong>not</strong> USB4STREAM and <strong>not</strong> <code>thunderbolt_stream</code>.
       <?= tbn_docs_more_html('docs/routing-openfabric.md', 'OpenFabric guide ↗') ?>
     </p>
+    <div class="tbn-advanced-body" id="tbn-adv-openfabric"<?= $of_expand_default ? '' : ' hidden' ?>>
     <dl>
       <dt>OpenFabric status:</dt>
       <dd class="tbn-muted">FRR · router-id · metrics · participate</dd>
@@ -790,7 +875,8 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
       <strong>Why Off:</strong> single peer cable only, no routing daemon wanted.<br><br>
       <strong>FRR packages:</strong> this plugin does <em>not</em> install FRR. Use the optional companion
       <a href="https://github.com/ibigsnet/UnraidFRR" target="_blank" rel="noopener">UnraidFRR</a>
-      (more invasive: <code>installpkg</code> + daemons), or supply FRR yourself. Either works; neither is required for static tbn.
+      (Settings → FRR; <code>installpkg</code> + daemons), or supply FRR yourself.
+      UnraidFRR never installs <code>thunderbolt_stream</code> / USB4STREAM.
       <?= tbn_help_docs_footer('docs/routing-openfabric.md', 'FRR / OpenFabric (pros, cost, topologies)') ?>
     </blockquote>
     <?php
@@ -889,6 +975,7 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
       Default <strong>100000</strong> (100&nbsp;G). Per-link manual metrics are on each tbn tab.
       <?= tbn_help_docs_footer('docs/routing-openfabric.md', 'Path cost and metrics') ?>
     </blockquote>
+    </div><!-- .tbn-advanced-body openfabric -->
   </div>
 
   <div class="tbn-section tbn-section-drivers">
@@ -896,10 +983,11 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
     <p class="tbn-note">Module load and E2E when you Apply here — not eth0, Docker, or VM IPs (those are on tbnN / Unraid network).</p>
     <dl>
       <dt>Driver options:</dt>
-      <dd class="tbn-muted">Modules · E2E flow control</dd>
+      <dd class="tbn-muted">Modules · E2E flow control · optional USB4STREAM</dd>
     </dl>
     <blockquote class="inline_help">
-      Apply changes Thunderbolt drivers, host-wide <code>e2e</code>, USB4STREAM, and OpenFabric settings above.
+      Apply updates host drivers, E2E, USB4STREAM load (if enabled), and OpenFabric <strong>policy</strong> above.
+      FRR <strong>packages</strong> are managed under <a href="/Settings/UnraidFRR">Settings → FRR</a> when UnraidFRR is installed.
       Per-link addresses and bonding are on each <strong>tbnN</strong> tab.
       <?= tbn_help_docs_footer('docs/driver-options.md', 'Driver options guide') ?>
     </blockquote>
@@ -959,6 +1047,23 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
         · <?= tbn_docs_more_html('docs/peer-scenarios.md', 'Peer scenarios (Mac / Linux / Windows / docks) ↗') ?>
       </blockquote>
 
+      <div class="tbn-advanced tbn-advanced-nested"
+           data-tbn-advanced="usb4stream"
+           data-tbn-default-open="<?= $stream_expand_default ? '1' : '0' ?>">
+        <div class="tbn-advanced-head">
+          <h4>Advanced: USB4STREAM (kernel raw path)</h4>
+          <button type="button" class="tbn-advanced-toggle" data-tbn-adv-toggle="usb4stream"
+            data-show="Show USB4STREAM"
+            data-hide="Hide USB4STREAM">Show USB4STREAM</button>
+          <span class="tbn-advanced-chip<?= $stream_ready ? ' tbn-chip-ok' : ' tbn-chip-muted' ?>">
+            <?= $stream_ready ? htmlspecialchars($mod_stream) : 'not in this kernel' ?>
+          </span>
+        </div>
+        <p class="tbn-note tbn-advanced-summary tbn-muted">
+          Optional. Needs Linux ~7.2+ with <code>thunderbolt_stream</code>.
+          <strong>Not InfiniBand.</strong> <strong>Not UnraidFRR</strong> (FRR is IP routing packages).
+        </p>
+        <div class="tbn-advanced-body" id="tbn-adv-usb4stream"<?= $stream_expand_default ? '' : ' hidden' ?>>
       <dl>
         <dt>Enable USB4STREAM:</dt>
         <dd>
@@ -969,11 +1074,13 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
         </dd>
       </dl>
       <blockquote class="inline_help">
-        <strong>USB4STREAM</strong> is a separate Linux path from <code>thunderbolt_net</code> (tbn0 IP networking).
+        <strong>USB4STREAM</strong> is a separate Linux <em>kernel</em> path from <code>thunderbolt_net</code> (tbn0 IP networking).
         On kernels that ship it (~7.2+), it can expose raw stream devices
         (<code>/dev/tbstream*</code>) for high-speed host↔host transfers without the IP stack.<br><br>
         <strong>This is not InfiniBand.</strong> IB-style RDMA over TB is research / out-of-tree
         (e.g. thunderbolt-ibverbs demos) — the plugin does not load those modules.<br><br>
+        <strong>This is not UnraidFRR.</strong> UnraidFRR installs FRR routing packages (<code>fabricd</code>, etc.);
+        it never provides <code>thunderbolt_stream</code>.<br><br>
         <strong>Status on this host:</strong>
         <?= htmlspecialchars($usb4stream['note'] ?? 'unknown') ?><br><br>
         <strong>No</strong> (default) — only use IP host-net (tbn tabs). Safe on Unraid 6.x / older kernels.<br>
@@ -981,10 +1088,17 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
         ignored cleanly if the module is missing. Peer must support stream too for a useful path.
         <?= tbn_help_docs_footer('docs/usb4stream.md', 'USB4STREAM guide') ?>
       </blockquote>
+        </div><!-- usb4stream body -->
+      </div>
 
       <p class="tbn-actions">
         <input type="submit" name="#apply" value="Apply">
         <input type="button" value="Done" onclick="done()">
+      </p>
+      <p class="tbn-muted tbn-apply-caption">
+        Apply = drivers, E2E, USB4STREAM load, OpenFabric policy.
+        FRR packages → <a href="/Settings/UnraidFRR">Settings → FRR</a>.
+        Per-link IPs → <strong>tbnN</strong> tabs in Network Settings.
       </p>
   </div>
   </form>

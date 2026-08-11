@@ -65,14 +65,67 @@
     }
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', tbnApplyWantedTab);
-  } else {
+  /**
+   * Progressive disclosure for OpenFabric / USB4STREAM advanced panels.
+   * Orange toggle buttons; default open from data-tbn-default-open (server-side).
+   */
+  function tbnInitAdvancedPanels() {
+    var panels = document.querySelectorAll('.tbn-advanced[data-tbn-advanced]');
+    for (var i = 0; i < panels.length; i++) {
+      (function (panel) {
+        var key = panel.getAttribute('data-tbn-advanced') || '';
+        var body = panel.querySelector('.tbn-advanced-body');
+        var btn = panel.querySelector('[data-tbn-adv-toggle]');
+        if (!body || !btn) {
+          return;
+        }
+        var defOpen = panel.getAttribute('data-tbn-default-open') === '1';
+        var stored = null;
+        try {
+          stored = sessionStorage.getItem('tbnAdv:' + key);
+        } catch (e) { /* ignore */ }
+        var open = stored === '1' ? true : stored === '0' ? false : defOpen;
+        function apply() {
+          if (open) {
+            body.removeAttribute('hidden');
+            btn.value = btn.getAttribute('data-hide') || 'Hide';
+            btn.textContent = btn.getAttribute('data-hide') || 'Hide';
+          } else {
+            body.setAttribute('hidden', 'hidden');
+            btn.value = btn.getAttribute('data-show') || 'Show';
+            btn.textContent = btn.getAttribute('data-show') || 'Show';
+          }
+        }
+        apply();
+        btn.addEventListener('click', function (ev) {
+          if (ev && ev.preventDefault) {
+            ev.preventDefault();
+          }
+          open = !open;
+          try {
+            sessionStorage.setItem('tbnAdv:' + key, open ? '1' : '0');
+          } catch (e2) { /* ignore */ }
+          apply();
+          return false;
+        });
+      })(panels[i]);
+    }
+  }
+
+  function tbnOnReady() {
     tbnApplyWantedTab();
+    tbnInitAdvancedPanels();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', tbnOnReady);
+  } else {
+    tbnOnReady();
   }
   // Unraid may paint tabs slightly later
   setTimeout(tbnApplyWantedTab, 200);
   setTimeout(tbnApplyWantedTab, 600);
+  setTimeout(tbnInitAdvancedPanels, 250);
 
   window.tbnConfirmReset = function (form) {
     if (!form) {
