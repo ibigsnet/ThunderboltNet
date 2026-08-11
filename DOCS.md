@@ -15,6 +15,18 @@ That includes **Thunderbolt 3, 4, and 5**, and **USB4 / USB4 v2** host controlle
 
 ---
 
+## Contents
+
+- [What it does](#what-it-does)
+- [Documentation map](#documentation-map)
+- [Ecosystem: what each plugin does](#ecosystem-what-each-plugin-does)
+- [Quick start](#quick-start)
+- [UI help (blue helpers)](#ui-help-blue-helpers)
+- [What this is *not*](#what-this-is-not)
+- [Long-term product pillars](#long-term-product-pillars)
+- [Install / uninstall](#install-uninstall)
+- [Releases](#releases)
+
 ## What it does
 
 | Area | Where in Unraid | What you control |

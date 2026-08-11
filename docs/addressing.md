@@ -4,6 +4,16 @@ Each live kernel interface `thunderboltN` (Settings tab **tbnN**) is its own L2 
 
 ---
 
+## Contents
+
+- [Product defaults](#product-defaults)
+- [Small LAN (/24) vs point-to-point (/30)](#small-lan-24-vs-point-to-point-30)
+- [Hard rule: unique subnet per Thunderbolt link](#hard-rule-unique-subnet-per-thunderbolt-link)
+- [Examples](#examples)
+- [DHCP](#dhcp)
+- [OpenFabric / multi-hop](#openfabric-multi-hop)
+- [Related](#related)
+
 ## Product defaults
 
 | Item | Default | Rationale |

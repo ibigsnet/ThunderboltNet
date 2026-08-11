@@ -5,6 +5,14 @@ They affect the **whole Unraid host**, not a single `tbnN` tab.
 
 ---
 
+## Contents
+
+- [Load modules on Apply](#load-modules-on-apply)
+- [Enable USB4STREAM](#enable-usb4stream)
+- [E2E flow control](#e2e-flow-control)
+- [Example workflows](#example-workflows)
+- [Related](#related)
+
 ## Load modules on Apply
 
 | Value | Meaning |

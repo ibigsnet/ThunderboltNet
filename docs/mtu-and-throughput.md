@@ -8,6 +8,16 @@ This page explains why that matters for **rsync, SMB, NFS, and large file copies
 
 ---
 
+## Contents
+
+- [Short answers](#short-answers)
+- [Overhead: why 1500 hurts at TB speeds](#overhead-why-1500-hurts-at-tb-speeds)
+- [Product defaults (plugin)](#product-defaults-plugin)
+- [Both ends must match](#both-ends-must-match)
+- [What we can and cannot control](#what-we-can-and-cannot-control)
+- [How to enable 9000 in the plugin](#how-to-enable-9000-in-the-plugin)
+- [Related](#related)
+
 ## Short answers
 
 | Question | Answer |

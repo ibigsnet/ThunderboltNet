@@ -1,5 +1,21 @@
 # Troubleshooting
 
+
+## Contents
+
+- [Slow rsync / SMB despite high trained Gb/s](#slow-rsync-smb-despite-high-trained-gbs)
+- [Reseating the cable (why it matters)](#reseating-the-cable-why-it-matters)
+- [Multi-cable situations](#multi-cable-situations)
+- [No Thunderbolt hardware detected](#no-thunderbolt-hardware-detected)
+- [Interface never appears (`thunderbolt0` missing)](#interface-never-appears-thunderbolt0-missing)
+- [Link trains but no ping](#link-trains-but-no-ping)
+- [Single-lane / 20 Gb/s · 1-lane on a dual-capable host](#single-lane-20-gbs-1-lane-on-a-dual-capable-host)
+- [Two cables, still one interface (or worse)](#two-cables-still-one-interface-or-worse)
+- [One-way traffic / flaky after reboot](#one-way-traffic-flaky-after-reboot)
+- [Do not](#do-not)
+- [OpenFabric / FRR (multi-hop)](#openfabric-frr-multi-hop)
+- [Peer-specific notes](#peer-specific-notes)
+
 ## Slow rsync / SMB despite high trained Gb/s
 
 1. Check overview **Local iface state** — if you still see `MTU 1500 (kernel default)`, you are paying full Ethernet-sized packet rates on a multi‑20&nbsp;G path.  

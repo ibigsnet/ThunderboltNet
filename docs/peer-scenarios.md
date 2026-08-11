@@ -8,6 +8,19 @@ E2E is **host-wide** — see [driver-options.md](driver-options.md).
 
 ---
 
+## Contents
+
+- [At a glance](#at-a-glance)
+- [Unraid ↔ Linux (desktop, laptop, or server)](#unraid-linux-desktop-laptop-or-server)
+- [Unraid ↔ Unraid](#unraid-unraid)
+- [Unraid ↔ macOS](#unraid-macos)
+- [Unraid ↔ Windows](#unraid-windows)
+- [Unraid ↔ Thunderbolt / USB4 dock or hub with Ethernet](#unraid-thunderbolt-usb4-dock-or-hub-with-ethernet)
+- [Unraid ↔ generic USB4 hub (no NIC, no second host)](#unraid-generic-usb4-hub-no-nic-no-second-host)
+- [Multiple peers on one Unraid](#multiple-peers-on-one-unraid)
+- [Example address plan (copy/paste)](#example-address-plan-copypaste)
+- [Related](#related)
+
 ## At a glance
 
 | Peer | What appears on Unraid | Unraid E2E | Addressing | Notes |

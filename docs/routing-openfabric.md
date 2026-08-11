@@ -7,6 +7,30 @@ This is **supported product design**. Defaults favor interconnectivity; pure sta
 
 ---
 
+## Contents
+
+- [When do I need this? (read this first)](#when-do-i-need-this-read-this-first)
+- [What each piece does (plugin roles)](#what-each-piece-does-plugin-roles)
+- [Why this exists on Unraid](#why-this-exists-on-unraid)
+- [Should I enable OpenFabric?](#should-i-enable-openfabric)
+- [How FRR and OpenFabric fit (loose deep dive)](#how-frr-and-openfabric-fit-loose-deep-dive)
+- [Path cost and metrics](#path-cost-and-metrics)
+- [Supported topologies](#supported-topologies)
+- [Bonding and dual-cable (roadmap — not a non-goal)](#bonding-and-dual-cable-roadmap-not-a-non-goal)
+- [Hot-plug and target device classes](#hot-plug-and-target-device-classes)
+- [Architecture](#architecture)
+- [Product defaults](#product-defaults)
+- [FRR on Unraid (packaging) — separate companion plugin](#frr-on-unraid-packaging-separate-companion-plugin)
+- [Config keys](#config-keys)
+- [UI](#ui)
+- [Lifecycle](#lifecycle)
+- [Interop matrix](#interop-matrix)
+- [Safety](#safety)
+- [Other FRR protocols (later, not excluded)](#other-frr-protocols-later-not-excluded)
+- [Implementation stages](#implementation-stages)
+- [Upstream and further reading](#upstream-and-further-reading)
+- [Related](#related)
+
 ## When do I need this? (read this first)
 
 | Your setup | Need OpenFabric / UnraidFRR? | What to do |

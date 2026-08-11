@@ -18,6 +18,19 @@ Use it as a **reference design and test matrix**. Node counts, brands, and cabli
 
 ---
 
+## Contents
+
+- [Example topology (illustrative)](#example-topology-illustrative)
+- [What “full interoperability” means](#what-full-interoperability-means)
+- [Who owns what](#who-owns-what)
+- [Shared design parameters (fabric-wide)](#shared-design-parameters-fabric-wide)
+- [Proxmox / Debian side (reference sketch)](#proxmox-debian-side-reference-sketch)
+- [Unraid side](#unraid-side)
+- [Suggested verification phases (any lab size)](#suggested-verification-phases-any-lab-size)
+- [Success criteria (interop “good enough” for a release)](#success-criteria-interop-good-enough-for-a-release)
+- [Non-goals](#non-goals)
+- [Related](#related)
+
 ## Example topology (illustrative)
 
 Five nodes in a **ring** is a convenient teaching example (any ring, mesh, or star works the same way for OpenFabric):

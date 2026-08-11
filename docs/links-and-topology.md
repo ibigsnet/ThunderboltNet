@@ -1,5 +1,16 @@
 # Links and topology
 
+
+## Contents
+
+- [Mental model](#mental-model)
+- [Dual cable between the same pair of PCs](#dual-cable-between-the-same-pair-of-pcs)
+- [Multi-cable and recovery](#multi-cable-and-recovery)
+- [Rings, stars, and multi-host](#rings-stars-and-multi-host)
+- [Hubs and docks](#hubs-and-docks)
+- [LOCAL | REMOTE | REMOTE table](#local-remote-remote-table)
+- [Related](#related)
+
 ## Mental model
 
 Linux **Thunderbolt networking** (`thunderbolt_net`) creates an Ethernet-like netdev per **host-to-host network service path**, not per physical USB-C receptacle in all cases.
