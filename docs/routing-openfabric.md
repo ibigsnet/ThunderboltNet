@@ -40,7 +40,7 @@ Static tbn IPs **always** work without OpenFabric. Missing FRR is not a broken i
 
 1. Thunderbolt overview → **companion card “Multi-hop (FRR / OpenFabric)”** (top of page) — green when FRR is live.  
 2. If orange **needs FRR packages** chip on Advanced → OpenFabric: click it to jump to that card.  
-3. Install UnraidFRR (CA or raw `.plg`) → **Settings → FRR** → Apply packages.  
+3. Install UnraidFRR (CA or raw `.plg`) → **Network Settings → Fabric routing** → Apply packages.  
 4. Back on Thunderbolt Net → Advanced OpenFabric policy → Apply.
 
 Install plugin URL: `https://raw.githubusercontent.com/ibigsnet/UnraidFRR/main/unraidfrr.plg`

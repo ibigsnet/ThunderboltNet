@@ -76,7 +76,7 @@ Related **ibigsnet** pieces are optional companions. Install only what you need.
 | **NBD Export** | Host or pull **raw disks** over NBD on a private IP | Imaging/cloning large disks over TB | File shares (SMB/NFS) are enough |
 | **USB4STREAM** | Not a plugin — **kernel** module `thunderbolt_stream` | Experimental raw stream when kernel has it | Always optional; not FRR |
 
-OpenFabric **settings** live on Thunderbolt Net (Advanced). FRR **packages** live under Settings → FRR when UnraidFRR is installed. The orange chip **needs FRR packages** jumps to the Multi-hop companion card on the Thunderbolt overview.
+OpenFabric **settings** live on Thunderbolt Net (Advanced). FRR **packages** live under **Network Settings → Fabric routing** when UnraidFRR is installed. The orange chip **needs FRR packages** jumps to the Multi-hop companion card on the Thunderbolt overview.
 
 ---
 
