@@ -142,6 +142,8 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
     <h3>Known peers</h3>
     <p class="tbn-note">
       Online and offline peers. Services dropdown = SMB/NFS/SSH/web on that TB IP (saves on change).
+      Link rate: equal RX/TX shows <strong>full-duplex</strong>; asymmetric shows
+      <strong>TX (to peer)</strong> and <strong>RX (from peer)</strong>.
     </p>
 <?php if (!$peers_mem): ?>
     <p class="tbn-muted">No remembered peers yet — connect a host and open this tab once.</p>
@@ -154,7 +156,7 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
           <th>Tab / iface</th>
           <th>Local IPv4</th>
           <th>Unraid services on this link</th>
-          <th>Last rate</th>
+          <th>Link rate</th>
           <th>Last seen</th>
           <th>Visits</th>
         </tr>
@@ -171,7 +173,16 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
   });
   foreach ($peers_mem as $pkey => $p):
     $online = !empty($p['online']);
-    $rate = trim(($p['last_rx_speed'] ?? '') . ' / ' . ($p['last_tx_speed'] ?? ''));
+    $rate = function_exists('tbn_format_link_rate')
+      ? tbn_format_link_rate(
+          $p['last_rx_speed'] ?? '',
+          $p['last_tx_speed'] ?? '',
+          [
+            'rx_lanes' => $p['last_rx_lanes'] ?? '',
+            'tx_lanes' => $p['last_tx_lanes'] ?? '',
+          ]
+        )
+      : trim(($p['last_rx_speed'] ?? '') . ' / ' . ($p['last_tx_speed'] ?? ''));
     $addrs = $p['last_local_addrs'] ?? [];
     if (is_array($addrs)) {
       $addrs = implode(', ', $addrs);
@@ -236,12 +247,22 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
 <?php elseif ($online && !$live_on): ?>
             <p class="tbn-hint">Saved Yes — if still unreachable, check Network Extra / re-select Yes.</p>
 <?php elseif ($online && $live_on): ?>
-            <p class="tbn-hint">Live on include list.</p>
+            <p class="tbn-hint">Live on include list (SMB / NFS / SSH / web).</p>
 <?php else: ?>
             <p class="tbn-hint">Remembered Yes — applied when this peer is online.</p>
 <?php endif; ?>
+            <p class="tbn-hint tbn-muted">
+              Block export (NBD) is separate —
+<?php if (function_exists('tbn_nbdexport_present') && tbn_nbdexport_present()): ?>
+              <a href="/Settings/NbdExport">Network Services → NBD</a>
+              (bind to this IP; not controlled by listening Yes).
+<?php else: ?>
+              use <strong>NBD Export</strong> under Network Services when installed
+              (bind to this IP; not controlled by listening Yes).
+<?php endif; ?>
+            </p>
           </td>
-          <td><?= htmlspecialchars($rate !== ' / ' ? $rate : '—') ?></td>
+          <td title="Equal rates = full-duplex. Asymmetric = TX to peer · RX from peer."><?= htmlspecialchars($rate !== '' && $rate !== ' / ' ? $rate : '—') ?></td>
           <td class="tbn-muted"><?= htmlspecialchars($p['last_seen'] ?? '—') ?></td>
           <td><?= (int)($p['seen_count'] ?? 0) ?></td>
         </tr>
@@ -267,8 +288,9 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
     </dl>
     <blockquote class="inline_help">
       Peers stay listed when offline so settings return when they reconnect (by peer UUID).<br><br>
-      <strong>Unraid services</strong> — <strong>Yes</strong> recommended for SMB / NFS / big copies on that TB IP;
+      <strong>Unraid services</strong> — <strong>Yes</strong> recommended for SMB / NFS / web / big file copies on that TB IP;
       default for new peers is <strong>No</strong> (safer). Writes <code>network-extra.cfg</code> include list.
+      Whole-disk imaging uses <strong>NBD Export</strong> (Network Services → NBD) bound to the same IP — not this dropdown.
       Dropdown saves immediately (no Apply). VM VNC / Docker ports are separate.<br><br>
       <strong>Harden: all peers services No</strong> — force every peer preference and live TB includes back to No.
       <?= tbn_help_docs_footer('docs/settings-reference.md', 'Settings reference') ?>
@@ -428,7 +450,7 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
 <?php endforeach; ?>
         </tr>
         <tr>
-          <th scope="row">Link RX / TX</th>
+          <th scope="row">Link rate</th>
           <td class="tbn-col-local tbn-muted">
 <?php
   $max_rx = !empty($tbn_cap['max_short'])
@@ -440,17 +462,23 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
           </td>
 <?php foreach ($links as $L):
   $rem = $L['remote'];
-  $rxf = function_exists('tbn_format_gbps') && ($rem['rx_speed'] ?? '') !== ''
-    ? tbn_format_gbps($rem['rx_speed'])
-    : (($rem['rx_speed'] ?? '') !== '' ? $rem['rx_speed'] : '—');
-  $txf = function_exists('tbn_format_gbps') && ($rem['tx_speed'] ?? '') !== ''
-    ? tbn_format_gbps($rem['tx_speed'])
-    : (($rem['tx_speed'] ?? '') !== '' ? $rem['tx_speed'] : '—');
+  $link_rate = function_exists('tbn_format_link_rate')
+    ? tbn_format_link_rate(
+        $rem['rx_speed'] ?? '',
+        $rem['tx_speed'] ?? '',
+        [
+          'rx_lanes' => $rem['rx_lanes'] ?? '',
+          'tx_lanes' => $rem['tx_lanes'] ?? '',
+          'show_lanes' => false,
+        ]
+      )
+    : '';
+  if ($link_rate === '') {
+    $link_rate = '—';
+  }
 ?>
-          <td class="tbn-col-remote">
-            <strong><?= htmlspecialchars($rxf) ?></strong>
-            /
-            <strong><?= htmlspecialchars($txf) ?></strong>
+          <td class="tbn-col-remote" title="Equal = full-duplex. Asymmetric = TX to peer · RX from peer.">
+            <strong><?= htmlspecialchars($link_rate) ?></strong>
           </td>
 <?php endforeach; ?>
         </tr>
@@ -657,7 +685,7 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
           <th>Role</th>
           <th>Name</th>
           <th>Manufacturer / stack</th>
-          <th>RX / TX</th>
+          <th>Link rate</th>
           <th>Lanes</th>
           <th>Netdevs</th>
         </tr>
@@ -684,7 +712,20 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
           <td><?= htmlspecialchars($role) ?></td>
           <td><?= htmlspecialchars($d['device_name'] ?: '—') ?></td>
           <td><?= htmlspecialchars($d['vendor_name'] ?: '—') ?></td>
-          <td><?= htmlspecialchars(trim(($d['rx_speed'] ?: '—') . ' / ' . ($d['tx_speed'] ?: '—'))) ?></td>
+          <td><?php
+            $d_rate = function_exists('tbn_format_link_rate')
+              ? tbn_format_link_rate(
+                  $d['rx_speed'] ?? '',
+                  $d['tx_speed'] ?? '',
+                  [
+                    'rx_lanes' => $d['rx_lanes'] ?? '',
+                    'tx_lanes' => $d['tx_lanes'] ?? '',
+                    'show_lanes' => false,
+                  ]
+                )
+              : trim(($d['rx_speed'] ?: '—') . ' / ' . ($d['tx_speed'] ?: '—'));
+            echo htmlspecialchars($d_rate !== '' ? $d_rate : '—');
+          ?></td>
           <td><?= htmlspecialchars(trim(($d['rx_lanes'] ?: '—') . ' / ' . ($d['tx_lanes'] ?: '—'))) ?></td>
           <td><code><?= htmlspecialchars($d['netdevs'] ? implode(', ', $d['netdevs']) : '—') ?></code></td>
         </tr>

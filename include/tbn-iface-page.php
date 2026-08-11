@@ -103,8 +103,12 @@ if (strpos($nm, '.') === false) {
     · peer <strong><?= htmlspecialchars($peer) ?></strong>
 <?php endif; ?>
 <?php if ($rx !== '' || $tx !== ''): ?>
-    · <?= htmlspecialchars(($rx ?: '—') . ' / ' . ($tx ?: '—')) ?>
-      (lanes <?= htmlspecialchars(($rl ?: '—') . '/' . ($tl ?: '—')) ?>)
+<?php
+  $iface_rate = function_exists('tbn_format_link_rate')
+    ? tbn_format_link_rate($rx, $tx, ['rx_lanes' => $rl, 'tx_lanes' => $tl])
+    : (($rx ?: '—') . ' / ' . ($tx ?: '—') . ' (lanes ' . ($rl ?: '—') . '/' . ($tl ?: '—') . ')');
+?>
+    · <?= htmlspecialchars($iface_rate !== '' ? $iface_rate : '—') ?>
 <?php endif; ?>
 <?php if ($is_bond_slave): ?>
     · <strong>member of <?= htmlspecialchars($master) ?></strong>

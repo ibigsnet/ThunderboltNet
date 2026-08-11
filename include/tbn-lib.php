@@ -806,6 +806,89 @@ function tbn_format_max_line($gbps, $lanes = 2) {
 }
 
 /**
+ * Parse a rate string to float Gb/s (bits), or 0 if unknown.
+ *
+ * @param mixed $raw  "20.0 Gb/s", 20, "20G", null
+ */
+function tbn_parse_gbps($raw) {
+  if ($raw === null || $raw === '') {
+    return 0.0;
+  }
+  if (is_numeric($raw)) {
+    $n = (float)$raw;
+    // Heuristic: values like 20000 are Mbps from some paths
+    if ($n > 500) {
+      $n = $n / 1000.0;
+    }
+    return $n > 0 ? $n : 0.0;
+  }
+  if (preg_match('/([\d.]+)/', (string)$raw, $m)) {
+    $n = (float)$m[1];
+    return $n > 0 ? $n : 0.0;
+  }
+  return 0.0;
+}
+
+/**
+ * Format trained link rates for Known peers / quality tables.
+ *
+ * Perspective is this host: RX = from peer, TX = to peer (sysfs on peer path).
+ * Equal rates → "20 Gb/s full-duplex" (optional " · 1-lane").
+ * Asymmetric → "TX 40 Gb/s (to peer) · RX 20 Gb/s (from peer)".
+ *
+ * @param mixed $rx   last_rx_speed / remote rx_speed
+ * @param mixed $tx   last_tx_speed / remote tx_speed
+ * @param array $opts keys: rx_lanes, tx_lanes, show_lanes (bool, default true)
+ * @return string empty if neither side known
+ */
+function tbn_format_link_rate($rx, $tx, array $opts = []) {
+  $rx_s = tbn_format_gbps($rx);
+  $tx_s = tbn_format_gbps($tx);
+  $rx_n = tbn_parse_gbps($rx);
+  $tx_n = tbn_parse_gbps($tx);
+
+  $show_lanes = !array_key_exists('show_lanes', $opts) || !empty($opts['show_lanes']);
+  $rx_lanes = isset($opts['rx_lanes']) ? trim((string)$opts['rx_lanes']) : '';
+  $tx_lanes = isset($opts['tx_lanes']) ? trim((string)$opts['tx_lanes']) : '';
+  $lanes_suffix = '';
+  if ($show_lanes && $rx_lanes !== '' && $tx_lanes !== '' && $rx_lanes === $tx_lanes
+      && preg_match('/^\d+$/', $rx_lanes)) {
+    $lanes_suffix = ' · ' . $rx_lanes . '-lane';
+  } elseif ($show_lanes && $rx_lanes !== '' && $tx_lanes === '' && preg_match('/^\d+$/', $rx_lanes)) {
+    $lanes_suffix = ' · ' . $rx_lanes . '-lane';
+  } elseif ($show_lanes && $tx_lanes !== '' && $rx_lanes === '' && preg_match('/^\d+$/', $tx_lanes)) {
+    $lanes_suffix = ' · ' . $tx_lanes . '-lane';
+  }
+
+  if ($rx_s === '' && $tx_s === '') {
+    return '';
+  }
+  if ($rx_s === '') {
+    return $tx_s . ' TX (to peer)' . $lanes_suffix;
+  }
+  if ($tx_s === '') {
+    return $rx_s . ' RX (from peer)' . $lanes_suffix;
+  }
+
+  // Equal within ~0.05 Gb/s → full-duplex wording
+  if ($rx_n > 0 && $tx_n > 0 && abs($rx_n - $tx_n) < 0.05) {
+    return $rx_s . ' full-duplex' . $lanes_suffix;
+  }
+
+  // Asymmetric (e.g. TB5 unequal modes): TX first (out to peer), then RX
+  return 'TX ' . $tx_s . ' (to peer) · RX ' . $rx_s . ' (from peer)' . $lanes_suffix;
+}
+
+/**
+ * Soft-detect NBD Export plugin (no hard require).
+ * Returns path info if installed; used for services hints.
+ */
+function tbn_nbdexport_present() {
+  return is_dir('/usr/local/emhttp/plugins/NbdExport')
+    || is_dir('/boot/config/plugins/NbdExport');
+}
+
+/**
  * Local host controller capability (from 0-0 sysfs) — max potential, not trained path.
  */
 function tbn_controller_capability() {

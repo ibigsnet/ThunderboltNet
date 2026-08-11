@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.08.11ac">
+<!ENTITY version "2026.08.11ad">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -35,6 +35,10 @@
 
 <CHANGES>
 ###&version;
+- Known peers / quality: link rate shows **full-duplex** when RX≈TX (e.g. 20 Gb/s full-duplex · 1-lane); asymmetric shows TX (to peer) · RX (from peer).
+- Services help: NBD Export is separate from listening Yes (bind under Network Services → NBD).
+
+###2026.08.11ac
 - Docs: full consistency pass — multi-peer underlay model, OpenFabric vs UnraidFRR roles, doc index map, troubleshooting FRR, RELEASES version table.
 
 ###2026.08.11ab
