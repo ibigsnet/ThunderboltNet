@@ -635,14 +635,14 @@ function tbn_of_status_html() {
   $html .= '<tr><td>UnraidFRR companion</td><td>';
   if (!empty($st['frr']['present'])) {
     if (!empty($uf['plugin_dir'])) {
-      $html .= 'Installed · FRR live · <a href="/Settings/UnraidFRR">Settings → FRR</a>';
+      $html .= 'Installed · FRR live · <a href="/Settings/UnraidFRR">Network Settings → Fabric routing</a>';
     } else {
       $html .= 'FRR present (packages not via UnraidFRR) · optional UI at '
         . '<a href="' . htmlspecialchars($project) . '" target="_blank" rel="noopener">UnraidFRR</a>';
     }
   } elseif (!empty($uf['plugin_dir'])) {
     $html .= '<strong>Plugin installed but FRR not live yet</strong> — open '
-      . '<a href="/Settings/UnraidFRR">Settings → FRR</a> → packages → Apply. '
+      . '<a href="/Settings/UnraidFRR">Network Settings → Fabric routing</a> → packages → Apply. '
       . '<a href="#tbn-companion-frr" class="tbn-jump-frr">↑ Companion card</a>';
   } else {
     $html .= '<strong>Not installed</strong> — optional. Only for rings / multi-hop / mixed Proxmox fabrics. '

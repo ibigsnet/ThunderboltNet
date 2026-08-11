@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.08.11ak">
+<!ENTITY version "2026.08.11al">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -35,6 +35,9 @@
 
 <CHANGES>
 ###&version;
+- Companion copy: FRR packages live under Network Settings → Fabric routing (UnraidFRR tab).
+
+###2026.08.11ak
 - Links empty state: no broken one-column LOCAL compare table; clean host summary when no peers online. Recovery moved out of Links body.
 - Uninstall keeps peers.json + ifaces/ on flash so known peers survive remove/reinstall.
 
