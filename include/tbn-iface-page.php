@@ -172,17 +172,19 @@ if (strpos($nm, '.') === false) {
         <dd>
           <select name="BONDING" class="tbn-ctl-bond" <?= $is_bond_slave ? 'disabled' : '' ?>>
             <?= mk_option($cfg['BONDING'] ?? 'no', 'no', 'No') ?>
-            <?= mk_option($cfg['BONDING'] ?? 'no', 'yes', 'Yes — experimental') ?>
+            <?= mk_option($cfg['BONDING'] ?? 'no', 'yes', 'Yes — when ≥2 live TB netdevs') ?>
           </select>
         </dd>
       </dl>
       <blockquote class="inline_help">
-        <strong>Experimental.</strong> Thunderbolt-only Linux bond (<code>bond-tb0</code>, …), not Unraid eth <code>bond0</code>.
+        Thunderbolt-only Linux bond (<code>bond-tb0</code>, …), not Unraid eth <code>bond0</code>.
         Needs <strong>two or more live</strong> <code>thunderbolt*</code> netdevs already present
-        (e.g. two <em>different</em> peers). Two cables to the <em>same</em> peer usually still yield
-        <strong>one</strong> netdev — bonding cannot invent a second slave, and TB slaves reject
-        <code>set_mac</code> (common bond modes fail). Apply with fewer than two members is ignored.
-        Prefer one cable, one peer, one IP.
+        (today usually two <em>different</em> peers). Two cables to the <em>same</em> peer often still yield
+        <strong>one</strong> netdev — bonding cannot invent a second slave, and TB slaves may reject
+        <code>set_mac</code> (many bond modes fail). Apply with fewer than two members is ignored.<br><br>
+        <strong>Roadmap:</strong> better dual-path detection and bond+OpenFabric metrics when the kernel
+        exposes two usable paths — dual-cable bonding is <em>not</em> a non-goal.
+        <?= tbn_help_docs_footer('docs/links-and-topology.md', 'Links, bonding &amp; topology') ?>
       </blockquote>
 
       <div class="tbn-bond-opts tbn-hidden">
@@ -241,12 +243,58 @@ if (strpos($nm, '.') === false) {
 <?php else: ?>
     <input type="hidden" name="BONDING" value="no">
     <blockquote class="inline_help">
-      <strong>Bonding:</strong> not offered with a single live <code>thunderbolt*</code> path (the normal case).
-      Two cables to the same peer almost never create a second netdev — do not dual-plug to “team” for speed.
-      If the fabric wedges after dual-cable experiments: unplug <em>all</em> TB cables on <em>both</em> machines,
-      wait, plug one cable only.
+      <strong>Bonding:</strong> not offered with a single live <code>thunderbolt*</code> path (the common case).
+      Same-peer dual-cable often still yields one netdev today; multi-path bonding is a roadmap item when
+      two paths appear. If the TB domain wedges after dual-cable tests: unplug <em>all</em> TB cables on
+      <em>both</em> machines, wait, plug one cable only.
+      <?= tbn_help_docs_footer('docs/links-and-topology.md', 'Bonding roadmap') ?>
     </blockquote>
 <?php endif; ?>
+
+    <div class="tbn-section-openfabric">
+      <dl>
+        <dt>OpenFabric participate:</dt>
+        <dd>
+          <select name="OPENFABRIC_PARTICIPATE" <?= $is_bond_slave ? 'disabled' : '' ?>>
+            <?= mk_option($cfg['OPENFABRIC_PARTICIPATE'] ?? 'yes', 'yes', 'Yes (default)') ?>
+            <?= mk_option($cfg['OPENFABRIC_PARTICIPATE'] ?? 'yes', 'passive', 'Passive') ?>
+            <?= mk_option($cfg['OPENFABRIC_PARTICIPATE'] ?? 'yes', 'no', 'No') ?>
+          </select>
+        </dd>
+      </dl>
+      <blockquote class="inline_help">
+        When global OpenFabric is On: <strong>Yes</strong> runs this link in the fabric;
+        <strong>Passive</strong> advertises without adjacency hellos (rare on TB underlay);
+        <strong>No</strong> keeps pure static on this cable only.
+        <?= tbn_help_docs_footer('docs/routing-openfabric.md', 'OpenFabric / FRR') ?>
+      </blockquote>
+
+      <dl>
+        <dt>OpenFabric metric mode:</dt>
+        <dd>
+          <select name="OPENFABRIC_METRIC_MODE" <?= $is_bond_slave ? 'disabled' : '' ?>>
+            <?= mk_option($cfg['OPENFABRIC_METRIC_MODE'] ?? 'auto', 'auto', 'Auto from trained rate') ?>
+            <?= mk_option($cfg['OPENFABRIC_METRIC_MODE'] ?? 'auto', 'manual', 'Manual') ?>
+          </select>
+        </dd>
+      </dl>
+      <blockquote class="inline_help">
+        <strong>Auto</strong> — metric ≈ reference_Mbps / trained_Mbps (faster path = lower cost on rings).
+        <strong>Manual</strong> — set integer metric below (IS-IS style: lower preferred).
+      </blockquote>
+
+      <dl>
+        <dt>OpenFabric metric (manual):</dt>
+        <dd>
+          <input type="text" name="OPENFABRIC_METRIC" class="narrow" maxlength="8"
+            value="<?= htmlspecialchars($cfg['OPENFABRIC_METRIC'] ?? '') ?>"
+            placeholder="auto" <?= $is_bond_slave ? 'disabled' : '' ?>>
+        </dd>
+      </dl>
+      <blockquote class="inline_help">
+        Used only when metric mode is Manual. Leave empty for auto even if mode is manual (falls back to auto).
+      </blockquote>
+    </div>
 
     <div class="tbn-section-bridge">
       <dl>

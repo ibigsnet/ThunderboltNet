@@ -37,7 +37,7 @@ The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt l
 | Enable default route | **No** | Keep internet on eth0/br0; TB stays peer-local |
 | Include listening | **No** | Don’t advertise Unraid services on TB unless you opt in |
 | MTU | **1500** (kernel default) | Safe first plug; use **9000 both ends** for bulk at 20–80&nbsp;G class — [MTU & throughput](docs/mtu-and-throughput.md) |
-| Bonding / bridging | **No** | Only when you really have multiple TB netdevs to bond |
+| Bonding / bridging | **Off** until ≥2 live TB netdevs | TB-only `bond-tb*`; dual-cable same-peer limited today — [roadmap](docs/links-and-topology.md) |
 
 ---
 
@@ -55,15 +55,17 @@ The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt l
 | Port silkscreen guide (TB lightning / SS¹⁰ / SS²⁰) | [docs/port-icons.md](docs/port-icons.md) (docs only) |
 | Hardware, BIOS, modules, security | [docs/requirements.md](docs/requirements.md) |
 | Topology, dual cables, hubs with NICs | [docs/links-and-topology.md](docs/links-and-topology.md) |
+| **FRR / OpenFabric** multi-host routing (LTS design) | [docs/routing-openfabric.md](docs/routing-openfabric.md) |
 | Every Settings field | [docs/settings-reference.md](docs/settings-reference.md) |
 | Common failures | [docs/troubleshooting.md](docs/troubleshooting.md) |
+| Install, version strings, **git tags / ship checklist** | [RELEASES.md](RELEASES.md) |
 
 ---
 
 ## Quick start
 
 1. Confirm a Thunderbolt-family **host controller** is visible (Thunderbolt tab shows hardware, not the empty state).
-2. Use **one** certified Thunderbolt / USB4-class cable that matches both hosts (TB3/4/5, USB4, USB4 v2 as applicable — not SS-only SuperSpeed USB). Do not dual-cable the same peer for bonding.
+2. Use a certified Thunderbolt / USB4-class cable that matches both hosts (TB3/4/5, USB4, USB4 v2 as applicable — not SS-only SuperSpeed USB). Start with **one cable per peer path**; multi-path bonding is optional when two netdevs exist ([topology](docs/links-and-topology.md)).
 3. On **Thunderbolt → Driver options**, leave **E2E flow control = No** unless a peer scenario says otherwise.
 4. When `thunderbolt0` appears, open **tbn0**, set a **static** IPv4 (e.g. `10.255.0.2/24`), leave **MTU 1500** unless both ends will set jumbo, Apply.
 5. On the peer, matching address (e.g. `10.255.0.1/24`). MTU is not auto-negotiated — only raise to 9000 if you set **both** ends.
@@ -86,25 +88,38 @@ Helpers summarize settings; long examples and peer tables live here in the docs 
 ## What this is *not*
 
 - Not a promise of dual-lane / sticker **40 Gb/s** host-net TCP (1-lane is common under Linux).
-- Not dual-cable bonding to the **same** peer for 2× bandwidth (usually one netdev; bond fails; can wedge fabric).
+- Not a promise that **dual-cable to the same peer** yields 2× TCP today (often one netdev; can wedge fabric) — bonding remains a **roadmap** when two paths appear ([topology](docs/links-and-topology.md)).
 - Not a substitute for 10/25/40/100G Ethernet to a switch (unless you deliberately run TB host networking).
-- Not automatic multi-host “TB LAN” switching — each `thunderboltN` is typically **one peer path**.
+- Not automatic L2 multi-host “TB switch LAN” — each `thunderboltN` is typically **one peer path**; multi-hop uses **OpenFabric** ([routing](docs/routing-openfabric.md)).
 - A dock’s **Ethernet RJ45** is usually a **USB/PCIe NIC**, not `thunderbolt_net` — configure it like any other eth device ([peer scenarios](docs/peer-scenarios.md)).
 - Never “fix” networking by unbinding the Thunderbolt **NHI** from the host driver — that can wedge some controllers until reboot.
-- Soft port power-cycle / custom ICM dual-lane forcing is out of scope.
+- Soft port power-cycle / custom ICM dual-lane forcing is out of scope for the plugin (kernel/firmware territory).
 
 ---
 
-## Plug and play (today vs coming)
+## Long-term product pillars
 
-| Today (groundwork) | Coming later |
-|--------------------|--------------|
+These are **supported directions**, not throwaway experiments. Defaults favor interconnectivity; static-only remains a first-class override.
+
+| Pillar | Intent | Default direction | Doc |
+|--------|--------|-------------------|-----|
+| **Host-net underlay** | Single-link TB/USB4 L3, honest trained rate | Static tbnN, MTU 1500, no default route via TB | This file, [addressing](docs/addressing.md) |
+| **OpenFabric / FRR** | Multi-host mesh/**ring**/multi-hop; hot-plug device classes | **On** when FRR available; global/per-link **off** | [routing-openfabric.md](docs/routing-openfabric.md) |
+| **Bonding multi-path** | TB-only `bond-tb*` when ≥2 netdevs | Off by default; dual-cable same-peer **roadmap** | [links-and-topology.md](docs/links-and-topology.md) |
+| **Peer memory** | Remember hosts and last address plan | Store peers today; auto-restore plan next | Below |
+| **Activity / unplug** | Safe to disconnect hints | Heuristic today; tighter idle later | Settings UI |
+| **USB4STREAM** | Raw path awareness where kernel allows | Off until module exists; never break tbn IP | [usb4stream.md](docs/usb4stream.md) |
+
+### Peer plug-and-play (underlay)
+
+| Supported now | Next supported increments |
+|---------------|---------------------------|
 | Open Thunderbolt tab while a peer is connected → peer stored in `peers.json` | Auto-restore last static IP when that laptop returns |
 | **Activity / unplug** row (refresh twice for traffic rate) | Tighter idle detection (share/session aware) |
 | **Known peers** table (online/offline, last rates, last IPv4) | Health strip / notifications optional |
 | Manual tbnN Apply for addresses | One-click “use last plan for this peer” |
 
-Goal: plug in a laptop, transfer, unplug when idle is safe — without redoing IP setup every time.
+Goal: plug in a laptop or mini-PC (including future Strix Halo / Gorgon Halo / DGX Spark class peers), transfer, unplug when idle is safe — without redoing IP setup every time. Multi-hop and **rings** are the OpenFabric pillar; dual-cable bonding is a separate multi-path roadmap.
 
 ---
 

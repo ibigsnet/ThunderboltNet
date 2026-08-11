@@ -1,7 +1,10 @@
 #!/bin/bash
-# Re-apply Dashboard port list patch after array start / OS upgrade
-# (LimeTech may replace nchan/update_3 and DashStats.page).
+# Array start: Dashboard TB ports + OpenFabric/FRR re-apply when enabled.
+# (LimeTech may replace nchan/update_3 and DashStats.page.)
 SCRIPT=/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports
 if [ -x "$SCRIPT" ]; then
   "$SCRIPT" apply
 fi
+
+# OpenFabric: regenerate conf + best-effort FRR reload (no-op if FRR missing)
+php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; if (function_exists("tbn_of_apply")) { tbn_of_apply(); }' 2>/dev/null || true

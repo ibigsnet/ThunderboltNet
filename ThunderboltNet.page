@@ -299,7 +299,7 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
       <?= tbn_docs_more_html('docs/standards-and-speeds.md', 'Directionality &amp; speeds ↗') ?><br><br>
       <strong>Local IPv4 / MAC / state</strong> under REMOTE are <em>this Unraid end</em> of that link.
       Set addresses on each <strong>tbnN</strong> tab. Happy path: <strong>one cable, one peer, one IP</strong>.
-      Do not dual-cable the same peer to bond for speed.
+      Dual-cable to the same peer is limited today (often one netdev); bonding remains a roadmap when the kernel exposes two paths — see topology docs.
       <?= tbn_help_docs_footer('docs/links-and-topology.md', 'Links & topology') ?>
       · <?= tbn_docs_more_html('docs/peer-scenarios.md', 'Peer scenarios ↗') ?>
     </blockquote>
@@ -711,19 +711,7 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
 <?php endif; ?>
   </div>
 
-  <div class="tbn-section tbn-section-drivers">
-    <h3>Driver options</h3>
-    <p class="tbn-note">Module load and E2E when you Apply here — not eth0, Docker, or VM IPs (those are on tbnN / Unraid network).</p>
-    <dl>
-      <dt>Driver options:</dt>
-      <dd class="tbn-muted">Modules · E2E flow control</dd>
-    </dl>
-    <blockquote class="inline_help">
-      Apply only changes how Unraid loads Thunderbolt drivers and the host-wide <code>e2e</code> parameter.
-      Per-link addresses and bonding are on each <strong>tbnN</strong> tab.
-      <?= tbn_help_docs_footer('docs/driver-options.md', 'Driver options guide') ?>
-    </blockquote>
-    <form method="POST" action="/update.php" target="progressFrame">
+  <form method="POST" action="/update.php" target="progressFrame">
       <input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">
       <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update.php">
       <input type="hidden" name="tbn_defaults" value="">
@@ -740,9 +728,137 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
       <input type="hidden" name="bond_mode" value="<?= htmlspecialchars($cfg['bond_mode'] ?? 'active-backup') ?>">
       <input type="hidden" name="ignore_warnings" value="<?= htmlspecialchars($cfg['ignore_warnings'] ?? '') ?>">
       <input type="hidden" name="address_plan" value="<?= htmlspecialchars($cfg['address_plan'] ?? 'small-lan') ?>">
+      <input type="hidden" name="openfabric_auto_install_frr" value="<?= htmlspecialchars($cfg['openfabric_auto_install_frr'] ?? 'yes') ?>">
 
-      <?php /* Unraid help: one <dl> per setting, then <blockquote class="inline_help"> as next sibling.
-               HelpButton shows all; BodyInlineJS makes the matching <dt> clickable. */ ?>
+  <div class="tbn-section tbn-section-routing">
+    <h3>Routing (OpenFabric / FRR)</h3>
+    <p class="tbn-note">
+      Multi-host mesh, <strong>ring</strong>, and multi-hop over TB underlay. Default <strong>On</strong> when FRR is available;
+      pure static is always available if you turn this off. Hot-plug peers (Linux mini-PCs, Strix Halo / Gorgon Halo class, DGX Spark class, …) are a long-term support goal.
+      <?= tbn_docs_more_html('docs/routing-openfabric.md', 'OpenFabric guide ↗') ?>
+    </p>
+    <dl>
+      <dt>OpenFabric status:</dt>
+      <dd class="tbn-muted">FRR · router-id · metrics · participate</dd>
+    </dl>
+    <blockquote class="inline_help">
+      <strong>OpenFabric</strong> (FRR <code>fabricd</code>) is an IS-IS–derived fabric protocol. Thunderbolt Net generates config,
+      auto interface <strong>metrics</strong> from trained link rate (lower cost on faster paths — important for rings),
+      and applies when FRR is installed. Without FRR, underlay static IPs still work.<br><br>
+      <strong>Why On:</strong> multi-hop, rings, hot-plug labs, interop with Linux FRR peers.
+      <strong>Why Off:</strong> single peer cable only, no routing daemon wanted.
+      <?= tbn_help_docs_footer('docs/routing-openfabric.md', 'FRR / OpenFabric (pros, cost, topologies)') ?>
+    </blockquote>
+    <?php
+      if (!function_exists('tbn_of_status_html')) {
+        $__of = '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-openfabric.php';
+        if (is_file($__of)) {
+          require_once $__of;
+        }
+      }
+      echo function_exists('tbn_of_status_html') ? tbn_of_status_html() : '<p class="tbn-muted">OpenFabric module not installed yet — update plugin files.</p>';
+    ?>
+
+    <?php /* Unraid help: one <dl> per setting, then <blockquote class="inline_help"> as next sibling. */ ?>
+
+    <dl>
+      <dt>Enable OpenFabric:</dt>
+      <dd>
+        <select name="openfabric_enable">
+          <?= mk_option($cfg['openfabric_enable'] ?? 'yes', 'yes', 'Yes (default — fabric when FRR available)') ?>
+          <?= mk_option($cfg['openfabric_enable'] ?? 'yes', 'no', 'No — static underlay only') ?>
+        </select>
+      </dd>
+    </dl>
+    <blockquote class="inline_help">
+      <strong>Yes</strong> (product default) — generate OpenFabric config, enable IP forwarding for TB multi-hop,
+      ensure router-id on <code>lo</code>, and start/reload FRR <code>fabricd</code> when present.
+      If FRR is missing, behavior degrades to static underlay with a clear status line.<br><br>
+      <strong>No</strong> — never manage fabricd for this plugin; classic tbn static only.
+      Per-link participate/metric remain on each <strong>tbnN</strong> tab when Yes.
+      <?= tbn_help_docs_footer('docs/routing-openfabric.md', 'Should I enable OpenFabric?') ?>
+    </blockquote>
+
+    <dl>
+      <dt>OpenFabric IPv6:</dt>
+      <dd>
+        <select name="openfabric_ipv6">
+          <?= mk_option($cfg['openfabric_ipv6'] ?? 'yes', 'yes', 'Yes') ?>
+          <?= mk_option($cfg['openfabric_ipv6'] ?? 'yes', 'no', 'IPv4 only') ?>
+        </select>
+      </dd>
+    </dl>
+    <blockquote class="inline_help">
+      When Yes, generated conf also runs <code>ipv6 router openfabric</code> on participating ifaces and enables IPv6 forwarding.
+      Use IPv4 only if your fabric peers are v4-only.
+    </blockquote>
+
+    <dl>
+      <dt>OpenFabric area:</dt>
+      <dd>
+        <input type="text" name="openfabric_area" maxlength="16" class="narrow"
+          value="<?= htmlspecialchars($cfg['openfabric_area'] ?? '1') ?>" placeholder="1">
+      </dd>
+    </dl>
+    <blockquote class="inline_help">
+      FRR <code>router openfabric &lt;area&gt;</code> tag. Default <strong>1</strong>. All nodes in the same fabric should match.
+    </blockquote>
+
+    <dl>
+      <dt>Router ID (/32 on lo):</dt>
+      <dd>
+        <input type="text" name="openfabric_router_id" maxlength="15" class="narrow"
+          value="<?= htmlspecialchars($cfg['openfabric_router_id'] ?? '') ?>"
+          placeholder="auto (10.254.x.y)">
+      </dd>
+    </dl>
+    <blockquote class="inline_help">
+      Stable IPv4 router-id installed on <code>lo</code> as <code>/32</code> (passive in OpenFabric).
+      Empty = auto from machine-id hash in <code>10.254.0.0/16</code> (lab fabric space — not your LAN).
+      Set explicitly for multi-Unraid labs so peers can document fixed IDs.
+    </blockquote>
+
+    <dl>
+      <dt>OpenFabric NET (advanced):</dt>
+      <dd>
+        <input type="text" name="openfabric_net" maxlength="64" style="width:28em"
+          value="<?= htmlspecialchars($cfg['openfabric_net'] ?? '') ?>"
+          placeholder="auto from router-id">
+      </dd>
+    </dl>
+    <blockquote class="inline_help">
+      Full IS-IS style NET (e.g. <code>49.0001.xxxx.xxxx.xxxx.00</code>). Empty = generated from router-id.
+      Only override if you are aligning with an existing fabric design (CCIE/lab).
+    </blockquote>
+
+    <dl>
+      <dt>Metric reference (Mb/s):</dt>
+      <dd>
+        <input type="text" name="openfabric_metric_reference_mbps" maxlength="12" class="narrow"
+          value="<?= htmlspecialchars($cfg['openfabric_metric_reference_mbps'] ?? '100000') ?>"
+          placeholder="100000">
+      </dd>
+    </dl>
+    <blockquote class="inline_help">
+      Auto interface metric ≈ <code>reference / trained_Mbps</code> (min 1) — same idea as OSPF auto-cost reference bandwidth.
+      Faster trained TB links get <strong>lower</strong> cost so rings prefer them.
+      Default <strong>100000</strong> (100&nbsp;G). Per-link manual metrics are on each tbn tab.
+      <?= tbn_help_docs_footer('docs/routing-openfabric.md', 'Path cost and metrics') ?>
+    </blockquote>
+  </div>
+
+  <div class="tbn-section tbn-section-drivers">
+    <h3>Driver options</h3>
+    <p class="tbn-note">Module load and E2E when you Apply here — not eth0, Docker, or VM IPs (those are on tbnN / Unraid network).</p>
+    <dl>
+      <dt>Driver options:</dt>
+      <dd class="tbn-muted">Modules · E2E flow control</dd>
+    </dl>
+    <blockquote class="inline_help">
+      Apply changes Thunderbolt drivers, host-wide <code>e2e</code>, USB4STREAM, and OpenFabric settings above.
+      Per-link addresses and bonding are on each <strong>tbnN</strong> tab.
+      <?= tbn_help_docs_footer('docs/driver-options.md', 'Driver options guide') ?>
+    </blockquote>
 
       <dl>
         <dt>Load modules on Apply:</dt>
@@ -826,8 +942,8 @@ $issues_url = 'https://github.com/ibigsnet/ThunderboltNet/issues';
         <input type="submit" name="#apply" value="Apply">
         <input type="button" value="Done" onclick="done()">
       </p>
-    </form>
   </div>
+  </form>
 
   <dl>
     <dt>Cables and safety:</dt>

@@ -48,6 +48,28 @@ switch ($action) {
     $out['ok'] = true;
     break;
 
+  case 'openfabric_status':
+    $out['openfabric'] = function_exists('tbn_of_status') ? tbn_of_status() : [];
+    $out['ok'] = true;
+    break;
+
+  case 'openfabric_apply':
+    if (function_exists('tbn_of_apply')) {
+      $out = array_merge($out, tbn_of_apply());
+    } else {
+      $out['error'] = 'openfabric module missing';
+    }
+    break;
+
+  case 'openfabric_preview':
+    if (function_exists('tbn_of_generate_conf')) {
+      $out['conf'] = tbn_of_generate_conf();
+      $out['ok'] = true;
+    } else {
+      $out['error'] = 'openfabric module missing';
+    }
+    break;
+
   default:
     $out['error'] = 'unknown action';
 }

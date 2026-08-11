@@ -49,6 +49,14 @@ function tbn_load_cfg() {
     'bond_mode' => 'active-backup',
     // Space-separated warning keys the user chose to hide globally (e.g. vfio:0000:11:00.0)
     'ignore_warnings' => '',
+    // OpenFabric / FRR — multi-host fabric (default on; degrades if FRR missing)
+    'openfabric_enable' => 'yes',
+    'openfabric_auto_install_frr' => 'yes',
+    'openfabric_ipv6' => 'yes',
+    'openfabric_area' => '1',
+    'openfabric_router_id' => '',
+    'openfabric_net' => '',
+    'openfabric_metric_reference_mbps' => '100000',
   ];
   $cfg = [];
   if (function_exists('parse_plugin_cfg')) {
@@ -1257,7 +1265,7 @@ function tbn_link_quality(array $remote, array $status = []) {
       'note' => 'Host class is ' . $max_short . '. This path trained at ' . $trained
         . '. TCP/SMB in the ~10–15 Gbit/s range is normal for 1-lane host-net.',
       'likely' => 'Common on TB4/USB4 host-to-host under Linux (firmware ICM). Not a failed plugin install.',
-      'suggestion' => 'Use one cable only; set MTU 9000 on both ends for bulk. Do not dual-cable the same peer to “bond for speed.”',
+      'suggestion' => 'Prefer one cable per peer path; set MTU 9000 on both ends for bulk. Dual-cable bonding needs two live netdevs (roadmap for same-peer multi-path).',
       'less_likely' => 'Cable/port can still matter for some pairs, but a short certified TB4 cable often stays 1-lane too.',
       'detail' => 'Max ' . $max_short . '; trained ' . $trained . '; single-lane host-net common',
       'controller' => $cap,
@@ -1738,6 +1746,28 @@ function tbn_status() {
     'peers_memory' => $peers,
     'include_interfaces' => tbn_read_include_interfaces(),
     'cfg' => $cfg,
+    'openfabric' => function_exists('tbn_of_status') ? tbn_of_status() : tbn_of_status_lazy(),
+  ];
+}
+
+/**
+ * Lazy-load OpenFabric helpers (keeps tbn-lib usable if of file missing mid-upgrade).
+ */
+function tbn_of_status_lazy() {
+  $of = '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-openfabric.php';
+  if (is_file($of)) {
+    require_once $of;
+    if (function_exists('tbn_of_status')) {
+      return tbn_of_status();
+    }
+  }
+  return [
+    'enabled' => true,
+    'mode' => 'openfabric-want-frr',
+    'frr' => ['present' => false, 'note' => 'OpenFabric module not loaded'],
+    'router_id' => '',
+    'net' => '',
+    'ifaces' => [],
   ];
 }
 
@@ -2062,6 +2092,10 @@ function tbn_iface_defaults($if = 'thunderbolt0') {
     'MTU' => '9000',
     'USE_MTU' => 'no', // kept in sync with MTU_MODE for older logic
     'INCLUDE_LISTENING' => 'no',
+    // OpenFabric: yes | no | passive (default participate when global on)
+    'OPENFABRIC_PARTICIPATE' => 'yes',
+    'OPENFABRIC_METRIC_MODE' => 'auto',
+    'OPENFABRIC_METRIC' => '',
   ];
 }
 
@@ -2204,6 +2238,7 @@ function tbn_docs_bar_html($active = 'overview') {
     'ports' => ['docs/port-icons.md', 'Port icons'],
     'requirements' => ['docs/requirements.md', 'Requirements'],
     'topology' => ['docs/links-and-topology.md', 'Links & topology'],
+    'routing' => ['docs/routing-openfabric.md', 'OpenFabric / FRR'],
     'troubleshoot' => ['docs/troubleshooting.md', 'Troubleshooting'],
   ];
   $parts = [];
@@ -2786,6 +2821,13 @@ function tbn_write_global_cfg(array $cfg) {
     'bond_name' => 'bond-tb0',
     'bond_mode' => 'active-backup',
     'ignore_warnings' => '',
+    'openfabric_enable' => 'yes',
+    'openfabric_auto_install_frr' => 'yes',
+    'openfabric_ipv6' => 'yes',
+    'openfabric_area' => '1',
+    'openfabric_router_id' => '',
+    'openfabric_net' => '',
+    'openfabric_metric_reference_mbps' => '100000',
   ];
   $merged = array_merge($defaults, $cfg);
   $dir = tbn_cfg_dir();
@@ -2798,6 +2840,17 @@ function tbn_write_global_cfg(array $cfg) {
     $lines[] = $k . '="' . str_replace(['\\', '"'], ['\\\\', '\\"'], $v) . '"';
   }
   return @file_put_contents(tbn_cfg_path(), implode("\n", $lines) . "\n") !== false;
+}
+
+// OpenFabric / FRR helpers (optional until install finishes)
+$__tbn_of = '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-openfabric.php';
+if (is_file($__tbn_of)) {
+  require_once $__tbn_of;
+}
+// Dev tree / CLI when plugin path not installed yet
+$__tbn_of_dev = dirname(__FILE__) . '/tbn-openfabric.php';
+if (!function_exists('tbn_of_status') && is_file($__tbn_of_dev)) {
+  require_once $__tbn_of_dev;
 }
 
 /**

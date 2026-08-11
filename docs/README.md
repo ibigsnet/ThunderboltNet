@@ -14,5 +14,7 @@ Full product intro: [../DOCS.md](../DOCS.md).
 | [usb4stream.md](usb4stream.md) | USB4STREAM raw path vs tbn net vs IB research; plugin support |
 | [requirements.md](requirements.md) | Hardware, BIOS, kernel modules, security |
 | [links-and-topology.md](links-and-topology.md) | P2P model, dual cable, bonding, hubs |
+| [routing-openfabric.md](routing-openfabric.md) | **FRR / OpenFabric** multi-host routing — LTS design, defaults on, static override |
 | [settings-reference.md](settings-reference.md) | Every global and tbnN field |
 | [troubleshooting.md](troubleshooting.md) | Reseating cables, multi-cable recovery, common failures |
+| [../RELEASES.md](../RELEASES.md) | Install URLs, version strings, **git tag / ship checklist** |

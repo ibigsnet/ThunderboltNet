@@ -11,3 +11,8 @@ if (($cfg['load_modules'] ?? 'yes') === 'yes') {
 }
 
 tbn_sync_iface_pages();
+
+// OpenFabric: regenerate conf; start/reload FRR when available
+if (function_exists('tbn_of_apply')) {
+  tbn_of_apply();
+}

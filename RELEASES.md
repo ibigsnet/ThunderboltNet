@@ -23,34 +23,131 @@ CA is fed from the [unraid-templates](https://github.com/ibigsnet/unraid-templat
 3. Click **Install**.
 4. Hard-refresh the browser, then open **Settings → Network Settings → Thunderbolt**.
 
-| Track | When to use | URL |
-|-------|-------------|-----|
+| Track | When to use | URL pattern |
+|-------|-------------|-------------|
 | **Latest (`main`)** | Always get the newest published tree | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg` |
-| **This release (pinned)** | Install/rollback to a fixed version | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/v2026.08.05ac/thunderboltnet.plg` |
+| **Pinned tag** | Install/rollback to a fixed version | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/vVERSION/thunderboltnet.plg` |
 
-After install, you can confirm the version under **Plugins** or by checking the plugin’s version string on disk.
+Example pinned URL for the first tagged release:
+
+`https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/v2026.08.05ac/thunderboltnet.plg`
+
+After install, confirm the version under **Plugins** (or the plugin version string on disk).
 
 ### After install
 
 - Plug a Thunderbolt/USB4 host-to-host cable (not SuperSpeed-only USB-C).
 - Configure addressing on the **tbnN** tab for the live iface (kernel name is often `thunderbolt0`).
-- Optional: **Dashboard → Interface** may list `thunderbolt0` for throughput/errors (after this release’s dashboard port patch).
-- Read [DOCS.md](https://github.com/ibigsnet/ThunderboltNet/blob/main/DOCS.md) and [docs/standards-and-speeds.md](https://github.com/ibigsnet/ThunderboltNet/blob/main/docs/standards-and-speeds.md) (directionality & bandwidth table).
+- Optional: **Dashboard → Interface** may list `thunderbolt0` for throughput/errors.
+- Read [DOCS.md](https://github.com/ibigsnet/ThunderboltNet/blob/main/DOCS.md) and [docs/standards-and-speeds.md](https://github.com/ibigsnet/ThunderboltNet/blob/main/docs/standards-and-speeds.md).
+
+---
+
+## Version strings (plugin / Unraid)
+
+Unraid plugin updates use **lexicographic `strcmp()`**, not PHP `version_compare()`. Rules (same as StorageGuard):
+
+| Form | Meaning |
+|------|---------|
+| `YYYY.MM.DD` | First ship that calendar day |
+| `YYYY.MM.DDaa` | 2nd ship same day, then `ab` … `az`, `ba`, `bb`, … |
+
+**Hard rules:**
+
+- No hyphens in the version string.
+- After the bare date, use **two-letter** suffixes only — never a single `a`–`z` on a new day (strcmp treats `"aa"` as **older** than `"z"`).
+- Bump **only** `<!ENTITY version "…">` in `thunderboltnet.plg`; asset URLs use `?v=&version;` so browsers pick up new files.
+- Add a `###&version;` (and historical `###YYYY.MM.DDxx`) block under `<CHANGES>` in the same ship.
+
+`main` may move ahead of the last **tag** while you develop. Users on the **Latest** URL always get `main`. Users who need a freeze install a **tag** URL.
+
+---
+
+## Git tags and GitHub Releases
+
+### What a tag is for
+
+| Artifact | Role |
+|----------|------|
+| **Plugin version** (`2026.08.11aa` in `.plg`) | What Unraid compares for “update available” |
+| **Git tag** (`v2026.08.11aa`) | Pins the **full tree** so a raw `.plg` URL never drifts |
+| **GitHub Release** (optional but preferred) | Human-readable notes; same tag as the pin |
+
+Tag name = `v` + exact plugin version entity (example: plugin `2026.08.05ac` → tag `v2026.08.05ac`).
+
+### When to tag
+
+Tag when you want a **reproducible install/rollback** point — typically after a tested ship to `main`, not for every intermediate commit.
+
+- **Do tag:** user-facing fix, new feature, defaults change, docs that ship with a version bump.
+- **Skip tag:** pure mid-work commits on a branch before merge; experiment that never hits `main`.
+
+If `main` has already bumped the `.plg` past the last tag (e.g. `ad` on main, last tag `ac`), either:
+
+1. Tag the current `main` tip as `v…ad` once you are happy with it, **or**
+2. Leave it untagged until the next intentional ship (Latest URL still works).
+
+### Maintainer checklist (ship a release)
+
+Do this on a clean tree after the feature is on `main` and smoke-tested (or immediately before push if you ship in one step).
+
+1. **Version**
+   - Set `<!ENTITY version "YYYY.MM.DDxx">` in `thunderboltnet.plg`.
+   - Update `<CHANGES>` for that version (short, user-facing bullets).
+2. **Commit**
+   - Prefer: `YYYY.MM.DDxx: short description` for the product change, then  
+     `YYYY.MM.DDxx: plg version/changelog for …` if split (existing style).
+   - Verify the diff: **never** push emptied `.plg` / `.page` / `.css` / large PHP (history has accidental empty-file restores).
+3. **Push `main`**
+   - `git push origin main`
+   - Latest install URL now serves this tree.
+4. **Tag** (annotated)
+   ```bash
+   git tag -a "vYYYY.MM.DDxx" -m "Thunderbolt Net YYYY.MM.DDxx"
+   git push origin "vYYYY.MM.DDxx"
+   ```
+5. **GitHub Release** (recommended)
+   - Create a release for that tag.
+   - Paste the same changelog bullets; link DOCS / forum as needed.
+6. **RELEASES.md table**
+   - Add a row under [Stable baselines](#stable-baselines-git-tags).
+   - Point the “pinned” example URL at the new tag if it is the current recommended pin.
+7. **Community Applications** (when you want Apps to refresh)
+   - CA reads [unraid-templates](https://github.com/ibigsnet/unraid-templates) (`plugins/thunderboltnet.xml`).
+   - Usually no XML change if `PluginURL` already tracks `main`; bump Overview/text only when product story changes.
+   - Allow a short CA cache lag after GitHub updates.
+8. **Forum** (optional)
+   - Note the version on the support thread for heavy changes.
+
+### Roll back to a tag
+
+1. **Plugins → Install Plugin** → paste that tag’s raw `.plg` URL.  
+2. Hard-refresh the browser.
+
+### Tracks at a glance
+
+```text
+develop on branch → merge to main → bump .plg version + CHANGES
+       → push main          (= Latest URL)
+       → git tag vVERSION   (= pin / rollback URL)
+       → GitHub Release + RELEASES.md row
+       → CA templates if Overview needs a refresh
+```
 
 ---
 
 ## Stable baselines (Git tags)
 
-Plugin versions use lexicographic date strings (`YYYY.MM.DD` then `aa`, `ab`, … same day).  
-A **Git tag** pins the full tree so you can reinstall that exact build.
-
 | Tag | Plugin version | Notes |
 |-----|----------------|--------|
+| *(pending ship)* `v2026.08.11` | **2026.08.11** | OpenFabric/FRR stage 1–2 scaffolding, routing docs, bonding roadmap language |
 | [`v2026.08.05ac`](https://github.com/ibigsnet/ThunderboltNet/releases/tag/v2026.08.05ac) | **2026.08.05ac** | First tagged release: directionality/bandwidth docs, USB4STREAM awareness, Dashboard TB ports, forum + GitHub support links |
+
+Prefer **Latest** (`main`) for newest; prefer a **tag** for freeze/rollback. Tag `v2026.08.11` when this tree is pushed and smoke-tested.
 
 ### Roll back to a tag
 
-1. **Plugins → Install Plugin** → paste that tag’s raw `.plg` URL (table above).  
+1. **Plugins → Install Plugin** → paste that tag’s raw `.plg` URL (see table above / GitHub tags).  
 2. Hard-refresh the browser.
 
 ---
@@ -63,3 +160,4 @@ A **Git tag** pins the full tree so you can reinstall that exact build.
 | **GitHub releases** | https://github.com/ibigsnet/ThunderboltNet/releases |
 | **Unraid forum (support)** | https://forums.unraid.net/topic/200065-plugin-thunderbolt-net-host-to-host-networking-over-thunderbolt-345-and-usb44v2/ |
 | **Docs** | [DOCS.md](https://github.com/ibigsnet/ThunderboltNet/blob/main/DOCS.md) · [docs/](https://github.com/ibigsnet/ThunderboltNet/tree/main/docs) |
+| **OpenFabric / FRR (LTS design)** | [docs/routing-openfabric.md](docs/routing-openfabric.md) |

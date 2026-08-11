@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.08.05ad">
+<!ENTITY version "2026.08.11">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -35,6 +35,11 @@
 
 <CHANGES>
 ###&version;
+- OpenFabric / FRR: defaults On when FRR available; generate conf, auto metrics (ref/trained), router-id on lo, Apply + array-start hooks; degrades to static if FRR missing.
+- UI: Routing (OpenFabric) section on overview; per-tbn participate / metric mode.
+- Docs: FRR/OpenFabric LTS (pros/cons, path cost, rings, hot-plug Strix Halo / Gorgon Halo / DGX Spark class); bonding dual-cable as roadmap not non-goal; CONTRIBUTING; release tagging checklist.
+
+###2026.08.05ad
 - Docs: full standards guide — directionality, bandwidth table, mixing gens/cables/lanes, FAQ.
 
 ###2026.08.05ac
@@ -204,6 +209,7 @@ rm -rf /usr/local/emhttp/plugins/thunderboltnet
 mkdir -p /usr/local/emhttp/plugins/ThunderboltNet/include
 mkdir -p /usr/local/emhttp/plugins/ThunderboltNet/scripts
 mkdir -p /boot/config/plugins/ThunderboltNet/ifaces
+mkdir -p /boot/config/plugins/ThunderboltNet/frr
 echo "ThunderboltNet: directories ready."
 ]]></INLINE>
 </FILE>
@@ -240,6 +246,10 @@ Plug-and-play host-to-host networking over Thunderbolt-family ports on Unraid (T
 
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php">
 <URL>&raw;/include/tbn-lib.php?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-openfabric.php">
+<URL>&raw;/include/tbn-openfabric.php?v=&version;</URL>
 </FILE>
 
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-iface-page.php">
@@ -282,6 +292,10 @@ Plug-and-play host-to-host networking over Thunderbolt-family ports on Unraid (T
 <URL>&raw;/scripts/tbn-dashboard-ports?v=&version;</URL>
 </FILE>
 
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-openfabric">
+<URL>&raw;/scripts/tbn-openfabric?v=&version;</URL>
+</FILE>
+
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/event/started">
 <URL>&raw;/event/started?v=&version;</URL>
 </FILE>
@@ -291,8 +305,10 @@ Plug-and-play host-to-host networking over Thunderbolt-family ports on Unraid (T
 echo "ThunderboltNet: finishing install..."
 chmod 755 /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-status 2>/dev/null || true
 chmod 755 /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports 2>/dev/null || true
+chmod 755 /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-openfabric 2>/dev/null || true
 chmod 755 /usr/local/emhttp/plugins/ThunderboltNet/event/started 2>/dev/null || true
 mkdir -p /boot/config/plugins/ThunderboltNet/ifaces
+mkdir -p /boot/config/plugins/ThunderboltNet/frr
 if [ ! -f /boot/config/plugins/ThunderboltNet/ThunderboltNet.cfg ]; then
   if [ -f /usr/local/emhttp/plugins/ThunderboltNet/default.cfg ]; then
     cp -a /usr/local/emhttp/plugins/ThunderboltNet/default.cfg /boot/config/plugins/ThunderboltNet/ThunderboltNet.cfg
@@ -301,6 +317,8 @@ if [ ! -f /boot/config/plugins/ThunderboltNet/ThunderboltNet.cfg ]; then
 fi
 # Generate tbnN tabs for any live thunderbolt* ifaces
 php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; tbn_sync_iface_pages();' 2>/dev/null || true
+# OpenFabric conf preview (no-op if FRR missing)
+php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; if (function_exists("tbn_of_apply")) { tbn_of_apply(); }' 2>/dev/null || true
 # Dashboard Interface list: thunderboltN / bond-tbN / br-tbN (throughput + errors)
 if [ -x /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports ]; then
   /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports apply || true

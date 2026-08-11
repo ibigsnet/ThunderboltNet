@@ -1,0 +1,25 @@
+#!/bin/bash
+# Thunderbolt Net — OpenFabric helper (status | apply | preview)
+# Usage on Unraid: /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-openfabric status
+set -euo pipefail
+ACTION="${1:-status}"
+PHP_LIB='/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php'
+if [ ! -f "$PHP_LIB" ]; then
+  echo "ThunderboltNet not installed at $PHP_LIB" >&2
+  exit 1
+fi
+case "$ACTION" in
+  status)
+    php -r 'require_once "'"$PHP_LIB"'"; echo json_encode(function_exists("tbn_of_status")?tbn_of_status():[], JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES), "\n";'
+    ;;
+  apply)
+    php -r 'require_once "'"$PHP_LIB"'"; echo json_encode(function_exists("tbn_of_apply")?tbn_of_apply():["error"=>"missing"], JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES), "\n";'
+    ;;
+  preview)
+    php -r 'require_once "'"$PHP_LIB"'"; echo function_exists("tbn_of_generate_conf")?tbn_of_generate_conf():"";'
+    ;;
+  *)
+    echo "Usage: $0 status|apply|preview" >&2
+    exit 2
+    ;;
+esac

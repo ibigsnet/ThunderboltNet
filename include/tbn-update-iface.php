@@ -41,3 +41,11 @@ if (($g['load_modules'] ?? 'yes') === 'yes') {
 
 tbn_apply_iface($if);
 tbn_sync_iface_pages();
+
+// Refresh OpenFabric metrics / iface stanzas after underlay Apply
+if (function_exists('tbn_of_apply')) {
+  $g = tbn_load_cfg();
+  if (($g['openfabric_enable'] ?? 'yes') === 'yes') {
+    tbn_of_apply();
+  }
+}
