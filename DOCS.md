@@ -72,11 +72,12 @@ Related **ibigsnet** pieces are optional companions. Install only what you need.
 | Product | What it does | When you want it | When you can skip it |
 |---------|--------------|------------------|----------------------|
 | **Thunderbolt Net** | TB/USB4 **host-net underlay** (`tbnN` IPs), peers, listening, OpenFabric **policy** | Any Unraid host-to-host TB networking | No TB host controller |
-| **UnraidFRR** | Installs **FRR packages/daemons** (`fabricd`, `vtysh`) | Rings, multi-hop, Proxmox/Linux FRR fabric | One cable + static IPs only |
-| **NBD Export** | Host or pull **raw disks** over NBD on a private IP | Imaging/cloning large disks over TB | File shares (SMB/NFS) are enough |
+| **Fabric Routing (FRR)** / UnraidFRR | Installs **FRR packages/daemons** (`fabricd`, `vtysh`) — Network Settings → **Fabric Routing** | Rings, multi-hop, Proxmox/Linux FRR fabric | One cable + static IPs only |
+| **NBD Export** | Host or pull **raw disks** over NBD — Network Services → **NBD** (Status · Host · Pull · Settings) | Imaging/cloning large disks over TB | File shares (SMB/NFS) are enough |
+| **Storage Guard** | Free-space thresholds and main-page free-bar colors | Know when a failed disk still leaves room | Optional |
 | **USB4STREAM** | Not a plugin — **kernel** module `thunderbolt_stream` | Experimental raw stream when kernel has it | Always optional; not FRR |
 
-OpenFabric **settings** live on Thunderbolt Net (Advanced). FRR **packages** live under **Network Settings → Fabric Routing** when UnraidFRR is installed. The orange chip **needs FRR packages** jumps to the Multi-hop companion card on the Thunderbolt overview.
+OpenFabric **policy** lives on Thunderbolt Net (Advanced). FRR **packages** live under **Network Settings → Fabric Routing**. NBD is independent TCP block export under **Network Services → NBD**.
 
 ---
 
