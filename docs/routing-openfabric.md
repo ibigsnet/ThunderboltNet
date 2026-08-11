@@ -359,8 +359,8 @@ OpenFabric conf this plugin writes lives under `/boot/config/plugins/Thunderbolt
 ! END ThunderboltNet OpenFabric
 ```
 
-Integration notes: [UnraidFRR docs](https://github.com/ibigsnet/UnraidFRR/blob/main/docs/integration-thunderboltnet.md).
-
+Integration notes: [UnraidFRR docs](https://github.com/ibigsnet/UnraidFRR/blob/main/docs/integration-thunderboltnet.md).  
+**LAN safety:** UnraidFRR/FRR is host-wide, not TB-only; defaults avoid eth/br enrollment. See [UnraidFRR scope & safety](https://github.com/ibigsnet/UnraidFRR/blob/main/docs/scope-and-safety.md). Thunderbolt Net only marks OpenFabric on `thunderbolt*` + loopback (not br0).
 ---
 
 ## Config keys
