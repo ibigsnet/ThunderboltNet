@@ -336,7 +336,7 @@ Thunderbolt Net does **not** install FRR packages. That work is intentionally **
 
 | Plugin | Repo | Role |
 |--------|------|------|
-| **UnraidFRR** | [ibigsnet/UnraidFRR](https://github.com/ibigsnet/UnraidFRR) | Opt-in: place/install FRR `.txz`, enable `zebra` / `fabricd`, array-start hooks |
+| **UnraidFRR** | [ibigsnet/UnraidFRR](https://github.com/ibigsnet/UnraidFRR) | Opt-in: **auto-download** FRR packages (Nvidia-plugin style), enable `zebra` / `fabricd`, array-start rehydrate |
 | **Thunderbolt Net** | this repo | TB underlay + OpenFabric *policy* when FRR is already present |
 
 | Option | Who | Status |
