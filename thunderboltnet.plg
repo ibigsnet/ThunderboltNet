@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.08.11ag">
+<!ENTITY version "2026.08.11ah">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -35,6 +35,9 @@
 
 <CHANGES>
 ###&version;
+- Dashboard ports patch: no python3 (use bash replace) so thunderboltN appears on Unraid stock kernels without python.
+
+###2026.08.11ag
 - Wording pass: peer stream check uses module presence; CA Overview trained vs sticker class.
 
 ###2026.08.11af
