@@ -1,7 +1,7 @@
 # Routing: FRR and OpenFabric (long-term support)
 
 Thunderbolt Net brings up **host-to-host L3** on each `thunderboltN` path (static underlay, optional listening).  
-**OpenFabric** (FRR’s `fabricd`) is the long-term **control plane** for multi-host interconnect: rings, meshes, multi-hop reachability, and hot-plug peers — without Unraid shipping a TB routing stack itself.
+**OpenFabric** (FRR’s `fabricd`) is the long-term **control plane** for multi-host interconnect: rings, meshes, multi-hop reachability, and hot-plug peers — without Unraid shipping a Thunderbolt routing stack itself.
 
 This is **supported product design**. Defaults favor interconnectivity; pure static remains a first-class override. Dual-cable bonding, advanced FRR protocols, and NPU/AI mini-PC interop are **in scope for later stages**, not ruled out.
 
@@ -39,8 +39,8 @@ This is **supported product design**. Defaults favor interconnectivity; pure sta
 | **Several peers, each on its own cable to this host only** (star, no multi-hop) | Usually **No** | Static underlay per tbn tab is enough if every peer is directly attached. |
 | **Ring or partial mesh** (A–B–C–A, or “reach C through B”) | **Yes** | Install [FabricRouting](https://github.com/ibigsnet/FabricRouting) for packages; enable OpenFabric on Thunderbolt Net. |
 | **Unraid + Proxmox (or other Linux FRR) multi-node fabric** | **Yes** | Same OpenFabric area/metrics both sides — see [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md). |
-| **Failover when one TB link dies** | **Yes** (topology must have another path) | Ring/mesh + OpenFabric SPF; metrics prefer trained rate. |
-| **Just want faster copy / SMB on TB** | **No** | Underlay + listening; NBD is a separate optional plugin for raw disks. |
+| **Failover when one Thunderbolt link dies** | **Yes** (topology must have another path) | Ring/mesh + OpenFabric SPF; metrics prefer trained rate. |
+| **Just want faster copy / SMB on Thunderbolt** | **No** | Underlay + listening; NBD is a separate optional plugin for raw disks. |
 
 **Rule of thumb:** if every host you care about is **directly cabled** to this Unraid and you never need routes *through* a neighbor, you do **not** need FRR. If you are building a **ring**, a **lab mesh**, or **Proxmox↔Unraid multi-hop** (common in home labs and Ceph/backhaul write-ups), you do.
 
@@ -52,10 +52,10 @@ Static tbn IPs **always** work without OpenFabric. Missing FRR is not a broken i
 
 | Piece | Role | Installs FRR? | Installs kernel modules? |
 |-------|------|---------------|--------------------------|
-| **Thunderbolt Net** | TB discovery, **tbn underlay** IPs, OpenFabric **policy** (conf, metrics, participate, Apply) | **No** | Loads `thunderbolt` / `thunderbolt_net` (host-net). Optional USB4STREAM load if kernel has it. |
+| **Thunderbolt Net** | Thunderbolt discovery, **tbn underlay** IPs, OpenFabric **policy** (conf, metrics, participate, Apply) | **No** | Loads `thunderbolt` / `thunderbolt_net` (host-net). Optional USB4STREAM load if kernel has it. |
 | **Fabric Routing** (companion) | Opt-in **FRR packages + daemons** (`zebra`, `fabricd`, `vtysh`) | **Yes** | **No** — not `thunderbolt_stream`, not InfiniBand |
 | **FRR itself** | Routing suite (`fabricd` = OpenFabric) | — | — |
-| **NBD Export** (optional) | Whole-disk block export/import over a TB IP | No | No |
+| **NBD Export** (optional) | Whole-disk block export/import over a Thunderbolt IP | No | No |
 | **USB4STREAM** | Kernel `thunderbolt_stream` raw path (mainline ~7.2+) | No | Kernel feature, not a plugin product |
 
 **Split (by design):** Thunderbolt Net never `require`s FabricRouting PHP. FabricRouting works without Thunderbolt Net. Without FRR, Thunderbolt Net stays on **static underlay** with a clear status line.
@@ -75,10 +75,10 @@ Install plugin URL: `https://raw.githubusercontent.com/ibigsnet/FabricRouting/ma
 
 - Stock Unraid does **not** ship FRR, OpenFabric, OSPF, or IS-IS.
 - Multi-node labs need **automatic routes** when topology is more than one cable (ring, partial mesh, “through a neighbor”).
-- Community stacks (e.g. **Proxmox + TB + FRR OpenFabric** for Ceph/backhaul, mixed Unraid nodes) already prove the model; Unraid should get **native UX + defaults**, not only manual `vtysh`.
-- Long-term **hot-plug** into modern USB4 / TB AI and mini workstations (e.g. **ASUS/AMD Strix Halo** class, **Gorgon Halo** class, **NVIDIA DGX Spark** class, and similar) should join a fabric with minimal reconfiguration.
+- Community stacks (e.g. **Proxmox + Thunderbolt + FRR OpenFabric** for Ceph/backhaul, mixed Unraid nodes) already prove the model; Unraid should get **native UX + defaults**, not only manual `vtysh`.
+- Long-term **hot-plug** into modern USB4 / Thunderbolt AI and mini workstations (e.g. **ASUS/AMD Strix Halo** class, **Gorgon Halo** class, **NVIDIA DGX Spark** class, and similar) should join a fabric with minimal reconfiguration.
 
-Thunderbolt Net owns: TB discovery, underlay addressing, generated FRR config, metrics, Apply/start hooks, status UI, static escape hatches, and docs.  
+Thunderbolt Net owns: Thunderbolt discovery, underlay addressing, generated FRR config, metrics, Apply/start hooks, status UI, static escape hatches, and docs.  
 **FRR packages** live in the companion [FabricRouting](https://github.com/ibigsnet/FabricRouting).  
 **Community contributions** for packaging, metrics, and peer OS interop are welcome — see [CONTRIBUTING.md](../CONTRIBUTING.md).
 
@@ -90,10 +90,10 @@ Thunderbolt Net owns: TB discovery, underlay addressing, generated FRR config, m
 
 | Advantage | Detail |
 |-----------|--------|
-| **Multi-hop reachability** | Host A can reach C through B when A–B and B–C have TB links — no static routes on every node. |
+| **Multi-hop reachability** | Host A can reach C through B when A–B and B–C have Thunderbolt links — no static routes on every node. |
 | **Ring and partial-mesh topologies** | SPF recomputes when a link drops; a full ring has alternate paths (see [Topologies](#supported-topologies)). Classic home-lab pattern with Proxmox + Unraid nodes. |
 | **Hot-plug friendly** | New `thunderboltN` + participate → adjacency can form; routes appear without rewriting every peer’s static table. |
-| **Interop with Linux FRR peers** | Same OpenFabric area / NET style as common TB mesh write-ups (Proxmox `apt install frr`, Debian, etc.). |
+| **Interop with Linux FRR peers** | Same OpenFabric area / NET style as common Thunderbolt mesh write-ups (Proxmox `apt install frr`, Debian, etc.). |
 | **Sane underlay still works** | tbn static IPs remain; OpenFabric is the control plane on top. |
 | **Cost-aware paths** | Prefer faster-trained links when multiple paths exist ([Path cost](#path-cost-and-metrics)). |
 
@@ -102,15 +102,15 @@ Thunderbolt Net owns: TB discovery, underlay addressing, generated FRR config, m
 | Disadvantage | Detail |
 |--------------|--------|
 | **Extra software** | Needs FRR (`zebra` + `fabricd`). Unraid does not ship it — install via **Fabric Routing** or supply FRR yourself. |
-| **Host becomes a router** | IP forwarding for TB prefixes; not a full edge firewall. Mis-advertising br0 is avoided by defaults but advanced knobs exist. |
+| **Host becomes a router** | IP forwarding for Thunderbolt prefixes; not a full edge firewall. Mis-advertising br0 is avoided by defaults but advanced knobs exist. |
 | **Two-node static is enough** | Single cable, two hosts, only file copy: pure static /24 is simpler; OpenFabric adds little. |
 | **Peer without FRR** | No adjacency; underlay static still works. Fabric side idles cleanly if timers are sane. |
 | **Operational surface** | Adjacencies, LSPs, metrics — CCIEs will feel at home; casual users rely on UI status + this doc. |
-| **Not a substitute for TB domain health** | Wedged dual-cable fabric is still a **physical** recovery problem ([links-and-topology](links-and-topology.md)). |
+| **Not a substitute for Thunderbolt domain health** | Wedged dual-cable fabric is still a **physical** recovery problem ([links-and-topology](links-and-topology.md)). |
 
 **Rule of thumb**
 
-- **Leave On** if you run (or plan) **3+ hosts**, **rings**, **multi-homed Unraid**, storage/VM backhaul over TB, **Proxmox + Unraid** fabric, or hot-plug laptops/mini-PCs into a lab fabric.  
+- **Leave On** if you run (or plan) **3+ hosts**, **rings**, **multi-homed Unraid**, storage/VM backhaul over Thunderbolt, **Proxmox + Unraid** fabric, or hot-plug laptops/mini-PCs into a lab fabric.  
 - **Turn Off** (global) if you only ever use **one peer cable**, never multi-hop, and want zero routing daemons.  
 - **Do not install FabricRouting at all** if you never need multi-hop — optional companion, not a dependency of Thunderbolt Net.
 
@@ -145,11 +145,11 @@ Rough mental model (for operators who know Cisco IS-IS / OSPF):
 | Link-state | Yes — each node floods topology; SPF computes paths |
 | Area | `router openfabric <name/tag>` (plugin default area **1**) |
 | NET | NSAP-style NET (plugin auto-generates; override allowed) |
-| Interfaces | `ip router openfabric 1` on underlay TB ifaces; **passive** on loopback/router-id |
+| Interfaces | `ip router openfabric 1` on underlay Thunderbolt interfaces; **passive** on loopback/router-id |
 | Metric | Per-interface metric (lower preferred) — see [Path cost](#path-cost-and-metrics) |
 | RIB → FIB | zebra installs kernel routes |
 
-It is **not** Ethernet bridging and **not** Thunderbolt “domain fabric” in the sysfs sense. TB still creates **per-path** `thunderboltN` netdevs; OpenFabric runs **IP routing on top**.
+It is **not** Ethernet bridging and **not** Thunderbolt “domain fabric” in the sysfs sense. Thunderbolt still creates **per-path** `thunderboltN` netdevs; OpenFabric runs **IP routing on top**.
 
 ### Underlay vs control plane
 
@@ -176,31 +176,31 @@ Operators (and FRR) choose a **path** by **lowest total metric** along a path (S
 
 | Term | Meaning in Thunderbolt Net |
 |------|----------------------------|
-| **Interface metric** | Integer OpenFabric metric on a TB (or bond) interface |
+| **Interface metric** | Integer OpenFabric metric on a Thunderbolt (or bond) interface |
 | **Path cost** | Sum of interface metrics along a candidate path |
 | **Best path** | Lowest path cost (ECMP possible when FRR/kernel allow equal cost) |
 
 ### Default metric policy (product)
 
-**Goal:** when a ring or mesh has multiple paths, prefer **faster-trained** TB links without manual tuning for the happy path.
+**Goal:** when a ring or mesh has multiple paths, prefer **faster-trained** Thunderbolt links without manual tuning for the happy path.
 
 Proposed formula (implemented as defaults; overridable per link):
 
 ```text
 reference_mbps = 20000           # ~20 Gbit/s default (configurable)
-bandwidth_mbps = trained_tx_or_min(tx,rx) in Mbit/s   # from TB sysfs / status
+bandwidth_mbps = trained_tx_or_min(tx,rx) in Mbit/s   # from Thunderbolt sysfs / status
 metric = max(1, round(reference_mbps / max(bandwidth_mbps, 1)))
 ```
 
-**Why reference 20000 (~20 Gbit/s)?** Under Linux, Thunderbolt host-net commonly trains near **20 Gbit/s each way**, not the full port marketing class. Using 100 000 (100 G) as the reference made typical TB hops look artificially expensive next to Ethernet 100G planning numbers.
+**Why reference 20000 (~20 Gbit/s)?** Under Linux, Thunderbolt host-net commonly trains near **20 Gbit/s each way**, not the full port marketing class. Using 100 000 (100 G) as the reference made typical Thunderbolt hops look artificially expensive next to Ethernet 100G planning numbers.
 
-With **20000**, a typical ~20 G trained hop gets metric **1**. Faster paths (higher TB train, or 100 G DAC) also get metric **1** under auto (floor). To prefer a specific fast path over other 20 G+ links, set a **manual** metric on that interface (lower is preferred).
+With **20000**, a typical ~20 G trained hop gets metric **1**. Faster paths (higher Thunderbolt train, or 100 G DAC) also get metric **1** under auto (floor). To prefer a specific fast path over other 20 G+ links, set a **manual** metric on that interface (lower is preferred).
 
 Examples with reference **20000**:
 
 | Trained class (approx.) | bandwidth_mbps | auto metric |
 |-------------------------|----------------|-------------|
-| ~20 G (common Linux TB host-net) | 20000 | **1** |
+| ~20 G (common Linux Thunderbolt host-net) | 20000 | **1** |
 | ~40 G class | 40000 | **1** (floored) |
 | ~80 G class | 80000 | **1** (floored) |
 | ~10 G Ethernet peer | 10000 | **2** |
@@ -270,7 +270,7 @@ Handy references (OSPF uses the **same inverse-bandwidth idea**; OpenFabric metr
 | [ipwithease OSPF cost notes](https://ipwithease.com/ospf-cost-calculation/) | Another worked cost walkthrough |
 | Plugin UI (when FRR is up) | Per-link metric on Thunderbolt / tbn tabs; later: RIB / neighbor views via `vtysh` |
 
-You do **not** need a Cisco OSPF simulator for a TB ring — five nodes and a table of metrics is enough to reason about C→D vs the long arc.
+You do **not** need a Cisco OSPF simulator for a Thunderbolt ring — five nodes and a table of metrics is enough to reason about C→D vs the long arc.
 
 ### Manual override
 
@@ -283,7 +283,7 @@ You do **not** need a Cisco OSPF simulator for a TB ring — five nodes and a ta
 
 ### What we do **not** claim
 
-- Metric does not invent dual-lane TCP or fix a wedged TB domain.  
+- Metric does not invent dual-lane TCP or fix a wedged Thunderbolt domain.  
 - Metric does not equal “user-visible Gbit/s” after TCP/CPU overhead ([standards-and-speeds](standards-and-speeds.md)).  
 - Until FRR is running, metrics are **planned/generated only** (dry-run conf still useful).  
 - Default metrics avoid hairpinning adjacent neighbors around a ring when a direct path is cheaper; they do not replace capacity planning for *transit* when a link is intentionally expensive or down.
@@ -295,9 +295,9 @@ You do **not** need a Cisco OSPF simulator for a TB ring — five nodes and a ta
 |----------|----------|---------------|-------|
 | **P2P single cable** | One `thunderboltN` each side | OpenFabric optional | Static alone is fine; fabric still works as 2-node |
 | **Star** | Hub node multi-homed | OpenFabric | Leaves learn each other via hub |
-| **Partial mesh** | Multiple TB paths | OpenFabric | SPF + metrics |
+| **Partial mesh** | Multiple Thunderbolt paths | OpenFabric | SPF + metrics |
 | **Full ring** | Each node 2 neighbors | OpenFabric | **First-class goal** — link loss uses alternate arc |
-| **Dual-homed Unraid** | 2+ TB peers | OpenFabric | Different peers ⇒ multiple netdevs |
+| **Dual-homed Unraid** | 2+ Thunderbolt peers | OpenFabric | Different peers ⇒ multiple netdevs |
 | **Dual cable same peer** | Often **one** netdev today | Bonding roadmap | See [Bonding](#bonding-and-dual-cable-roadmap); not required for rings |
 
 ```text
@@ -319,7 +319,7 @@ OpenFabric: A↔C traffic can go direct or A–B–C; metric prefers better trai
 **Today (current limits):**
 
 - Linux often exposes **one** host-net path for two cables between the **same** pair; bonding cannot invent a second slave.
-- TB slaves often reject `set_mac`; many bond modes fail; dual-plug can **wedge** the TB domain until all cables are cleared.
+- Thunderbolt slaves often reject `set_mac`; many bond modes fail; dual-plug can **wedge** the Thunderbolt domain until all cables are cleared.
 - Plugin bonding is **available when ≥2 live `thunderbolt*`** exist (typically **two different peers**, or rare multi-path cases). Prefer **active-backup**. Names: `bond-tb0`, … (not Unraid `bond0`).
 
 **Later (in scope):**
@@ -335,13 +335,13 @@ See [links-and-topology.md](links-and-topology.md). Bonding is **not** excluded 
 
 ## Hot-plug and target device classes
 
-Long-term **native fabric join** when a peer appears on TB/USB4 host-net:
+Long-term **native fabric join** when a peer appears on Thunderbolt/USB4 host-net:
 
 | Class (examples) | Intent |
 |------------------|--------|
 | **ASUS / AMD Strix Halo** mini-PCs & laptops | USB4 host-net peer; hot-plug into Unraid fabric |
 | **Gorgon Halo** class systems | Same — document trained rates + FRR interop |
-| **NVIDIA DGX Spark** (and similar Grace/Blackwell mini systems) | High-bandwidth peer for AI/storage backhaul over TB/USB4 where Linux exposes `thunderbolt_net` |
+| **NVIDIA DGX Spark** (and similar Grace/Blackwell mini systems) | High-bandwidth peer for AI/storage backhaul over Thunderbolt/USB4 where Linux exposes `thunderbolt_net` |
 | **Generic Linux + FRR** | Full OpenFabric interop |
 | **macOS / Windows** | Underlay static / best-effort; no fabricd on peer |
 
@@ -356,7 +356,7 @@ Stages: detect peer → underlay IP (manual then auto-restore) → OpenFabric ad
 ```text
 ┌──────────────────────────────────────────────────────────┐
 │ Thunderbolt Net                                          │
-│  · TB sysfs / tbnN underlay (one or more peers)          │
+│  · Thunderbolt sysfs / tbnN underlay (one or more peers)          │
 │  · metric policy + OpenFabric conf generate              │
 │  · Detect FRR (vtysh/fabricd); point at FabricRouting        │
 │  · Apply, array-start, hotplug hooks                     │
@@ -367,7 +367,7 @@ Stages: detect peer → underlay IP (manual then auto-restore) → OpenFabric ad
 ┌──────────────────────────────────────────────────────────┐
 │ FRR: zebra + fabricd  (FabricRouting or other install)       │
 │  · router openfabric 1                                   │
-│  · TB ifaces + lo /32 (passive)                          │
+│  · Thunderbolt interfaces + lo /32 (passive)                          │
 │  · interface metrics from policy                         │
 └────────────────────────────┬─────────────────────────────┘
                              ▼
@@ -394,7 +394,7 @@ Stages: detect peer → underlay IP (manual then auto-restore) → OpenFabric ad
 | **Metric** | **auto** from trained rate | manual |
 | **FRR packages** | **Not installed by this plugin** | Use [FabricRouting](https://github.com/ibigsnet/FabricRouting) or hand-install FRR |
 | **IPv6 fabric** | Yes if addresses exist | force v4 |
-| **Default route via TB** | **No** | existing tbn option |
+| **Default route via Thunderbolt** | **No** | existing tbn option |
 | **br0/eth0 in fabric** | **No** | advanced passive (rare) |
 
 If FRR is missing: static underlay only; UI states that OpenFabric is preferred but FRR is not available. Conf may still be generated for preview on flash.
@@ -403,12 +403,12 @@ If FRR is missing: static underlay only; UI states that OpenFabric is preferred 
 
 ## FRR on Unraid (packaging) — separate companion plugin
 
-Thunderbolt Net does **not** install FRR packages. That work is intentionally **split out** (same idea as Unassigned Devices vs optional companions): package install is more invasive than TB Settings UI.
+Thunderbolt Net does **not** install FRR packages. That work is intentionally **split out** (same idea as Unassigned Devices vs optional companions): package install is more invasive than Thunderbolt Settings UI.
 
 | Plugin | Repo | Role |
 |--------|------|------|
 | **Fabric Routing** | [ibigsnet/FabricRouting](https://github.com/ibigsnet/FabricRouting) | Opt-in: FRR packages (catalog + flash cache + Apply), enable `zebra` / `fabricd`, array-start rehydrate |
-| **Thunderbolt Net** | this repo | TB underlay + OpenFabric *policy* when FRR is already present |
+| **Thunderbolt Net** | this repo | Thunderbolt underlay + OpenFabric *policy* when FRR is already present |
 
 | Option | Who | Status |
 |--------|-----|--------|
@@ -431,7 +431,7 @@ OpenFabric conf this plugin writes lives under `/boot/config/plugins/Thunderbolt
 ```
 
 Integration notes: [FabricRouting docs](https://github.com/ibigsnet/FabricRouting/blob/main/docs/integration-thunderboltnet.md).  
-**LAN safety:** FabricRouting/FRR is host-wide, not TB-only; defaults avoid eth/br enrollment. See [FabricRouting scope & safety](https://github.com/ibigsnet/FabricRouting/blob/main/docs/scope-and-safety.md). Thunderbolt Net only marks OpenFabric on `thunderbolt*` + loopback (not br0).
+**LAN safety:** FabricRouting/FRR is host-wide, not Thunderbolt-only; defaults avoid eth/br enrollment. See [FabricRouting scope & safety](https://github.com/ibigsnet/FabricRouting/blob/main/docs/scope-and-safety.md). Thunderbolt Net only marks OpenFabric on `thunderbolt*` + loopback (not br0).
 ---
 
 ## Config keys
@@ -502,7 +502,7 @@ OPENFABRIC_METRIC=""            ; when manual
 
 ### Mixed Unraid + non-Unraid fabrics
 
-Sites often combine **Unraid** with **Proxmox or other Linux** on one TB/OpenFabric mesh (ring or mesh, multi-hop, failover).  
+Sites often combine **Unraid** with **Proxmox or other Linux** on one Thunderbolt/OpenFabric mesh (ring or mesh, multi-hop, failover).  
 Reference design, example five-node ring, shared parameters, verification phases: **[fabric-proxmox-unraid.md](fabric-proxmox-unraid.md)**.
 
 Sample peer `vtysh` patterns stay aligned with generated conf (area, passive lo, metrics). Contributions of tested peer snippets are welcome.
@@ -511,10 +511,10 @@ Sample peer `vtysh` patterns stay aligned with generated conf (area, passive lo,
 
 ## Safety
 
-- Never steal **default route** to TB unless tbn option enabled.
-- Forwarding on = **router for TB prefixes**, not “replace Unraid firewall.”
+- Never steal **default route** to Thunderbolt unless tbn option enabled.
+- Forwarding on = **router for Thunderbolt prefixes**, not “replace Unraid firewall.”
 - Do not put br0 in OpenFabric by default.
-- OpenFabric does not unwedge a dual-cable TB domain — clear cables physically when needed.
+- OpenFabric does not unwedge a dual-cable Thunderbolt domain — clear cables physically when needed.
 
 ---
 
@@ -522,7 +522,7 @@ Sample peer `vtysh` patterns stay aligned with generated conf (area, passive lo,
 
 OpenFabric is **stage-1 control plane**. Optional later (contrib-friendly):
 
-- Classic **IS-IS** or **OSPF** on TB underlay for sites that standardize there  
+- Classic **IS-IS** or **OSPF** on Thunderbolt underlay for sites that standardize there  
 - **BGP** unnumbered / EVPN-style designs for advanced labs  
 - Always behind explicit enable; never replace OpenFabric defaults without a migration note  
 
@@ -554,7 +554,7 @@ Versioning: [RELEASES.md](../RELEASES.md).
 | OpenFabric (fabricd) docs | https://docs.frrouting.org/en/latest/fabricd.html |
 | OpenFabric IETF draft | https://datatracker.ietf.org/doc/html/draft-white-openfabric |
 | FRR IS-IS docs (related) | https://docs.frrouting.org/en/latest/isisd.html |
-| Example community TB + OpenFabric notes | Search “FRR OpenFabric Thunderbolt” (e.g. Proxmox/Ceph mesh write-ups) |
+| Example community Thunderbolt + OpenFabric notes | Search “FRR OpenFabric Thunderbolt” (e.g. Proxmox/Ceph mesh write-ups) |
 
 ---
 

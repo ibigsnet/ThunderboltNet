@@ -301,7 +301,7 @@ function tbn_of_link_metric(array $link, array $icfg, array $gcfg) {
 }
 
 /**
- * List TB ifaces that should participate in OpenFabric.
+ * List Thunderbolt interfaces that should participate in OpenFabric.
  *
  * @return list<array{if:string,mode:string,metric:int,participate:string}>
  */

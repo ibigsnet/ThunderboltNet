@@ -122,7 +122,7 @@ $of_mode_label = [
 ?>
   <div class="tbn-section">
     <h3>This host</h3>
-    <p class="tbn-note">Controller, IP host-net drivers, and who may listen on TB IPs — host-wide.</p>
+    <p class="tbn-note">Controller, IP host-net drivers, and who may listen on Thunderbolt IPs — host-wide.</p>
     <table class="tbn-table tbn-summary">
       <tr><td>Domain security</td><td><code><?= htmlspecialchars($status['security'] ?: '(none/unknown)') ?></code></td></tr>
       <tr><td>IP host-net modules</td>
@@ -187,7 +187,7 @@ $of_mode_label = [
 <?php if ($nbd_present): ?>
         <p><span class="tbn-companion-status tbn-status-ok">Installed</span>
           <a href="/Settings/NbdExport">Network Services → NBD</a>.
-          Whole-disk imaging over a private TB IP — separate from SMB/NFS listening.</p>
+          Whole-disk imaging over a private Thunderbolt IP — separate from SMB/NFS listening.</p>
 <?php else: ?>
         <p class="tbn-muted">Optional. Host or pull raw disks over NBD (not a share protocol).
           Search <strong>NBD Export</strong> in CA, or
@@ -242,7 +242,7 @@ $of_mode_label = [
   <div class="tbn-section">
     <h3>Known peers</h3>
     <p class="tbn-note">
-      Online and offline peers. Services dropdown = SMB/NFS/SSH/web on that TB IP (saves on change).
+      Online and offline peers. Services dropdown = SMB/NFS/SSH/web on that Thunderbolt IP (saves on change).
       Link rate: equal RX/TX shows <strong>full-duplex</strong>; asymmetric shows
       <strong>TX (to peer)</strong> and <strong>RX (from peer)</strong>.
     </p>
@@ -349,7 +349,7 @@ $of_mode_label = [
             </form>
 <?php if ($pref !== 'yes'): ?>
             <p class="tbn-hint tbn-listen-warn">
-              Shares / web UI usually unreachable on this TB IP until <strong>Yes</strong>.
+              Shares / web UI usually unreachable on this Thunderbolt IP until <strong>Yes</strong>.
             </p>
 <?php elseif ($online && !$live_on): ?>
             <p class="tbn-hint">Saved Yes — if still unreachable, check Network Extra / re-select Yes.</p>
@@ -386,7 +386,7 @@ $of_mode_label = [
         <input type="submit" name="#apply" value="Harden: all peers services No" class="tbn-harden-btn">
       </p>
       <p class="tbn-hint">
-        Security override: all peers → services <strong>No</strong>; strip TB ifaces from network-extra include list.
+        Security override: all peers → services <strong>No</strong>; strip Thunderbolt interfaces from network-extra include list.
       </p>
     </form>
     <dl>
@@ -395,11 +395,11 @@ $of_mode_label = [
     </dl>
     <blockquote class="inline_help">
       Peers stay listed when offline so settings return when they reconnect (by peer UUID).<br><br>
-      <strong>Unraid services</strong> — <strong>Yes</strong> recommended for SMB / NFS / web / big file copies on that TB IP;
+      <strong>Unraid services</strong> — <strong>Yes</strong> recommended for SMB / NFS / web / big file copies on that Thunderbolt IP;
       default for new peers is <strong>No</strong> (safer). Writes <code>network-extra.cfg</code> include list.
       Whole-disk imaging uses <strong>NBD Export</strong> (Network Services → NBD) bound to the same IP — not this dropdown.
       Dropdown saves immediately (no Apply). VM VNC / Docker ports are separate.<br><br>
-      <strong>Harden: all peers services No</strong> — force every peer preference and live TB includes back to No.
+      <strong>Harden: all peers services No</strong> — force every peer preference and live Thunderbolt includes back to No.
       <?= tbn_help_docs_footer('docs/settings-reference.md', 'Settings reference') ?>
     </blockquote>
   </div>
@@ -417,13 +417,13 @@ $of_mode_label = [
     <blockquote class="inline_help">
       Header under each REMOTE is the Settings tab and kernel iface — click the tab name to open it.<br><br>
       <strong>Peer name</strong> — far host’s advertised name.
-      <strong>Stack</strong> — TB vendor field (often <code>Linux</code> / software ID, not the chassis brand).<br><br>
+      <strong>Stack</strong> — Thunderbolt vendor field (often <code>Linux</code> / software ID, not the chassis brand).<br><br>
       <strong>Link RX/TX &amp; lanes</strong> — <em>LOCAL</em> is this host’s class ceiling (not a live hop rate).
       Each <em>REMOTE</em> column is the <strong>trained</strong> path on that cable (end-to-end with that peer).
-      USB4/TB <strong>lanes are simplex</strong> (TX or RX), not full duplex at the marketing port rate.
+      USB4/Thunderbolt <strong>lanes are simplex</strong> (TX or RX), not full duplex at the marketing port rate.
       A marketing <strong>40&nbsp;Gb/s</strong> class path is typically <strong>~20&nbsp;Gb/s each direction at once</strong> (20+20), not 40 each way.
       <code>rx_speed</code> is per lane; dual-lane often still shows ~20&nbsp;Gb/s with <strong>2-lane</strong>.
-      Single-lane (~20&nbsp;Gb/s · 1-lane) is common for TB host-to-host under Linux.<br><br>
+      Single-lane (~20&nbsp;Gb/s · 1-lane) is common for Thunderbolt host-to-host under Linux.<br><br>
       <strong>Link quality</strong> — trained rate first; yellow <em>Single-lane</em> means below controller class max,
       not a failed install. ~10–15&nbsp;Gbit/s TCP is normal for 1-lane. Optional MTU&nbsp;9000 on <em>both</em> ends can cut retrans/CPU a bit — not negotiated, and not dual-lane.
       <?= tbn_docs_more_html('docs/standards-and-speeds.md', 'Directionality &amp; speeds ↗') ?><br><br>
@@ -510,7 +510,7 @@ $of_mode_label = [
           <th scope="row">Product / identity</th>
           <td class="tbn-col-local">
             <?= htmlspecialchars($local_ctrl !== '' ? $local_ctrl : '—') ?>
-            <span class="tbn-muted"> (TB controller)</span>
+            <span class="tbn-muted"> (Thunderbolt controller)</span>
           </td>
 <?php foreach ($links as $L):
   $rem = $L['remote'];
@@ -532,7 +532,7 @@ $of_mode_label = [
 ?>
           <td class="tbn-col-remote">
             <?= htmlspecialchars($rem['stack'] !== '' ? $rem['stack'] : '—') ?>
-            <span class="tbn-muted"> (TB stack)</span>
+            <span class="tbn-muted"> (Thunderbolt stack)</span>
           </td>
 <?php endforeach; ?>
         </tr>
@@ -702,7 +702,7 @@ $of_mode_label = [
         </tr>
         <tr>
           <th scope="row">LLDP</th>
-          <td class="tbn-col-local tbn-muted">Optional; TB fabric above is primary</td>
+          <td class="tbn-col-local tbn-muted">Optional; Thunderbolt fabric above is primary</td>
 <?php foreach ($links as $L):
   $lldp = $L['lldp'] ?? ['summary' => ''];
 ?>
@@ -731,11 +731,11 @@ $of_mode_label = [
       <dd class="tbn-muted">All cables out both boxes · wait · one cable only</dd>
     </dl>
     <blockquote class="inline_help">
-      Two TB cables to the <em>same</em> peer often still yield one netdev — and can leave the domain stuck
+      Two Thunderbolt cables to the <em>same</em> peer often still yield one netdev — and can leave the domain stuck
       (NO-CARRIER, no peer, weird addresses). Software cleanup alone may not fix it.<br><br>
       <strong>1.</strong> Unplug <em>all</em> Thunderbolt / USB4 host cables from <em>both ends on both machines</em>.<br>
       <strong>2.</strong> Wait a few seconds until peers disappear.<br>
-      <strong>3.</strong> Plug back <em>exactly one</em> known-good Thunderbolt/USB4-class cable on full TB/USB4 host ports (not SS-only USB).<br>
+      <strong>3.</strong> Plug back <em>exactly one</em> known-good Thunderbolt/USB4-class cable on full Thunderbolt/USB4 host ports (not SS-only USB).<br>
       <strong>4.</strong> Confirm one peer and one <code>thunderboltN</code>, then Apply IP / services on the tbn tab.<br><br>
       Soft “port power cycle” is not available; physical unplug is the reliable retrain.
       <?= tbn_help_docs_footer('docs/troubleshooting.md', 'Troubleshooting') ?>
@@ -744,7 +744,7 @@ $of_mode_label = [
 
   <div class="tbn-section">
     <h3>PCI / IOMMU / VFIO</h3>
-    <p class="tbn-note">Where the TB controller sits on PCIe — and whether the host still owns it.</p>
+    <p class="tbn-note">Where the Thunderbolt controller sits on PCIe — and whether the host still owns it.</p>
     <dl>
       <dt>PCI / IOMMU / VFIO:</dt>
       <dd class="tbn-muted">NHI · groups · passthrough</dd>
@@ -921,7 +921,7 @@ $of_mode_label = [
     <blockquote class="inline_help">
       <strong>What this is:</strong> OpenFabric (FRR <code>fabricd</code>) is an IS-IS–derived <em>IP routing</em> protocol.
       Thunderbolt Net generates conf, auto <strong>metrics</strong> from trained rate (prefer faster ring hops),
-      and applies when FRR is installed. It is <em>not</em> TB domain security and not a kernel module.<br><br>
+      and applies when FRR is installed. It is <em>not</em> Thunderbolt domain security and not a kernel module.<br><br>
       <strong>When you want it:</strong> 3+ hosts, full/partial <strong>rings</strong>, multi-hop “through a neighbor”,
       hot-plug labs, or interop with <strong>Proxmox/Debian FRR</strong> peers
       (<?= tbn_docs_more_html('docs/fabric-proxmox-unraid.md', 'mixed fabric guide') ?>).
@@ -952,7 +952,7 @@ $of_mode_label = [
       </dd>
     </dl>
     <blockquote class="inline_help">
-      <strong>Yes</strong> (product default) — generate OpenFabric config, enable IP forwarding for TB multi-hop,
+      <strong>Yes</strong> (product default) — generate OpenFabric config, enable IP forwarding for Thunderbolt multi-hop,
       ensure router-id on <code>lo</code>, and start/reload FRR <code>fabricd</code> when present.
       If FRR is missing, behavior degrades to static underlay with a clear status line.<br><br>
       <strong>No</strong> — never manage fabricd for this plugin; classic tbn static only.
@@ -1022,7 +1022,7 @@ $of_mode_label = [
     </dl>
     <blockquote class="inline_help">
       Auto interface metric ≈ <code>reference / trained_Mbps</code> (min 1) — same idea as OSPF auto-cost reference bandwidth.
-      Faster trained TB links get <strong>lower</strong> cost so rings prefer them.
+      Faster trained Thunderbolt links get <strong>lower</strong> cost so rings prefer them.
       Default <strong>20000</strong> (~20&nbsp;Gbit/s — typical Linux Thunderbolt host-net one-way class).
       Auto cost ≈ reference ÷ trained Mb/s (floor 1). Links at or above ~20G share metric <strong>1</strong>;
       use <strong>manual</strong> metric on a tbn tab if a 40/80/100G path (e.g. DAC) must win over 20G Thunderbolt.
@@ -1080,7 +1080,7 @@ $of_mode_label = [
         It is the <code>thunderbolt_net</code> module parameter <code>e2e</code>
         (<strong>USB4NET end-to-end flow control</strong>). One value applies to every
         <code>thunderboltN</code> interface. You cannot turn it on for one peer and off for another.<br><br>
-        <strong>What it does:</strong> when <strong>Yes</strong>, the driver uses full TB end-to-end
+        <strong>What it does:</strong> when <strong>Yes</strong>, the driver uses full Thunderbolt end-to-end
         credit/flow control on the network tunnel (kernel default is on). When <strong>No (e2e=0)</strong>,
         that path is disabled via <code>options thunderbolt_net e2e=0</code>.<br><br>
         <strong>Product default is No</strong> because many cross-host links (especially Unraid ↔ Linux)
@@ -1092,8 +1092,8 @@ $of_mode_label = [
         <strong>Try Yes only after No fails:</strong>
         macOS Thunderbolt Bridge or Windows (OEM stacks vary), or specific upstream guidance.
         Change <em>only</em> E2E, Apply, confirm <code>/sys/module/thunderbolt_net/parameters/e2e</code>
-        (reboot if it did not flip). Then <strong>reseat the cable</strong> — TB often re-trains only when
-        the physical path drops. If several TB cables were plugged in (especially two to the same peer),
+        (reboot if it did not flip). Then <strong>reseat the cable</strong> — Thunderbolt often re-trains only when
+        the physical path drops. If several Thunderbolt cables were plugged in (especially two to the same peer),
         unplug <em>all</em> first, then plug one known-good cable back in. Retest every peer (host-wide setting).<br><br>
         <strong>Docks / hubs with RJ45:</strong> those ports are usually USB Ethernet, not this setting —
         configure them like eth, not tbn.
@@ -1137,7 +1137,7 @@ $of_mode_label = [
         <strong>not Unraid 7.2.x</strong> and not Slackware package numbering.
         Unraid 7.x can still run a 6.x kernel with no module — check status below, not the Unraid marketing version.
         Do not upgrade Unraid expecting stream unless the new kernel actually includes <code>thunderbolt_stream</code>.<br><br>
-        <strong>This is not InfiniBand.</strong> IB-style RDMA over TB is research / out-of-tree
+        <strong>This is not InfiniBand.</strong> IB-style RDMA over Thunderbolt is research / out-of-tree
         (e.g. thunderbolt-ibverbs demos) — the plugin does not load those modules.<br><br>
         <strong>This is not Fabric Routing.</strong> Fabric Routing installs FRR routing packages (<code>fabricd</code>, etc.);
         it never provides <code>thunderbolt_stream</code>.<br><br>
@@ -1169,8 +1169,8 @@ $of_mode_label = [
   </dl>
   <blockquote class="inline_help">
     Prefer a single certified <strong>Thunderbolt / USB4-class</strong> cable that matches both hosts
-    (TB3 40G-class, TB4, TB5 / USB4 v2 80G-class when both ends support it — not SS-only SuperSpeed USB).
-    Plugin works on any generation Linux exposes as a TB host + <code>thunderbolt_net</code>.
+    (Thunderbolt 3 40G-class, Thunderbolt 4, Thunderbolt 5 / USB4 v2 80G-class when both ends support it — not SS-only SuperSpeed USB).
+    Plugin works on any generation Linux exposes as a Thunderbolt host + <code>thunderbolt_net</code>.
     Sticker <strong>40&nbsp;Gb/s</strong> is not PCIe full-duplex 40 each way: lanes are <strong>simplex</strong>, so 40G-class ≈ <strong>full-duplex ~20&nbsp;G</strong> (20 each direction at once).
     <em>Single-lane</em> / 20&nbsp;Gb/s · 1-lane is a common <em>trained</em> result on dual-capable hosts under Linux host-to-host — not “this port is only 20G” and not a failed install.
     Sticker rates (40&nbsp;Gb/s, 80&nbsp;Gb/s, …) are capability class; <strong>trained</strong> rate and lanes are what you get.

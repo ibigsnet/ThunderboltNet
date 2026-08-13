@@ -60,7 +60,7 @@ parm: e2e: USB4NET full end-to-end flow control (default: true) (bool)
 
 | Plugin UI | Module | Meaning |
 |-----------|--------|---------|
-| **No (e2e=0)** (product default) | `e2e=0` | End-to-end TB network flow control **off** |
+| **No (e2e=0)** (product default) | `e2e=0` | End-to-end Thunderbolt network flow control **off** |
 | **Yes (driver default)** | `e2e=1` | Driver default — full E2E flow control **on** |
 
 Persisted as:
@@ -88,7 +88,7 @@ There is **one** `e2e` bit for the entire `thunderbolt_net` module. It applies t
 
 If one peer needed e2e on and another needed off, the kernel still cannot do that. Choose the setting that works for the **harder** peer (almost always **off** for mixed Linux host-to-host).
 
-Changing e2e after the module is loaded may require a module reload or reboot and can disrupt **every** TB netdev at once.
+Changing e2e after the module is loaded may require a module reload or reboot and can disrupt **every** Thunderbolt netdev at once.
 
 ### Why the product default is No (`e2e=0`)
 
@@ -102,7 +102,7 @@ That is an empirical reliability choice for Unraid home-lab host networking — 
 |----------|----------------|
 | Unraid ↔ Linux desktop, laptop, or server | **No (`e2e=0`)** — start here |
 | Unraid ↔ second Unraid | **No** |
-| Multiple peers (tbn0 + tbn1) on Unraid | **No** (one host-wide value for every TB netdev) |
+| Multiple peers (tbn0 + tbn1) on Unraid | **No** (one host-wide value for every Thunderbolt netdev) |
 | Flaky bring-up, one-way ping, or “ThunderboltIP login” timeouts | **No** — then [reseat the cable](troubleshooting.md#reseating-the-cable-why-it-matters) and retest |
 
 Default **No** is the right starting point for almost every peer OS. You do not need a special “keep No forever” row — if it works, leave it.
@@ -119,9 +119,9 @@ Default **No** is the right starting point for almost every peer OS. You do not 
 
 1. Change **only** E2E (not IP, not cable, not security) — one variable at a time.  
 2. Apply, then confirm `/sys/module/thunderbolt_net/parameters/e2e` actually flipped (`Y`/`N` or `1`/`0`).  
-3. If it did **not** change, reboot (or carefully reload the module — that drops **all** TB netdevs).  
-4. **Reseat the cable** after the module option is correct — many TB domains only fully re-train when the physical path drops and returns (see [troubleshooting](troubleshooting.md#reseating-the-cable-why-it-matters)).  
-5. If you had **more than one** TB cable plugged in, unplug **all** of them first, then plug **one** known-good cable back in ([highly recommended recovery steps](links-and-topology.md#multi-cable-and-recovery)).  
+3. If it did **not** change, reboot (or carefully reload the module — that drops **all** Thunderbolt netdevs).  
+4. **Reseat the cable** after the module option is correct — many Thunderbolt domains only fully re-train when the physical path drops and returns (see [troubleshooting](troubleshooting.md#reseating-the-cable-why-it-matters)).  
+5. If you had **more than one** Thunderbolt cable plugged in, unplug **all** of them first, then plug **one** known-good cable back in ([highly recommended recovery steps](links-and-topology.md#multi-cable-and-recovery)).  
 6. Re-test **every** peer: E2E is host-wide.
 
 ### What E2E is *not*
@@ -143,7 +143,7 @@ These are **examples**, not a claim about which peer type is most popular.
 2. Apply; confirm `e2e` sysfs if you just changed it.  
 3. One cable between the hosts; wait for `thunderbolt0`.  
 4. tbn0: static `10.255.0.2/24`, default route **No**.  
-5. On the Linux peer: static `10.255.0.1/24` on its TB net iface (NetworkManager or `ip`).  
+5. On the Linux peer: static `10.255.0.1/24` on its Thunderbolt net iface (NetworkManager or `ip`).  
 6. Ping both ways. If the iface never appears, [reseat](troubleshooting.md#reseating-the-cable-why-it-matters) once with only that cable plugged in.
 
 See [peer-scenarios.md](peer-scenarios.md).

@@ -19,8 +19,8 @@ plus hardcoded `lo`. That **omits** kernel names used by ThunderboltNet:
 |--------------|--------------------|
 | `thunderbolt0` | **tbn0** |
 | `thunderbolt1` | **tbn1** |
-| `bond-tb0` | experimental TB bond |
-| `br-tb0` | experimental TB bridge |
+| `bond-tb0` | experimental Thunderbolt bond |
+| `br-tb0` | experimental Thunderbolt bridge |
 
 ## What this plugin does
 
@@ -30,7 +30,7 @@ On install (and on array **started**), `scripts/tbn-dashboard-ports apply` rewri
 ^(bond|eth|wlan|thunderbolt)\d+$|^(bond-tb|br-tb)\d+$
 ```
 
-So the Dashboard shows the same **General info / Counters / Errors / Network traffic** views for TB links as for eth/bond/wlan.
+So the Dashboard shows the same **General info / Counters / Errors / Network traffic** views for Thunderbolt links as for eth/bond/wlan.
 
 Uninstall runs `remove` and restores the stock files from a one-time backup under:
 
@@ -51,5 +51,5 @@ After apply: hard-refresh the Dashboard and pick **`thunderbolt0`** (not “tbn0
 ## Notes
 
 - Chart scale is the same as other ports (bits/s from byte counters).
-- Link mode line for TB uses the stock **default** path (sysfs `speed` / `duplex` / MTU) — typically “20 Gbps, full duplex, mtu …” when the link is up.
+- Link mode line for Thunderbolt uses the stock **default** path (sysfs `speed` / `duplex` / MTU) — typically “20 Gbps, full duplex, mtu …” when the link is up.
 - OS upgrades may replace `update_3` / `DashStats.page`; `event/started` re-applies the patch.

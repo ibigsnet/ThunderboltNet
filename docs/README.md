@@ -5,7 +5,7 @@ Full product intro: [../DOCS.md](../DOCS.md).
 ## How the pieces fit
 
 ```text
-Physical TB/USB4 path  →  kernel thunderbolt_net (thunderboltN)
+Physical Thunderbolt/USB4 path  →  kernel thunderbolt_net (thunderboltN)
                          →  Thunderbolt Net underlay (tbnN IP, MTU, listening)
                          →  optional OpenFabric/FRR (multi-hop / ring / mesh)
                          →  FRR packages on Unraid: companion Fabric Routing (not this plugin)
@@ -30,7 +30,7 @@ Physical TB/USB4 path  →  kernel thunderbolt_net (thunderboltN)
 | [peer-scenarios.md](peer-scenarios.md) | Unraid ↔ Linux, Proxmox, macOS, Windows, docks/hubs |
 | [addressing.md](addressing.md) | `/24` vs `/30`, unique subnets, multi-peer examples |
 | [standards-and-speeds.md](standards-and-speeds.md) | **Directionality**, bandwidth **table**, **mixing** gens/cables/lanes, FAQ |
-| [port-icons.md](port-icons.md) | Rear-panel silkscreen: lightning/40 vs SS¹⁰/SS²⁰ — do I have TB? |
+| [port-icons.md](port-icons.md) | Rear-panel silkscreen: lightning/40 vs SS¹⁰/SS²⁰ — do I have Thunderbolt? |
 | [mtu-and-throughput.md](mtu-and-throughput.md) | MTU 1500 vs 9000, packet-rate overhead, both-ends jumbo |
 | [dashboard-network.md](dashboard-network.md) | Dashboard Interface list: thunderboltN / bond-tbN graphs & errors |
 | [usb4stream.md](usb4stream.md) | USB4STREAM raw path vs tbn net vs IB research; plugin support |

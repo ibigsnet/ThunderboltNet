@@ -236,7 +236,7 @@ function tbn_iface_membership_labels($if, $master = null) {
 
 /**
  * Per-link summary: local side + far (peer) side from Thunderbolt fabric sysfs.
- * Peer hostname comes from TB topology (device_name), not LLDP.
+ * Peer hostname comes from Thunderbolt topology (device_name), not LLDP.
  */
 function tbn_link_summaries() {
   $include = tbn_read_include_interfaces();
@@ -274,7 +274,7 @@ function tbn_link_summaries() {
       }
     }
 
-    // Local 0-0 is the TB host router/controller (board product + OEM).
+    // Local 0-0 is the Thunderbolt host router/controller (board product + OEM).
     // Remote device_name is usually the peer OS hostname on Linux; vendor_name is
     // often the software stack ("Linux"), not a chassis OEM like "ASUS".
     $ctrl_product = tbn_sysfs_str('/sys/bus/thunderbolt/devices/0-0/device_name');
@@ -624,7 +624,7 @@ function tbn_set_peer_listening_pref($peer_key, $enable, $if = '') {
 }
 
 /**
- * Security hardening: all TB ifaces + all remembered peers → listening No.
+ * Security hardening: all Thunderbolt interfaces + all remembered peers → listening No.
  * Strips thunderbolt* / bond-tb* / br-tb* from network-extra include list.
  */
 function tbn_listening_harden_all() {
@@ -876,7 +876,7 @@ function tbn_format_link_rate($rx, $tx, array $opts = []) {
     return $rx_s . ' full-duplex' . $lanes_suffix;
   }
 
-  // Asymmetric (e.g. TB5 unequal modes): TX first (out to peer), then RX
+  // Asymmetric (e.g. Thunderbolt 5 unequal modes): TX first (out to peer), then RX
   return 'TX ' . $tx_s . ' (to peer) · RX ' . $rx_s . ' (from peer)' . $lanes_suffix;
 }
 
@@ -906,19 +906,19 @@ function tbn_controller_capability() {
   // Marketing-class ceilings when path + peer + cable allow (not a cable EEPROM read).
   $max_gbps = 40;
   $max_lanes = 2;
-  $class = 'TB/USB4 host';
+  $class = 'Thunderbolt/USB4 host';
   if ($gen_i >= 5 || ($usb4 !== '' && version_compare($usb4, '2.0', '>='))) {
     $max_gbps = 80;
     $max_lanes = 2;
-    $class = $gen_i >= 5 ? 'TB5-class' : 'USB4 v2-class';
+    $class = $gen_i >= 5 ? 'Thunderbolt 5-class' : 'USB4 v2-class';
   } elseif ($gen_i >= 4 || $usb4 !== '') {
     $max_gbps = 40;
     $max_lanes = 2;
-    $class = $gen_i >= 4 ? 'TB4-class' : 'USB4-class';
+    $class = $gen_i >= 4 ? 'Thunderbolt 4-class' : 'USB4-class';
   } elseif ($gen_i >= 3) {
     $max_gbps = 40;
     $max_lanes = 2;
-    $class = 'TB3-class';
+    $class = 'Thunderbolt 3-class';
   } elseif ($gen_i === 2) {
     $max_gbps = 20;
     $max_lanes = 2;
@@ -929,9 +929,9 @@ function tbn_controller_capability() {
     $class = 'TB1-class';
   }
 
-  $ctrl = 'TB host';
+  $ctrl = 'Thunderbolt host';
   if ($gen !== '') {
-    $ctrl = 'TB Gen ' . $gen;
+    $ctrl = 'Thunderbolt Gen ' . $gen;
   }
   if ($usb4 !== '') {
     $ctrl .= ' / USB4 ' . $usb4;
@@ -1001,7 +1001,7 @@ function tbn_pci_is_tb_usb($bdf) {
   }
   $vendor = tbn_sysfs_str('/sys/bus/pci/devices/' . $bdf . '/vendor');
   $device = tbn_sysfs_str('/sys/bus/pci/devices/' . $bdf . '/device');
-  // Intel Maple Ridge TB4 USB: 8086:1138; NHI 1137 — also match common USB4 xHCI IDs loosely via path
+  // Intel Maple Ridge Thunderbolt 4 USB: 8086:1138; NHI 1137 — also match common USB4 xHCI IDs loosely via path
   if (strtolower($vendor) === '0x8086' && in_array(strtolower($device), ['0x1138', '0x1137', '0x15eb', '0x15ec', '0x15ef', '0x15f0'], true)) {
     return true;
   }
@@ -1022,10 +1022,10 @@ function tbn_pci_is_tb_usb($bdf) {
  * Brief local port inventory for Link quality LOCAL column.
  *
  * Includes:
- *  - TB host max class (from controller)
- *  - Active TB peer ports (trained path)
- *  - High-speed USB root hubs (5G/10G/20G) with port counts — TB-icon USB-C often appears here
- *    even when they are not full dual-lane 40G TB networking paths
+ *  - Thunderbolt host max class (from controller)
+ *  - Active Thunderbolt peer ports (trained path)
+ *  - High-speed USB root hubs (5G/10G/20G) with port counts — Thunderbolt-icon USB-C often appears here
+ *    even when they are not full dual-lane 40G Thunderbolt networking paths
  *
  * @return list of rows: kind, title, detail, ports (int|null), speed_short, attached
  */
@@ -1038,14 +1038,14 @@ function tbn_list_local_ports(array $cap = null) {
   // 1) Thunderbolt host controller (network fabric ceiling)
   $rows[] = [
     'kind' => 'tb-host',
-    'title' => 'TB/USB4 host',
-    'detail' => ($cap['label'] ?? 'TB host') . ' · max ' . ($cap['max_short'] ?? '?'),
+    'title' => 'Thunderbolt/USB4 host',
+    'detail' => ($cap['label'] ?? 'Thunderbolt host') . ' · max ' . ($cap['max_short'] ?? '?'),
     'ports' => null,
     'speed_short' => $cap['max_short'] ?? '',
     'attached' => null,
   ];
 
-  // 2) Active TB peer ports — host max vs trained (what this plugin cares about)
+  // 2) Active Thunderbolt peer ports — host max vs trained (what this plugin cares about)
   $tb_ports = 0;
   $host_max = $cap['max_short'] ?? tbn_format_max_line($cap['max_gbps'] ?? 40, $cap['max_lanes'] ?? 2);
   foreach (@scandir('/sys/bus/thunderbolt/devices') ?: [] as $id) {
@@ -1121,7 +1121,7 @@ function tbn_list_local_ports(array $cap = null) {
     $nports = $maxchild > 0 ? $maxchild : 0;
     $usb_roots[] = [
       'kind' => $is_tb ? 'usb-tb' : 'usb-ss',
-      'title' => $is_tb ? 'USB-C on TB controller' : 'USB SuperSpeed',
+      'title' => $is_tb ? 'USB-C on Thunderbolt controller' : 'USB SuperSpeed',
       'detail' => $sl['short']
         . ($nports > 0 ? ' · ' . $nports . ' port' . ($nports === 1 ? '' : 's') : '')
         . ($attached > 0 ? ' · ' . $attached . ' in use' : '')
@@ -1134,7 +1134,7 @@ function tbn_list_local_ports(array $cap = null) {
       'bus' => $bn,
     ];
   }
-  // Sort: TB-USB first, then by speed desc, then bus name
+  // Sort: Thunderbolt-USB first, then by speed desc, then bus name
   usort($usb_roots, function ($a, $b) {
     if (!empty($a['is_tb']) !== !empty($b['is_tb'])) {
       return !empty($a['is_tb']) ? -1 : 1;
@@ -1151,12 +1151,12 @@ function tbn_list_local_ports(array $cap = null) {
     $rows[] = $r;
   }
 
-  // Aggregate note if we only saw TB links but no empty-port inventory from USB
+  // Aggregate note if we only saw Thunderbolt links but no empty-port inventory from USB
   if ($tb_ports === 0 && count($usb_roots) === 0) {
     $rows[] = [
       'kind' => 'note',
       'title' => 'Ports',
-      'detail' => 'No SuperSpeed USB roots or live TB peers visible in sysfs yet',
+      'detail' => 'No SuperSpeed USB roots or live Thunderbolt peers visible in sysfs yet',
       'ports' => null,
       'speed_short' => '',
       'attached' => null,
@@ -1167,7 +1167,7 @@ function tbn_list_local_ports(array $cap = null) {
 }
 
 /**
- * HTML for LOCAL column — host max + TB links (boxed) + optional USB SuperSpeed list.
+ * HTML for LOCAL column — host max + Thunderbolt links (boxed) + optional USB SuperSpeed list.
  * Rates always use Gb/s (bits). Compact: wrap text; keep column width bounded via CSS.
  */
 function tbn_controller_capability_html(array $cap = null) {
@@ -1211,7 +1211,7 @@ function tbn_controller_capability_html(array $cap = null) {
   $html .= '<div class="tbn-port-box tbn-port-box-tb">';
   $html .= '<div class="tbn-port-box-hd">Thunderbolt links</div>';
   if (!$tb) {
-    $html .= '<p class="tbn-muted tbn-port-empty">No live TB peer — plug a host cable to see trained rate vs Max.</p>';
+    $html .= '<p class="tbn-muted tbn-port-empty">No live Thunderbolt peer — plug a host cable to see trained rate vs Max.</p>';
   } else {
     $html .= '<ul class="tbn-port-list tbn-port-list-tb">';
     foreach ($tb as $p) {
@@ -1234,7 +1234,7 @@ function tbn_controller_capability_html(array $cap = null) {
       $html .= ' <span class="tbn-muted">' . ($below ? 'trained (below controller max)' : 'trained') . '</span>';
       $html .= '</div>';
       if ($below) {
-        $html .= '<div class="tbn-port-hint tbn-muted">Single-lane is common for TB host-to-host under Linux — not a failed install.</div>';
+        $html .= '<div class="tbn-port-hint tbn-muted">Single-lane is common for Thunderbolt host-to-host under Linux — not a failed install.</div>';
       }
       $html .= '</li>';
     }
@@ -1248,7 +1248,7 @@ function tbn_controller_capability_html(array $cap = null) {
     $html .= '<details class="tbn-port-box tbn-port-box-usb">';
     $html .= '<summary>Other USB SuperSpeed (' . (int)$n . ' bank'
       . ($n === 1 ? '' : 's') . ')</summary>';
-    $html .= '<p class="tbn-port-usb-note tbn-muted">Type-C may show a TB icon but these are USB data paths, not full TB host networking.</p>';
+    $html .= '<p class="tbn-port-usb-note tbn-muted">Type-C may show a Thunderbolt icon but these are USB data paths, not full Thunderbolt host networking.</p>';
     $html .= '<ul class="tbn-port-list tbn-port-list-usb">';
     foreach ($usb as $p) {
       $html .= '<li class="tbn-port-' . htmlspecialchars($p['kind'] ?? 'usb-ss') . '">';
@@ -1281,7 +1281,7 @@ function tbn_controller_capability_html(array $cap = null) {
  *   controller capability array (max potential)
  *
  * Linux does not expose a reliable cable SKU. Trained 20G×1-lane on a dual-capable
- * host is common for TB host-to-host under firmware ICM — treat as normal, not
+ * host is common for Thunderbolt host-to-host under firmware ICM — treat as normal, not
  * a broken install. Cable is only one of several factors.
  */
 function tbn_link_quality(array $remote, array $status = []) {
@@ -1348,9 +1348,9 @@ function tbn_link_quality(array $remote, array $status = []) {
       'lead' => 'Trained ' . $trained . ' (controller max ' . $max_short . ').',
       'note' => 'Host class is ' . $max_short . '. This path trained at ' . $trained
         . '. TCP/SMB in the ~10–15 Gbit/s range is normal for 1-lane host-net.',
-      'likely' => 'Common on TB4/USB4 host-to-host under Linux (firmware ICM). Not a failed plugin install.',
+      'likely' => 'Common on Thunderbolt 4/USB4 host-to-host under Linux (firmware ICM). Not a failed plugin install.',
       'suggestion' => 'Prefer one cable per peer path; set MTU 9000 on both ends for bulk. Dual-cable bonding needs two live netdevs (roadmap for same-peer multi-path).',
-      'less_likely' => 'Cable/port can still matter for some pairs, but a short certified TB4 cable often stays 1-lane too.',
+      'less_likely' => 'Cable/port can still matter for some pairs, but a short certified Thunderbolt 4 cable often stays 1-lane too.',
       'detail' => 'Max ' . $max_short . '; trained ' . $trained . '; single-lane host-net common',
       'controller' => $cap,
       'trained' => $trained,
@@ -1702,7 +1702,7 @@ function tbn_usb4stream_status() {
 }
 
 /**
- * Probe for Thunderbolt-family host controller hardware (TB3/4/5, USB4 host router — not peer cable).
+ * Probe for Thunderbolt-family host controller hardware (Thunderbolt 3/4/5, USB4 host router — not peer cable).
  * Returns keys: has_hardware, sysfs_bus, domain0, pci_lines, modules, reason.
  */
 function tbn_hardware_probe() {
@@ -1717,7 +1717,7 @@ function tbn_hardware_probe() {
       $pci[] = $line;
     }
   }
-  // Also match known Intel TB NHI device IDs if description is sparse
+  // Also match known Intel Thunderbolt NHI device IDs if description is sparse
   if (!$pci) {
     foreach ($lines as $line) {
       if (preg_match('/\[8086:(1137|15eb|15ec|15ef|15f0|9a1b|9a1d|a0b5|a71e)\]/i', $line)) {
@@ -1918,7 +1918,7 @@ function tbn_write_include_interfaces(array $ifaces) {
 }
 
 /**
- * Ensure/remove TB ifaces from include list based on cfg + live netdevs.
+ * Ensure/remove Thunderbolt interfaces from include list based on cfg + live netdevs.
  */
 function tbn_apply_include_listening($enable) {
   $cfg = tbn_load_cfg();
@@ -1974,7 +1974,7 @@ function tbn_load_modules() {
 }
 
 /**
- * Bring configured TB ifaces administratively up (helps carrier / ping).
+ * Bring configured Thunderbolt interfaces administratively up (helps carrier / ping).
  */
 function tbn_bring_up_ifaces() {
   $cfg = tbn_load_cfg();
@@ -2160,11 +2160,11 @@ function tbn_iface_defaults($if = 'thunderbolt0') {
     'BONDING' => 'no',
     'BONDING_MODE' => 'active-backup',
     'BOND_NAME' => 'bond-tb0',
-    // Space-separated thunderboltN members; empty = all live TB ifaces
+    // Space-separated thunderboltN members; empty = all live Thunderbolt interfaces
     'BOND_MEMBERS' => '',
     'BRIDGING' => 'no',
     'BR_NAME' => 'br-tb0',
-    // VLANs on this TB iface (subinterfaces if.VID) — eth-like subset
+    // VLANs on this Thunderbolt interface (subinterfaces if.VID) — eth-like subset
     'VLAN_ENABLE' => 'no',
     'VLAN_LIST' => '',
     'PROTOCOL' => 'ipv4',
@@ -2278,7 +2278,7 @@ function tbn_apply_mtu($if, $mtu) {
     $mtu = $lim['max'];
   }
   // Cap UI-ish jumbo at 9198 for "normal" ethernet tools unless driver allows more;
-  // still honor higher if user chose custom within maxmtu (TB path supports large frames).
+  // still honor higher if user chose custom within maxmtu (Thunderbolt path supports large frames).
   @exec('ip link set dev ' . escapeshellarg($if) . ' mtu ' . (int)$mtu . ' 2>/dev/null', $o, $rc);
   return $rc === 0;
 }
@@ -2778,7 +2778,7 @@ function tbn_apply_iface($if) {
   // Listening include for this iface only
   tbn_set_listening_for_iface($if, ($cfg['INCLUDE_LISTENING'] ?? 'no') === 'yes' ? 'yes' : 'no');
 
-  // Bonding — experimental; only when form enables it and ≥2 live TB members
+  // Bonding — experimental; only when form enables it and ≥2 live Thunderbolt members
   if (!$is_bond_slave && ($cfg['BONDING'] ?? 'no') === 'yes') {
     $members = tbn_parse_bond_members($cfg['BOND_MEMBERS'] ?? '', true);
     if (!$members && $if !== '') {
@@ -2811,7 +2811,7 @@ function tbn_mask_to_prefix($mask) {
 }
 
 /**
- * Simple balance-rr (etc.) bond for TB members only — not full Unraid bond0.
+ * Simple balance-rr (etc.) bond for Thunderbolt members only — not full Unraid bond0.
  */
 function tbn_apply_simple_bond(array $cfg, $primary_if) {
   $bond = $cfg['BOND_NAME'] ?? 'bond-tb0';
@@ -2836,7 +2836,7 @@ function tbn_apply_simple_bond(array $cfg, $primary_if) {
   if (!$members && $primary_if !== '') {
     $members = [$primary_if];
   }
-  // Release TB ifaces not in this bond that still slave under it
+  // Release Thunderbolt interfaces not in this bond that still slave under it
   foreach (tbn_list_tb_iface_names() as $m) {
     $cur = tbn_iface_master($m);
     if ($cur === $bond && !in_array($m, $members, true)) {
@@ -2950,7 +2950,7 @@ if (!function_exists('tbn_of_status') && is_file($__tbn_of_dev)) {
 }
 
 /**
- * Active PCI warnings (currently VFIO on TB-related devices).
+ * Active PCI warnings (currently VFIO on Thunderbolt-related devices).
  * Each: key, bdf, message, severity.
  */
 function tbn_pci_warnings(array $pci, ?array $cfg = null) {

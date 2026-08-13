@@ -36,7 +36,7 @@ Example (lab): **Unraid 7.3.2** running kernel **6.18.38-Unraid** → **no** `th
 |------|-------------------|--------------|-------------|
 | **USB4NET** (`thunderbolt_net`) | Long stable | `thunderbolt0`… IP NIC (tbn tabs) | **Primary** — already supported |
 | **USB4STREAM** (`thunderbolt_stream`) | Mainline **Linux kernel ~7.2+** (or a build that backports the module) | Raw stream, often `/dev/tbstream*` | **Detect + optional load** now; apply helpers later |
-| **IB verbs over TB** | Research / out-of-tree | Fake InfiniBand for RDMA/AI | **Out of scope** for this plugin |
+| **IB verbs over Thunderbolt** | Research / out-of-tree | Fake InfiniBand for RDMA/AI | **Out of scope** for this plugin |
 
 Reference write-ups: [Phoronix USB4STREAM in 7.2](https://www.phoronix.com/news/USB4STREAM-In-Linux-7.2), kernel admin-guide Thunderbolt section, experimental [thunderbolt-ibverbs](https://blog.hellas.ai/blog/thunderbolt-ibverbs/) (not shipped here).
 
@@ -46,8 +46,8 @@ Reference write-ups: [Phoronix USB4STREAM in 7.2](https://www.phoronix.com/news/
 
 | | |
 |--|--|
-| **Same cable class** | Yes — same USB4/TB ports you already use |
-| **Faster than TB-net + TCP?** | Possibly (less stack); still limited by **trained lanes/speed** (e.g. 20G×1) |
+| **Same cable class** | Yes — same USB4/Thunderbolt ports you already use |
+| **Faster than Thunderbolt-net + TCP?** | Possibly (less stack); still limited by **trained lanes/speed** (e.g. 20G×1) |
 | **Works if Unraid is “new enough” by product number?** | **No guarantee.** Unraid **7.x** today often still runs a **6.x** kernel without the module. |
 | **Works if only one peer has `thunderbolt_stream`?** | **No** — both ends need a kernel that ships the module |
 
@@ -94,6 +94,6 @@ Plugin **does not** yet auto-create configfs streams or replace NBD/rsync. That 
 ## Operator tips
 
 - Leave **Enable USB4STREAM = No** on production Unraid until the **running kernel** shows the module under status (`modinfo`, not “I upgraded Unraid”).  
-- Do **not** unload `thunderbolt_net` to “try stream only” unless you accept losing IP/SMB/SSH on TB.  
+- Do **not** unload `thunderbolt_net` to “try stream only” unless you accept losing IP/SMB/SSH on Thunderbolt.  
 - Dual-lane / 40G training is still a **fabric** issue; stream does not fix single-lane 20G cables.  
 - Do **not** upgrade Unraid solely for USB4STREAM unless release notes say the **kernel** includes `thunderbolt_stream` — verify with `uname -r` + `modinfo` after upgrade.

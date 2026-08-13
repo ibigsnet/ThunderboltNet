@@ -37,7 +37,7 @@ Peer is conventionally `.1` on the same subnet (not enforced).
 | Mental model | Tiny private LAN on this cable | ISP-style link |
 | Dual peers on Unraid | Use **different** /24 per tbnN | Use **different** /30 per tbnN |
 
-Thunderbolt networking is **peer-to-peer** at the fabric level either way. The mask is a **policy** choice, not proof of a multi-port TB switch.
+Thunderbolt networking is **peer-to-peer** at the fabric level either way. The mask is a **policy** choice, not proof of a multi-port Thunderbolt switch.
 
 ### When to prefer /24
 
@@ -59,7 +59,7 @@ Linux supports `/31` (RFC 3021) for P2P; many UIs and humans do not. Not a produ
 
 ## Hard rule: unique subnet per Thunderbolt link
 
-**Bad** (two TB ifaces, same /24):
+**Bad** (two Thunderbolt interfaces, same /24):
 
 | Iface | Address |
 |-------|---------|
@@ -104,7 +104,7 @@ Same idea with /30: `10.255.0.2/30` and `10.255.1.2/30`.
 
 ### Default route
 
-Leave **Enable default route = No** unless this TB link should carry **all** Unraid internet traffic (rare).  
+Leave **Enable default route = No** unless this Thunderbolt link should carry **all** Unraid internet traffic (rare).  
 A filled **gateway** without default route still only matters for routes you add toward that gateway.
 
 ---
@@ -117,7 +117,7 @@ A filled **gateway** without default route still only matters for routes you add
 
 ## OpenFabric / multi-hop
 
-Underlay addressing above is still required when OpenFabric is on (link IPs + unique subnets). Multi-hop reachability usually uses **loopback /32 router-ids** learned via FRR, not by putting every host on one big TB subnet. See [routing-openfabric.md](routing-openfabric.md) and [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md).
+Underlay addressing above is still required when OpenFabric is on (link IPs + unique subnets). Multi-hop reachability usually uses **loopback /32 router-ids** learned via FRR, not by putting every host on one big Thunderbolt subnet. See [routing-openfabric.md](routing-openfabric.md) and [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md).
 
 ## Related
 

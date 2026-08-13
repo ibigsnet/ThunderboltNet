@@ -31,7 +31,7 @@
 |-------|------|----------------|
 | L0 | TBN Latest smoke; OpenFabric UI; br0 OK | 1 Unraid |
 | L1 | FabricRouting idle → packages / `vtysh` | 1 Unraid |
-| L2 | Linux/Proxmox ↔ Unraid **static** TB | 1 Linux + 1 Unraid |
+| L2 | Linux/Proxmox ↔ Unraid **static** Thunderbolt | 1 Linux + 1 Unraid |
 | L3 | Same pair **OpenFabric** + loopbacks | Same + FRR both sides |
 | L4 | Multi-hop (3+ nodes) | 3+ hosts |
 | L5 | Ring/mesh failover | Topology with alternate path |

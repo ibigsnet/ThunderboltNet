@@ -15,7 +15,7 @@
   UI: Network Settings siblings via ibigsGotoNetTab(Title) — never deep-link
   /Settings/ThunderboltNet or /Settings/FabricRouting (standalone CA pages).
 -->
-<!ENTITY version "2026.08.13ac">
+<!ENTITY version "2026.08.13ad">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -38,6 +38,7 @@
 
 <CHANGES>
 ###&version;
+- Wording: spell out **Thunderbolt** instead of ambiguous “TB” in UI/docs (terabyte confusion).
 - Companion rename: **Fabric Routing** / id **FabricRouting** (was UnraidFRR — trademark). Detects legacy install paths.
 - Docs/UI: public sanitization — no personal lab hostnames (use peer/Machine B language).
 
@@ -50,10 +51,10 @@
 - Versioning: bare `2026.08.13` after historical single-letter `12a`.
 
 ###2026.08.12a
-- OpenFabric: metric reference default **20000** (~20G TB host-net class), not 100G; docs explain DAC/manual override.
+- OpenFabric: metric reference default **20000** (~20G Thunderbolt host-net class), not 100G; docs explain DAC/manual override.
 - UI/docs: less “Not USB4STREAM” noise — point to usb4stream.md once.
 - Docs: Contents/TOC on large guides (routing-openfabric, standards, DOCS, …).
-- Docs: spell out Thunderbolt (not TB) next to multi-terabyte imaging context.
+- Docs: spell out Thunderbolt (not Thunderbolt) next to multi-terabyte imaging context.
 - Companion name: **Fabric Routing** / CA **Fabric Routing (FRR)** (FabricRouting packages tab).
 - Note: single-letter `12a` was non-standard (use two-letter suffixes after bare date).
 
@@ -95,7 +96,7 @@
 - Wording: drop “single-link only” product framing — multi-peer tbn paths and optional OpenFabric multi-host fabric; honest trained rates; dual-cable bonding only when multiple netdevs exist.
 
 ###2026.08.11aa
-- OpenFabric: point at companion plugin FabricRouting for FRR package install (separate, opt-in, not required for static TB); status UI shows companion presence.
+- OpenFabric: point at companion plugin FabricRouting for FRR package install (separate, opt-in, not required for static Thunderbolt); status UI shows companion presence.
 
 ###2026.08.11
 - OpenFabric / FRR: defaults On when FRR available; generate conf, auto metrics (ref/trained), router-id on lo, Apply + array-start hooks; degrades to static if FRR missing.
@@ -106,10 +107,10 @@
 - Docs: full standards guide — directionality, bandwidth table, mixing gens/cables/lanes, FAQ.
 
 ###2026.08.05ac
-- Docs: planning table — expected bandwidth by TB/USB4 class (each direction vs sticker sum vs TCP).
+- Docs: planning table — expected bandwidth by Thunderbolt/USB4 class (each direction vs sticker sum vs TCP).
 
 ###2026.08.05ab
-- Docs/UI: directionality — USB4/TB simplex lanes vs PCIe full-duplex; 40G-class ≈ 20G each way, not 40 each way.
+- Docs/UI: directionality — USB4/Thunderbolt simplex lanes vs PCIe full-duplex; 40G-class ≈ 20G each way, not 40 each way.
 
 ###2026.08.05aa
 - Support link → Unraid forum thread; Project stays GitHub (CA shows both).
@@ -131,7 +132,7 @@
 - MTU product default back to 1500 for compatibility; 9000 optional both ends (not negotiated to peer; little TCP gain on 1-lane in lab).
 
 ###2026.07.30ba
-- Clarify support across TB3/4/5 and USB4 / USB4 v2 (20G–80G class when Linux exposes host-net); trained rate ≠ sticker; not TB4-only.
+- Clarify support across Thunderbolt 3/4/5 and USB4 / USB4 v2 (20G–80G class when Linux exposes host-net); trained rate ≠ sticker; not Thunderbolt 4-only.
 - Docs, README, UI cable/recovery help: generation-agnostic wording.
 
 ###2026.07.30az
@@ -150,19 +151,19 @@
 
 - Simple-then-help copy: brief section notes; detail in blue helpers; domain security phone-lock analogy.
 
-- Port legend: Thunderbolt mark + SuperSpeed icons; no-TB layout error|legend; half-width bottom-right on TB hosts; Links after Known peers; column widths mid-size.
+- Port legend: Thunderbolt mark + SuperSpeed icons; no-Thunderbolt layout error|legend; half-width bottom-right on Thunderbolt hosts; Links after Known peers; column widths mid-size.
 
-- Port silkscreen legend (TB lightning/40 vs SS10/SS20) on overview with or without TB hardware.
+- Port silkscreen legend (Thunderbolt lightning/40 vs SS10/SS20) on overview with or without Thunderbolt hardware.
 
-- Link quality: compact columns, Gb/s notation, TB ports boxed (max vs trained), USB SuperSpeed collapsed; clearer remote badges.
+- Link quality: compact columns, Gb/s notation, Thunderbolt ports boxed (max vs trained), USB SuperSpeed collapsed; clearer remote badges.
 
-- Link quality LOCAL: host Max + brief port list (TB peers, 10G/20G USB-C SuperSpeed roots with counts).
+- Link quality LOCAL: host Max + brief port list (Thunderbolt peers, 10G/20G USB-C SuperSpeed roots with counts).
 
 - Link quality LOCAL column: host max potential (e.g. Max ~40G · 2-lane) so yellow 20G has a ceiling to compare.
 
 - MTU modes (1500 default / 9000 recommended / custom); overview labels; docs MTU PPS tables for high-speed bulk.
 
-- Fix stacked TB addresses/routes: flush L3 before Apply; drop stale defaults; listen form no longer pollutes iface cfg.
+- Fix stacked Thunderbolt addresses/routes: flush L3 before Apply; drop stale defaults; listen form no longer pollutes iface cfg.
 
 - IPv4/IPv6 CIDR row alignment; bond-tb0/br-tb0 name fields + legacy bond-tb/br-tb migrate; listening help.
 
@@ -180,7 +181,7 @@
 
 - Host services per peer (SMB/NFS/web UI listen); remember Yes/No; Harden all to No.
 
-- Default TB bond name bond-tb0 (bond-tbN pattern; avoid Unraid bond0).
+- Default Thunderbolt bond name bond-tb0 (bond-tbN pattern; avoid Unraid bond0).
 
 - Fix blank tbn1/tbnN tabs: use require (not require_once) so each tab re-renders the shared form.
 
@@ -201,8 +202,8 @@
 - Fabric devices: hide service/domain rows by default (expand for detail); link quality cells compact + wrap.
 
 ###2026.07.29ba
-- Empty-state: clearer TB3–5/USB4 wording, spacing, link to Tools → Diagnostics.
-- Docs: standards matrix (TB3–5, USB4/v2; not USB3-only; no “USB5” brand).
+- Empty-state: clearer Thunderbolt 3–5/USB4 wording, spacing, link to Tools → Diagnostics.
+- Docs: standards matrix (Thunderbolt 3–5, USB4/v2; not USB3-only; no “USB5” brand).
 
 ###2026.07.29az
 - Docs: reseating cables and multi-cable recovery; drop confusing E2E “already know” row; no “most common” peer claim.
@@ -213,7 +214,7 @@
 - Clearer description: Thunderbolt-compatible host networking (not one generation only).
 
 ###2026.07.29ax
-- Clearer Plugins description: Thunderbolt-compatible host networking (not one USB/TB generation only).
+- Clearer Plugins description: Thunderbolt-compatible host networking (not one USB/Thunderbolt generation only).
 
 ###2026.07.29aw
 - Docs treasure trove (DOCS.md + docs/*): driver E2E, peer scenarios (Linux/Mac/Windows/docks), addressing, speeds.
@@ -254,7 +255,7 @@
 - Thorough uninstall cleanup.
 
 ###2026.07.29ag
-- Network Settings placement and host-to-host TB LAN UX.
+- Network Settings placement and host-to-host Thunderbolt LAN UX.
 
 ###2026.07.29ae
 - CLI/JSON status over SSH.

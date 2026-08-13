@@ -161,7 +161,7 @@ develop on branch → merge to main → bump .plg version + CHANGES
 |-----|----------------|--------|
 | `main` (Latest) | **2026.08.11ak** | Links empty-state fix; uninstall keeps peers.json; entry banner only on CA launch; OpenFabric FRR chip |
 | [`v2026.08.05ad`](https://github.com/ibigsnet/ThunderboltNet/releases/tag/v2026.08.05ad) | **2026.08.05ad** | **Stable pin** before OpenFabric work: standards guide (directionality, bandwidth table, mixing, FAQ) |
-| [`v2026.08.05ac`](https://github.com/ibigsnet/ThunderboltNet/releases/tag/v2026.08.05ac) | **2026.08.05ac** | First GitHub Release: USB4STREAM awareness, Dashboard TB ports, forum + GitHub support links |
+| [`v2026.08.05ac`](https://github.com/ibigsnet/ThunderboltNet/releases/tag/v2026.08.05ac) | **2026.08.05ac** | First GitHub Release: USB4STREAM awareness, Dashboard Thunderbolt ports, forum + GitHub support links |
 
 Prefer **`v2026.08.05ad`** for freeze/rollback. Prefer **Latest** for newest (OpenFabric settings work when FRR is present; multi-hop needs FRR via [FabricRouting](https://github.com/ibigsnet/FabricRouting) or other install).
 ### Roll back to a tag

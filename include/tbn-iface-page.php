@@ -176,7 +176,7 @@ if (strpos($nm, '.') === false) {
         <dd>
           <select name="BONDING" class="tbn-ctl-bond" <?= $is_bond_slave ? 'disabled' : '' ?>>
             <?= mk_option($cfg['BONDING'] ?? 'no', 'no', 'No') ?>
-            <?= mk_option($cfg['BONDING'] ?? 'no', 'yes', 'Yes — when ≥2 live TB netdevs') ?>
+            <?= mk_option($cfg['BONDING'] ?? 'no', 'yes', 'Yes — when ≥2 live Thunderbolt netdevs') ?>
           </select>
         </dd>
       </dl>
@@ -184,7 +184,7 @@ if (strpos($nm, '.') === false) {
         Thunderbolt-only Linux bond (<code>bond-tb0</code>, …), not Unraid eth <code>bond0</code>.
         Needs <strong>two or more live</strong> <code>thunderbolt*</code> netdevs already present
         (today usually two <em>different</em> peers). Two cables to the <em>same</em> peer often still yield
-        <strong>one</strong> netdev — bonding cannot invent a second slave, and TB slaves may reject
+        <strong>one</strong> netdev — bonding cannot invent a second slave, and Thunderbolt slaves may reject
         <code>set_mac</code> (many bond modes fail). Apply with fewer than two members is ignored.<br><br>
         <strong>Roadmap:</strong> better dual-path detection and bond+OpenFabric metrics when the kernel
         exposes two usable paths — dual-cable bonding is <em>not</em> a non-goal.
@@ -199,12 +199,12 @@ if (strpos($nm, '.') === false) {
               <?= mk_option($cfg['BONDING_MODE'] ?? 'active-backup', 'active-backup', 'active-backup (1) — least bad') ?>
               <?= mk_option($cfg['BONDING_MODE'] ?? 'active-backup', 'balance-rr', 'balance-rr (0)') ?>
               <?= mk_option($cfg['BONDING_MODE'] ?? 'active-backup', 'balance-xor', 'balance-xor (2)') ?>
-              <?= mk_option($cfg['BONDING_MODE'] ?? 'active-backup', '802.3ad', '802.3ad (4) — usually fails on TB') ?>
+              <?= mk_option($cfg['BONDING_MODE'] ?? 'active-backup', '802.3ad', '802.3ad (4) — usually fails on Thunderbolt') ?>
             </select>
           </dd>
         </dl>
         <blockquote class="inline_help">
-          Prefer <strong>active-backup</strong> if you truly have two TB netdevs. 802.3ad/LACP is a poor fit
+          Prefer <strong>active-backup</strong> if you truly have two Thunderbolt netdevs. 802.3ad/LACP is a poor fit
           for <code>thunderbolt_net</code> (no set_mac, flaky MII).
         </blockquote>
 
@@ -249,7 +249,7 @@ if (strpos($nm, '.') === false) {
     <blockquote class="inline_help">
       <strong>Bonding:</strong> not offered with a single live <code>thunderbolt*</code> path (the common case).
       Same-peer dual-cable often still yields one netdev today; multi-path bonding is a roadmap item when
-      two paths appear. If the TB domain wedges after dual-cable tests: unplug <em>all</em> TB cables on
+      two paths appear. If the Thunderbolt domain wedges after dual-cable tests: unplug <em>all</em> Thunderbolt cables on
       <em>both</em> machines, wait, plug one cable only.
       <?= tbn_help_docs_footer('docs/links-and-topology.md', 'Bonding roadmap') ?>
     </blockquote>
@@ -268,7 +268,7 @@ if (strpos($nm, '.') === false) {
       </dl>
       <blockquote class="inline_help">
         When global OpenFabric is On: <strong>Yes</strong> runs this link in the fabric;
-        <strong>Passive</strong> advertises without adjacency hellos (rare on TB underlay);
+        <strong>Passive</strong> advertises without adjacency hellos (rare on Thunderbolt underlay);
         <strong>No</strong> keeps pure static on this cable only.
         <?= tbn_help_docs_footer('docs/routing-openfabric.md', 'OpenFabric / FRR') ?>
       </blockquote>
@@ -356,7 +356,7 @@ if (strpos($nm, '.') === false) {
           </dd>
         </dl>
         <blockquote class="inline_help">
-          <strong>Static</strong> (usual for TB P2P). <strong>Automatic</strong> tries DHCP (often no server on the cable).
+          <strong>Static</strong> (usual for Thunderbolt P2P). <strong>Automatic</strong> tries DHCP (often no server on the cable).
         </blockquote>
         <div class="tbn-static-ipv4 tbn-hidden">
           <dl>
@@ -402,7 +402,7 @@ if (strpos($nm, '.') === false) {
           </dd>
         </dl>
         <blockquote class="inline_help">
-          TB is Ethernet-like: IPv6 works when both ends configure it. Static is typical for P2P.
+          Thunderbolt is Ethernet-like: IPv6 works when both ends configure it. Static is typical for P2P.
         </blockquote>
         <div class="tbn-static-ipv6 tbn-hidden">
           <dl>
@@ -566,7 +566,7 @@ if (strpos($nm, '.') === false) {
       its address. This is an interface list — not a peer list.<br><br>
       Day-to-day: prefer overview <strong>Known peers → Unraid services</strong> (remembers Yes/No per host and
       re-applies when that peer reconnects). This tab control is the live override for this iface (useful when
-      the IP lives on the TB iface itself). Bond/bridge names (<code>bond-tb0</code> / <code>br-tb0</code>)
+      the IP lives on the Thunderbolt interface itself). Bond/bridge names (<code>bond-tb0</code> / <code>br-tb0</code>)
       are reserved for when addressing sits on those masters; host-service include today keys off
       <code>thunderboltN</code> via peers/tabs.
     </blockquote>

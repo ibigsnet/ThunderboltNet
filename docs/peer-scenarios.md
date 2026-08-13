@@ -26,12 +26,12 @@ E2E is **host-wide** — see [driver-options.md](driver-options.md).
 | Peer | What appears on Unraid | Unraid E2E | Addressing | Notes |
 |------|------------------------|------------|------------|-------|
 | **Linux** (desktop/server) | `thunderboltN` + peer name in fabric | **No** first | Static /24 or /30 both ends | Best documented path for this plugin |
-| **Proxmox** (Debian + FRR) | Same as Linux TB netdev | **No** first | Static underlay + **OpenFabric** for multi-hop | Mixed fabric with Unraid — [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md) |
+| **Proxmox** (Debian + FRR) | Same as Linux Thunderbolt netdev | **No** first | Static underlay + **OpenFabric** for multi-hop | Mixed fabric with Unraid — [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md) |
 | **Another Unraid** | Same as Linux | **No** first | Static, unique subnet per link; OpenFabric when FRR present | Same stack both sides |
-| **macOS** | Often works as TB network peer | **No** first; try **Yes** only if needed | Static or macOS Thunderbolt Bridge DHCP/self-assigned | “Thunderbolt Bridge” on Mac; behavior varies by macOS version |
-| **Windows** | OEM-dependent | **No** first | Static if a TB network adapter appears | Many PCs expose TB for displays/docks only; networking not guaranteed |
-| **TB/USB4 dock with RJ45** | Usually **USB Ethernet**, not `thunderbolt_net` | N/A for that NIC | Configure like eth | Different device class — see below |
-| **TB hub (no host peer)** | May show devices, **no** host netdev | N/A | — | Hubs don’t create Unraid↔hub “LAN” via thunderbolt_net by themselves |
+| **macOS** | Often works as Thunderbolt network peer | **No** first; try **Yes** only if needed | Static or macOS Thunderbolt Bridge DHCP/self-assigned | “Thunderbolt Bridge” on Mac; behavior varies by macOS version |
+| **Windows** | OEM-dependent | **No** first | Static if a Thunderbolt network adapter appears | Many PCs expose Thunderbolt for displays/docks only; networking not guaranteed |
+| **Thunderbolt/USB4 dock with RJ45** | Usually **USB Ethernet**, not `thunderbolt_net` | N/A for that NIC | Configure like eth | Different device class — see below |
+| **Thunderbolt hub (no host peer)** | May show devices, **no** host netdev | N/A | — | Hubs don’t create Unraid↔hub “LAN” via thunderbolt_net by themselves |
 
 ---
 
@@ -55,7 +55,7 @@ Well-supported with this plugin (same kernel family both sides). Not necessarily
 
 - Match **prefix** both ends (`/24` with `/24`, not one `/24` and one `/30` unless you understand the overlap).  
 - Peer **name** in the Unraid table is often the Linux hostname; **stack** may show `Linux` or a vendor string — not always the PC brand.  
-- If traffic is flaky with E2E **Yes**, return to **No**, confirm sysfs, then **reseat** the cable (all extra TB cables unplugged first if you had more than one).
+- If traffic is flaky with E2E **Yes**, return to **No**, confirm sysfs, then **reseat** the cable (all extra Thunderbolt cables unplugged first if you had more than one).
 
 ---
 
@@ -64,7 +64,7 @@ Well-supported with this plugin (same kernel family both sides). Not necessarily
 Treat as Linux ↔ Linux.
 
 - Give each direction a clear static plan (e.g. host A `10.255.0.1/24`, host B `10.255.0.2/24`).  
-- Only one side needs “include listening” if you want SMB on the TB link.  
+- Only one side needs “include listening” if you want SMB on the Thunderbolt link.  
 - Dual cables between the **same** two hosts often still yield **one** peer path — see [links-and-topology.md](links-and-topology.md).
 
 ---
@@ -91,7 +91,7 @@ macOS versions and Apple silicon vs Intel differ; treat E2E as an experiment, no
 
 ### Tips
 
-- Prefer a **TB4/USB4 40&nbsp;Gbps** cable; Macs are picky about passive cable length/class.  
+- Prefer a **Thunderbolt 4/USB4 40&nbsp;Gbps** cable; Macs are picky about passive cable length/class.  
 - Don’t confuse Thunderbolt Bridge with a dock’s **Ethernet** port (that’s a separate NIC on the Mac).  
 - Keep **Enable default route = No** on Unraid so macOS Wi‑Fi remains the Mac’s internet path and Unraid keeps eth0/br0 for WAN.
 
@@ -107,14 +107,14 @@ Windows Thunderbolt **networking** is **not** as uniform as Ethernet:
 - Others only support docks, storage, or displays — **no** host-to-host IP.  
 - Drivers and “Thunderbolt Control Center” / OEM utilities matter.
 
-### If a TB network adapter appears on Windows
+### If a Thunderbolt network adapter appears on Windows
 
 1. Unraid: E2E **No**, static IP on tbnN.  
 2. Windows: set a static IP on that adapter in the same subnet.  
 3. Allow ICMPv4 in Windows Firewall for private networks if ping is blocked.  
 4. If unstable, try Unraid E2E **Yes** once; if still dead, the Windows side may not support this mode.
 
-### If no TB network adapter appears
+### If no Thunderbolt network adapter appears
 
 Thunderbolt Net on Unraid cannot force Windows to implement host networking. Use:
 
@@ -133,7 +133,7 @@ This is the most common confusion.
 | Path | Unraid device | Configure with |
 |------|---------------|----------------|
 | Cable Unraid → **dock Ethernet** | Often `ethN` / USB NIC | Unraid **Network Settings** eth tab (not tbn) |
-| Cable Unraid → **peer PC** over TB | `thunderboltN` | Thunderbolt Net **tbnN** tab |
+| Cable Unraid → **peer PC** over Thunderbolt | `thunderboltN` | Thunderbolt Net **tbnN** tab |
 
 A hub “with network ports” usually means **the hub contains a USB Ethernet chip**. That is **not** the same as `thunderbolt_net` host-to-host tunneling.
 
@@ -143,13 +143,13 @@ Topologies vary. You may get:
 
 - USB Ethernet on one host only, or  
 - Daisy-chain effects, or  
-- Still a single host-to-host TB path if both are hosts.
+- Still a single host-to-host Thunderbolt path if both are hosts.
 
 Do not assume the dock is an L2 switch for ThunderboltIP. Prefer a **direct host↔host cable** for Thunderbolt Net, and use the dock’s RJ45 as ordinary Ethernet when you need switch-like LAN.
 
 ### Unraid plugged only into a dock (no second computer)
 
-You may see TB devices (storage, GPU enclosure, USB controllers) under **Fabric devices**, but **no** `thunderboltN` network interface until another **host** with networking service appears. That is expected.
+You may see Thunderbolt devices (storage, GPU enclosure, USB controllers) under **Fabric devices**, but **no** `thunderboltN` network interface until another **host** with networking service appears. That is expected.
 
 ---
 
@@ -169,7 +169,7 @@ Example: tbn0 → Linux workstation, tbn1 → laptop.
 |---------|----------|
 | E2E | Still **one** host value — keep **No** |
 | IPv4 | **Different subnet per link** (`10.255.0.0/24`, `10.255.1.0/24`) |
-| Default route | **No** on all TB links |
+| Default route | **No** on all Thunderbolt links |
 | Bonding | Only if you truly have two netdevs to the **same** peer path design — rare |
 
 ---

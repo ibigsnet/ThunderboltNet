@@ -2,7 +2,7 @@
 
 Use the marks **printed next to the physical ports** on the motherboard rear I/O or laptop side. This guide is **docs-only** (not drawn in the Unraid UI — silkscreen logos are hard to render cleanly in-plugin).
 
-**Short rule:** Thunderbolt lightning and/or printed **40** next to Type‑C → TB/USB4 class. **SS¹⁰ / SS²⁰** alone → USB SuperSpeed only (not this plugin’s host networking path). DisplayPort **D** alone is not enough.
+**Short rule:** Thunderbolt lightning and/or printed **40** next to Type‑C → Thunderbolt/USB4 class. **SS¹⁰ / SS²⁰** alone → USB SuperSpeed only (not this plugin’s host networking path). DisplayPort **D** alone is not enough.
 
 Thunderbolt is a trademark of Intel Corporation. USB SuperSpeed marks are associated with USB‑IF.
 
@@ -12,8 +12,8 @@ Thunderbolt is a trademark of Intel Corporation. USB SuperSpeed marks are associ
 
 | You see… | Host-to-host Thunderbolt / USB4 networking? |
 |----------|-----------------------------------------------|
-| Lightning-style mark and/or **40** next to Type‑C | **Yes** — TB4 / USB4 class (use these for this plugin) |
-| Lightning alone (older TB3/TB4 silkscreen) | **Usually yes** — confirm in the board manual |
+| Lightning-style mark and/or **40** next to Type‑C | **Yes** — Thunderbolt 4 / USB4 class (use these for this plugin) |
+| Lightning alone (older Thunderbolt 3/Thunderbolt 4 silkscreen) | **Usually yes** — confirm in the board manual |
 | **SS²⁰** only | **No** — USB SuperSpeed 20 Gb/s data only |
 | **SS¹⁰** only (Type‑C or red USB‑A) | **No** — USB SuperSpeed 10 Gb/s |
 | **SS⁵** or plain USB | **No** |
@@ -53,9 +53,9 @@ Means the Type‑C port can do DisplayPort Alt Mode (monitors). It does **not** 
 ## Examples
 
 **Example board silk (⚡40 + SS²⁰ + SS¹⁰ ports):**  
-The **40** + lightning Type‑C ports are TB/USB4. SS²⁰ / SS¹⁰ are USB SuperSpeed banks. Ethernet 10G/2.5G is separate.
+The **40** + lightning Type‑C ports are Thunderbolt/USB4. SS²⁰ / SS¹⁰ are USB SuperSpeed banks. Ethernet 10G/2.5G is separate.
 
-**PLUSH-style host (no TB controller):**  
+**PLUSH-style host (no Thunderbolt controller):**  
 You may only see SS¹⁰ / USB‑A / Ethernet. The plugin empty state is expected; use the icon table to confirm silkscreen matches “USB only.”
 
 ---

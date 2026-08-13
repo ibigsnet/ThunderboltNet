@@ -38,9 +38,9 @@ Not per-tbn: changing E2E affects every Thunderbolt network interface on Unraid.
 | Interface description | empty | Cosmetic label in plugin config |
 | MAC address | (live) | Read-only |
 | Enable interface | Yes | `ip link set up/down` on Apply |
-| Enable bonding | No (hidden unless ≥2 live TB ifaces) | TB-only bond when two+ `thunderbolt*`; same-peer dual-cable often one netdev — [roadmap](links-and-topology.md) |
-| Bonding mode | active-backup | Prefer active-backup; 802.3ad usually fails on TB |
-| Bond name | bond-tb0 | TB-only bond (`bond-tb0`, … — not Unraid `bond0`) |
+| Enable bonding | No (hidden unless ≥2 live Thunderbolt interfaces) | Thunderbolt-only bond when two+ `thunderbolt*`; same-peer dual-cable often one netdev — [roadmap](links-and-topology.md) |
+| Bonding mode | active-backup | Prefer active-backup; 802.3ad usually fails on Thunderbolt |
+| Bond name | bond-tb0 | Thunderbolt-only bond (`bond-tb0`, … — not Unraid `bond0`) |
 | OpenFabric participate | **Yes** | yes / passive / no on this underlay |
 | OpenFabric metric mode | auto | auto from trained rate, or manual |
 | OpenFabric metric | empty | Manual integer when mode=manual |
@@ -51,7 +51,7 @@ Not per-tbn: changing E2E affects every Thunderbolt network interface on Unraid.
 | IPv4 default gateway | empty | Optional next hop on this link |
 | Enable default route | No | Don’t steal system default from eth0 |
 | Desired MTU | **1500** (default) | Modes: **1500** · **9000 both ends** · Custom. Not negotiated to peer. Jumbo optional. See [mtu-and-throughput.md](mtu-and-throughput.md) |
-| Unraid services on this link (listening) | No (recommend Yes for SMB/NFS/web) | Per peer; remembered; overview table + Harden all. Does **not** start NBD — use **NBD Export** (Network Services → NBD) and bind to the TB IP. |
+| Unraid services on this link (listening) | No (recommend Yes for SMB/NFS/web) | Per peer; remembered; overview table + Harden all. Does **not** start NBD — use **NBD Export** (Network Services → NBD) and bind to the Thunderbolt IP. |
 | Link rate (Known peers / quality) | (live / last) | Equal RX≈TX → **N Gb/s full-duplex** (optional · N-lane). Asymmetric → **TX … (to peer) · RX … (from peer)**. |
 | IPv4 (live) | (live) | Read-only from kernel |
 | Bond / bridge membership | (live) | Read-only |

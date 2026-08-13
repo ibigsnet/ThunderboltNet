@@ -40,7 +40,7 @@ Five nodes in a **ring** is a convenient teaching example (any ring, mesh, or st
     P1, P2, P3  =  Proxmox / Debian-class Linux (apt FRR)
     U1, U2      =  Unraid (Thunderbolt Net + optional Fabric Routing)
 
-        TB        TB        TB        TB        TB
+        Thunderbolt        Thunderbolt        Thunderbolt        Thunderbolt        Thunderbolt
   P1 ------- P2 ------- P3 ------- U1 ------- U2 ------- P1
   |______________________________________________________|
 
@@ -48,7 +48,7 @@ Physical cabling can be a ring, partial mesh, or star.
 OpenFabric uses L3 underlay adjacencies and metrics — not chassis brands.
 ```
 
-| Example node | OS class | Underlay (TB IP) | Control plane |
+| Example node | OS class | Underlay (Thunderbolt IP) | Control plane |
 |--------------|----------|------------------|---------------|
 | **P1–P3** | Proxmox / Debian Linux | `thunderbolt_net` + static (or site automation) | FRR `fabricd` via **apt** (or equivalent) |
 | **U1–U2** | Unraid | **Thunderbolt Net** tbn tabs | FRR via **Fabric Routing** (packages) + TBN OpenFabric conf |
@@ -63,9 +63,9 @@ Smaller sites still apply: e.g. **one Proxmox + one Unraid**, or **two Unraid on
 
 | Capability | Intent |
 |------------|--------|
-| **Adjacent ping** | Any direct TB pair works on underlay alone |
+| **Adjacent ping** | Any direct Thunderbolt pair works on underlay alone |
 | **Multi-hop** | Reach a node that is not directly cabled, via intermediate fabric routers |
-| **Ring / mesh failover** | One TB path drops → SPF uses another path when topology allows |
+| **Ring / mesh failover** | One Thunderbolt path drops → SPF uses another path when topology allows |
 | **Mixed metrics** | Slower direct link can still beat a long detour; detour wins if cheaper or direct is down |
 | **No LAN hijack** | br0 / vmbr0 / primary management stay off the fabric unless explicitly opted in |
 | **Services** | Optional later: share storage/apps over loopbacks or fabric prefixes — underlay + OpenFabric first |
@@ -78,7 +78,7 @@ Not required for initial interop: dual-cable bonding, USB4STREAM, or putting VM 
 
 ```text
 ┌─────────── Proxmox / Debian peers ──────────┐
-│  TB underlay: OS / ifupdown / SDN / NM      │
+│  Thunderbolt underlay: OS / ifupdown / SDN / NM      │
 │  FRR: distro packages → fabricd=yes         │
 │  Conf: vtysh / /etc/frr/frr.conf            │
 │  (align area, NET, lo /32, metrics)         │
@@ -87,16 +87,16 @@ Not required for initial interop: dual-cable bonding, USB4STREAM, or putting VM 
                    │  over thunderbolt*
 ┌──────────────────▼──────────────────────────┐
 │  Unraid                                     │
-│  TB underlay: Thunderbolt Net               │
+│  Thunderbolt underlay: Thunderbolt Net               │
 │  FRR packages: FabricRouting (opt-in)           │
 │  OpenFabric stanzas: Thunderbolt Net        │
-│    (marked block; TB ifaces + lo only)      │
+│    (marked block; Thunderbolt interfaces + lo only)      │
 └─────────────────────────────────────────────┘
 ```
 
 | Layer | Proxmox / Debian | Unraid |
 |-------|------------------|--------|
-| Physical TB | Kernel `thunderbolt` + `thunderbolt_net` | Same |
+| Physical Thunderbolt | Kernel `thunderbolt` + `thunderbolt_net` | Same |
 | Underlay IP | Manual / site automation | Thunderbolt Net tbn UI |
 | FRR install | `apt install frr` (typical) | **Fabric Routing** |
 | fabricd enable | `/etc/frr/daemons` | FabricRouting defaults |
@@ -114,8 +114,8 @@ Agree these across **all** nodes in a given fabric:
 | OpenFabric area / tag | `1` | Same `router openfabric 1` |
 | Router-id | `/32` on `lo` (auto or set) | Unique `/32` per node |
 | NET | Auto from router-id or override | Unique NET per node; consistent area style (e.g. `49.0001.…`) |
-| Metric policy | `ref / trained_Mbps` (ref default **20000** ≈ 20G TB class) | Same idea or explicit manuals that agree |
-| Underlay subnets | Unique per link | **No** duplicate subnet on two TB links |
+| Metric policy | `ref / trained_Mbps` (ref default **20000** ≈ 20G Thunderbolt class) | Same idea or explicit manuals that agree |
+| Underlay subnets | Unique per link | **No** duplicate subnet on two Thunderbolt links |
 | IPv6 fabric | Optional | Match site choice (IPv4-only is fine early) |
 | Hello timers | Mild defaults from TBN | Align if adjacencies flap |
 
@@ -129,7 +129,7 @@ Agree these across **all** nodes in a given fabric:
 | U1 | 10.254.0.4 |
 | U2 | 10.254.0.5 |
 
-Link underlays: one /30 or /24 **per TB cable**. Multi-hop reachability is typically to **loopbacks** (or other fabric prefixes), not only on-link underlay IPs.
+Link underlays: one /30 or /24 **per Thunderbolt cable**. Multi-hop reachability is typically to **loopbacks** (or other fabric prefixes), not only on-link underlay IPs.
 
 ---
 
@@ -152,7 +152,7 @@ interface lo
  ip router openfabric 1
  openfabric passive
 !
-interface thunderbolt0   ! use the real TB netdev name
+interface thunderbolt0   ! use the real Thunderbolt netdev name
  ip router openfabric 1
  openfabric metric <auto-or-manual>
 !
@@ -167,9 +167,9 @@ Upstream: [FRR fabricd](https://docs.frrouting.org/en/latest/fabricd.html) · [F
 
 ## Unraid side
 
-1. **Thunderbolt Net** — underlay tbn IPs; OpenFabric **On**; participate per TB link.  
+1. **Thunderbolt Net** — underlay tbn IPs; OpenFabric **On**; participate per Thunderbolt link.  
 2. **Fabric Routing** (optional) — packages so `vtysh` / `fabricd` exist.  
-3. Apply TBN → marked conf on TB ifaces + lo; does not enroll br0 by default.
+3. Apply TBN → marked conf on Thunderbolt interfaces + lo; does not enroll br0 by default.
 
 ---
 
@@ -179,9 +179,9 @@ Scale the same steps up or down:
 
 | Phase | Goal | Minimum gear |
 |-------|------|----------------|
-| **L0** | Unraid plugin smoke (UI, static TB optional) | 1 Unraid |
+| **L0** | Unraid plugin smoke (UI, static Thunderbolt optional) | 1 Unraid |
 | **L1** | FRR live on Unraid (`vtysh`) | 1 Unraid + packages |
-| **L2** | Heterogeneous **static** TB (e.g. Proxmox ↔ Unraid) | 1 Linux + 1 Unraid |
+| **L2** | Heterogeneous **static** Thunderbolt (e.g. Proxmox ↔ Unraid) | 1 Linux + 1 Unraid |
 | **L3** | **OpenFabric** adjacency + loopback reachability | Same pair + FRR both sides |
 | **L4** | Multi-hop (3+ nodes) | 3+ hosts |
 | **L5** | Ring or mesh **failover** (unplug one path) | Topology with alternate path |
@@ -213,7 +213,7 @@ Scale the same steps up or down:
 ## Related
 
 - [routing-openfabric.md](routing-openfabric.md) — FRR, metrics, rings, FabricRouting split  
-- [links-and-topology.md](links-and-topology.md) — TB path model  
+- [links-and-topology.md](links-and-topology.md) — Thunderbolt path model  
 - [peer-scenarios.md](peer-scenarios.md) — peer OS matrix  
 - [DEVELOPMENT.md](DEVELOPMENT.md) — engineering stages  
 - FabricRouting: https://github.com/ibigsnet/FabricRouting  

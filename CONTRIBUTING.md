@@ -19,7 +19,7 @@ Thunderbolt Net is developed in the open for Unraid users who need serious Thund
 1. **Honesty over marketing** — trained rate ≠ sticker; dual-cable same-peer limits are documented, not denied.  
 2. **Multi-peer underlay is real** — each `thunderboltN` is typically one peer path; multiple peers ⇒ multiple tbn tabs. Not a “single-link only” product.  
 3. **OpenFabric** — implemented when FRR is present (conf generate/apply, UI); full multi-hop needs live FRR (often via Fabric Routing). Stages remain for packages, neighbors UI, peer restore.  
-4. **Bonding** — available when ≥2 live TB netdevs; same-peer dual-cable multi-path is **roadmap**, not a non-goal.  
+4. **Bonding** — available when ≥2 live Thunderbolt netdevs; same-peer dual-cable multi-path is **roadmap**, not a non-goal.  
 5. **Defaults favor interconnect** — OpenFabric **on** when FRR is available; pure static always available.  
 6. **Do not break br0** — default route stays on main LAN unless the user opts in on a tbn tab.  
 7. **Versioning** — Unraid uses lexicographic plugin versions; see [RELEASES.md](RELEASES.md). No empty-file pushes.  
@@ -32,7 +32,7 @@ Machine-local Grok/lab notes may live in `.grok-notes/` (gitignored). Design tha
 
 1. Fork or branch from `main`.
 2. Prefer focused PRs (docs, OpenFabric stage, bonding, …).
-3. Test on real TB hardware when changing apply/FRR paths.
+3. Test on real Thunderbolt hardware when changing apply/FRR paths.
 4. Update [docs/routing-openfabric.md](docs/routing-openfabric.md) or [RELEASES.md](RELEASES.md) when user-facing behavior changes.
 5. Open a GitHub issue for design questions (rings, metrics, packaging) before huge refactors.
 

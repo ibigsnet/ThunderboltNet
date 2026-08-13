@@ -79,7 +79,7 @@ More topology detail: [links-and-topology.md](links-and-topology.md).
 ## Interface never appears (`thunderbolt0` missing)
 
 - Peer not connected or not authorizing the link (security mode).  
-- Cable is charge-only / not TB-capable.  
+- Cable is charge-only / not Thunderbolt-capable.  
 - Peer OS has no Thunderbolt networking stack (common on some Windows SKUs).  
 - Modules not loaded — Driver options **Load modules = Yes**, Apply.  
 - Multi-cable mess — use the recovery steps above (all cables out → one cable in).  
@@ -95,9 +95,9 @@ More topology detail: [links-and-topology.md](links-and-topology.md).
 
 ## Single-lane / 20 Gb/s · 1-lane on a dual-capable host
 
-- **Common** for TB4/USB4 **host-to-host under Linux** (firmware ICM). Not a failed install.  
+- **Common** for Thunderbolt 4/USB4 **host-to-host under Linux** (firmware ICM). Not a failed install.  
 - Expect roughly **~10–15&nbsp;Gbit/s** TCP; jumbo MTU helps CPU, not dual-lane.  
-- Cable/port can still matter for some pairs, but a short certified TB4 cable often stays 1-lane.  
+- Cable/port can still matter for some pairs, but a short certified Thunderbolt 4 cable often stays 1-lane.  
 - Details: [standards-and-speeds.md](standards-and-speeds.md).
 
 ## Two cables, still one interface (or worse)
@@ -108,9 +108,9 @@ Expected often for the **same** two hosts — still one XDomain / one `thunderbo
 
 Software cleanup alone may not fix NO-CARRIER / missing peer:
 
-1. Unplug **all** TB/USB4 host cables from **both ends on both machines**.  
+1. Unplug **all** Thunderbolt/USB4 host cables from **both ends on both machines**.  
 2. Wait until the fabric is empty.  
-3. Plug back **exactly one** cable (TB ports only).  
+3. Plug back **exactly one** cable (Thunderbolt ports only).  
 4. Confirm peer + netdev; re-apply IP / MTU / services.
 
 ## One-way traffic / flaky after reboot
@@ -123,7 +123,7 @@ Software cleanup alone may not fix NO-CARRIER / missing peer:
 ## Do not
 
 - Unbind Thunderbolt **NHI** to “reset” networking (can wedge until reboot).  
-- Put two TB links on the **same** IPv4 prefix.  
+- Put two Thunderbolt links on the **same** IPv4 prefix.  
 - Expect a dock RJ45 to show up as `thunderbolt0`.  
 - Debug with three variables at once (E2E + new cable + dual plug) — change one thing, then reseat.
 
