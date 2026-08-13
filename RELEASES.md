@@ -26,11 +26,22 @@ CA is fed from the [unraid-templates](https://github.com/ibigsnet/unraid-templat
 | Track | When to use | URL pattern |
 |-------|-------------|-------------|
 | **Latest (`main`)** | Always get the newest published tree | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg` |
-| **Pinned tag** | Install/rollback to a fixed version | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/vVERSION/thunderboltnet.plg` |
+| **Recommended freeze** | Known-good before multi-host map work | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/stable-recommended-2026.08.13ad/thunderboltnet.plg` |
+| **Pinned tag** | Install/rollback to any fixed version | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/vVERSION/thunderboltnet.plg` |
 
-**Recommended stable pin (pre-OpenFabric):**
+### Recommended freeze (2026-08-13)
 
-`https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/v2026.08.05ad/thunderboltnet.plg`
+| | |
+|--|--|
+| **Label** | **Recommended** (fleet freeze before multi-host fabric map) |
+| **Plugin version** | **`2026.08.13ad`** |
+| **Tag** | [`stable-recommended-2026.08.13ad`](https://github.com/ibigsnet/ThunderboltNet/releases/tag/stable-recommended-2026.08.13ad) |
+| **Also** | `v2026.08.13ad` |
+| **Install / rollback** | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/stable-recommended-2026.08.13ad/thunderboltnet.plg` |
+
+Includes OpenFabric policy when FRR is present, Fabric Routing companion naming, Thunderbolt wording (not ambiguous “TB”), link quality UX, USB4STREAM detect-only. **`main` may move ahead** after this pin for multi-host reporting work.
+
+Older pin (pre-OpenFabric era): `v2026.08.05ad`.
 
 After install, confirm the version under **Plugins** (or the plugin version string on disk).
 
@@ -93,6 +104,10 @@ Network Services → **NBD** is a separate menu (`/Settings/NbdExport`); not a N
 | **GitHub Release** (optional but preferred) | Human-readable notes; same tag as the pin |
 
 Tag name = `v` + exact plugin version entity (example: plugin `2026.08.05ac` → tag `v2026.08.05ac`).
+
+### Next major line of work (after this freeze)
+
+**Multi-host Thunderbolt link map (planned — not in 2026.08.13ad):** share local trained TX/RX with peer Unraid hosts running Thunderbolt Net (plus FRR OpenFabric context), show neighbor-reported links in a second color band, green when both ends agree (including valid asymmetric Thunderbolt 5-style 20/60 vs 60/20), yellow when only local data, red when both plugins disagree. Design notes live in maintainer planning; implement after this recommended freeze.
 
 ### When to tag
 
