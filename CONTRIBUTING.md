@@ -49,3 +49,7 @@ By contributing, you agree that your contributions are licensed under the **GNU 
 
 - `main` — development (may break)
 - `stable` — production / CA channel only; maintainers merge release-ready work here
+
+## Versioning (calendar)
+
+Version date = **lab host wall clock** (America/Chicago), not UTC and not “previous date + 1”. Run `date` on lab before bumping. See [RELEASES.md](RELEASES.md).

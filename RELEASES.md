@@ -56,21 +56,42 @@ After install, confirm the version under **Plugins** (or the plugin version stri
 
 ## Version strings (plugin / Unraid)
 
-Unraid plugin updates use **lexicographic `strcmp()`**, not PHP `version_compare()`. Rules (same as StorageGuard):
+Unraid plugin updates use **lexicographic `strcmp()`**, not PHP `version_compare()`.
 
 | Form | Meaning |
 |------|---------|
-| `YYYY.MM.DD` | First ship that calendar day |
+| `YYYY.MM.DD` | First ship that **calendar day** |
 | `YYYY.MM.DDaa` | 2nd ship same day, then `ab` … `az`, `ba`, `bb`, … |
 
-**Hard rules:**
+### Calendar day (do not skip)
+
+The date in the version string is the **lab wall-clock calendar day**, not UTC and not “yesterday’s line + 1”.
+
+| Do | Don’t |
+|----|--------|
+| Read **lab host** date before bumping (`date` on Unraid; timezone **America/Chicago** for this fleet) | Use the agent/CI machine UTC date if it differs from lab |
+| Use **today’s** date on that clock | Invent **tomorrow** (`…14` while lab is still the 13th) |
+| Same calendar day → next **two-letter** suffix (`aa`, `ab`, …) | Jump the day number to “make room” for more ships |
+| If a wrong future date already shipped, **stay on that line** for strcmp and note the mistake in CHANGES — do not rewind | Mint an older date after a newer one is installed (updates will not offer) |
+
+**Historical miss:** bare `2026.08.14` / `14aa` / `14ab` were cut while lab was still **2026-08-13** (continued a day-ahead TBN line instead of checking lab `date`). Same class of bug as keeping letter suffixes on an old day (Storage Guard once had to “roll to calendar date”).
+
+### Other hard rules
 
 - No hyphens in the version string.
-- After the bare date, use **two-letter** suffixes only — never a single `a`–`z` on a new day (strcmp treats `"aa"` as **older** than `"z"`).
-- Bump **only** `<!ENTITY version "…">` in `thunderboltnet.plg`; asset URLs use `?v=&version;` so browsers pick up new files.
-- Add a `###&version;` (and historical `###YYYY.MM.DDxx`) block under `<CHANGES>` in the same ship.
+- After the bare date, **two-letter** suffixes only — never single `a`–`z` (strcmp treats `"aa"` as **older** than `"z"`).
+- Bump **only** `<!ENTITY version "…">` in the `.plg`; asset URLs use `?v=&version;`.
+- Add a `###&version;` block under `<CHANGES>` in the same ship.
 
-`main` may move ahead of the last **tag** while you develop. Users on the **Latest** URL always get `main`. Users who need a freeze install a **tag** URL.
+### Pre-ship version checklist (agents + humans)
+
+1. On lab: `date` → record `YYYY-MM-DD` in lab TZ (America/Chicago).
+2. Read current `<!ENTITY version>` on the branch you ship.
+3. Same lab date as version prefix → next two-letter suffix only.
+4. Lab date newer → first ship that day = bare `YYYY.MM.DD` (if it sorts after current; else `…aa`).
+5. Lab date older than a mistaken future version already out → **do not rewind**; continue suffixes on the shipped date.
+6. Never set version by “latest string + one day” without looking at the lab clock.
+
 
 ### Cross-plugin UI links (fleet standard)
 
