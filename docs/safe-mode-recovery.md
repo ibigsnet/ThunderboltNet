@@ -13,40 +13,35 @@ This is **not** the same as **array Maintenance mode** (array started, disks not
 
 **Leave on flash after uninstall:** yes — useful recovery text, not a running service.
 
-**One path only** (no multi-copy under `/boot/` root):
+**One path** (Thunderbolt in the name and directory):
 
 ```bash
-cat /boot/config/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt
+cat /boot/config/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt
 ```
 
-If you forget the path:
+**How you find it when you only remember “Thunderbolt”:**
 
 ```bash
-find /boot -iname '*SAFE-MODE-RECOVERY*' 2>/dev/null
+find /boot -iname '*Thunderbolt*' 2>/dev/null
+ls /boot/config/plugins/ThunderboltNet/ 2>/dev/null
 ```
 
-Optional pager without installing a system manpage (does **not** modify Unraid man databases):
+Optional pager (local file only — does **not** install a system manpage):
 
 ```bash
-man -l /boot/config/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt
+man -l /boot/config/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt
 ```
 
-(`man -l` = format/view a **local file**. If `man` is missing, use `cat` / `less`.)
+**While the WebUI still works** (learn the path *before* Safe Mode):  
+**Settings → Network Settings → Thunderbolt → Recovery** shows the same path and commands.
 
-When plugins are loaded:
+When plugins are loaded, full guide also under:
 
 ```bash
-cat /usr/local/emhttp/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt
 less /usr/local/emhttp/plugins/ThunderboltNet/docs/safe-mode-recovery.md
 ```
 
-We intentionally **do not**:
-
-- Install into `/usr/share/man` or change manpath (RAM OS; not present in Safe Mode without re-install)
-- Add shell **aliases** or `/etc/profile.d` hooks (core-ish; easy to forget; still need a file to point at)
-- Auto-run network bring-up from this file
-
-Discoverability is: install/notify message + `find` + short name `SAFE-MODE-RECOVERY.txt` under the plugin’s flash dir (directory name `ThunderboltNet` is guessable if you remember the product).
+We intentionally **do not** install system manpages, shell aliases, or multi-copy clutter on `/boot/` root.
 
 ---
 ## Recommendation

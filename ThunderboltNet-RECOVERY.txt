@@ -1,28 +1,28 @@
 Thunderbolt Net — offline recovery (Safe Mode / no plugins)
 ============================================================
 
-WHERE THIS FILE LIVES (one place on flash)
------------------------------------------
-  /boot/config/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt
+FIND THIS FILE (keyword: Thunderbolt)
+-------------------------------------
+You will think "Thunderbolt networking" — not "SAFE-MODE-RECOVERY".
 
-  cat /boot/config/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt
+  find /boot -iname '*Thunderbolt*' 2>/dev/null
+  ls /boot/config/plugins/ThunderboltNet/ 2>/dev/null
 
-If you forget the path:
+Canonical path on flash (left after uninstall on purpose):
 
-  find /boot -iname '*SAFE-MODE-RECOVERY*' 2>/dev/null
-  find /boot -iname '*ThunderboltNet*' -type d 2>/dev/null
+  cat /boot/config/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt
 
-Optional pager (if `man` exists; -l = local file, not a system manpage install):
+Optional pager (local file only; does not install a system manpage):
 
-  man -l /boot/config/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt
+  man -l /boot/config/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt
 
-When plugins ARE loaded (normal boot), same text also under emhttp:
+When plugins ARE loaded (normal boot):
 
-  cat /usr/local/emhttp/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt
+  cat /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt
   less /usr/local/emhttp/plugins/ThunderboltNet/docs/safe-mode-recovery.md
 
-Left on flash after plugin uninstall on purpose (recovery help).
-Delete that file yourself if you want it gone. Not auto-network.
+Also shown on the Thunderbolt overview in the WebUI (while plugins work)
+so you can note the path *before* a Safe Mode emergency.
 
 
 WHAT "SAFE MODE" MEANS

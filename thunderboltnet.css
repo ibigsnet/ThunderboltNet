@@ -961,3 +961,20 @@
 .tbn-mesh-peer-row {
   background: rgba(80, 140, 200, 0.04);
 }
+
+/* Offline / Safe Mode recovery pointer (visible while plugins work) */
+.tbn-offline-recovery {
+  margin: 0.75em 0 1em;
+  padding: 0.75em 1em;
+  border-left: 4px solid #e67e22;
+  background: rgba(230, 126, 34, 0.08);
+  border-radius: 0 4px 4px 0;
+}
+.tbn-offline-recovery pre.tbn-offline-cmd {
+  margin: 0.5em 0;
+  padding: 0.5em 0.75em;
+  overflow-x: auto;
+  font-size: 0.9em;
+  background: rgba(0,0,0,0.06);
+  border-radius: 3px;
+}

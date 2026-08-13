@@ -40,7 +40,7 @@ Copyright (c) 2026 ibigs, LLC · Author: RifleJock · License: GPL-3.0-or-later
 Unraid **Safe Mode** (no community plugins) does **not** load this plugin. There is no supported way to run the full Thunderbolt Net UI or OpenFabric hooks in that mode.
 
 - **Manual recovery** (modprobe + static IP, single-cable discipline): [docs/safe-mode-recovery.md](docs/safe-mode-recovery.md).
-- Offline sheet (left after uninstall): `/boot/config/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt` — or `man -l` that file. No system manpage/alias hooks.  
+- Offline sheet (left after uninstall): `/boot/config/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt` — find with `find /boot -iname '*Thunderbolt*'`. Optional `man -l` that file. WebUI Recovery section while plugins work.  
 - **Persistent auto-bootstrap** for every boot environment is **not recommended** as a default (easy to forget, multi-cable races, route risk). Prefer manual steps for rare recovery boots.
 
 ## Contact

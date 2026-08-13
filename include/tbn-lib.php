@@ -2335,6 +2335,31 @@ function tbn_github_repo() {
 /**
  * Human-readable docs URL (blob/main). $path is repo-relative, e.g. DOCS.md or docs/addressing.md
  */
+
+/**
+ * Visible note: offline recovery file on flash (Safe Mode / no plugins).
+ * Shown in WebUI while healthy so the path is learned before an emergency.
+ */
+function tbn_offline_recovery_note_html() {
+  $path = '/boot/config/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt';
+  $on_flash = is_readable($path);
+  $status = $on_flash
+    ? 'Present on this flash (also left after uninstall).'
+    : 'Will be written to flash on next successful plugin install/update.';
+  return '<div class="tbn-offline-recovery" role="note">'
+    . '<strong>Safe Mode / no plugins — Thunderbolt offline help</strong>'
+    . '<p class="tbn-muted">If you boot Unraid <em>without plugins</em> and still need host Thunderbolt networking, '
+    . 'the plugin UI will not load. Use the plain-text sheet on the USB flash '
+    . '(keyword <strong>Thunderbolt</strong>):</p>'
+    . '<pre class="tbn-offline-cmd">find /boot -iname \'*Thunderbolt*\' 2&gt;/dev/null' . "\n"
+    . 'cat /boot/config/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt</pre>'
+    . '<p class="tbn-muted">' . htmlspecialchars($status) . ' '
+    . 'Optional: <code>man -l</code> that path if <code>man</code> exists. '
+    . 'This is documentation only — it does not auto-configure the link. '
+    . tbn_docs_more_html('docs/safe-mode-recovery.md', 'Full Safe Mode guide ↗')
+    . '</p></div>';
+}
+
 function tbn_docs_url($path = 'DOCS.md') {
   $path = ltrim((string)$path, '/');
   if ($path === '') {
@@ -2360,6 +2385,7 @@ function tbn_docs_bar_html($active = 'overview') {
     'topology' => ['docs/links-and-topology.md', 'Links & topology'],
     'routing' => ['docs/routing-openfabric.md', 'OpenFabric / FRR'],
     'troubleshoot' => ['docs/troubleshooting.md', 'Troubleshooting'],
+    'safemode' => ['docs/safe-mode-recovery.md', 'Safe Mode / offline'],
   ];
   $parts = [];
   foreach ($links as $key => $pair) {

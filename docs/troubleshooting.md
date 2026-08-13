@@ -82,7 +82,10 @@ For console recovery when plugins are off:
 3. **Do not** add a default route via Thunderbolt unless you mean to.  
 4. Prefer **no** persistent “always run without plugins” flash automation; manual is enough for rare recovery.
 
+On the console: `find /boot -iname '*Thunderbolt*'` then `cat …/ThunderboltNet-RECOVERY.txt`.
+
 Full command list and rationale: **[safe-mode-recovery.md](safe-mode-recovery.md)**.
+While plugins work: WebUI **Thunderbolt → Recovery** shows the same path.
 
 ---
 
