@@ -21,6 +21,7 @@ Physical Thunderbolt/USB4 path  →  kernel thunderbolt_net (thunderboltN)
 | Unraid + Proxmox (or other Linux) fabric | [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md) |
 | Every Settings field | [settings-reference.md](settings-reference.md) |
 | Something broke | [troubleshooting.md](troubleshooting.md) |
+| Safe Mode / no plugins — manual TB up | [safe-mode-recovery.md](safe-mode-recovery.md) |
 
 ## All topics
 
@@ -41,6 +42,7 @@ Physical Thunderbolt/USB4 path  →  kernel thunderbolt_net (thunderboltN)
 | [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md) | Mixed fabric: Proxmox/Debian + Unraid (example ring, lab phases) |
 | [settings-reference.md](settings-reference.md) | Every global and tbnN field |
 | [troubleshooting.md](troubleshooting.md) | Reseating cables, multi-cable recovery, common failures |
+| [safe-mode-recovery.md](safe-mode-recovery.md) | Safe Mode / no plugins: manual modprobe + IP; keep persistence off |
 | [DEVELOPMENT.md](DEVELOPMENT.md) | Engineering stages and lab phases (maintainers / advanced) |
 | [../RELEASES.md](../RELEASES.md) | Install URLs, version strings, **git tag / ship checklist** |
 | [../CONTRIBUTING.md](../CONTRIBUTING.md) | How to contribute |

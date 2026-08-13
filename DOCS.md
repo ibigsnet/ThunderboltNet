@@ -73,6 +73,7 @@ The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt l
 | Topic index (all docs) | [docs/README.md](docs/README.md) |
 | Every Settings field | [docs/settings-reference.md](docs/settings-reference.md) |
 | Common failures | [docs/troubleshooting.md](docs/troubleshooting.md) |
+| Safe Mode / no plugins — manual TB recovery | [docs/safe-mode-recovery.md](docs/safe-mode-recovery.md) |
 | Install, version strings, **git tags / ship checklist** | [RELEASES.md](RELEASES.md) |
 | Optional FRR packages on Unraid | [FabricRouting](https://github.com/ibigsnet/FabricRouting) (separate plugin) |
 

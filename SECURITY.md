@@ -35,6 +35,13 @@ Copyright (c) 2026 ibigs, LLC · Author: RifleJock · License: GPL-3.0-or-later
 3. `include/tbn-mesh-export.php` — token + private-only export
 4. This file
 
+## Safe Mode / no plugins
+
+Unraid **Safe Mode** (no community plugins) does **not** load this plugin. There is no supported way to run the full Thunderbolt Net UI or OpenFabric hooks in that mode.
+
+- **Manual recovery** (modprobe + static IP, single-cable discipline): [docs/safe-mode-recovery.md](docs/safe-mode-recovery.md).  
+- **Persistent auto-bootstrap** for every boot environment is **not recommended** as a default (easy to forget, multi-cable races, route risk). Prefer manual steps for rare recovery boots.
+
 ## Contact
 
 - Support: Unraid forum thread (CA Support link)

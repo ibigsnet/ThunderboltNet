@@ -15,6 +15,7 @@
 - [Do not](#do-not)
 - [OpenFabric / FRR (multi-hop)](#openfabric-frr-multi-hop)
 - [Peer-specific notes](#peer-specific-notes)
+- [Safe Mode / no plugins (manual TB recovery)](#safe-mode--no-plugins-manual-tb-recovery)
 
 ## Slow rsync / SMB despite high trained Gb/s
 
@@ -67,6 +68,21 @@ Especially after dual-cable experiments or a half-connected second port:
 Leaving a second cable half-connected while “testing” often keeps the fabric in a bad state so reseating **one** cable is not enough — clear **all** first.
 
 More topology detail: [links-and-topology.md](links-and-topology.md).
+
+---
+
+## Safe Mode / no plugins (manual TB recovery)
+
+**Safe Mode** and **GUI Safe Mode** do **not** load community plugins (including Thunderbolt Net). Array **Maintenance** mode is different (plugin can still load on a normal boot).
+
+For console recovery when plugins are off:
+
+1. Unplug **all** TB/USB4 host cables; wait; plug **one** cable only (same multi-cable steps above).  
+2. `modprobe thunderbolt_net`, bring `thunderbolt0` up, set a static `/24` (e.g. `10.255.0.2` / peer `10.255.0.1`).  
+3. **Do not** add a default route via Thunderbolt unless you mean to.  
+4. Prefer **no** persistent “always run without plugins” flash automation; manual is enough for rare recovery.
+
+Full command list and rationale: **[safe-mode-recovery.md](safe-mode-recovery.md)**.
 
 ---
 
