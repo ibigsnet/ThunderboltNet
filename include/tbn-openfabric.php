@@ -53,20 +53,31 @@ function tbn_of_enabled(array $cfg = null) {
  * }
  */
 /**
- * Optional companion plugin UnraidFRR (package install) — never required.
+ * Optional companion plugin FabricRouting (package install) — never required.
  */
-function tbn_of_unraidfrr_companion() {
+function tbn_of_fabricrouting_companion() {
+  // FabricRouting (current) or legacy UnraidFRR paths after rename
+  $dir = is_dir('/usr/local/emhttp/plugins/FabricRouting')
+    || is_dir('/usr/local/emhttp/plugins/UnraidFRR')
+    || is_dir('/boot/config/plugins/FabricRouting')
+    || is_dir('/boot/config/plugins/UnraidFRR');
   $out = [
-    'plugin_dir' => is_dir('/usr/local/emhttp/plugins/UnraidFRR'),
+    'plugin_dir' => $dir,
     'marker' => null,
-    'install_url' => 'https://raw.githubusercontent.com/ibigsnet/UnraidFRR/main/unraidfrr.plg',
-    'project' => 'https://github.com/ibigsnet/UnraidFRR',
+    'install_url' => 'https://raw.githubusercontent.com/ibigsnet/FabricRouting/main/fabricrouting.plg',
+    'project' => 'https://github.com/ibigsnet/FabricRouting',
   ];
-  $marker = '/boot/config/plugins/UnraidFRR/companion.json';
-  if (is_readable($marker)) {
+  foreach ([
+    '/boot/config/plugins/FabricRouting/companion.json',
+    '/boot/config/plugins/UnraidFRR/companion.json',
+  ] as $marker) {
+    if (!is_readable($marker)) {
+      continue;
+    }
     $j = json_decode((string)@file_get_contents($marker), true);
     if (is_array($j)) {
       $out['marker'] = $j;
+      break;
     }
   }
   return $out;
@@ -81,7 +92,7 @@ function tbn_of_frr_detect() {
     'fabricd_enabled' => false,
     'running' => false,
     'note' => 'FRR not found on this Unraid host',
-    'unraidfrr' => tbn_of_unraidfrr_companion(),
+    'fabricrouting' => tbn_of_fabricrouting_companion(),
   ];
 
   $vtysh = '';
@@ -151,11 +162,11 @@ function tbn_of_frr_detect() {
 
   // Enrich note when companion plugin can supply packages
   if (!$out['present']) {
-    $c = $out['unraidfrr'];
+    $c = $out['fabricrouting'];
     if (!empty($c['plugin_dir'])) {
-      $out['note'] = 'UnraidFRR installed but FRR binaries not live yet — add packages under /boot/config/plugins/UnraidFRR/packages/ and Apply there';
+      $out['note'] = 'FabricRouting installed but FRR binaries not live yet — add packages under /boot/config/plugins/FabricRouting/packages/ and Apply there';
     } else {
-      $out['note'] = 'FRR not found — install companion plugin UnraidFRR for packaged FRR, or provide vtysh/fabricd yourself';
+      $out['note'] = 'FRR not found — install companion plugin FabricRouting for packaged FRR, or provide vtysh/fabricd yourself';
     }
   }
 
@@ -629,16 +640,16 @@ function tbn_of_status_html() {
   $html .= '<tr><td>FRR</td><td>' . htmlspecialchars($st['frr']['note'] ?? '') .
     ($st['frr']['version'] !== '' ? ' · <code>' . htmlspecialchars($st['frr']['version']) . '</code>' : '') .
     '</td></tr>';
-  $uf = $st['frr']['unraidfrr'] ?? tbn_of_unraidfrr_companion();
-  $install = $uf['install_url'] ?? 'https://raw.githubusercontent.com/ibigsnet/UnraidFRR/main/unraidfrr.plg';
-  $project = $uf['project'] ?? 'https://github.com/ibigsnet/UnraidFRR';
-  $html .= '<tr><td>UnraidFRR companion</td><td>';
+  $uf = $st['frr']['fabricrouting'] ?? tbn_of_fabricrouting_companion();
+  $install = $uf['install_url'] ?? 'https://raw.githubusercontent.com/ibigsnet/FabricRouting/main/fabricrouting.plg';
+  $project = $uf['project'] ?? 'https://github.com/ibigsnet/FabricRouting';
+  $html .= '<tr><td>FabricRouting companion</td><td>';
   if (!empty($st['frr']['present'])) {
     if (!empty($uf['plugin_dir'])) {
       $html .= 'Installed · FRR live · <a href="/Settings/NetworkSettings" onclick="return ibigsGotoNetTab(\'Fabric Routing\', event)">Network Settings → Fabric Routing</a>';
     } else {
-      $html .= 'FRR present (packages not via UnraidFRR) · optional UI at '
-        . '<a href="' . htmlspecialchars($project) . '" target="_blank" rel="noopener">UnraidFRR</a>';
+      $html .= 'FRR present (packages not via Fabric Routing) · optional UI at '
+        . '<a href="' . htmlspecialchars($project) . '" target="_blank" rel="noopener">FabricRouting</a>';
     }
   } elseif (!empty($uf['plugin_dir'])) {
     $html .= '<strong>Plugin installed but FRR not live yet</strong> — open '
@@ -652,7 +663,7 @@ function tbn_of_status_html() {
   }
   $html .= '</td></tr>';
   $html .= '<tr><td>Roles</td><td class="tbn-muted">'
-    . '<strong>UnraidFRR</strong> = FRR packages/daemons · '
+    . '<strong>FabricRouting</strong> = FRR packages/daemons · '
     . '<strong>Thunderbolt Net</strong> = tbn underlay + OpenFabric policy/metrics · '
     . 'see docs/usb4stream.md for kernel stream path'
     . '</td></tr>';

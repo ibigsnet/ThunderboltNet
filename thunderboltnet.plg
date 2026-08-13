@@ -6,16 +6,16 @@
   Versioning — Unraid plugin updates use strcmp() (lexicographic), NOT version_compare.
   No hyphens. Bump only this entity; asset ?v= uses it.
 
-  Rules (ibigsnet fleet — StorageGuard / Thunderbolt Net / UnraidFRR / NBD Export):
+  Rules (ibigsnet fleet — StorageGuard / Thunderbolt Net / FabricRouting / NBD Export):
     YYYY.MM.DD       first release that calendar day
     YYYY.MM.DDaa     2nd same day, then ab, ac, ... az, ba, bb, ...
   Two-letter only after the bare date — never single a–z
   (strcmp treats "aa" as older than "z").
 
   UI: Network Settings siblings via ibigsGotoNetTab(Title) — never deep-link
-  /Settings/ThunderboltNet or /Settings/UnraidFRR (standalone CA pages).
+  /Settings/ThunderboltNet or /Settings/FabricRouting (standalone CA pages).
 -->
-<!ENTITY version "2026.08.13ab">
+<!ENTITY version "2026.08.13ac">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -38,14 +38,15 @@
 
 <CHANGES>
 ###&version;
+- Companion rename: **Fabric Routing** / id **FabricRouting** (was UnraidFRR — trademark). Detects legacy install paths.
 - Docs/UI: public sanitization — no personal lab hostnames (use peer/Machine B language).
 
 ###2026.08.13aa
 - Fleet standard: **`ibigsGotoNetTab`** for all Network Settings sibling links (Fabric Routing, tbnN, …); aliases `tbnGotoNetTab` / `frrGotoNetTab` / `nbdGotoNetTab`; `sessionStorage.ibigsWantTab` (+ legacy `tbnWantTab`).
-- Docs: RELEASES cross-plugin UI link table (never deep-link `/Settings/UnraidFRR` or `/Settings/ThunderboltNet`).
+- Docs: RELEASES cross-plugin UI link table (never deep-link `/Settings/FabricRouting` or `/Settings/ThunderboltNet`).
 
 ###2026.08.13
-- UI: “Network Settings → Fabric Routing” via tbnGotoNetTab, not standalone `/Settings/UnraidFRR`.
+- UI: “Network Settings → Fabric Routing” via tbnGotoNetTab, not standalone `/Settings/FabricRouting`.
 - Versioning: bare `2026.08.13` after historical single-letter `12a`.
 
 ###2026.08.12a
@@ -53,11 +54,11 @@
 - UI/docs: less “Not USB4STREAM” noise — point to usb4stream.md once.
 - Docs: Contents/TOC on large guides (routing-openfabric, standards, DOCS, …).
 - Docs: spell out Thunderbolt (not TB) next to multi-terabyte imaging context.
-- Companion name: **Fabric Routing** / CA **Fabric Routing (FRR)** (UnraidFRR packages tab).
+- Companion name: **Fabric Routing** / CA **Fabric Routing (FRR)** (FabricRouting packages tab).
 - Note: single-letter `12a` was non-standard (use two-letter suffixes after bare date).
 
 ###2026.08.11al
-- Companion copy: FRR packages live under Network Settings → Fabric Routing (UnraidFRR tab).
+- Companion copy: FRR packages live under Network Settings → Fabric Routing (FabricRouting tab).
 
 ###2026.08.11ak
 - Links empty state: no broken one-column LOCAL compare table; clean host summary when no peers online. Recovery moved out of Links body.
@@ -67,7 +68,7 @@
 - Entry banner: hide when already on Network Settings (tabs visible); show only on standalone CA / Plugins launch.
 
 ###2026.08.11ai
-- OpenFabric UX: **needs FRR packages** chip + CTAs jump to Multi-hop companion card (install UnraidFRR path); clearer when/why (rings, multi-hop, Proxmox) and plugin roles (TBN policy vs FRR packages vs USB4STREAM).
+- OpenFabric UX: **needs FRR packages** chip + CTAs jump to Multi-hop companion card (install Fabric Routing path); clearer when/why (rings, multi-hop, Proxmox) and plugin roles (TBN policy vs FRR packages vs USB4STREAM).
 - Docs: routing-openfabric “when do I need this”, ecosystem table in DOCS.md, fabric-proxmox intro, troubleshooting chip path.
 
 ###2026.08.11ah
@@ -81,20 +82,20 @@
 
 ###2026.08.11ae
 - UX: Network Settings entry banner; companion strip (FRR / NBD / USB4STREAM); OpenFabric + USB4STREAM collapsed behind orange Show when not ready.
-- Wording: IP host-net modules separate from thunderbolt_stream; UnraidFRR ≠ USB4STREAM; first-run green notify + clearer install path.
+- Wording: IP host-net modules separate from thunderbolt_stream; FabricRouting ≠ USB4STREAM; first-run green notify + clearer install path.
 
 ###2026.08.11ad
 - Known peers / quality: link rate shows **full-duplex** when RX≈TX (e.g. 20 Gb/s full-duplex · 1-lane); asymmetric shows TX (to peer) · RX (from peer).
 - Services help: NBD Export is separate from listening Yes (bind under Network Services → NBD).
 
 ###2026.08.11ac
-- Docs: full consistency pass — multi-peer underlay model, OpenFabric vs UnraidFRR roles, doc index map, troubleshooting FRR, RELEASES version table.
+- Docs: full consistency pass — multi-peer underlay model, OpenFabric vs FabricRouting roles, doc index map, troubleshooting FRR, RELEASES version table.
 
 ###2026.08.11ab
 - Wording: drop “single-link only” product framing — multi-peer tbn paths and optional OpenFabric multi-host fabric; honest trained rates; dual-cable bonding only when multiple netdevs exist.
 
 ###2026.08.11aa
-- OpenFabric: point at companion plugin UnraidFRR for FRR package install (separate, opt-in, not required for static TB); status UI shows companion presence.
+- OpenFabric: point at companion plugin FabricRouting for FRR package install (separate, opt-in, not required for static TB); status UI shows companion presence.
 
 ###2026.08.11
 - OpenFabric / FRR: defaults On when FRR available; generate conf, auto metrics (ref/trained), router-id on lo, Apply + array-start hooks; degrades to static if FRR missing.
@@ -390,7 +391,7 @@ echo "ThunderboltNet: Configure → Settings → Network Settings → Thunderbol
 echo "ThunderboltNet: Per-link IPs → Thunderbolt tbn0 / tbn1 tabs when a peer is online."
 echo "ThunderboltNet: CA Actions→Settings opens the Thunderbolt overview alone;"
 echo "ThunderboltNet:   use Network Settings for the full eth0 / Thunderbolt / tbn strip."
-echo "ThunderboltNet: Optional multi-hop → install UnraidFRR (Network Settings → Fabric Routing) — not USB4STREAM."
+echo "ThunderboltNet: Optional multi-hop → install FabricRouting (Network Settings → Fabric Routing) — not USB4STREAM."
 echo "ThunderboltNet: Hard-refresh the browser (Ctrl+Shift+R)."
 # One-time green notification (first install only; -x single ticket)
 MARKER=/boot/config/plugins/ThunderboltNet/first_run_notified
@@ -400,7 +401,7 @@ if [ ! -f "$MARKER" ] && [ -x /usr/local/emhttp/webGui/scripts/notify ]; then
     -s "Thunderbolt Net ready" \
     -d "Configure under Network Settings → Thunderbolt (tbn tabs for IPs)." \
     -i "normal" \
-    -m "CA Settings opens the Thunderbolt overview. For eth0 + tbn tabs together: Settings → Network Settings. Optional multi-hop: UnraidFRR (Network Settings → Fabric Routing) — routing packages, not thunderbolt_stream/USB4STREAM. Optional disk imaging: Network Services → NBD." \
+    -m "CA Settings opens the Thunderbolt overview. For eth0 + tbn tabs together: Settings → Network Settings. Optional multi-hop: FabricRouting (Network Settings → Fabric Routing) — routing packages, not thunderbolt_stream/USB4STREAM. Optional disk imaging: Network Services → NBD." \
     -l "/Settings/ThunderboltNet" \
     -x 2>/dev/null || true
   touch "$MARKER" 2>/dev/null || true

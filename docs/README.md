@@ -8,7 +8,7 @@ Full product intro: [../DOCS.md](../DOCS.md).
 Physical TB/USB4 path  →  kernel thunderbolt_net (thunderboltN)
                          →  Thunderbolt Net underlay (tbnN IP, MTU, listening)
                          →  optional OpenFabric/FRR (multi-hop / ring / mesh)
-                         →  FRR packages on Unraid: companion UnraidFRR (not this plugin)
+                         →  FRR packages on Unraid: companion Fabric Routing (not this plugin)
 ```
 
 | You want… | Start here |
@@ -36,7 +36,7 @@ Physical TB/USB4 path  →  kernel thunderbolt_net (thunderboltN)
 | [usb4stream.md](usb4stream.md) | USB4STREAM raw path vs tbn net vs IB research; plugin support |
 | [requirements.md](requirements.md) | Hardware, BIOS, kernel modules, security |
 | [links-and-topology.md](links-and-topology.md) | Per-path model, multi-peer, dual cable, bonding, rings |
-| [routing-openfabric.md](routing-openfabric.md) | FRR / OpenFabric — defaults, metrics, UnraidFRR split, pros/cons |
+| [routing-openfabric.md](routing-openfabric.md) | FRR / OpenFabric — defaults, metrics, FabricRouting split, pros/cons |
 | [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md) | Mixed fabric: Proxmox/Debian + Unraid (example ring, lab phases) |
 | [settings-reference.md](settings-reference.md) | Every global and tbnN field |
 | [troubleshooting.md](troubleshooting.md) | Reseating cables, multi-cable recovery, common failures |

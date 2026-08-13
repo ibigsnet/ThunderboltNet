@@ -10,11 +10,11 @@ Many labs run **Thunderbolt/USB4 host-net** between Unraid and other Linux syste
 
 **When you can skip it**
 
-- Unraid ↔ one Proxmox node, **one cable**, only static IPs and file copy / SMB — use Thunderbolt Net underlay alone; no UnraidFRR required.
+- Unraid ↔ one Proxmox node, **one cable**, only static IPs and file copy / SMB — use Thunderbolt Net underlay alone; no FabricRouting required.
 
 Use it as a **reference design and test matrix**. Node counts, brands, and cabling will differ per site.
 
-**Unraid side roles:** [UnraidFRR](https://github.com/ibigsnet/UnraidFRR) installs FRR packages; **Thunderbolt Net** owns tbn underlay + OpenFabric policy. See [routing-openfabric.md](routing-openfabric.md#what-each-piece-does-plugin-roles).
+**Unraid side roles:** [FabricRouting](https://github.com/ibigsnet/FabricRouting) installs FRR packages; **Thunderbolt Net** owns tbn underlay + OpenFabric policy. See [routing-openfabric.md](routing-openfabric.md#what-each-piece-does-plugin-roles).
 
 ---
 
@@ -38,7 +38,7 @@ Five nodes in a **ring** is a convenient teaching example (any ring, mesh, or st
 ```text
   Node roles in this example only:
     P1, P2, P3  =  Proxmox / Debian-class Linux (apt FRR)
-    U1, U2      =  Unraid (Thunderbolt Net + optional UnraidFRR)
+    U1, U2      =  Unraid (Thunderbolt Net + optional Fabric Routing)
 
         TB        TB        TB        TB        TB
   P1 ------- P2 ------- P3 ------- U1 ------- U2 ------- P1
@@ -51,7 +51,7 @@ OpenFabric uses L3 underlay adjacencies and metrics — not chassis brands.
 | Example node | OS class | Underlay (TB IP) | Control plane |
 |--------------|----------|------------------|---------------|
 | **P1–P3** | Proxmox / Debian Linux | `thunderbolt_net` + static (or site automation) | FRR `fabricd` via **apt** (or equivalent) |
-| **U1–U2** | Unraid | **Thunderbolt Net** tbn tabs | FRR via **UnraidFRR** (packages) + TBN OpenFabric conf |
+| **U1–U2** | Unraid | **Thunderbolt Net** tbn tabs | FRR via **Fabric Routing** (packages) + TBN OpenFabric conf |
 
 **Interop rule (any site):** same OpenFabric **area**, compatible **NET / router-id** plan, non-overlapping underlay subnets, metrics that behave sensibly on mixed trained rates (see [routing-openfabric.md](routing-openfabric.md#path-cost-and-metrics)).
 
@@ -88,7 +88,7 @@ Not required for initial interop: dual-cable bonding, USB4STREAM, or putting VM 
 ┌──────────────────▼──────────────────────────┐
 │  Unraid                                     │
 │  TB underlay: Thunderbolt Net               │
-│  FRR packages: UnraidFRR (opt-in)           │
+│  FRR packages: FabricRouting (opt-in)           │
 │  OpenFabric stanzas: Thunderbolt Net        │
 │    (marked block; TB ifaces + lo only)      │
 └─────────────────────────────────────────────┘
@@ -98,8 +98,8 @@ Not required for initial interop: dual-cable bonding, USB4STREAM, or putting VM 
 |-------|------------------|--------|
 | Physical TB | Kernel `thunderbolt` + `thunderbolt_net` | Same |
 | Underlay IP | Manual / site automation | Thunderbolt Net tbn UI |
-| FRR install | `apt install frr` (typical) | **UnraidFRR** |
-| fabricd enable | `/etc/frr/daemons` | UnraidFRR defaults |
+| FRR install | `apt install frr` (typical) | **Fabric Routing** |
+| fabricd enable | `/etc/frr/daemons` | FabricRouting defaults |
 | OpenFabric policy | Hand conf or automation | Thunderbolt Net generate/apply |
 | LAN (vmbr0 / br0) | Keep out of fabric by default | Keep out by default |
 
@@ -168,7 +168,7 @@ Upstream: [FRR fabricd](https://docs.frrouting.org/en/latest/fabricd.html) · [F
 ## Unraid side
 
 1. **Thunderbolt Net** — underlay tbn IPs; OpenFabric **On**; participate per TB link.  
-2. **UnraidFRR** (optional) — packages so `vtysh` / `fabricd` exist.  
+2. **Fabric Routing** (optional) — packages so `vtysh` / `fabricd` exist.  
 3. Apply TBN → marked conf on TB ifaces + lo; does not enroll br0 by default.
 
 ---
@@ -192,7 +192,7 @@ Scale the same steps up or down:
 ## Success criteria (interop “good enough” for a release)
 
 - [ ] Documented area / NET / loopback plan for the site  
-- [ ] Unraid: TBN OpenFabric with FRR present (UnraidFRR or other)  
+- [ ] Unraid: TBN OpenFabric with FRR present (FabricRouting or other)  
 - [ ] Non-Unraid peers: fabricd adjacencies to neighbors  
 - [ ] `show openfabric neighbor` / `show openfabric route` sensible on both platforms  
 - [ ] Multi-hop between at least one Unraid and one non-Unraid loopback  
@@ -212,8 +212,8 @@ Scale the same steps up or down:
 
 ## Related
 
-- [routing-openfabric.md](routing-openfabric.md) — FRR, metrics, rings, UnraidFRR split  
+- [routing-openfabric.md](routing-openfabric.md) — FRR, metrics, rings, FabricRouting split  
 - [links-and-topology.md](links-and-topology.md) — TB path model  
 - [peer-scenarios.md](peer-scenarios.md) — peer OS matrix  
 - [DEVELOPMENT.md](DEVELOPMENT.md) — engineering stages  
-- UnraidFRR: https://github.com/ibigsnet/UnraidFRR  
+- FabricRouting: https://github.com/ibigsnet/FabricRouting  

@@ -3,10 +3,10 @@
   'use strict';
 
   /**
-   * Fleet standard (TBN / UnraidFRR / NBD Export):
+   * Fleet standard (TBN / FabricRouting / NBD Export):
    * Open a Network Settings *sibling tab* by Title text (e.g. "Thunderbolt",
    * "Fabric Routing", "tbn0"). Never deep-link /Settings/ThunderboltNet or
-   * /Settings/UnraidFRR — those are standalone CA launch pages without the strip.
+   * /Settings/FabricRouting — those are standalone CA launch pages without the strip.
    *
    * sessionStorage: ibigsWantTab (canonical) + tbnWantTab (legacy).
    * API: ibigsGotoNetTab(needle, evt) — aliases: tbnGotoNetTab, frrGotoNetTab, nbdGotoNetTab.

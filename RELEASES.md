@@ -64,12 +64,12 @@ Unraid plugin updates use **lexicographic `strcmp()`**, not PHP `version_compare
 ### Cross-plugin UI links (fleet standard)
 
 Network Settings uses an **xmenu tab strip** (eth0 · Thunderbolt · Fabric Routing · tbn…).  
-Deep links like `/Settings/ThunderboltNet` or `/Settings/UnraidFRR` open the **standalone CA launch page** and drop the strip.
+Deep links like `/Settings/ThunderboltNet` or `/Settings/FabricRouting` open the **standalone CA launch page** and drop the strip.
 
 | Do | Don’t |
 |----|--------|
 | `href="/Settings/NetworkSettings"` + `onclick="return ibigsGotoNetTab('Thunderbolt', event)"` | `href="/Settings/ThunderboltNet"` |
-| `ibigsGotoNetTab('Fabric Routing', event)` | `href="/Settings/UnraidFRR"` |
+| `ibigsGotoNetTab('Fabric Routing', event)` | `href="/Settings/FabricRouting"` |
 | Tab needle = page **Title** (`Thunderbolt`, `Fabric Routing`, `tbn0`, …) | Guessing single-letter version suffixes |
 
 Shared API (any of these aliases work; first loaded plugin defines the impl):
@@ -163,7 +163,7 @@ develop on branch → merge to main → bump .plg version + CHANGES
 | [`v2026.08.05ad`](https://github.com/ibigsnet/ThunderboltNet/releases/tag/v2026.08.05ad) | **2026.08.05ad** | **Stable pin** before OpenFabric work: standards guide (directionality, bandwidth table, mixing, FAQ) |
 | [`v2026.08.05ac`](https://github.com/ibigsnet/ThunderboltNet/releases/tag/v2026.08.05ac) | **2026.08.05ac** | First GitHub Release: USB4STREAM awareness, Dashboard TB ports, forum + GitHub support links |
 
-Prefer **`v2026.08.05ad`** for freeze/rollback. Prefer **Latest** for newest (OpenFabric settings work when FRR is present; multi-hop needs FRR via [UnraidFRR](https://github.com/ibigsnet/UnraidFRR) or other install).
+Prefer **`v2026.08.05ad`** for freeze/rollback. Prefer **Latest** for newest (OpenFabric settings work when FRR is present; multi-hop needs FRR via [FabricRouting](https://github.com/ibigsnet/FabricRouting) or other install).
 ### Roll back to a tag
 
 1. **Plugins → Install Plugin** → paste that tag’s raw `.plg` URL (see table above / GitHub tags).  
@@ -180,4 +180,4 @@ Prefer **`v2026.08.05ad`** for freeze/rollback. Prefer **Latest** for newest (Op
 | **Unraid forum (support)** | https://forums.unraid.net/topic/200065-plugin-thunderbolt-net-host-to-host-networking-over-thunderbolt-345-and-usb44v2/ |
 | **Docs** | [DOCS.md](https://github.com/ibigsnet/ThunderboltNet/blob/main/DOCS.md) · [docs/](https://github.com/ibigsnet/ThunderboltNet/tree/main/docs) |
 | **OpenFabric / FRR (LTS design)** | [docs/routing-openfabric.md](docs/routing-openfabric.md) |
-| **UnraidFRR companion** (optional FRR packages) | https://github.com/ibigsnet/UnraidFRR |
+| **FabricRouting companion** (optional FRR packages) | https://github.com/ibigsnet/FabricRouting |
