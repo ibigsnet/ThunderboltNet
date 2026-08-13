@@ -11,10 +11,7 @@
     YYYY.MM.DDaa     2nd same day, then ab, ac, ... az, ba, bb, ...
   Two-letter only after the bare date — never single a–z
   (strcmp treats "aa" as older than "z").
-  Calendar day = lab host wall clock (America/Chicago for this fleet), NOT UTC
-  and NOT "previous version date + 1". Never invent tomorrow. If a wrong future
-  date already shipped, continue two-letter suffixes on that line (strcmp); do not rewind.
-  Pre-ship: run `date` on lab, then choose version (see RELEASES.md checklist).
+  Calendar day = lab wall clock (not invented “tomorrow”). See RELEASES.md.
 
   UI: Network Settings siblings via ibigsGotoNetTab(Title) — never deep-link
   /Settings/ThunderboltNet or /Settings/FabricRouting (standalone CA pages).

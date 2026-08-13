@@ -41,7 +41,7 @@ When plugins are loaded, full guide also under:
 less /usr/local/emhttp/plugins/ThunderboltNet/docs/safe-mode-recovery.md
 ```
 
-We intentionally **do not** install system manpages, shell aliases, or multi-copy clutter on `/boot/` root.
+This setup does **not** install system manpages, shell aliases, or multi-copy clutter on `/boot/` root.
 
 ---
 ## Recommendation
@@ -51,7 +51,7 @@ We intentionally **do not** install system manpages, shell aliases, or multi-cop
 | **Manual commands** (this page) | Rare recovery boots | **Use this** |
 | **Persistent auto-bootstrap** (modprobe.d + `go` / early scripts that run without plugins) | Only if you *must* have TB every safe boot | **Keep off** unless you fully own the flash hooks and uninstall path |
 
-**Highly suggested default: do not enable persistent “always up in every boot environment” automation.**
+**Default: no persistent auto-bootstrap** for every boot environment.
 
 Reasons to keep persistence **off**:
 

@@ -54,59 +54,19 @@ After install, confirm the version under **Plugins** (or the plugin version stri
 
 ---
 
-## Version strings (plugin / Unraid)
+## Version strings
 
-Unraid plugin updates use **lexicographic `strcmp()`**, not PHP `version_compare()`.
+Unraid plugin updates use lexicographic `strcmp()` (not PHP `version_compare`).
 
 | Form | Meaning |
 |------|---------|
-| `YYYY.MM.DD` | First ship that **calendar day** |
-| `YYYY.MM.DDaa` | 2nd ship same day, then `ab` … `az`, `ba`, `bb`, … |
+| `YYYY.MM.DD` | First ship that calendar day (lab wall clock) |
+| `YYYY.MM.DDaa` | Further ships same day (`ab` … `az`, `ba`, …) |
 
-### Calendar day (do not skip)
-
-The date in the version string is the **lab wall-clock calendar day**, not UTC and not “yesterday’s line + 1”.
-
-| Do | Don’t |
-|----|--------|
-| Read **lab host** date before bumping (`date` on Unraid; timezone **America/Chicago** for this fleet) | Use the agent/CI machine UTC date if it differs from lab |
-| Use **today’s** date on that clock | Invent **tomorrow** (`…14` while lab is still the 13th) |
-| Same calendar day → next **two-letter** suffix (`aa`, `ab`, …) | Jump the day number to “make room” for more ships |
-| If a wrong future date already shipped, **stay on that line** for strcmp and note the mistake in CHANGES — do not rewind | Mint an older date after a newer one is installed (updates will not offer) |
-
-**Historical miss:** bare `2026.08.14` / `14aa` / `14ab` were cut while lab was still **2026-08-13** (continued a day-ahead TBN line instead of checking lab `date`). Same class of bug as keeping letter suffixes on an old day (Storage Guard once had to “roll to calendar date”).
-
-### Other hard rules
-
-- No hyphens in the version string.
-- After the bare date, **two-letter** suffixes only — never single `a`–`z` (strcmp treats `"aa"` as **older** than `"z"`).
-- Bump **only** `<!ENTITY version "…">` in the `.plg`; asset URLs use `?v=&version;`.
-- Add a `###&version;` block under `<CHANGES>` in the same ship.
-
-### Pre-ship version checklist (agents + humans)
-
-1. On lab: `date` → record `YYYY-MM-DD` in lab TZ (America/Chicago).
-2. Read current `<!ENTITY version>` on the branch you ship.
-3. Same lab date as version prefix → next two-letter suffix only.
-4. Lab date newer → first ship that day = bare `YYYY.MM.DD` (if it sorts after current; else `…aa`).
-5. Lab date older than a mistaken future version already out → **do not rewind**; continue suffixes on the shipped date.
-6. Never set version by “latest string + one day” without looking at the lab clock.
-
-### Can we rewind a wrong date once it was shipped?
-
-Unraid only offers an update when the **new** version string is **lexicographically greater** (`strcmp`) than the installed one.
-
-| Idea | Works? |
-|------|--------|
-| Ship `2026.08.13…` after users already have `2026.08.14…` | **No** — older string, no update |
-| Lab `plugin install … forced` to any version | **Yes** — lab/support only, not CA auto-update |
-| Keep shipping on the mistaken day line (`14ac`, `14ad`, …) until a **real** later calendar day, then use that date | **Yes** — normal path |
-| Change PluginURL (new plugin identity) to restart at a “correct” date | **Technically yes**, **bad idea** — CA re-review, dual installs, broken update path for existing users |
-| New version *format* (e.g. `20260813.1`) chosen to sort above `2026.08.14ab` | Possible but **breaks fleet convention** — avoid |
-
-**Practical fix after a day-ahead mistake:** do not invent a rewind. Document it, keep `strcmp` monotonic, use the **lab wall clock** for every *new* ship, and let the calendar catch up (e.g. on a real later day use that day’s bare date or next suffix). Historical wrong dates in git tags stay as history.
-
-
+- No hyphens. After the bare date, **two-letter** suffixes only (never single `a`–`z`).
+- Bump only `<!ENTITY version "…">` in the `.plg`; assets use `?v=&version;`.
+- Add a `###&version;` entry under `<CHANGES>` in the same ship.
+- Versions only move forward for existing installs (`strcmp`); do not rewind a mistaken future date.
 
 ### Cross-plugin UI links (fleet standard)
 
