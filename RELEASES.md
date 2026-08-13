@@ -61,6 +61,25 @@ Unraid plugin updates use **lexicographic `strcmp()`**, not PHP `version_compare
 
 `main` may move ahead of the last **tag** while you develop. Users on the **Latest** URL always get `main`. Users who need a freeze install a **tag** URL.
 
+### Cross-plugin UI links (fleet standard)
+
+Network Settings uses an **xmenu tab strip** (eth0 · Thunderbolt · Fabric Routing · tbn…).  
+Deep links like `/Settings/ThunderboltNet` or `/Settings/UnraidFRR` open the **standalone CA launch page** and drop the strip.
+
+| Do | Don’t |
+|----|--------|
+| `href="/Settings/NetworkSettings"` + `onclick="return ibigsGotoNetTab('Thunderbolt', event)"` | `href="/Settings/ThunderboltNet"` |
+| `ibigsGotoNetTab('Fabric Routing', event)` | `href="/Settings/UnraidFRR"` |
+| Tab needle = page **Title** (`Thunderbolt`, `Fabric Routing`, `tbn0`, …) | Guessing single-letter version suffixes |
+
+Shared API (any of these aliases work; first loaded plugin defines the impl):
+
+- **`ibigsGotoNetTab(needle, event)`** — canonical  
+- `tbnGotoNetTab` / `frrGotoNetTab` / `nbdGotoNetTab` — aliases  
+
+`sessionStorage`: `ibigsWantTab` (canonical) and `tbnWantTab` (legacy).  
+Network Services → **NBD** is a separate menu (`/Settings/NbdExport`); not a Network Settings tab.
+
 ---
 
 ## Git tags and GitHub Releases

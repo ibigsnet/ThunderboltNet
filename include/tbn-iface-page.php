@@ -596,7 +596,7 @@ if (strpos($nm, '.') === false) {
 
   <p class="tbn-note">
     Overview / fabric / driver options:
-    <a href="/Settings/NetworkSettings" onclick="return tbnGotoNetTab('Thunderbolt', event)">Thunderbolt</a>
+    <a href="/Settings/NetworkSettings" onclick="return ibigsGotoNetTab('Thunderbolt', event)">Thunderbolt</a>
   </p>
 
   <?= tbn_docs_bar_html('iface') ?>

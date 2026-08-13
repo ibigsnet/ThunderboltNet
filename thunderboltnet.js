@@ -3,10 +3,18 @@
   'use strict';
 
   /**
-   * Switch to a Network Settings tab by title text (e.g. "tbn0", "Thunderbolt").
-   * Unraid keeps siblings as tabs under /Settings/NetworkSettings; deep links like
-   * /Settings/Tbn0 leave the tab strip context. Prefer clicking the existing tab.
+   * Fleet standard (TBN / UnraidFRR / NBD Export):
+   * Open a Network Settings *sibling tab* by Title text (e.g. "Thunderbolt",
+   * "Fabric Routing", "tbn0"). Never deep-link /Settings/ThunderboltNet or
+   * /Settings/UnraidFRR — those are standalone CA launch pages without the strip.
+   *
+   * sessionStorage: ibigsWantTab (canonical) + tbnWantTab (legacy).
+   * API: ibigsGotoNetTab(needle, evt) — aliases: tbnGotoNetTab, frrGotoNetTab, nbdGotoNetTab.
    */
+  var IBIGS_WANT = 'ibigsWantTab';
+  var IBIGS_WANT_LEGACY = 'tbnWantTab';
+  var IBIGS_NET_SETTINGS = '/Settings/NetworkSettings';
+
   function tbnFindTabButton(needle) {
     var tabs = document.querySelectorAll('.tabs [role="tab"], .tabs a, #menu a, .nav-item');
     var want = (needle || '').toLowerCase();
@@ -22,7 +30,29 @@
     return null;
   }
 
-  window.tbnGotoNetTab = function (needle, evt) {
+  function ibigsSetWantTab(needle) {
+    try {
+      sessionStorage.setItem(IBIGS_WANT, needle);
+      sessionStorage.setItem(IBIGS_WANT_LEGACY, needle);
+    } catch (e) { /* ignore */ }
+  }
+
+  function ibigsGetWantTab() {
+    try {
+      return sessionStorage.getItem(IBIGS_WANT) || sessionStorage.getItem(IBIGS_WANT_LEGACY);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function ibigsClearWantTab() {
+    try {
+      sessionStorage.removeItem(IBIGS_WANT);
+      sessionStorage.removeItem(IBIGS_WANT_LEGACY);
+    } catch (e) { /* ignore */ }
+  }
+
+  function ibigsGotoNetTabImpl(needle, evt) {
     if (evt && evt.preventDefault) {
       evt.preventDefault();
     }
@@ -34,30 +64,38 @@
       } catch (e) { /* ignore */ }
       return false;
     }
-    // Not on Network Settings (or tabs not ready): remember target and open parent
-    try {
-      sessionStorage.setItem('tbnWantTab', needle);
-    } catch (e2) { /* ignore */ }
-    window.location.href = '/Settings/NetworkSettings';
+    ibigsSetWantTab(needle);
+    window.location.href = IBIGS_NET_SETTINGS;
     return false;
+  }
+
+  // Canonical + legacy aliases (first plugin to load wins for implementation)
+  if (typeof window.ibigsGotoNetTab !== 'function') {
+    window.ibigsGotoNetTab = ibigsGotoNetTabImpl;
+  }
+  window.tbnGotoNetTab = function (needle, evt) {
+    return window.ibigsGotoNetTab(needle, evt);
   };
+  if (typeof window.frrGotoNetTab !== 'function') {
+    window.frrGotoNetTab = function (needle, evt) {
+      return window.ibigsGotoNetTab(needle, evt);
+    };
+  }
+  if (typeof window.nbdGotoNetTab !== 'function') {
+    window.nbdGotoNetTab = function (needle, evt) {
+      return window.ibigsGotoNetTab(needle, evt);
+    };
+  }
 
   // After navigating to Network Settings, activate requested tab once
   function tbnApplyWantedTab() {
-    var want = null;
-    try {
-      want = sessionStorage.getItem('tbnWantTab');
-    } catch (e) {
-      return;
-    }
+    var want = ibigsGetWantTab();
     if (!want) {
       return;
     }
     var tab = tbnFindTabButton(want);
     if (tab) {
-      try {
-        sessionStorage.removeItem('tbnWantTab');
-      } catch (e2) { /* ignore */ }
+      ibigsClearWantTab();
       // Defer so Unraid's own tab cookie init runs first
       setTimeout(function () {
         tab.click();

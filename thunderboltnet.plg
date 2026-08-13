@@ -6,13 +6,16 @@
   Versioning — Unraid plugin updates use strcmp() (lexicographic), NOT version_compare.
   No hyphens. Bump only this entity; asset ?v= uses it.
 
-  Rules (same as StorageGuard):
+  Rules (ibigsnet fleet — StorageGuard / Thunderbolt Net / UnraidFRR / NBD Export):
     YYYY.MM.DD       first release that calendar day
     YYYY.MM.DDaa     2nd same day, then ab, ac, ... az, ba, bb, ...
-  Two-letter only after the bare date — never single a–z on new days
-  (avoids strcmp treating "aa" as older than "z").
+  Two-letter only after the bare date — never single a–z
+  (strcmp treats "aa" as older than "z").
+
+  UI: Network Settings siblings via ibigsGotoNetTab(Title) — never deep-link
+  /Settings/ThunderboltNet or /Settings/UnraidFRR (standalone CA pages).
 -->
-<!ENTITY version "2026.08.13">
+<!ENTITY version "2026.08.13aa">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -35,8 +38,12 @@
 
 <CHANGES>
 ###&version;
-- UI: “Network Settings → Fabric Routing” links open the **Fabric Routing** sibling tab under `/Settings/NetworkSettings` (via tbnGotoNetTab), not standalone `/Settings/UnraidFRR`.
-- Versioning: bare `2026.08.13` (first ship this day) after historical single-letter `12a` — two-letter `aa`/`ab`… for further same-day ships.
+- Fleet standard: **`ibigsGotoNetTab`** for all Network Settings sibling links (Fabric Routing, tbnN, …); aliases `tbnGotoNetTab` / `frrGotoNetTab` / `nbdGotoNetTab`; `sessionStorage.ibigsWantTab` (+ legacy `tbnWantTab`).
+- Docs: RELEASES cross-plugin UI link table (never deep-link `/Settings/UnraidFRR` or `/Settings/ThunderboltNet`).
+
+###2026.08.13
+- UI: “Network Settings → Fabric Routing” via tbnGotoNetTab, not standalone `/Settings/UnraidFRR`.
+- Versioning: bare `2026.08.13` after historical single-letter `12a`.
 
 ###2026.08.12a
 - OpenFabric: metric reference default **20000** (~20G TB host-net class), not 100G; docs explain DAC/manual override.
