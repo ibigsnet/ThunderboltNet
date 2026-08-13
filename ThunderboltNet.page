@@ -238,6 +238,11 @@ $of_mode_label = [
   if (!$peers_mem && function_exists('tbn_load_peers_memory')) {
     $peers_mem = tbn_load_peers_memory();
   }
+  if (is_file('/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh.php')) {
+    require_once '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh.php';
+  } elseif (is_file(__DIR__ . '/include/tbn-mesh.php')) {
+    require_once __DIR__ . '/include/tbn-mesh.php';
+  }
 ?>
   <div class="tbn-section">
     <h3>Known peers</h3>
@@ -245,6 +250,7 @@ $of_mode_label = [
       Online and offline peers. Services dropdown = SMB/NFS/SSH/web on that Thunderbolt IP (saves on change).
       Link rate: equal RX/TX shows <strong>full-duplex</strong>; asymmetric shows
       <strong>TX (to peer)</strong> and <strong>RX (from peer)</strong>.
+      <strong>Validated</strong> uses the last peer-plugin compare (green/orange/red) — see Fabric reports legend.
     </p>
 <?php if (!$peers_mem): ?>
     <div class="tbn-empty-peers" role="status">
@@ -259,6 +265,7 @@ $of_mode_label = [
       <thead>
         <tr>
           <th>Status</th>
+          <th>Peer validation</th>
           <th>Peer</th>
           <th>Tab / iface</th>
           <th>Local IPv4</th>
@@ -313,9 +320,16 @@ $of_mode_label = [
       $live_on = in_array($if, $include, true);
     }
     $can_apply_live = ($online && $if !== '' && preg_match('/^thunderbolt\d+$/', $if));
+    $mesh_val = $p['mesh_validation'] ?? null;
+    $mesh_row = 'tbn-mesh-row-orange';
+    if (is_array($mesh_val)) {
+      if (($mesh_val['status'] ?? '') === 'green') $mesh_row = 'tbn-mesh-row-green';
+      elseif (($mesh_val['status'] ?? '') === 'red') $mesh_row = 'tbn-mesh-row-red';
+    }
 ?>
-        <tr class="<?= $online ? 'tbn-peer-online' : 'tbn-peer-offline' ?> <?= $pref === 'yes' ? 'tbn-listen-on' : 'tbn-listen-off' ?>">
+        <tr class="<?= $online ? 'tbn-peer-online' : 'tbn-peer-offline' ?> <?= $pref === 'yes' ? 'tbn-listen-on' : 'tbn-listen-off' ?> <?= $mesh_row ?>">
           <td><?= $online ? '<span class="tbn-badge tbn-badge-ok">Online</span>' : '<span class="tbn-badge tbn-badge-unknown">Offline</span>' ?></td>
+          <td class="tbn-mesh-val-cell"><?= function_exists('tbn_mesh_badge_html') ? tbn_mesh_badge_html(is_array($mesh_val) ? $mesh_val : null) : '—' ?></td>
           <td>
             <strong><?= htmlspecialchars(($p['peer_name'] ?? '') !== '' ? $p['peer_name'] : '—') ?></strong>
 <?php if (!empty($p['stack'])): ?>
@@ -857,6 +871,12 @@ $of_mode_label = [
 <?php endif; ?>
   </div>
 
+<?php
+  if (function_exists('tbn_mesh_reports_panel_html')) {
+    echo tbn_mesh_reports_panel_html($cfg);
+  }
+?>
+
   <form method="POST" action="/update.php" target="progressFrame">
       <input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">
       <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update.php">
@@ -1030,6 +1050,101 @@ $of_mode_label = [
       <?= tbn_help_docs_footer('docs/routing-openfabric.md', 'Path cost and metrics') ?>
     </blockquote>
     </div><!-- .tbn-advanced-body openfabric -->
+  </div>
+
+  <div class="tbn-section tbn-advanced"
+       data-tbn-advanced="mesh"
+       data-tbn-default-open="<?= (($cfg['mesh_report'] ?? 'no') === 'yes') ? '1' : '0' ?>">
+    <div class="tbn-advanced-head">
+      <h3>Advanced: Fabric reports (multi-host)</h3>
+      <button type="button" class="tbn-advanced-toggle" data-tbn-adv-toggle="mesh"
+        data-show="Show Fabric reports"
+        data-hide="Hide Fabric reports">Show Fabric reports</button>
+<?php if (($cfg['mesh_report'] ?? 'no') === 'yes'): ?>
+      <span class="tbn-advanced-chip tbn-chip-ok">Export on</span>
+<?php else: ?>
+      <span class="tbn-advanced-chip tbn-chip-muted">Export off</span>
+<?php endif; ?>
+    </div>
+    <div class="tbn-advanced-body" id="tbn-adv-mesh"<?= (($cfg['mesh_report'] ?? 'no') === 'yes') ? '' : ' hidden' ?>>
+      <p class="tbn-note">
+        Share this host’s trained-link snapshot with other Unraid hosts running Thunderbolt Net
+        (private underlay + shared token). See <?= tbn_docs_more_html('docs/fabric-link-map.md', 'Fabric link map ↗') ?>.
+      </p>
+      <dl>
+        <dt>Enable fabric reports:</dt>
+        <dd>
+          <select name="mesh_report">
+            <?= mk_option($cfg['mesh_report'] ?? 'no', 'no', 'No (default)') ?>
+            <?= mk_option($cfg['mesh_report'] ?? 'no', 'yes', 'Yes — export + poll peers') ?>
+          </select>
+        </dd>
+      </dl>
+      <blockquote class="inline_help">
+        <strong>Yes</strong> — other Unraid + Thunderbolt Net hosts can fetch this host’s link JSON (with the token)
+        and this host will poll peer IPs. <strong>No</strong> — no export (403). Orange “unverified” is normal when off.
+      </blockquote>
+      <dl>
+        <dt>Shared token:</dt>
+        <dd>
+          <input type="text" name="mesh_token" maxlength="64" style="width:28em"
+            value="<?= htmlspecialchars($cfg['mesh_token'] ?? '') ?>"
+            placeholder="auto-generated on Apply if empty and Yes"
+            autocomplete="off">
+        </dd>
+      </dl>
+      <blockquote class="inline_help">
+        Same secret on every host in the fabric. Treat like a network password. Leave empty + Yes → generated on Apply.
+        Sent as <code>X-Tbn-Mesh-Token</code> (not printed in diagnostics).
+      </blockquote>
+      <dl>
+        <dt>Poll interval (seconds):</dt>
+        <dd>
+          <input type="text" name="mesh_poll_secs" maxlength="6" class="narrow"
+            value="<?= htmlspecialchars($cfg['mesh_poll_secs'] ?? '60') ?>" placeholder="60">
+        </dd>
+      </dl>
+      <dl>
+        <dt>Private IPs only:</dt>
+        <dd>
+          <select name="mesh_private_only">
+            <?= mk_option($cfg['mesh_private_only'] ?? 'yes', 'yes', 'Yes (default) — reject public source IPs') ?>
+            <?= mk_option($cfg['mesh_private_only'] ?? 'yes', 'no', 'No — allow any source (not recommended)') ?>
+          </select>
+        </dd>
+      </dl>
+      <dl>
+        <dt>Mesh peer IPs (optional):</dt>
+        <dd>
+          <input type="text" name="mesh_peer_ips" maxlength="256" style="width:36em"
+            value="<?= htmlspecialchars($cfg['mesh_peer_ips'] ?? '') ?>"
+            placeholder="10.255.0.2 10.254.0.4">
+        </dd>
+      </dl>
+      <blockquote class="inline_help">
+        Extra private IPv4 addresses to poll (space-separated). Direct Thunderbolt neighbors are discovered via
+        <code>ip neigh</code> automatically. Multi-hop: add fabric IPs when OpenFabric routes exist.
+      </blockquote>
+      <dl>
+        <dt>Also report Ethernet ifaces (optional):</dt>
+        <dd>
+          <input type="text" name="mesh_eth_ifaces" maxlength="128" style="width:28em"
+            value="<?= htmlspecialchars($cfg['mesh_eth_ifaces'] ?? '') ?>"
+            placeholder="eth0">
+        </dd>
+      </dl>
+      <blockquote class="inline_help">
+        Opt-in private fabric Ethernet (e.g. <code>eth0</code>). Never put <code>br0</code> / Wi‑Fi here.
+        10G↔2.5G both at 2.5G is green + info note (slowest partner), not red.
+      </blockquote>
+      <p class="tbn-muted">
+        <a class="tbn-btn-link" href="/plugins/ThunderboltNet/include/tbn-mesh-poll.php?force=1" target="progressFrame">Refresh fabric reports now</a>
+        · Host id:
+        <code><?= htmlspecialchars(function_exists('tbn_mesh_host_id') ? tbn_mesh_host_id() : '—') ?></code>
+      </p>
+      <input type="hidden" name="mesh_stale_secs" value="<?= htmlspecialchars($cfg['mesh_stale_secs'] ?? '300') ?>">
+      <input type="hidden" name="mesh_holdoff_secs" value="<?= htmlspecialchars($cfg['mesh_holdoff_secs'] ?? '120') ?>">
+    </div>
   </div>
 
   <div class="tbn-section tbn-section-drivers">

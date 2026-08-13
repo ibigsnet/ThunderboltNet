@@ -15,7 +15,7 @@
   UI: Network Settings siblings via ibigsGotoNetTab(Title) — never deep-link
   /Settings/ThunderboltNet or /Settings/FabricRouting (standalone CA pages).
 -->
-<!ENTITY version "2026.08.13ad">
+<!ENTITY version "2026.08.14">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -38,6 +38,10 @@
 
 <CHANGES>
 ###&version;
+- **Fabric reports (multi-host):** opt-in mesh export/poll — peer Unraid plugin validation (green/orange/red), Known peers last validation, legend (orange ≠ degraded). Private IP + shared token; eth allowlist optional.
+- Docs: [fabric-link-map.md](docs/fabric-link-map.md).
+
+###2026.08.13ad
 - Wording: spell out **Thunderbolt** instead of ambiguous “TB” in UI/docs (terabyte confusion).
 - Companion rename: **Fabric Routing** / id **FabricRouting** (was UnraidFRR — trademark). Detects legacy install paths.
 - Docs/UI: public sanitization — no personal lab hostnames (use peer/Machine B language).
@@ -346,6 +350,22 @@ Host-to-host networking over Thunderbolt-family ports on Unraid (Thunderbolt 3/4
 
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-ignore-warning.php">
 <URL>&raw;/include/tbn-ignore-warning.php?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh.php">
+<URL>&raw;/include/tbn-mesh.php?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh-export.php">
+<URL>&raw;/include/tbn-mesh-export.php?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh-poll.php">
+<URL>&raw;/include/tbn-mesh-poll.php?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/docs/fabric-link-map.md">
+<URL>&raw;/docs/fabric-link-map.md?v=&version;</URL>
 </FILE>
 
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-status">

@@ -58,6 +58,14 @@ function tbn_load_cfg() {
     'openfabric_router_id' => '',
     'openfabric_net' => '',
     'openfabric_metric_reference_mbps' => '20000',
+    'mesh_report' => 'no',
+    'mesh_token' => '',
+    'mesh_poll_secs' => '60',
+    'mesh_stale_secs' => '300',
+    'mesh_holdoff_secs' => '120',
+    'mesh_private_only' => 'yes',
+    'mesh_eth_ifaces' => '',
+    'mesh_peer_ips' => '',
   ];
   $cfg = [];
   if (function_exists('parse_plugin_cfg')) {
@@ -1826,6 +1834,21 @@ function tbn_status() {
   // Refresh summaries after reconcile so "listening" flags match network-extra
   $links = tbn_link_summaries();
   $peers = tbn_load_peers_memory();
+  $mesh = null;
+  $mesh_file = __DIR__ . '/tbn-mesh.php';
+  if (is_file($mesh_file)) {
+    require_once $mesh_file;
+    if (function_exists('tbn_mesh_maybe_poll')) {
+      // Best-effort poll when due (non-blocking enough for UI load)
+      @tbn_mesh_maybe_poll($cfg, false);
+      $peers = tbn_load_peers_memory();
+    }
+    $mesh = [
+      'enabled' => function_exists('tbn_mesh_enabled') ? tbn_mesh_enabled($cfg) : false,
+      'host_id' => function_exists('tbn_mesh_host_id') ? tbn_mesh_host_id() : '',
+      'hosts' => function_exists('tbn_mesh_cached_hosts') ? tbn_mesh_cached_hosts() : [],
+    ];
+  }
   return [
     'hostname' => gethostname() ?: '',
     'time' => date('c'),
@@ -1843,6 +1866,7 @@ function tbn_status() {
     'include_interfaces' => tbn_read_include_interfaces(),
     'cfg' => $cfg,
     'openfabric' => function_exists('tbn_of_status') ? tbn_of_status() : tbn_of_status_lazy(),
+    'mesh' => $mesh,
   ];
 }
 
@@ -2924,6 +2948,14 @@ function tbn_write_global_cfg(array $cfg) {
     'openfabric_router_id' => '',
     'openfabric_net' => '',
     'openfabric_metric_reference_mbps' => '20000',
+    'mesh_report' => 'no',
+    'mesh_token' => '',
+    'mesh_poll_secs' => '60',
+    'mesh_stale_secs' => '300',
+    'mesh_holdoff_secs' => '120',
+    'mesh_private_only' => 'yes',
+    'mesh_eth_ifaces' => '',
+    'mesh_peer_ips' => '',
   ];
   $merged = array_merge($defaults, $cfg);
   $dir = tbn_cfg_dir();

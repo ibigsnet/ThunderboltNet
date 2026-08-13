@@ -66,6 +66,7 @@ The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt l
 | USB4STREAM (raw Thunderbolt stream; needs **Linux kernel** with module — not Unraid 7.2 product) | [docs/usb4stream.md](docs/usb4stream.md) |
 | Port silkscreen guide (Thunderbolt lightning / SS¹⁰ / SS²⁰) | [docs/port-icons.md](docs/port-icons.md) (docs only) |
 | Hardware, BIOS, modules, security | [docs/requirements.md](docs/requirements.md) |
+| Multi-host fabric reports (peer validation colors) | [docs/fabric-link-map.md](docs/fabric-link-map.md) |
 | Topology: multi-peer, dual cable, bonding, rings | [docs/links-and-topology.md](docs/links-and-topology.md) |
 | **FRR / OpenFabric** multi-host routing (when/why, plugin roles) | [docs/routing-openfabric.md](docs/routing-openfabric.md) |
 | Mixed Unraid + Proxmox/Debian fabric (rings) | [docs/fabric-proxmox-unraid.md](docs/fabric-proxmox-unraid.md) |

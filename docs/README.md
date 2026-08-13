@@ -35,6 +35,7 @@ Physical Thunderbolt/USB4 path  →  kernel thunderbolt_net (thunderboltN)
 | [dashboard-network.md](dashboard-network.md) | Dashboard Interface list: thunderboltN / bond-tbN graphs & errors |
 | [usb4stream.md](usb4stream.md) | USB4STREAM raw path vs tbn net vs IB research; plugin support |
 | [requirements.md](requirements.md) | Hardware, BIOS, kernel modules, security |
+| [fabric-link-map.md](fabric-link-map.md) | Multi-host peer link validation (green/orange/red) |
 | [links-and-topology.md](links-and-topology.md) | Per-path model, multi-peer, dual cable, bonding, rings |
 | [routing-openfabric.md](routing-openfabric.md) | FRR / OpenFabric — defaults, metrics, FabricRouting split, pros/cons |
 | [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md) | Mixed fabric: Proxmox/Debian + Unraid (example ring, lab phases) |
