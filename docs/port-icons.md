@@ -52,7 +52,7 @@ Means the Type‑C port can do DisplayPort Alt Mode (monitors). It does **not** 
 
 ## Examples
 
-**NIROG-style board (ROG with ⚡40 + SS²⁰ + SS¹⁰):**  
+**Example board silk (⚡40 + SS²⁰ + SS¹⁰ ports):**  
 The **40** + lightning Type‑C ports are TB/USB4. SS²⁰ / SS¹⁰ are USB SuperSpeed banks. Ethernet 10G/2.5G is separate.
 
 **PLUSH-style host (no TB controller):**  

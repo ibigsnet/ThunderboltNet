@@ -250,7 +250,7 @@ $of_mode_label = [
     <div class="tbn-empty-peers" role="status">
       <p class="tbn-muted" style="margin:0">
         <strong>No remembered peers yet.</strong>
-        Connect a host (e.g. HoloX3D), open this tab once — it is stored offline after unplug.
+        Connect a peer (e.g. Machine B), open this tab once — it is stored offline after unplug.
         Full plugin reinstall used to wipe this list; current builds keep <code>peers.json</code> on uninstall.
       </p>
     </div>

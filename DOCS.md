@@ -160,7 +160,7 @@ Goal: plug in a laptop or mini-PC (including future Strix Halo / Gorgon Halo / D
 
 **Install:** Apps (CA) or Plugins → Install Plugin — see [RELEASES.md](RELEASES.md) (same two-track pattern as Storage Guard).
 
-**Uninstall:** Plugins → Thunderbolt Net → Remove. The plugin remove script cleans TB listening includes, modprobe snippets, Dashboard port patches, and emhttp paths. It **keeps** flash `peers.json` (known peers) and `ifaces/` (per-tbn settings) so a reinstall does not forget HoloX3D-class peers. Other flash state under the plugin dir is removed. It does **not** remove UnraidFRR or FRR. Hard-refresh after remove.
+**Uninstall:** Plugins → Thunderbolt Net → Remove. The plugin remove script cleans TB listening includes, modprobe snippets, Dashboard port patches, and emhttp paths. It **keeps** flash `peers.json` (known peers) and `ifaces/` (per-tbn settings) so a reinstall does not forget previously seen peers. Other flash state under the plugin dir is removed. It does **not** remove UnraidFRR or FRR. Hard-refresh after remove.
 
 ## Releases
 

@@ -15,7 +15,7 @@
   UI: Network Settings siblings via ibigsGotoNetTab(Title) — never deep-link
   /Settings/ThunderboltNet or /Settings/UnraidFRR (standalone CA pages).
 -->
-<!ENTITY version "2026.08.13aa">
+<!ENTITY version "2026.08.13ab">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -38,6 +38,9 @@
 
 <CHANGES>
 ###&version;
+- Docs/UI: public sanitization — no personal lab hostnames (use peer/Machine B language).
+
+###2026.08.13aa
 - Fleet standard: **`ibigsGotoNetTab`** for all Network Settings sibling links (Fabric Routing, tbnN, …); aliases `tbnGotoNetTab` / `frrGotoNetTab` / `nbdGotoNetTab`; `sessionStorage.ibigsWantTab` (+ legacy `tbnWantTab`).
 - Docs: RELEASES cross-plugin UI link table (never deep-link `/Settings/UnraidFRR` or `/Settings/ThunderboltNet`).
 
