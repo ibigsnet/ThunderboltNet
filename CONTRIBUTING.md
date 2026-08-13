@@ -40,3 +40,12 @@ Machine-local Grok/lab notes may live in `.grok-notes/` (gitignored). Design tha
 
 - Issues: https://github.com/ibigsnet/ThunderboltNet/issues  
 - Forum: see plugin Support link / [RELEASES.md](RELEASES.md)  
+
+## License
+
+By contributing, you agree that your contributions are licensed under the **GNU GPLv3 or later** (same as this project). Copyright for the project is held by **ibigs, LLC**.
+
+## Branches
+
+- `main` — development (may break)
+- `stable` — production / CA channel only; maintainers merge release-ready work here

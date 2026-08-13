@@ -4,7 +4,7 @@
 That includes **Thunderbolt 3, 4, and 5**, and **USB4 / USB4 v2** host controllers when the platform and kernel expose the same fabric—not plain USB&nbsp;2/3-only ports. See [standards and speeds](docs/standards-and-speeds.md).
 
 **Install:** Plugins → Install Plugin →  
-`https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg`
+`https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/stable/thunderboltnet.plg`
 
 **Source / project:** [github.com/ibigsnet/ThunderboltNet](https://github.com/ibigsnet/ThunderboltNet)  
 **Support (Unraid forum):** [Plugin support thread](https://forums.unraid.net/topic/200065-plugin-thunderbolt-net-host-to-host-networking-over-thunderbolt-345-and-usb44v2/)  

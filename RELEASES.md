@@ -25,7 +25,7 @@ CA is fed from the [unraid-templates](https://github.com/ibigsnet/unraid-templat
 
 | Track | When to use | URL pattern |
 |-------|-------------|-------------|
-| **Latest (`main`)** | Always get the newest published tree | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg` |
+| **Latest (`main`)** | Always get the newest published tree | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/stable/thunderboltnet.plg` |
 | **Recommended freeze** | Known-good before multi-host map work | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/stable-recommended-2026.08.13ad/thunderboltnet.plg` |
 | **Pinned tag** | Install/rollback to any fixed version | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/vVERSION/thunderboltnet.plg` |
 

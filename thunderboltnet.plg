@@ -15,11 +15,11 @@
   UI: Network Settings siblings via ibigsGotoNetTab(Title) — never deep-link
   /Settings/ThunderboltNet or /Settings/FabricRouting (standalone CA pages).
 -->
-<!ENTITY version "2026.08.14">
+<!ENTITY version "2026.08.14aa">
 <!ENTITY launch "Settings/ThunderboltNet">
-<!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
+<!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/stable/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
-<!ENTITY raw "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main">
+<!ENTITY raw "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/stable">
 <!ENTITY forum "https://forums.unraid.net/topic/200065-plugin-thunderbolt-net-host-to-host-networking-over-thunderbolt-345-and-usb44v2/">
 <!ENTITY plugdir "/usr/local/emhttp/plugins/ThunderboltNet">
 <!ENTITY configdir "/boot/config/plugins/ThunderboltNet">
@@ -34,12 +34,17 @@
   min="6.12.0"
   support="&forum;"
   project="https://github.com/&github;"
-  readme="https://raw.githubusercontent.com/&github;/main/README.md">
+  readme="https://raw.githubusercontent.com/&github;/stable/README.md">
 
 <CHANGES>
 ###&version;
 - **Fabric reports (multi-host):** opt-in mesh export/poll — peer Unraid plugin validation (green/orange/red), Known peers last validation, legend (orange ≠ degraded). Private IP + shared token; eth allowlist optional.
 - Docs: [fabric-link-map.md](docs/fabric-link-map.md).
+
+###2026.08.14aa
+- **License:** GNU GPLv3 or later (copyright ibigs, LLC; Author: RifleJock).
+- **Release channel:** PluginURL + raw sources on branch `stable`. Development continues on `main`.
+- SECURITY.md: host networking, mesh export token/private-IP notes.
 
 ###2026.08.13ad
 - Wording: spell out **Thunderbolt** instead of ambiguous “TB” in UI/docs (terabyte confusion).
