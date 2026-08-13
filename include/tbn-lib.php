@@ -893,7 +893,9 @@ function tbn_format_link_rate($rx, $tx, array $opts = []) {
  * Returns path info if installed; used for services hints.
  */
 function tbn_nbdexport_present() {
-  return is_dir('/usr/local/emhttp/plugins/NbdExport')
+  return is_dir('/usr/local/emhttp/plugins/NBDExport')
+    || is_dir('/boot/config/plugins/NBDExport')
+    || is_dir('/usr/local/emhttp/plugins/NbdExport')
     || is_dir('/boot/config/plugins/NbdExport');
 }
 

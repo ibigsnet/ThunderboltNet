@@ -85,7 +85,7 @@ Shared API (any of these aliases work; first loaded plugin defines the impl):
 - `tbnGotoNetTab` / `frrGotoNetTab` / `nbdGotoNetTab` — aliases  
 
 `sessionStorage`: `ibigsWantTab` (canonical) and `tbnWantTab` (legacy).  
-Network Services → **NBD** is a separate menu (`/Settings/NbdExport`); not a Network Settings tab.
+Network Services → **NBD** is a separate menu (`/Settings/NBDExport`); not a Network Settings tab.
 
 ---
 
