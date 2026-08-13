@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.08.11ap">
+<!ENTITY version "2026.08.12a">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -35,6 +35,8 @@
 
 <CHANGES>
 ###&version;
+- OpenFabric: metric reference default **20000** (~20G TB host-net class), not 100G; docs explain DAC/manual override.
+- UI/docs: less “Not USB4STREAM” noise — point to usb4stream.md once.
 - Docs: Contents/TOC on large guides (routing-openfabric, standards, DOCS, …).
 - Docs: spell out Thunderbolt (not TB) next to multi-terabyte imaging context.
 - Companion name: **Fabric Routing** / CA **Fabric Routing (FRR)** (UnraidFRR packages tab).
@@ -276,7 +278,7 @@ echo "ThunderboltNet: directories ready."
 <![CDATA[
 **Thunderbolt Net**
 
-Host-to-host networking over Thunderbolt-family ports on Unraid (Thunderbolt 3/4/5 and USB4-class hosts where Linux exposes them). Fabric overview, per-link tbn0/tbn1… settings (one or more peers), PCI/IOMMU, driver options, known peers, activity; optional OpenFabric multi-host fabric. Honest trained rates — not sticker dual-lane TCP.
+Host-to-host networking over Thunderbolt-family ports on Unraid (Thunderbolt 3/4/5 and USB4-class hosts where Linux exposes them). Fabric overview, per-link tbn0/tbn1… settings (one or more peers), PCI/IOMMU, driver options, known peers, activity; optional OpenFabric multi-host fabric. Shows kernel trained rate and lane status (may be below the port marketing class).
 ]]>
 </INLINE>
 </FILE>

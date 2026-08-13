@@ -57,7 +57,7 @@ function tbn_load_cfg() {
     'openfabric_area' => '1',
     'openfabric_router_id' => '',
     'openfabric_net' => '',
-    'openfabric_metric_reference_mbps' => '100000',
+    'openfabric_metric_reference_mbps' => '20000',
   ];
   $cfg = [];
   if (function_exists('parse_plugin_cfg')) {
@@ -2923,7 +2923,7 @@ function tbn_write_global_cfg(array $cfg) {
     'openfabric_area' => '1',
     'openfabric_router_id' => '',
     'openfabric_net' => '',
-    'openfabric_metric_reference_mbps' => '100000',
+    'openfabric_metric_reference_mbps' => '20000',
   ];
   $merged = array_merge($defaults, $cfg);
   $dir = tbn_cfg_dir();

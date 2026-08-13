@@ -187,22 +187,26 @@ Operators (and FRR) choose a **path** by **lowest total metric** along a path (S
 Proposed formula (implemented as defaults; overridable per link):
 
 ```text
-reference_mbps = 100000          # 100 Gbit/s reference (configurable)
+reference_mbps = 20000           # ~20 Gbit/s default (configurable)
 bandwidth_mbps = trained_tx_or_min(tx,rx) in Mbit/s   # from TB sysfs / status
 metric = max(1, round(reference_mbps / max(bandwidth_mbps, 1)))
 ```
 
-Examples with reference **100000**:
+**Why reference 20000 (~20 Gbit/s)?** Under Linux, Thunderbolt host-net commonly trains near **20 Gbit/s each way**, not the full port marketing class. Using 100 000 (100 G) as the reference made typical TB hops look artificially expensive next to Ethernet 100G planning numbers.
 
-| Trained class (approx.) | bandwidth_mbps | metric |
-|-------------------------|----------------|--------|
-| ~80 G class | 80000 | 1–2 |
-| ~40 G class (dual-ish path) | 40000 | 3 |
-| ~20 G / common 1-lane | 20000 | 5 |
-| ~10 G | 10000 | 10 |
-| unknown / down | — | high sentinel or interface not in fabric |
+With **20000**, a typical ~20 G trained hop gets metric **1**. Faster paths (higher TB train, or 100 G DAC) also get metric **1** under auto (floor). To prefer a specific fast path over other 20 G+ links, set a **manual** metric on that interface (lower is preferred).
 
-**Why inverse bandwidth?** Same spirit as OSPF auto-cost reference bandwidth: faster link → lower cost → SPF prefers it on a **ring** when both directions around the ring are available.
+Examples with reference **20000**:
+
+| Trained class (approx.) | bandwidth_mbps | auto metric |
+|-------------------------|----------------|-------------|
+| ~20 G (common Linux TB host-net) | 20000 | **1** |
+| ~40 G class | 40000 | **1** (floored) |
+| ~80 G class | 80000 | **1** (floored) |
+| ~10 G Ethernet peer | 10000 | **2** |
+| unknown / down | — | high sentinel or not in fabric |
+
+**Why inverse bandwidth at all?** Same spirit as OSPF auto-cost: *slower than the reference* → higher cost. Above the reference, auto treats paths as equal (metric 1) unless you use manual metrics.
 
 ### SPF in one sentence
 
@@ -215,31 +219,32 @@ For each candidate path, **add the metrics of every hop**, then **use the path w
    A -------- B -------- C -------- D -------- E -------- (back to A)
 ```
 
-With reference **100000**, approximate interface metrics:
+With reference **20000**, approximate interface metrics:
 
 | Link class | Metric |
 |------------|--------|
-| 20G hops (A–B, B–C, D–E, E–A, …) | **5** each |
-| 10G hop (C–D only) | **10** |
+| 20G hops (A–B, B–C, D–E, E–A, …) | **1** each |
+| 10G hop (C–D only) | **2** |
 
 **Question:** how does the fabric treat traffic that must be *routed* from C toward D (e.g. loopback-to-loopback, or another prefix learned via OpenFabric)?
 
 | Candidate path | Path cost (sum of hop metrics) |
 |----------------|--------------------------------|
-| **Direct** C → D | **10** |
-| **Long way** C → B → A → E → D | 5+5+5+5 = **20** |
+| **Direct** C → D (10G) | **2** |
+| **Long way** C → B → A → E → D (four 20G hops) | 1+1+1+1 = **4** |
 
-**Result: use direct C–D** (10 &lt; 20). Nodes A, B, and E are **not** transit for normal C↔D flows.
+**Result: use direct C–D** (2 &lt; 4). Nodes A, B, and E are **not** transit for normal C↔D flows.
 
 That answers the common fear: *“Won’t the ring shove C–D traffic all the way around and load every host?”*  
-**Not with sane metrics.** A slower *direct* link still beats several faster hops unless its metric is large enough that the detour wins (or the direct link is down).
+**Not with sane metrics.** A slightly slower *direct* link still beats several hops unless its metric is large enough that the detour wins (or the direct link is down).
 
-| If C–D were… | C–D metric (approx.) | vs long way (20) | Winner |
-|--------------|----------------------|------------------|--------|
-| 10G | 10 | 20 | **Direct** |
-| 20G | 5 | 20 | **Direct** |
-| ~1G | ~100 | 20 | **Long way** (detour is cheaper) |
-| Down / withdrawn | — | 20 | **Long way** (failover — why you built a ring) |
+| If C–D were… | C–D metric (ref 20000) | vs long way (4) | Winner |
+|--------------|------------------------|-----------------|--------|
+| 10G | 2 | 4 | **Direct** |
+| 20G | 1 | 4 | **Direct** |
+| ~5G | 4 | 4 | Tie / ECMP-ish |
+| ~1G | ~20 | 4 | **Long way** (detour is cheaper) |
+| Down / withdrawn | — | 4 | **Long way** (failover — why you built a ring) |
 
 **On-link vs SPF:** if C and D only talk using addresses **on the shared C–D underlay subnet**, the kernel often uses a **connected** route and never “picks” the long arc. SPF path choice matters most for **remote** prefixes (other nodes, loopbacks, multi-hop). Either way, adjacent 10G neighbors are **not** meant to hairpin around the ring by default.
 
@@ -311,7 +316,7 @@ OpenFabric: A↔C traffic can go direct or A–B–C; metric prefers better trai
 
 ## Bonding and dual-cable (roadmap — not a non-goal)
 
-**Today (honest limits):**
+**Today (current limits):**
 
 - Linux often exposes **one** host-net path for two cables between the **same** pair; bonding cannot invent a second slave.
 - TB slaves often reject `set_mac`; many bond modes fail; dual-plug can **wedge** the TB domain until all cables are cleared.
@@ -402,7 +407,7 @@ Thunderbolt Net does **not** install FRR packages. That work is intentionally **
 
 | Plugin | Repo | Role |
 |--------|------|------|
-| **UnraidFRR** | [ibigsnet/UnraidFRR](https://github.com/ibigsnet/UnraidFRR) | Opt-in: **auto-download** FRR packages (Nvidia-plugin style), enable `zebra` / `fabricd`, array-start rehydrate |
+| **UnraidFRR** | [ibigsnet/UnraidFRR](https://github.com/ibigsnet/UnraidFRR) | Opt-in: FRR packages (catalog + flash cache + Apply), enable `zebra` / `fabricd`, array-start rehydrate |
 | **Thunderbolt Net** | this repo | TB underlay + OpenFabric *policy* when FRR is already present |
 
 | Option | Who | Status |
@@ -441,7 +446,7 @@ openfabric_ipv6="yes"
 openfabric_area="1"
 openfabric_router_id=""
 openfabric_net=""
-openfabric_metric_reference_mbps="100000"
+openfabric_metric_reference_mbps="20000"
 openfabric_hello_multiplier=""
 ```
 

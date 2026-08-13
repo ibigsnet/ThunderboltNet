@@ -114,7 +114,7 @@ Agree these across **all** nodes in a given fabric:
 | OpenFabric area / tag | `1` | Same `router openfabric 1` |
 | Router-id | `/32` on `lo` (auto or set) | Unique `/32` per node |
 | NET | Auto from router-id or override | Unique NET per node; consistent area style (e.g. `49.0001.…`) |
-| Metric policy | `ref / trained_Mbps` (ref default 100000) | Same idea or explicit manuals that agree |
+| Metric policy | `ref / trained_Mbps` (ref default **20000** ≈ 20G TB class) | Same idea or explicit manuals that agree |
 | Underlay subnets | Unique per link | **No** duplicate subnet on two TB links |
 | IPv6 fabric | Optional | Match site choice (IPv4-only is fine early) |
 | Hello timers | Mild defaults from TBN | Align if adjacencies flap |

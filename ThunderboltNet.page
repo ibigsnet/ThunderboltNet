@@ -176,8 +176,9 @@ $of_mode_label = [
           → then <a href="/Settings/UnraidFRR">Network Settings → Fabric Routing</a> → Apply.
         </p>
         <p class="tbn-muted tbn-companion-role">
-          Does <em>not</em> provide <code>thunderbolt_stream</code> / USB4STREAM.
-          After FRR is live, use Advanced → OpenFabric on this page for area, metrics, participate.
+          Packages only (zebra / fabricd). OpenFabric <em>policy</em> is still on this page (Advanced).
+          Not related to kernel USB4STREAM —
+          <?= tbn_docs_more_html('docs/usb4stream.md', 'what that is ↗') ?>.
         </p>
 <?php endif; ?>
       </div>
@@ -220,13 +221,10 @@ $of_mode_label = [
       <code>user</code> / <code>secure</code> mean you (or a key) must approve devices — more like production ACL.<br><br>
       <strong>IP host-net modules</strong> — <code>thunderbolt</code> = host controller stack;
       <code>thunderbolt_net</code> = <code>thunderboltN</code> IP interfaces (what tbn tabs configure).
-      These are <em>not</em> FRR and not USB4STREAM.<br><br>
-      <strong>USB4STREAM</strong> (<code>thunderbolt_stream</code>) is an optional <em>kernel</em> raw path
-      (feature landed in mainline <strong>Linux kernel ~7.2</strong> — that is <code>uname -r</code> / kernel.org,
-      <strong>not</strong> Unraid product version 7.2.x). Separate from IP host-net.
-      Installing <strong>UnraidFRR</strong> never adds this module. Upgrading Unraid alone does not guarantee it.<br><br>
+      Separate from OpenFabric/FRR and from USB4STREAM
+      (<?= tbn_docs_more_html('docs/usb4stream.md', 'USB4STREAM explained') ?>).<br><br>
       <strong>OpenFabric / FRR</strong> is optional <em>IP routing</em> for multi-hop rings/meshes. Packages come from
-      UnraidFRR (or your own FRR); this plugin only writes OpenFabric <em>policy</em>.<br><br>
+      Fabric Routing / UnraidFRR (or your own FRR); this plugin only writes OpenFabric <em>policy</em>.<br><br>
       <strong>Listening includes</strong> — names in <code>network-extra.cfg</code> so SMB / NFS / SSH / web UI
       may bind there. Set per peer under <strong>Known peers</strong> or on each tbn tab. NBD bind is separate.
       <?= tbn_help_docs_footer('docs/requirements.md', 'Requirements') ?>
@@ -422,7 +420,7 @@ $of_mode_label = [
       <strong>Stack</strong> — TB vendor field (often <code>Linux</code> / software ID, not the chassis brand).<br><br>
       <strong>Link RX/TX &amp; lanes</strong> — <em>LOCAL</em> is this host’s class ceiling (not a live hop rate).
       Each <em>REMOTE</em> column is the <strong>trained</strong> path on that cable (end-to-end with that peer).
-      USB4/TB <strong>lanes are simplex</strong> (TX or RX), not PCIe-style full duplex at the sticker number.
+      USB4/TB <strong>lanes are simplex</strong> (TX or RX), not full duplex at the marketing port rate.
       A marketing <strong>40&nbsp;Gb/s</strong> class path is typically <strong>~20&nbsp;Gb/s each direction at once</strong> (20+20), not 40 each way.
       <code>rx_speed</code> is per lane; dual-lane often still shows ~20&nbsp;Gb/s with <strong>2-lane</strong>.
       Single-lane (~20&nbsp;Gb/s · 1-lane) is common for TB host-to-host under Linux.<br><br>
@@ -905,7 +903,6 @@ $of_mode_label = [
       <strong>Needs FRR packages</strong> (this plugin does not install them).
       <a href="#tbn-companion-frr" class="tbn-jump-frr">↑ Jump to Multi-hop companion</a>
       for install status and the UnraidFRR link — then return here for OpenFabric policy (area, metrics, participate).
-      FRR is <strong>not</strong> USB4STREAM / <code>thunderbolt_stream</code>.
       <?= tbn_docs_more_html('docs/routing-openfabric.md', 'When to use OpenFabric ↗') ?>
     </p>
 <?php else: ?>
@@ -931,7 +928,6 @@ $of_mode_label = [
       <strong>When you can skip it:</strong> two hosts, one cable, static IPs only — leave packages uninstalled.<br><br>
       <strong>Who installs FRR?</strong> Not this plugin. Optional companion
       <a href="#tbn-companion-frr">UnraidFRR</a> (Network Settings → Fabric Routing; packages + daemons), or your own FRR.
-      UnraidFRR never installs <code>thunderbolt_stream</code> / USB4STREAM.
       <?= tbn_help_docs_footer('docs/routing-openfabric.md', 'FRR / OpenFabric (pros, cost, topologies)') ?>
     </blockquote>
     <?php
@@ -1020,14 +1016,17 @@ $of_mode_label = [
       <dt>Metric reference (Mb/s):</dt>
       <dd>
         <input type="text" name="openfabric_metric_reference_mbps" maxlength="12" class="narrow"
-          value="<?= htmlspecialchars($cfg['openfabric_metric_reference_mbps'] ?? '100000') ?>"
-          placeholder="100000">
+          value="<?= htmlspecialchars($cfg['openfabric_metric_reference_mbps'] ?? '20000') ?>"
+          placeholder="20000">
       </dd>
     </dl>
     <blockquote class="inline_help">
       Auto interface metric ≈ <code>reference / trained_Mbps</code> (min 1) — same idea as OSPF auto-cost reference bandwidth.
       Faster trained TB links get <strong>lower</strong> cost so rings prefer them.
-      Default <strong>100000</strong> (100&nbsp;G). Per-link manual metrics are on each tbn tab.
+      Default <strong>20000</strong> (~20&nbsp;Gbit/s — typical Linux Thunderbolt host-net one-way class).
+      Auto cost ≈ reference ÷ trained Mb/s (floor 1). Links at or above ~20G share metric <strong>1</strong>;
+      use <strong>manual</strong> metric on a tbn tab if a 40/80/100G path (e.g. DAC) must win over 20G Thunderbolt.
+      Per-link mode/metric: each <strong>tbn</strong> tab.
       <?= tbn_help_docs_footer('docs/routing-openfabric.md', 'Path cost and metrics') ?>
     </blockquote>
     </div><!-- .tbn-advanced-body openfabric -->

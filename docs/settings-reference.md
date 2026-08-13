@@ -13,7 +13,7 @@ OpenFabric is the **control plane** for multi-hop fabrics (rings, “reach C thr
 | OpenFabric area | 1 | Host | Must match peers in the same fabric |
 | Router ID | auto `10.254.x.y` | Host | `/32` on `lo`, passive |
 | OpenFabric NET | auto | Host | Advanced IS-IS style NET override |
-| Metric reference (Mb/s) | 100000 | Host | Auto metric ≈ ref / trained_Mbps (rings) |
+| Metric reference (Mb/s) | **20000** (~20G) | Host | Auto metric ≈ ref / trained_Mbps; ≥20G floors at 1; use manual for DAC preference |
 
 Full design, pros/cons, cost model, rings, mixed Proxmox/Unraid: [routing-openfabric.md](routing-openfabric.md) · [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md).
 
