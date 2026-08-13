@@ -92,6 +92,21 @@ The date in the version string is the **lab wall-clock calendar day**, not UTC a
 5. Lab date older than a mistaken future version already out → **do not rewind**; continue suffixes on the shipped date.
 6. Never set version by “latest string + one day” without looking at the lab clock.
 
+### Can we rewind a wrong date once it was shipped?
+
+Unraid only offers an update when the **new** version string is **lexicographically greater** (`strcmp`) than the installed one.
+
+| Idea | Works? |
+|------|--------|
+| Ship `2026.08.13…` after users already have `2026.08.14…` | **No** — older string, no update |
+| Lab `plugin install … forced` to any version | **Yes** — lab/support only, not CA auto-update |
+| Keep shipping on the mistaken day line (`14ac`, `14ad`, …) until a **real** later calendar day, then use that date | **Yes** — normal path |
+| Change PluginURL (new plugin identity) to restart at a “correct” date | **Technically yes**, **bad idea** — CA re-review, dual installs, broken update path for existing users |
+| New version *format* (e.g. `20260813.1`) chosen to sort above `2026.08.14ab` | Possible but **breaks fleet convention** — avoid |
+
+**Practical fix after a day-ahead mistake:** do not invent a rewind. Document it, keep `strcmp` monotonic, use the **lab wall clock** for every *new* ship, and let the calendar catch up (e.g. on a real later day use that day’s bare date or next suffix). Historical wrong dates in git tags stay as history.
+
+
 
 ### Cross-plugin UI links (fleet standard)
 

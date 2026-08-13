@@ -1,0 +1,88 @@
+Thunderbolt Net — offline recovery (Safe Mode / no plugins)
+============================================================
+This file is plain text for console use when GitHub and the WebGUI
+plugin are unavailable.
+
+Unraid Safe Mode does NOT load community plugins. Array "Maintenance"
+(array started, disks unmounted) is different — the plugin can still
+load on a normal boot.
+
+COPY ON FLASH (survives Safe Mode if you installed the plugin once):
+  cat /boot/config/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt
+
+WHEN PLUGINS ARE LOADED (normal boot):
+  cat /usr/local/emhttp/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt
+  # longer guide:
+  less /usr/local/emhttp/plugins/ThunderboltNet/docs/safe-mode-recovery.md
+
+
+DO NOT enable silent "always bring TB up on every boot" scripts unless
+you fully understand them. Prefer these manual steps for rare recovery.
+Default advice: keep automatic no-plugin bootstrap OFF.
+
+
+1) CABLES FIRST (highly recommended)
+------------------------------------
+Wedged multi-cable domains are common.
+
+  - Unplug EVERY Thunderbolt/USB4 host cable from this host AND peers
+  - Wait 10+ seconds
+  - Plug ONE known-good cable only (one port pair)
+  - Wait for a single thunderbolt0 before addressing
+  - Leave other cables unplugged until ping works
+
+
+2) MODULES
+----------
+  modprobe thunderbolt 2>/dev/null || true
+  modprobe thunderbolt_net
+  lsmod | grep thunderbolt
+
+Optional (many cross-host links prefer e2e off):
+  echo 0 > /sys/module/thunderbolt_net/parameters/e2e 2>/dev/null || true
+
+
+3) FIND THE IFACE
+-----------------
+  ls /sys/class/net | grep -E 'thunderbolt|bond-tb|br-tb'
+  ip -br link | grep -i thunder
+
+Kernel names are thunderbolt0, thunderbolt1, ... (not tbn0).
+
+
+4) ADDRESS (example first link /24)
+-----------------------------------
+Plugin-style plan example — change to match YOUR peer:
+
+  This Unraid:  10.255.0.2/24 on thunderbolt0
+  Peer:         10.255.0.1/24 on its TB netdev
+
+  IFACE=thunderbolt0
+  ip link set "$IFACE" up
+  ip addr add 10.255.0.2/24 dev "$IFACE"
+
+Peer:
+  ip link set thunderbolt0 up
+  ip addr add 10.255.0.1/24 dev thunderbolt0
+
+Do NOT add a default route via Thunderbolt unless you intend to
+replace LAN internet for this session.
+
+
+5) VERIFY
+---------
+  ping -c 3 10.255.0.1
+  ip -br addr show thunderbolt0
+
+
+6) AFTER RECOVERY
+-----------------
+  - Prefer a normal boot (plugins on) when the emergency is over
+  - Settings → Network Settings → Thunderbolt / tbn tabs → Apply
+  - Full docs (when online): docs/safe-mode-recovery.md in the repo
+
+
+WHAT SAFE MODE WILL NOT DO
+--------------------------
+  Plugin UI, OpenFabric, mesh reports, dashboard port list patch,
+  automatic IP from plugin cfg — none of these run without plugins.

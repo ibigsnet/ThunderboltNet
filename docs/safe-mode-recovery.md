@@ -8,6 +8,27 @@ This is **not** the same as **array Maintenance mode** (array started, disks not
 
 ---
 
+
+## Local copy (offline / Safe Mode)
+
+After a normal install of this plugin, a **short plain-text** sheet is kept on the flash drive so you can read it when plugins and GitHub are unavailable:
+
+```bash
+cat /boot/config/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt
+```
+
+When plugins are loaded:
+
+```bash
+cat /usr/local/emhttp/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt
+less /usr/local/emhttp/plugins/ThunderboltNet/docs/safe-mode-recovery.md
+```
+
+Uninstall leaves the flash copy in place on purpose (recovery help without reinstalling). Delete that file yourself if you want it gone.
+
+This is **documentation only** — it does not bring the link up and is not a persistent auto-network bootstrap.
+
+---
 ## Recommendation
 
 | Approach | When | Default advice |
