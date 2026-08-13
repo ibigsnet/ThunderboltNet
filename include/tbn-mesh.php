@@ -492,16 +492,6 @@ function tbn_mesh_ensure_token(array &$cfg) {
   $cfg['mesh_token'] = bin2hex(random_bytes(16));
 }
 
-function tbn_mesh_status_label($status, $reason = '') {
-  if ($status === 'green') {
-    return $reason === 'agree_asymmetric' ? 'Validated (asymmetric OK)' : 'Validated (both ends agree)';
-  }
-  if ($status === 'red') return 'Disagree — check cable/hosts';
-  if ($reason === 'peer_stale') return 'Unverified (peer report stale)';
-  if ($reason === 'probing') return 'Probing…';
-  return 'Unverified (local only)';
-}
-
 function tbn_mesh_legend_html() {
   return '<div class="tbn-mesh-legend" role="note">'
     . '<span class="tbn-mesh-pill tbn-mesh-green">Green</span> Validated — local and peer Unraid plugin reports agree '
