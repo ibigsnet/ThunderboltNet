@@ -1,19 +1,37 @@
 Thunderbolt Net — offline recovery (Safe Mode / no plugins)
 ============================================================
-This file is plain text for console use when GitHub and the WebGUI
-plugin are unavailable.
+HOW TO FIND THIS FILE (you will not remember the long path)
+------------------------------------------------------------
+On the Unraid console, try any of:
 
-Unraid Safe Mode does NOT load community plugins. Array "Maintenance"
-(array started, disks unmounted) is different — the plugin can still
-load on a normal boot.
+  ls /boot/*RECOVERY* /boot/*Thunderbolt* 2>/dev/null
+  ls /boot/config/*RECOVERY* /boot/config/*Thunderbolt* 2>/dev/null
+  find /boot -iname '*RECOVERY*' 2>/dev/null | head
 
-COPY ON FLASH (survives Safe Mode if you installed the plugin once):
+Full copies (same text) are installed when the plugin is present on a
+normal boot, so they remain on the USB flash for Safe Mode:
+
+  cat /boot/ThunderboltNet-SAFE-MODE-RECOVERY.txt
+  cat /boot/config/ThunderboltNet-SAFE-MODE-RECOVERY.txt
   cat /boot/config/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt
 
-WHEN PLUGINS ARE LOADED (normal boot):
+When plugins ARE loaded (normal boot):
+
   cat /usr/local/emhttp/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt
-  # longer guide:
   less /usr/local/emhttp/plugins/ThunderboltNet/docs/safe-mode-recovery.md
+
+If none of those exist, this host never had a modern Thunderbolt Net
+install write the sheet — use peer machine docs / phone copy of the
+repo, or type the commands below from memory.
+
+
+WHAT "SAFE MODE" MEANS
+----------------------
+Unraid Safe Mode / GUI Safe Mode: community plugins do NOT load.
+Array "Maintenance" (array started, disks unmounted) is DIFFERENT —
+the plugin can still run on a normal (non-safe) boot.
+
+This sheet is plain text for when GitHub and the plugin UI are gone.
 
 
 DO NOT enable silent "always bring TB up on every boot" scripts unless

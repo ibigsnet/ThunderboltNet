@@ -19,7 +19,7 @@
   UI: Network Settings siblings via ibigsGotoNetTab(Title) — never deep-link
   /Settings/ThunderboltNet or /Settings/FabricRouting (standalone CA pages).
 -->
-<!ENTITY version "2026.08.14ac">
+<!ENTITY version "2026.08.14ad">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -44,6 +44,12 @@
 ###&version;
 - **Fabric reports (multi-host):** opt-in mesh export/poll — peer Unraid plugin validation (green/orange/red), Known peers last validation, legend (orange ≠ degraded). Private IP + shared token; eth allowlist optional.
 - Docs: [fabric-link-map.md](docs/fabric-link-map.md).
+
+###2026.08.14ad
+- Offline recovery discoverability: same sheet also at flash root and
+  `/boot/config/` as `ThunderboltNet-SAFE-MODE-RECOVERY.txt`; file header
+  teaches `ls /boot/*RECOVERY*` / `find /boot -iname '*RECOVERY*'`.
+- First-run notify and install log mention the short flash paths.
 
 ###2026.08.14ac
 - **Offline recovery sheet:** ship `SAFE-MODE-RECOVERY.txt` to emhttp + copy to flash
@@ -430,11 +436,18 @@ php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.p
 if [ -x /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports ]; then
   /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports apply || true
 fi
-# Offline recovery cheat sheet on flash (readable in Safe Mode without plugins)
-if [ -f /usr/local/emhttp/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt ]; then
-  cp -a /usr/local/emhttp/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt \
-    /boot/config/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt
-  echo "ThunderboltNet: SAFE-MODE-RECOVERY.txt on flash (cat that path in Safe Mode)."
+# Offline recovery cheat sheet on flash (Safe Mode: plugins do not load).
+# Multiple paths so a stressed admin can find it without memorizing plugins/.
+SRC=/usr/local/emhttp/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt
+if [ -f "$SRC" ]; then
+  mkdir -p /boot/config/plugins/ThunderboltNet
+  cp -a "$SRC" /boot/config/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt
+  cp -a "$SRC" /boot/config/ThunderboltNet-SAFE-MODE-RECOVERY.txt
+  cp -a "$SRC" /boot/ThunderboltNet-SAFE-MODE-RECOVERY.txt
+  echo "ThunderboltNet: offline recovery sheet on flash (Safe Mode):"
+  echo "  cat /boot/ThunderboltNet-SAFE-MODE-RECOVERY.txt"
+  echo "  cat /boot/config/ThunderboltNet-SAFE-MODE-RECOVERY.txt"
+  echo "  # or:  ls /boot/*RECOVERY*   /   find /boot -iname '*RECOVERY*'"
 fi
 echo "ThunderboltNet: install complete."
 echo "ThunderboltNet: Configure → Settings → Network Settings → Thunderbolt"
@@ -449,7 +462,7 @@ if [ ! -f "$MARKER" ] && [ -x /usr/local/emhttp/webGui/scripts/notify ]; then
   /usr/local/emhttp/webGui/scripts/notify \
     -e "Thunderbolt Net installed" \
     -s "Thunderbolt Net ready" \
-    -d "Configure under Network Settings → Thunderbolt (tbn tabs for IPs)." \
+    -d "Configure under Network Settings → Thunderbolt (tbn tabs for IPs). Safe Mode offline help: cat /boot/ThunderboltNet-SAFE-MODE-RECOVERY.txt" \
     -i "normal" \
     -m "CA Settings opens the Thunderbolt overview. For eth0 + tbn tabs together: Settings → Network Settings. Optional multi-hop: FabricRouting (Network Settings → Fabric Routing) — routing packages, not thunderbolt_stream/USB4STREAM. Optional disk imaging: Network Services → NBD." \
     -l "/Settings/ThunderboltNet" \
@@ -543,7 +556,7 @@ if [ -e /usr/local/emhttp/plugins/ThunderboltNet ] || [ -e /usr/local/emhttp/plu
 else
   echo "ThunderboltNet: emhttp plugin paths clear"
 fi
-echo "ThunderboltNet: left SAFE-MODE-RECOVERY.txt on flash if present (offline cat help)."
+echo "ThunderboltNet: left recovery sheets on flash if present (/boot/*Thunderbolt*RECOVERY* )."
 echo "ThunderboltNet: removed (peers + iface settings preserved on flash)."
 ]]></INLINE>
 </FILE>
