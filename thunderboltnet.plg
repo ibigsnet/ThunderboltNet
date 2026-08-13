@@ -12,7 +12,7 @@
   Two-letter only after the bare date — never single a–z on new days
   (avoids strcmp treating "aa" as older than "z").
 -->
-<!ENTITY version "2026.08.12a">
+<!ENTITY version "2026.08.13">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -35,11 +35,16 @@
 
 <CHANGES>
 ###&version;
+- UI: “Network Settings → Fabric Routing” links open the **Fabric Routing** sibling tab under `/Settings/NetworkSettings` (via tbnGotoNetTab), not standalone `/Settings/UnraidFRR`.
+- Versioning: bare `2026.08.13` (first ship this day) after historical single-letter `12a` — two-letter `aa`/`ab`… for further same-day ships.
+
+###2026.08.12a
 - OpenFabric: metric reference default **20000** (~20G TB host-net class), not 100G; docs explain DAC/manual override.
 - UI/docs: less “Not USB4STREAM” noise — point to usb4stream.md once.
 - Docs: Contents/TOC on large guides (routing-openfabric, standards, DOCS, …).
 - Docs: spell out Thunderbolt (not TB) next to multi-terabyte imaging context.
 - Companion name: **Fabric Routing** / CA **Fabric Routing (FRR)** (UnraidFRR packages tab).
+- Note: single-letter `12a` was non-standard (use two-letter suffixes after bare date).
 
 ###2026.08.11al
 - Companion copy: FRR packages live under Network Settings → Fabric Routing (UnraidFRR tab).
