@@ -19,7 +19,7 @@
   UI: Network Settings siblings via ibigsGotoNetTab(Title) — never deep-link
   /Settings/ThunderboltNet or /Settings/FabricRouting (standalone CA pages).
 -->
-<!ENTITY version "2026.08.14ad">
+<!ENTITY version "2026.08.14ae">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -44,6 +44,12 @@
 ###&version;
 - **Fabric reports (multi-host):** opt-in mesh export/poll — peer Unraid plugin validation (green/orange/red), Known peers last validation, legend (orange ≠ degraded). Private IP + shared token; eth allowlist optional.
 - Docs: [fabric-link-map.md](docs/fabric-link-map.md).
+
+###2026.08.14ae
+- Recovery sheet: **single** flash path only
+  `/boot/config/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt` (left after uninstall).
+- Drop multi-copy under `/boot/` and `/boot/config/` root — discover with `find` or `man -l` on that file.
+- Docs: no system manpage/alias/profile hooks (would be core-ish); optional `man -l` local file only.
 
 ###2026.08.14ad
 - Offline recovery discoverability: same sheet also at flash root and
@@ -436,18 +442,20 @@ php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.p
 if [ -x /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports ]; then
   /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports apply || true
 fi
-# Offline recovery cheat sheet on flash (Safe Mode: plugins do not load).
-# Multiple paths so a stressed admin can find it without memorizing plugins/.
+# Remove older multi-path recovery copies (discoverability experiment)
+rm -f /boot/ThunderboltNet-SAFE-MODE-RECOVERY.txt \
+      /boot/config/ThunderboltNet-SAFE-MODE-RECOVERY.txt 2>/dev/null || true
+# Offline recovery sheet: ONE place on flash (left after uninstall on purpose).
+# Not copied to /boot root — use find / man -l; avoids multi-copy clutter.
 SRC=/usr/local/emhttp/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt
+DST=/boot/config/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt
 if [ -f "$SRC" ]; then
   mkdir -p /boot/config/plugins/ThunderboltNet
-  cp -a "$SRC" /boot/config/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt
-  cp -a "$SRC" /boot/config/ThunderboltNet-SAFE-MODE-RECOVERY.txt
-  cp -a "$SRC" /boot/ThunderboltNet-SAFE-MODE-RECOVERY.txt
-  echo "ThunderboltNet: offline recovery sheet on flash (Safe Mode):"
-  echo "  cat /boot/ThunderboltNet-SAFE-MODE-RECOVERY.txt"
-  echo "  cat /boot/config/ThunderboltNet-SAFE-MODE-RECOVERY.txt"
-  echo "  # or:  ls /boot/*RECOVERY*   /   find /boot -iname '*RECOVERY*'"
+  cp -a "$SRC" "$DST"
+  echo "ThunderboltNet: offline recovery (Safe Mode):"
+  echo "  cat $DST"
+  echo "  find /boot -iname '*SAFE-MODE-RECOVERY*' "
+  echo "  man -l $DST   # if man is available; local file only"
 fi
 echo "ThunderboltNet: install complete."
 echo "ThunderboltNet: Configure → Settings → Network Settings → Thunderbolt"
@@ -462,7 +470,7 @@ if [ ! -f "$MARKER" ] && [ -x /usr/local/emhttp/webGui/scripts/notify ]; then
   /usr/local/emhttp/webGui/scripts/notify \
     -e "Thunderbolt Net installed" \
     -s "Thunderbolt Net ready" \
-    -d "Configure under Network Settings → Thunderbolt (tbn tabs for IPs). Safe Mode offline help: cat /boot/ThunderboltNet-SAFE-MODE-RECOVERY.txt" \
+    -d "Configure under Network Settings → Thunderbolt (tbn tabs for IPs). Safe Mode: cat /boot/config/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt" \
     -i "normal" \
     -m "CA Settings opens the Thunderbolt overview. For eth0 + tbn tabs together: Settings → Network Settings. Optional multi-hop: FabricRouting (Network Settings → Fabric Routing) — routing packages, not thunderbolt_stream/USB4STREAM. Optional disk imaging: Network Services → NBD." \
     -l "/Settings/ThunderboltNet" \
@@ -556,7 +564,7 @@ if [ -e /usr/local/emhttp/plugins/ThunderboltNet ] || [ -e /usr/local/emhttp/plu
 else
   echo "ThunderboltNet: emhttp plugin paths clear"
 fi
-echo "ThunderboltNet: left recovery sheets on flash if present (/boot/*Thunderbolt*RECOVERY* )."
+echo "ThunderboltNet: left SAFE-MODE-RECOVERY.txt under plugins/ThunderboltNet/ on flash (if present)."
 echo "ThunderboltNet: removed (peers + iface settings preserved on flash)."
 ]]></INLINE>
 </FILE>

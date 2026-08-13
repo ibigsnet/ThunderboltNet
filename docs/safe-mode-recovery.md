@@ -11,18 +11,27 @@ This is **not** the same as **array Maintenance mode** (array started, disks not
 
 ## Local copy (offline / Safe Mode)
 
-**Nobody memorizes** `/boot/config/plugins/ThunderboltNet/…` in a crisis. After a normal plugin install, the same short sheet is written to **several flash paths** so Safe Mode can find it with simple `ls`:
+**Leave on flash after uninstall:** yes — useful recovery text, not a running service.
+
+**One path only** (no multi-copy under `/boot/` root):
 
 ```bash
-# Discover (no path memorized)
-ls /boot/*RECOVERY* /boot/*Thunderbolt* 2>/dev/null
-find /boot -iname '*RECOVERY*' 2>/dev/null | head
-
-# Explicit cats (all same file)
-cat /boot/ThunderboltNet-SAFE-MODE-RECOVERY.txt
-cat /boot/config/ThunderboltNet-SAFE-MODE-RECOVERY.txt
 cat /boot/config/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt
 ```
+
+If you forget the path:
+
+```bash
+find /boot -iname '*SAFE-MODE-RECOVERY*' 2>/dev/null
+```
+
+Optional pager without installing a system manpage (does **not** modify Unraid man databases):
+
+```bash
+man -l /boot/config/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt
+```
+
+(`man -l` = format/view a **local file**. If `man` is missing, use `cat` / `less`.)
 
 When plugins are loaded:
 
@@ -31,11 +40,13 @@ cat /usr/local/emhttp/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt
 less /usr/local/emhttp/plugins/ThunderboltNet/docs/safe-mode-recovery.md
 ```
 
-Also mentioned on first-install notification and install log when plugins *were* working — so the path is seen *before* a Safe Mode emergency.
+We intentionally **do not**:
 
-Uninstall **leaves** the flash copies on purpose. Delete them yourself if you want them gone.
+- Install into `/usr/share/man` or change manpath (RAM OS; not present in Safe Mode without re-install)
+- Add shell **aliases** or `/etc/profile.d` hooks (core-ish; easy to forget; still need a file to point at)
+- Auto-run network bring-up from this file
 
-This is **documentation only** — it does not bring the link up and is not a persistent auto-network bootstrap.
+Discoverability is: install/notify message + `find` + short name `SAFE-MODE-RECOVERY.txt` under the plugin’s flash dir (directory name `ThunderboltNet` is guessable if you remember the product).
 
 ---
 ## Recommendation

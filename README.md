@@ -11,4 +11,4 @@ GNU General Public License v3.0 or later — copyright **ibigs, LLC** (Author: R
 **Production / CA:** `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/stable/thunderboltnet.plg`  
 **Development:** work on `main`; ship by merging to `stable`.
 
-Safe Mode offline recovery sheet (after install): `cat /boot/ThunderboltNet-SAFE-MODE-RECOVERY.txt` — or `ls /boot/*RECOVERY*`.
+Safe Mode offline recovery (after install; kept on uninstall): `cat /boot/config/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt` — or `find /boot -iname '*SAFE-MODE-RECOVERY*'` / `man -l` that path.

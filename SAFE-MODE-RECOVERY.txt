@@ -1,28 +1,28 @@
 Thunderbolt Net — offline recovery (Safe Mode / no plugins)
 ============================================================
-HOW TO FIND THIS FILE (you will not remember the long path)
-------------------------------------------------------------
-On the Unraid console, try any of:
 
-  ls /boot/*RECOVERY* /boot/*Thunderbolt* 2>/dev/null
-  ls /boot/config/*RECOVERY* /boot/config/*Thunderbolt* 2>/dev/null
-  find /boot -iname '*RECOVERY*' 2>/dev/null | head
+WHERE THIS FILE LIVES (one place on flash)
+-----------------------------------------
+  /boot/config/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt
 
-Full copies (same text) are installed when the plugin is present on a
-normal boot, so they remain on the USB flash for Safe Mode:
-
-  cat /boot/ThunderboltNet-SAFE-MODE-RECOVERY.txt
-  cat /boot/config/ThunderboltNet-SAFE-MODE-RECOVERY.txt
   cat /boot/config/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt
 
-When plugins ARE loaded (normal boot):
+If you forget the path:
+
+  find /boot -iname '*SAFE-MODE-RECOVERY*' 2>/dev/null
+  find /boot -iname '*ThunderboltNet*' -type d 2>/dev/null
+
+Optional pager (if `man` exists; -l = local file, not a system manpage install):
+
+  man -l /boot/config/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt
+
+When plugins ARE loaded (normal boot), same text also under emhttp:
 
   cat /usr/local/emhttp/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt
   less /usr/local/emhttp/plugins/ThunderboltNet/docs/safe-mode-recovery.md
 
-If none of those exist, this host never had a modern Thunderbolt Net
-install write the sheet — use peer machine docs / phone copy of the
-repo, or type the commands below from memory.
+Left on flash after plugin uninstall on purpose (recovery help).
+Delete that file yourself if you want it gone. Not auto-network.
 
 
 WHAT "SAFE MODE" MEANS
@@ -30,8 +30,6 @@ WHAT "SAFE MODE" MEANS
 Unraid Safe Mode / GUI Safe Mode: community plugins do NOT load.
 Array "Maintenance" (array started, disks unmounted) is DIFFERENT —
 the plugin can still run on a normal (non-safe) boot.
-
-This sheet is plain text for when GitHub and the plugin UI are gone.
 
 
 DO NOT enable silent "always bring TB up on every boot" scripts unless
