@@ -16,7 +16,7 @@
   UI: Network Settings siblings via ibigsGotoNetTab(Title) — never deep-link
   /Settings/ThunderboltNet or /Settings/FabricRouting (standalone CA pages).
 -->
-<!ENTITY version "2026.08.14ai">
+<!ENTITY version "2026.08.14aj">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -39,6 +39,9 @@
 
 <CHANGES>
 ###&version;
+- Install: re-fetch ThunderboltNet.page if empty xmenu stub left behind.
+
+###2026.08.14ai
 - Ensure ThunderboltNet.page body ships (in-page Status/Peers/Hardware/Settings tabs).
 
 ###2026.08.14ah
@@ -472,10 +475,18 @@ rm -f /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltStatus.page \
       /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltPeers.page \
       /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltHardware.page \
       /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltSettings.page 2>/dev/null || true
-# Guard: empty xmenu parent (no --- body) must never remain
+# Guard: empty xmenu parent must never remain (CDN/skip-download edge cases)
 if ! grep -q 'tbn-subtabs' /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltNet.page 2>/dev/null; then
-  echo "ThunderboltNet: WARN ThunderboltNet.page missing in-page tabs — re-fetch or reinstall."
+  echo "ThunderboltNet: repairing ThunderboltNet.page (in-page tabs)…"
+  wget -q -O /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltNet.page \
+    "&raw;/ThunderboltNet.page?v=&version;" 2>/dev/null || true
 fi
+for _tbn_f in tbn-page-boot.php tbn-tab-status.php tbn-tab-peers.php tbn-tab-hardware.php tbn-tab-settings.php; do
+  if [ ! -s "/usr/local/emhttp/plugins/ThunderboltNet/include/${_tbn_f}" ]; then
+    wget -q -O "/usr/local/emhttp/plugins/ThunderboltNet/include/${_tbn_f}" \
+      "&raw;/include/${_tbn_f}?v=&version;" 2>/dev/null || true
+  fi
+done
 php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; tbn_sync_iface_pages();' 2>/dev/null || true
 # OpenFabric conf preview (no-op if FRR missing)
 php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; if (function_exists("tbn_of_apply")) { tbn_of_apply(); }' 2>/dev/null || true
