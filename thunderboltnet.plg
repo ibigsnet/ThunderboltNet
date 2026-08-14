@@ -16,7 +16,7 @@
   UI: Network Settings siblings via ibigsGotoNetTab(Title) — never deep-link
   /Settings/ThunderboltNet or /Settings/FabricRouting (standalone CA pages).
 -->
-<!ENTITY version "2026.08.14ah">
+<!ENTITY version "2026.08.14ai">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -39,12 +39,15 @@
 
 <CHANGES>
 ###&version;
+- Ensure ThunderboltNet.page body ships (in-page Status/Peers/Hardware/Settings tabs).
+
+###2026.08.14ah
 - **UI:** in-page **Status · Peers · Hardware · Settings** tabs on Thunderbolt (Network Settings
   sibling). Nested Unraid xmenu left an empty Thunderbolt tab — fixed. **tbnN** remains on the
   top Network Settings strip (not nested).
 
 ###2026.08.14ag
-- Split Thunderbolt overview into sections (later fixed as in-page tabs in ah).
+- Attempted Unraid nested xmenu sub-pages (empty parent tab under Network Settings).
 
 ###2026.08.14af
 - **Fabric reports (multi-host):** opt-in mesh export/poll — peer Unraid plugin validation (green/orange/red), Known peers last validation, legend (orange ≠ degraded). Private IP + shared token; eth allowlist optional.
@@ -469,6 +472,10 @@ rm -f /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltStatus.page \
       /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltPeers.page \
       /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltHardware.page \
       /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltSettings.page 2>/dev/null || true
+# Guard: empty xmenu parent (no --- body) must never remain
+if ! grep -q 'tbn-subtabs' /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltNet.page 2>/dev/null; then
+  echo "ThunderboltNet: WARN ThunderboltNet.page missing in-page tabs — re-fetch or reinstall."
+fi
 php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; tbn_sync_iface_pages();' 2>/dev/null || true
 # OpenFabric conf preview (no-op if FRR missing)
 php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; if (function_exists("tbn_of_apply")) { tbn_of_apply(); }' 2>/dev/null || true
