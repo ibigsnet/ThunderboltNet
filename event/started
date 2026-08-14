@@ -3,7 +3,9 @@
 # (LimeTech may replace nchan/update_3 and DashStats.page.)
 SCRIPT=/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports
 if [ -x "$SCRIPT" ]; then
-  "$SCRIPT" apply
+  # Quiet stdout: Unraid merges event stdout into "Array Started • …" footer.
+  # Routine success → syslog only; real WARN still on stderr.
+  "$SCRIPT" apply >/dev/null || true
 fi
 
 # OpenFabric: regenerate conf + best-effort FRR reload (no-op if FRR missing)

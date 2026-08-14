@@ -16,7 +16,7 @@
   UI: Network Settings siblings via ibigsGotoNetTab(Title) — never deep-link
   /Settings/ThunderboltNet or /Settings/FabricRouting (standalone CA pages).
 -->
-<!ENTITY version "2026.08.14ap">
+<!ENTITY version "2026.08.14aq">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -39,6 +39,10 @@
 
 <CHANGES>
 ###&version;
+- **Fix:** array-start no longer dumps “dashboard-ports: done — hard-refresh Dashboard…” into the
+  Unraid footer status bar. Routine apply logs go to syslog; interactive CLI still prints hints.
+
+###2026.08.14ap
 - **Fix:** Cables and safety help link showed literal “Directionality &amp; speeds” (double-escaped
   label). Same for Peers / MTU / bonding doc footers that used pre-encoded ampersands.
 

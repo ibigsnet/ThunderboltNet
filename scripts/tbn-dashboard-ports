@@ -21,7 +21,22 @@ BACKUP_DIR="/boot/config/plugins/ThunderboltNet/dashboard-ports-backup"
 STOCK="grep -Po '^(bond|eth|wlan)\\d+$'"
 PATCHED="grep -Po '^(bond|eth|wlan|thunderbolt)\\d+$|^(bond-tb|br-tb)\\d+$' # ${MARKER}"
 
-log() { echo "ThunderboltNet dashboard-ports: $*"; }
+# Unraid event/started captures stdout into the bottom status bar
+# ("Array Started • …"). Keep routine success quiet unless a TTY or VERBOSE=1.
+log() {
+  local msg="ThunderboltNet dashboard-ports: $*"
+  logger -t ThunderboltNet "dashboard-ports: $*" 2>/dev/null || true
+  if [ -t 1 ] || [ "${TBN_DASH_VERBOSE:-0}" = "1" ]; then
+    echo "$msg"
+  fi
+}
+
+# Real problems only — may appear on array-start status bar intentionally.
+warn() {
+  local msg="ThunderboltNet dashboard-ports: $*"
+  logger -t ThunderboltNet "dashboard-ports: $*" 2>/dev/null || true
+  echo "$msg" >&2
+}
 
 backup_once() {
   local f="$1" base
@@ -65,14 +80,14 @@ apply_file() {
     return 0
   fi
   if ! grep -qF "grep -Po '^(bond|eth|wlan)" "$f" 2>/dev/null; then
-    log "WARN: ports grep not found in $f — Unraid layout may have changed; skip"
+    warn "WARN: ports grep not found in $f — Unraid layout may have changed; skip"
     return 0
   fi
   backup_once "$f"
   if replace_first "$f" "$STOCK" "$PATCHED"; then
     log "applied: $f"
   else
-    log "WARN: failed to patch $f (stock pattern not exact match)"
+    warn "WARN: failed to patch $f (stock pattern not exact match)"
   fi
 }
 
@@ -139,7 +154,12 @@ case "$cmd" in
     apply_file "$UPDATE3"
     apply_file "$DASH"
     restart_nchan_update3
-    log "done — hard-refresh Dashboard; choose thunderbolt0 in the Interface dropdown"
+    # Install-time hint only when interactive — not every array start (pollutes footer).
+    if [ -t 1 ] || [ "${TBN_DASH_VERBOSE:-0}" = "1" ]; then
+      log "done — hard-refresh Dashboard; choose thunderbolt0 in the Interface dropdown"
+    else
+      log "apply complete"
+    fi
     ;;
   remove)
     remove_file "$UPDATE3"
@@ -148,7 +168,8 @@ case "$cmd" in
     log "removed dashboard port patches"
     ;;
   status)
-    log "status"
+    # Always print status to stdout (CLI / troubleshooting).
+    echo "ThunderboltNet dashboard-ports: status"
     status_file "$UPDATE3"
     status_file "$DASH"
     ;;
