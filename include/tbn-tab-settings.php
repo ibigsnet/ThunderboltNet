@@ -196,8 +196,10 @@ if (!$has_hw):
     </div>
     <div class="tbn-advanced-body" id="tbn-adv-mesh"<?= (($cfg['mesh_report'] ?? 'no') === 'yes') ? '' : ' hidden' ?>>
       <p class="tbn-note">
-        Share this host’s trained-link snapshot with other Unraid hosts running Thunderbolt Net
-        (private underlay + shared token). See <?= tbn_docs_more_html('docs/fabric-link-map.md', 'Fabric link map ↗') ?>.
+        Optional peer-to-peer link snapshots between <strong>your</strong> Unraid hosts that run this plugin
+        (same LAN or other private path both can reach). Stays on those hosts only —
+        nothing is sent to the internet, GitHub, or plugin developers.
+        See <?= tbn_docs_more_html('docs/fabric-link-map.md', 'Fabric link map ↗') ?>.
       </p>
       <dl>
         <dt>Enable fabric reports:</dt>
@@ -209,8 +211,14 @@ if (!$has_hw):
         </dd>
       </dl>
       <blockquote class="inline_help">
-        <strong>Yes</strong> — other Unraid + Thunderbolt Net hosts can fetch this host’s link JSON (with the token)
-        and this host will poll peer IPs. <strong>No</strong> — no export (403). Orange “unverified” is normal when off.
+        Each Unraid with Thunderbolt Net can export a small JSON snapshot of <em>its</em> links and poll peers
+        for <em>theirs</em> (green / orange / red compare).<br><br>
+        <strong>Paths:</strong> any private IP both plugins can reach — usually Thunderbolt (<code>tbnN</code>) IPs;
+        optionally private Ethernet (field below). A live Thunderbolt cable is not required if you only list eth fabric
+        interfaces and peer IPs.<br><br>
+        Settings live in this plugin UI; both hosts need the plugin. <strong>Not</strong> a cloud or telemetry service.<br><br>
+        <strong>Yes</strong> — peers with the same token may fetch this host’s snapshot; this host polls peers.
+        <strong>No</strong> — export off. Orange “unverified” is normal when off.
       </blockquote>
       <dl>
         <dt>Shared token:</dt>
@@ -222,8 +230,9 @@ if (!$has_hw):
         </dd>
       </dl>
       <blockquote class="inline_help">
-        Same secret on every host in the fabric. Treat like a network password. Leave empty + Yes → generated on Apply.
-        Sent as <code>X-Tbn-Mesh-Token</code> (not printed in diagnostics).
+        Secret shared only among your Unraid peers (LAN password). Same value on every host.
+        Empty + Yes → generated on Apply. Used host-to-host as <code>X-Tbn-Mesh-Token</code> —
+        not uploaded and not printed in diagnostics.
       </blockquote>
       <dl>
         <dt>Poll interval (seconds):</dt>
@@ -241,17 +250,20 @@ if (!$has_hw):
           </select>
         </dd>
       </dl>
+      <blockquote class="inline_help">
+        Default <strong>Yes</strong> keeps export/poll on private addresses (lab LAN / fabric), not the public internet.
+      </blockquote>
       <dl>
         <dt>Mesh peer IPs (optional):</dt>
         <dd>
           <input type="text" name="mesh_peer_ips" maxlength="256" style="width:36em"
             value="<?= htmlspecialchars($cfg['mesh_peer_ips'] ?? '') ?>"
-            placeholder="10.255.0.2 10.254.0.4">
+            placeholder="10.255.0.2 192.168.254.4">
         </dd>
       </dl>
       <blockquote class="inline_help">
-        Extra private IPv4 addresses to poll (space-separated). Direct Thunderbolt neighbors are discovered via
-        <code>ip neigh</code> automatically. Multi-hop: add fabric IPs when OpenFabric routes exist.
+        Extra private IPv4s to poll (space-separated) — Thunderbolt or Ethernet fabric IPs on peer Unraids.
+        Direct Thunderbolt neighbors are often found via <code>ip neigh</code>; add IPs for eth-only peers or multi-hop.
       </blockquote>
       <dl>
         <dt>Also report Ethernet ifaces (optional):</dt>
@@ -262,8 +274,8 @@ if (!$has_hw):
         </dd>
       </dl>
       <blockquote class="inline_help">
-        Opt-in private fabric Ethernet (e.g. <code>eth0</code>). Never put <code>br0</code> / Wi‑Fi here.
-        10G↔2.5G both at 2.5G is green + info note (slowest partner), not red.
+        Include private fabric Ethernet in this host’s snapshot (e.g. lab <code>eth0</code> between Unraids).
+        Thunderbolt links are included when present. Do not list <code>br0</code> or house Wi‑Fi.
       </blockquote>
       <p class="tbn-muted">
         <a class="tbn-btn-link" href="/plugins/ThunderboltNet/include/tbn-mesh-poll.php?force=1" target="progressFrame">Refresh fabric reports now</a>

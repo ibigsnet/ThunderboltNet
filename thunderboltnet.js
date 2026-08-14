@@ -268,6 +268,55 @@
   setTimeout(tbnApplyWantedTab, 600);
   setTimeout(tbnInitAdvancedPanels, 250);
 
+  /**
+   * Jump to Thunderbolt → Settings → Show Fabric reports (Enable fabric reports).
+   * Works when already on Network Settings; otherwise navigates there first.
+   */
+  window.tbnGotoFabricReportsSettings = function (evt) {
+    if (evt && evt.preventDefault) {
+      evt.preventDefault();
+    }
+    try {
+      sessionStorage.setItem('tbnInnerTab', 'settings');
+      sessionStorage.setItem('tbnWantExpand', 'mesh');
+      sessionStorage.setItem(IBIGS_WANT, 'Thunderbolt');
+      sessionStorage.setItem(IBIGS_WANT_LEGACY, 'Thunderbolt');
+    } catch (e) { /* ignore */ }
+
+    function openInner() {
+      if (typeof window.tbnActivateInnerTab === 'function') {
+        window.tbnActivateInnerTab('settings');
+      } else {
+        var btn = document.querySelector('.tbn-wrap [data-tbn-tab="settings"]');
+        if (btn) {
+          btn.click();
+        }
+      }
+      setTimeout(function () {
+        var toggle = document.querySelector('.tbn-wrap [data-tbn-adv-toggle="mesh"]');
+        var body = document.getElementById('tbn-adv-mesh');
+        if (toggle && body && body.hasAttribute('hidden')) {
+          toggle.click();
+        }
+        if (body) {
+          try {
+            body.scrollIntoView({ block: 'nearest' });
+          } catch (e2) { /* ignore */ }
+        }
+      }, 60);
+    }
+
+    var strip = tbnInNetworkSettingsStrip();
+    var thunder = tbnFindTabButton('Thunderbolt');
+    if (strip && thunder) {
+      thunder.click();
+      setTimeout(openInner, 40);
+      return false;
+    }
+    window.location.href = IBIGS_NET_SETTINGS;
+    return false;
+  };
+
   window.tbnConfirmReset = function (form) {
     if (!form) {
       return false;

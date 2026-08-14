@@ -16,7 +16,7 @@
   UI: Network Settings siblings via ibigsGotoNetTab(Title) — never deep-link
   /Settings/ThunderboltNet or /Settings/FabricRouting (standalone CA pages).
 -->
-<!ENTITY version "2026.08.14am">
+<!ENTITY version "2026.08.14ao">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -39,6 +39,13 @@
 
 <CHANGES>
 ###&version;
+- Fabric reports: clear LAN peer-to-peer wording (not cloud/telemetry); TB and optional eth paths;
+  off-message path + clickable jump to Settings → Show Fabric reports.
+
+###2026.08.14an
+- Fabric reports off message path + <code>tbnGotoFabricReportsSettings</code> jump.
+
+###2026.08.14am
 - Status: restore summary table rows; short per-field Help text (no meta UI notes in user copy).
 
 ###2026.08.14al

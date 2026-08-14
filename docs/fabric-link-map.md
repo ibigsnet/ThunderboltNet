@@ -1,8 +1,11 @@
 # Fabric link map (multi-host reports)
 
-See trained Thunderbolt (and optional Ethernet) link health from **one** Unraid host by sharing snapshots with peer Unraid hosts that also run **Thunderbolt Net**.
+Compare link health across **your** Unraid hosts that run **Thunderbolt Net**, using optional peer-to-peer snapshots on a **private LAN / fabric path**.
 
-This is **not** LLDP/CDP and **not** a new Internet protocol. It is optional **HTTP JSON** on the private underlay, authenticated with a shared token.
+- **Not** LLDP/CDP and **not** a public Internet protocol.  
+- **Not** telemetry: nothing is sent to GitHub, CA, or plugin developers — only host-to-host HTTP JSON with a shared token.  
+- **Paths:** Thunderbolt (`tbnN`) when present; optional private Ethernet interfaces you list. A live Thunderbolt cable is not required if you only use eth fabric IPs both peers can reach.  
+- **Requires:** the Thunderbolt Net plugin on each participating Unraid (settings under Thunderbolt → Settings).
 
 ---
 
@@ -21,11 +24,12 @@ Known peers keep the **last** validation color when offline.
 
 ## Setup (two Unraid hosts)
 
-1. Install Thunderbolt Net on both; put a private IP on each Thunderbolt (or fabric) path.  
-2. **Advanced → Fabric reports** on both: **Enable = Yes**, set the **same shared token**.  
-3. Apply. Optionally add peer IPs under **Mesh peer IPs**.  
-4. Ensure the peer can reach this host’s web UI on that private IP (or use the poll list).  
-5. Open **Fabric reports** / **Known peers** for validation badges.
+1. Install Thunderbolt Net on both.  
+2. Put a private IP on the path you care about (Thunderbolt tbn and/or lab Ethernet).  
+3. **Network Settings → Thunderbolt → Settings → Show Fabric reports** on both: **Enable = Yes**, same **shared token**.  
+4. Optional: **Also report Ethernet ifaces** (e.g. `eth0`) and **Mesh peer IPs** for eth-only or multi-hop peers.  
+5. Apply. Peer web UI must be reachable on that private IP.  
+6. Open **Hardware** (fabric reports panel) / **Peers** for validation badges.
 
 Default poll interval is **60 seconds**. Color changes use a **hold-off** (~120s) so training flaps do not blink red/green.
 
@@ -34,21 +38,15 @@ Default poll interval is **60 seconds**. Color changes use a **hold-off** (~120s
 ## Security
 
 - Export **default off**.  
-- Token required.  
+- Token required (shared only among your hosts).  
 - **Private IPs only** by default (no WAN).  
 - Payload: speeds, lanes, hostname, host id — not array data or passwords.  
+- Stays on your LAN between Unraid peers; not a cloud feature.  
 - Disable on threat-sensitive networks if topology fingerprinting is a concern.
-
----
-
-## Multi-hop
-
-Local sysfs only sees **direct** Thunderbolt peers. To learn about host C from host A, A needs an **IP route** to C’s mesh export (OpenFabric/static). That is not a custom discovery protocol — see the multi-host plan notes in RELEASES.
 
 ---
 
 ## Related
 
-- [routing-openfabric.md](routing-openfabric.md) — OpenFabric metrics  
-- [links-and-topology.md](links-and-topology.md) — physical topology  
-- [troubleshooting.md](troubleshooting.md)  
+- [settings-reference.md](settings-reference.md)  
+- [peer-scenarios.md](peer-scenarios.md)  

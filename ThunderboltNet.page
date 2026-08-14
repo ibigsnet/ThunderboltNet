@@ -126,11 +126,27 @@ if (!empty($_GET['tbn_tab'])) {
       activate(btn.getAttribute('data-tbn-tab'));
     });
   });
+  // Used by mesh panel / other panels already on Network Settings
+  window.tbnActivateInnerTab = activate;
   try {
     var q = new URL(window.location.href).searchParams.get('tbn_tab');
     var saved = sessionStorage.getItem('tbnInnerTab');
-    if (q) activate(q);
-    else if (saved) activate(saved);
+    var want = q || saved;
+    if (want) activate(want);
+    var expand = sessionStorage.getItem('tbnWantExpand');
+    if (expand) {
+      sessionStorage.removeItem('tbnWantExpand');
+      setTimeout(function () {
+        var toggle = root.querySelector('[data-tbn-adv-toggle="' + expand + '"]');
+        var body = document.getElementById('tbn-adv-' + expand);
+        if (toggle && body && body.hasAttribute('hidden')) {
+          toggle.click();
+        }
+        if (body) {
+          try { body.scrollIntoView({ block: 'nearest' }); } catch (e2) {}
+        }
+      }, 80);
+    }
   } catch (e) {}
 })();
 </script>
