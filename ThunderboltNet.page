@@ -52,43 +52,42 @@ if (!empty($_GET['tbn_tab'])) {
   border-bottom-color: transparent;
   background: rgba(128, 128, 128, 0.12);
 }
+/* Do NOT use role=tab / role=tabpanel here — Unraid Network Settings
+   MainContentTabbed.js selects ALL [role=tab] and [role=tabpanel] on the page,
+   which collides with eth0 / Interface Extra / Routing Table and blanks them. */
 .tbn-tab-panel[hidden] { display: none !important; }
 </style>
 
 <div class="tbn-wrap">
 <?= tbn_docs_bar_html('overview') ?>
 
-  <nav class="tbn-subtabs" role="tablist" aria-label="Thunderbolt sections">
-    <button type="button" role="tab" id="tbn-tab-btn-status" data-tbn-tab="status"
-      aria-controls="tbn-panel-status" aria-selected="<?= $tab === 'status' ? 'true' : 'false' ?>"
+  <div class="tbn-subtabs" aria-label="Thunderbolt sections">
+    <button type="button" id="tbn-tab-btn-status" data-tbn-tab="status"
       class="<?= $tab === 'status' ? 'is-active' : '' ?>">Status</button>
-    <button type="button" role="tab" id="tbn-tab-btn-peers" data-tbn-tab="peers"
-      aria-controls="tbn-panel-peers" aria-selected="<?= $tab === 'peers' ? 'true' : 'false' ?>"
+    <button type="button" id="tbn-tab-btn-peers" data-tbn-tab="peers"
       class="<?= $tab === 'peers' ? 'is-active' : '' ?>">Peers</button>
-    <button type="button" role="tab" id="tbn-tab-btn-hardware" data-tbn-tab="hardware"
-      aria-controls="tbn-panel-hardware" aria-selected="<?= $tab === 'hardware' ? 'true' : 'false' ?>"
+    <button type="button" id="tbn-tab-btn-hardware" data-tbn-tab="hardware"
       class="<?= $tab === 'hardware' ? 'is-active' : '' ?>">Hardware</button>
-    <button type="button" role="tab" id="tbn-tab-btn-settings" data-tbn-tab="settings"
-      aria-controls="tbn-panel-settings" aria-selected="<?= $tab === 'settings' ? 'true' : 'false' ?>"
+    <button type="button" id="tbn-tab-btn-settings" data-tbn-tab="settings"
       class="<?= $tab === 'settings' ? 'is-active' : '' ?>">Settings</button>
-  </nav>
+  </div>
 
-  <div id="tbn-panel-status" class="tbn-tab-panel" role="tabpanel" aria-labelledby="tbn-tab-btn-status"
+  <div id="tbn-panel-status" class="tbn-tab-panel" data-tbn-panel="status"
     <?= $tab === 'status' ? '' : 'hidden' ?>>
 <?php include '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-tab-status.php'; ?>
   </div>
 
-  <div id="tbn-panel-peers" class="tbn-tab-panel" role="tabpanel" aria-labelledby="tbn-tab-btn-peers"
+  <div id="tbn-panel-peers" class="tbn-tab-panel" data-tbn-panel="peers"
     <?= $tab === 'peers' ? '' : 'hidden' ?>>
 <?php include '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-tab-peers.php'; ?>
   </div>
 
-  <div id="tbn-panel-hardware" class="tbn-tab-panel" role="tabpanel" aria-labelledby="tbn-tab-btn-hardware"
+  <div id="tbn-panel-hardware" class="tbn-tab-panel" data-tbn-panel="hardware"
     <?= $tab === 'hardware' ? '' : 'hidden' ?>>
 <?php include '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-tab-hardware.php'; ?>
   </div>
 
-  <div id="tbn-panel-settings" class="tbn-tab-panel" role="tabpanel" aria-labelledby="tbn-tab-btn-settings"
+  <div id="tbn-panel-settings" class="tbn-tab-panel" data-tbn-panel="settings"
     <?= $tab === 'settings' ? '' : 'hidden' ?>>
 <?php include '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-tab-settings.php'; ?>
   </div>
@@ -97,19 +96,20 @@ if (!empty($_GET['tbn_tab'])) {
 <script src="/plugins/ThunderboltNet/thunderboltnet.js?v=<?= htmlspecialchars($ver) ?>"></script>
 <script>
 (function () {
+  // Scope to .tbn-wrap only — never touch Unraid Network Settings tab strip.
+  var root = document.querySelector('.tbn-wrap');
+  if (!root) return;
   function activate(name) {
-    var tabs = document.querySelectorAll('[data-tbn-tab]');
+    var tabs = root.querySelectorAll('[data-tbn-tab]');
     var panels = {
-      status: document.getElementById('tbn-panel-status'),
-      peers: document.getElementById('tbn-panel-peers'),
-      hardware: document.getElementById('tbn-panel-hardware'),
-      settings: document.getElementById('tbn-panel-settings')
+      status: root.querySelector('[data-tbn-panel="status"]'),
+      peers: root.querySelector('[data-tbn-panel="peers"]'),
+      hardware: root.querySelector('[data-tbn-panel="hardware"]'),
+      settings: root.querySelector('[data-tbn-panel="settings"]')
     };
     if (!panels[name]) name = 'status';
     tabs.forEach(function (btn) {
-      var on = btn.getAttribute('data-tbn-tab') === name;
-      btn.classList.toggle('is-active', on);
-      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+      btn.classList.toggle('is-active', btn.getAttribute('data-tbn-tab') === name);
     });
     Object.keys(panels).forEach(function (k) {
       if (!panels[k]) return;
@@ -125,12 +125,13 @@ if (!empty($_GET['tbn_tab'])) {
       sessionStorage.setItem('tbnInnerTab', name);
     } catch (e) {}
   }
-  document.querySelectorAll('[data-tbn-tab]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
+  root.querySelectorAll('[data-tbn-tab]').forEach(function (btn) {
+    btn.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
       activate(btn.getAttribute('data-tbn-tab'));
     });
   });
-  // Deep-link / restore
   try {
     var q = new URL(window.location.href).searchParams.get('tbn_tab');
     var saved = sessionStorage.getItem('tbnInnerTab');
