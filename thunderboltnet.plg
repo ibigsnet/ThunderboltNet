@@ -16,7 +16,7 @@
   UI: Network Settings siblings via ibigsGotoNetTab(Title) — never deep-link
   /Settings/ThunderboltNet or /Settings/FabricRouting (standalone CA pages).
 -->
-<!ENTITY version "2026.08.14af">
+<!ENTITY version "2026.08.14ag">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -39,10 +39,13 @@
 
 <CHANGES>
 ###&version;
-- **Fabric reports (multi-host):** opt-in mesh export/poll — peer Unraid plugin validation (green/orange/red), Known peers last validation, legend (orange ≠ degraded). Private IP + shared token; eth allowlist optional.
-- Docs: [fabric-link-map.md](docs/fabric-link-map.md).
+- **UI tabs:** Thunderbolt is an xmenu under Network Settings with sub-tabs
+  **Status · Peers · Hardware · Settings** (less scrolling). **tbnN** stays on the
+  top Network Settings strip (eth-like) — not nested under Thunderbolt.
 
 ###2026.08.14af
+- **Fabric reports (multi-host):** opt-in mesh export/poll — peer Unraid plugin validation (green/orange/red), Known peers last validation, legend (orange ≠ degraded). Private IP + shared token; eth allowlist optional.
+- Docs: [fabric-link-map.md](docs/fabric-link-map.md).
 - Offline recovery: single flash file **ThunderboltNet-RECOVERY.txt** (Thunderbolt in the name).
   Discover with `find /boot -iname '*Thunderbolt*'`. Left after uninstall.
 - WebUI: Recovery section + docs bar note the flash path while plugins work.
@@ -317,6 +320,26 @@ echo "ThunderboltNet: directories ready."
 
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/ThunderboltNet.page">
 <URL>&raw;/ThunderboltNet.page?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/ThunderboltStatus.page">
+<URL>&raw;/ThunderboltStatus.page?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/ThunderboltPeers.page">
+<URL>&raw;/ThunderboltPeers.page?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/ThunderboltHardware.page">
+<URL>&raw;/ThunderboltHardware.page?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/ThunderboltSettings.page">
+<URL>&raw;/ThunderboltSettings.page?v=&version;</URL>
+</FILE>
+
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-page-boot.php">
+<URL>&raw;/include/tbn-page-boot.php?v=&version;</URL>
 </FILE>
 
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/default.cfg">

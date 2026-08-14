@@ -2749,8 +2749,11 @@ function tbn_list_pci_iommu() {
 }
 
 /**
- * Generate Network Settings tabs: Thunderbolt tbn0, tbn1, ... after wlan (:1000).
- * Overview stays at :1100; ifaces start at :1110.
+ * Generate top-level Network Settings tabs: tbn0, tbn1, … (NOT nested under Thunderbolt).
+ *
+ * Thunderbolt parent (NetworkSettings:1100) is an xmenu with Status / Peers / Hardware / Settings.
+ * Per-link IPs stay eth-like siblings at :1110+ so they remain on the Network Settings strip
+ * next to eth0 / Wireless / Thunderbolt / Fabric Routing.
  */
 function tbn_sync_iface_pages() {
   $root = tbn_plugin_root();
