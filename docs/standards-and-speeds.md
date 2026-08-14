@@ -22,21 +22,6 @@ This page is the **canonical** explanation of rates, duplex, mixing generations/
 - [FAQ](#faq)
 - [Related](#related)
 
-## Contents
-
-1. [Directionality (simplex vs PCIe)](#directionality-read-this-first)  
-2. [Expected bandwidth by standard / class](#expected-bandwidth-by-standard--class-planning-table)  
-3. [Mixing generations, cables, and lanes](#mixing-generations-cables-and-lanes)  
-4. [What this plugin supports](#what-this-plugin-is-aiming-at)  
-5. [Port silkscreen](#port-silkscreen-case--rear-io)  
-6. [What is *not* the same thing](#what-is-not-the-same-thing)  
-7. [Rate notation (Gb/s vs GB/s)](#rate-notation-gbs-vs-gbs)  
-8. [Rate vs lanes (sysfs)](#rate-vs-lanes)  
-9. [Link quality in the plugin](#link-quality-messages-plugin)  
-10. [Cables](#cables)  
-11. [Throughput expectations (TCP / bulk)](#throughput-expectations)  
-12. [FAQ](#faq)
-
 ---
 
 ## Directionality (read this first)
