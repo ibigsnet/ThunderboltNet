@@ -24,9 +24,6 @@ Thunderbolt Net is developed in the open for Unraid users who need serious Thund
 6. **Do not break br0** — default route stays on main LAN unless the user opts in on a tbn tab.  
 7. **Versioning** — Unraid uses lexicographic plugin versions; see [RELEASES.md](RELEASES.md). No empty-file pushes.  
 8. **Markers for generated FRR** — only edit inside `BEGIN/END ThunderboltNet OpenFabric` (or coordinated plugin APIs). Never `require` FabricRouting PHP from this plugin.
-## Local notes
-
-Machine-local Grok/lab notes may live in `.grok-notes/` (gitignored). Design that should ship to users goes in `docs/` or `DOCS.md`.
 
 ## Process
 
@@ -49,9 +46,3 @@ By contributing, you agree that your contributions are licensed under the **GNU 
 
 - `main` — development (may break)
 - `stable` — production / CA channel only; maintainers merge release-ready work here
-
-
-## Public docs vs private notes
-
-- **GitHub** — product docs only (no lab hostnames, no session/agent diaries).
-- **Local** — `.grok-notes/` (gitignored) for lab notes and assistant scratch work.
