@@ -2,7 +2,7 @@
   <div class="tbn-entry-banner" id="tbn-entry-banner" role="note" hidden>
     <div class="tbn-entry-banner-main">
       <strong>Network Settings · Thunderbolt</strong>
-      <span class="tbn-muted"> — sub-tabs: <strong>Status</strong> · <strong>Peers</strong> · <strong>Hardware</strong> · <strong>Settings</strong>. Per-link IPs stay on top-level <strong>tbnN</strong> tabs.</span>
+      <span class="tbn-muted"> — Status · Peers · Hardware · Settings. Per-link IPs on top-level <strong>tbnN</strong> tabs.</span>
     </div>
     <div class="tbn-entry-banner-actions">
       <a class="tbn-btn-link" href="/Settings/NetworkSettings"
@@ -49,79 +49,78 @@
   $links = $status['links'] ?? tbn_link_summaries();
   $local_ctrl = $status['local_controller'] ?? tbn_sysfs_str('/sys/bus/thunderbolt/devices/0-0/device_name');
   $local_mfg = $status['local_manufacturer'] ?? tbn_sysfs_str('/sys/bus/thunderbolt/devices/0-0/vendor_name');
+  $sec_disp = $status['security'] ?: '(none/unknown)';
 ?>
   <div class="tbn-section">
     <h3>This host</h3>
-    <p class="tbn-note">Controller, IP host-net drivers, and who may listen on Thunderbolt IPs — host-wide. Blue help sits under each row.</p>
+    <p class="tbn-note">Host-wide Thunderbolt controller and host-net status.</p>
 
-    <dl>
-      <dt>Domain security:</dt>
-      <dd><code><?= htmlspecialchars($status['security'] ?: '(none/unknown)') ?></code></dd>
-    </dl>
+    <table class="tbn-table tbn-summary">
+      <tr>
+        <td>Domain security</td>
+        <td><code><?= htmlspecialchars($sec_disp) ?></code></td>
+      </tr>
+    </table>
     <blockquote class="inline_help">
-      <strong>What it is:</strong> Thunderbolt domain security mode from Linux sysfs
-      (<code>none</code>, <code>user</code>, <code>secure</code>, <code>dponly</code>, …).<br><br>
-      <strong>What <code>none</code> means:</strong> the “authorize this device” gate is open — peers can
-      train host-to-host networking without you approving each cable in firmware/UI. Common and fine for
-      a private lab (two Unraids on one cable). It is <em>not</em> “no encryption on your SMB password”
-      and not related to E2E flow control on the Settings tab.<br><br>
-      <strong><code>user</code> / <code>secure</code>:</strong> more like a locked phone / production ACL —
-      the controller expects you (or a key) to approve devices before full access. If links never appear,
-      check BIOS/firmware Thunderbolt security and authorize the peer.<br><br>
+      Thunderbolt domain mode from the controller (sysfs). Values include
+      <code>none</code>, <code>user</code>, <code>secure</code>, <code>dponly</code>.
+      <code>none</code> means the authorize-device gate is open (typical private lab host-to-host).
+      <code>user</code> / <code>secure</code> require approving the peer in firmware/UI before full access.
+      Unrelated to SMB passwords or E2E flow control on the Settings tab.
       <?= tbn_help_docs_footer('docs/requirements.md', 'Requirements') ?>
     </blockquote>
 
-    <dl>
-      <dt>IP host-net modules:</dt>
-      <dd>
-        <code>thunderbolt</code> <?= htmlspecialchars($mod_tb) ?> ·
-        <code>thunderbolt_net</code> <?= htmlspecialchars($mod_net) ?>
-      </dd>
-    </dl>
+    <table class="tbn-table tbn-summary">
+      <tr>
+        <td>IP host-net modules</td>
+        <td>
+          <code>thunderbolt</code> <?= htmlspecialchars($mod_tb) ?> ·
+          <code>thunderbolt_net</code> <?= htmlspecialchars($mod_net) ?>
+        </td>
+      </tr>
+    </table>
     <blockquote class="inline_help">
-      <strong><code>thunderbolt</code></strong> — host controller / fabric stack (sees ports and devices).<br>
-      <strong><code>thunderbolt_net</code></strong> — creates <code>thunderboltN</code> network interfaces
-      (what <strong>tbnN</strong> tabs configure: static IP, MTU, …).<br><br>
-      Both should be <strong>loaded</strong> for host-to-host IP. This is separate from
-      OpenFabric/FRR and from USB4STREAM
-      (<?= tbn_docs_more_html('docs/usb4stream.md', 'USB4STREAM explained') ?>).
-      Load/E2E options: Thunderbolt → <strong>Settings</strong>.
+      <code>thunderbolt</code> is the host controller stack.
+      <code>thunderbolt_net</code> creates <code>thunderboltN</code> interfaces (configured on <strong>tbnN</strong> tabs).
+      Both should be loaded for host-to-host IP. Separate from OpenFabric/FRR and USB4STREAM
+      (<?= tbn_docs_more_html('docs/usb4stream.md', 'USB4STREAM') ?>).
+      Load / E2E: Settings tab.
     </blockquote>
 
-    <dl>
-      <dt>Listening includes:</dt>
-      <dd>
-        <code><?= htmlspecialchars(implode(' ', $include) ?: '(none)') ?></code>
-        <span class="tbn-muted"> — SMB / NFS / SSH / web bind list</span>
-      </dd>
-    </dl>
+    <table class="tbn-table tbn-summary">
+      <tr>
+        <td>Listening includes</td>
+        <td>
+          <code><?= htmlspecialchars(implode(' ', $include) ?: '(none)') ?></code>
+          <span class="tbn-muted"> — SMB / NFS / SSH / web</span>
+        </td>
+      </tr>
+    </table>
     <blockquote class="inline_help">
-      Names listed in Unraid <code>network-extra.cfg</code> so stock services (SMB, NFS, SSH, web UI)
-      may bind on those Thunderbolt interfaces / IPs.<br><br>
-      Set per peer under <strong>Peers</strong> (services Yes/No) or on each <strong>tbnN</strong> tab.
-      Whole-disk imaging uses <strong>NBD Export</strong> (Network Services → NBD) bound to a Thunderbolt IP —
-      that is separate from this include list.
+      Interfaces listed in <code>network-extra.cfg</code> so Unraid services may bind on Thunderbolt IPs.
+      Per-peer Yes/No is under <strong>Peers</strong> or each <strong>tbnN</strong> tab.
+      NBD Export binds separately (Network Services → NBD).
     </blockquote>
 
-    <dl>
-      <dt>Multi-hop routing:</dt>
-      <dd>
-        <strong><?= htmlspecialchars($of_mode_label) ?></strong>
+    <table class="tbn-table tbn-summary">
+      <tr>
+        <td>Multi-hop routing</td>
+        <td>
+          <strong><?= htmlspecialchars($of_mode_label) ?></strong>
 <?php if ($frr_present): ?>
-        <span class="tbn-muted"> — FRR present · OpenFabric <strong>policy</strong> on <strong>Settings</strong> · packages via
-          <a href="/Settings/NetworkSettings" onclick="return ibigsGotoNetTab('Fabric Routing', event)">Fabric Routing</a></span>
+          <span class="tbn-muted"> — FRR present · policy on <strong>Settings</strong> · packages via
+            <a href="/Settings/NetworkSettings" onclick="return ibigsGotoNetTab('Fabric Routing', event)">Fabric Routing</a></span>
 <?php else: ?>
-        <span class="tbn-muted"> — static tbn IPs work without FRR · rings / multi-hop need Fabric Routing (companion below)</span>
+          <span class="tbn-muted"> — static tbn IPs work without FRR</span>
 <?php endif; ?>
-      </dd>
-    </dl>
+        </td>
+      </tr>
+    </table>
     <blockquote class="inline_help">
-      <strong>What it is:</strong> optional <em>IP routing</em> across multiple Thunderbolt hops (OpenFabric /
-      <code>fabricd</code>), not the cable itself and not a second NIC driver.<br><br>
-      <strong>Single cable, two hosts, static IPs:</strong> you do not need this — leave multi-hop alone.<br>
-      <strong>Packages</strong> install under Network Settings → <strong>Fabric Routing</strong>
-      (Download &amp; Install packages).<br>
-      <strong>Policy</strong> (area, metrics, participate) is on Thunderbolt → <strong>Settings</strong>.
+      Optional IP multi-hop (OpenFabric / <code>fabricd</code>), not the Thunderbolt cable driver.
+      One cable + static IPs does not need this.
+      Packages: Network Settings → Fabric Routing.
+      Policy: Thunderbolt → Settings.
     </blockquote>
 
     <div class="tbn-companion-strip" aria-label="Related plugins">
@@ -130,33 +129,23 @@
         <div class="tbn-companion-title">Multi-hop (FRR / OpenFabric)</div>
 <?php if ($frr_present): ?>
         <p><span class="tbn-companion-status tbn-status-ok">Ready</span>
-          FRR packages live. OpenFabric <strong>policy</strong> is on Thunderbolt → <strong>Settings</strong>.
-          Package/daemon manager:
+          FRR packages live. OpenFabric policy is on Thunderbolt → <strong>Settings</strong>.
+          Packages:
           <a href="/Settings/NetworkSettings" onclick="return ibigsGotoNetTab('Fabric Routing', event)">Network Settings → Fabric Routing</a>.</p>
         <p class="tbn-muted tbn-companion-role">
-          <strong>Fabric Routing</strong> = install/start FRR (<code>zebra</code>/<code>fabricd</code>).
-          <strong>Thunderbolt Net</strong> = underlay tbn IPs + OpenFabric conf/metrics — not packages.
+          <strong>Fabric Routing</strong> = install/start FRR.
+          <strong>Thunderbolt Net</strong> = underlay + OpenFabric policy — not packages.
         </p>
 <?php elseif (!empty($fabricrouting['plugin_dir'])): ?>
         <p><span class="tbn-companion-status tbn-status-warn">Plugin installed · packages missing</span>
           Open <a href="/Settings/NetworkSettings" onclick="return ibigsGotoNetTab('Fabric Routing', event)">Fabric Routing</a>
-          → <strong>Download &amp; Install packages</strong>. Then Thunderbolt → <strong>Settings</strong> → Apply policy.</p>
-        <p class="tbn-muted tbn-companion-role">
-          When this card turns green, multi-hop rings/meshes can run. Static peer IPs never needed this.
-        </p>
+          → Download &amp; Install packages, then Thunderbolt → Settings → Apply.</p>
 <?php else: ?>
         <p><span class="tbn-companion-status tbn-status-warn">Not installed</span>
-          Optional. Only if you need <strong>rings, multi-hop, or Proxmox/Linux FRR fabrics</strong>
-          (3+ hosts / alternate paths). Single-cable static peers: skip.</p>
+          Optional for rings / multi-hop / Proxmox FRR peers. Skip for a single static cable.</p>
         <p>
-          Install <strong>Fabric Routing</strong> from Community Apps, or
-          <a href="<?= htmlspecialchars($fabricrouting['install_url'] ?? 'https://raw.githubusercontent.com/ibigsnet/FabricRouting/main/fabricrouting.plg') ?>" target="_blank" rel="noopener">Plugins → Install Plugin (raw .plg)</a>
-          → Fabric Routing → Download &amp; Install packages.
-        </p>
-        <p class="tbn-muted tbn-companion-role">
-          Packages only (zebra / fabricd). OpenFabric <em>policy</em> is on Thunderbolt → <strong>Settings</strong>.
-          Not related to kernel USB4STREAM —
-          <?= tbn_docs_more_html('docs/usb4stream.md', 'what that is ↗') ?>.
+          Install <strong>Fabric Routing</strong> from CA or
+          <a href="<?= htmlspecialchars($fabricrouting['install_url'] ?? 'https://raw.githubusercontent.com/ibigsnet/FabricRouting/main/fabricrouting.plg') ?>" target="_blank" rel="noopener">raw .plg</a>.
         </p>
 <?php endif; ?>
       </div>
@@ -164,12 +153,9 @@
         <div class="tbn-companion-title">Block export (NBD)</div>
 <?php if ($nbd_present): ?>
         <p><span class="tbn-companion-status tbn-status-ok">Installed</span>
-          <a href="/Settings/NbdExport">Network Services → NBD</a>.
-          Whole-disk imaging over a private Thunderbolt IP — separate from SMB/NFS listening.</p>
+          <a href="/Settings/NBDExport">Network Services → NBD</a> — whole-disk over a Thunderbolt IP.</p>
 <?php else: ?>
-        <p class="tbn-muted">Optional. Host or pull raw disks over NBD (not a share protocol).
-          Search <strong>NBD Export</strong> in CA, or
-          <a href="https://github.com/ibigsnet/NbdExport" target="_blank" rel="noopener">GitHub</a>.</p>
+        <p class="tbn-muted">Optional. Search <strong>NBD Export</strong> in CA.</p>
 <?php endif; ?>
       </div>
       <div id="tbn-companion-usb4stream" class="tbn-companion-card tbn-companion-muted">
@@ -178,19 +164,13 @@
 <?php if (!empty($usb4stream['devices'])): ?>
           Devices: <code><?= htmlspecialchars(implode(' ', $usb4stream['devices'])) ?></code>
 <?php elseif ($stream_ready): ?>
-          Module available — enable under Thunderbolt → <strong>Settings</strong>.
+          Module available — enable under Thunderbolt → Settings.
 <?php else: ?>
           Not in this kernel<?= !empty($usb4stream['kernel']) ? ' (<code>' . htmlspecialchars($usb4stream['kernel']) . '</code>)' : '' ?>.
-          Needs a <strong>Linux kernel</strong> that ships <code>thunderbolt_stream</code> (mainline ~7.2+) —
-          <strong>not</strong> “Unraid 7.2+”, not InfiniBand, not Fabric Routing.
+          Needs a kernel with <code>thunderbolt_stream</code> — not Fabric Routing.
 <?php endif; ?>
         </p>
       </div>
     </div>
-    <p class="tbn-muted" style="margin:0.75em 0 0;font-size:0.9em">
-      Companion cards are shortcuts only — they do not replace the blue help above.
-      <?= tbn_docs_more_html('docs/requirements.md', 'Requirements ↗') ?>
-      · <?= tbn_docs_more_html('docs/usb4stream.md', 'USB4STREAM ↗') ?>
-    </p>
   </div>
 <?php endif; /* has_hw */ ?>

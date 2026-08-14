@@ -6,11 +6,8 @@ Markdown="false"
 ---
 <?php
 /**
- * Network Settings → Thunderbolt
- *
- * In-page sub-tabs (Status / Peers / Hardware / Settings). Not Unraid Type=xmenu:
- * nested xmenu under NetworkSettings renders an empty parent tab. tbnN stays
- * top-level NetworkSettings:1110+ siblings (eth-like), not nested here.
+ * Network Settings → Thunderbolt (Status / Peers / Hardware / Settings panels).
+ * tbnN tabs: NetworkSettings:1110+ (top strip, not nested).
  */
 require_once '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-page-boot.php';
 
@@ -52,9 +49,6 @@ if (!empty($_GET['tbn_tab'])) {
   border-bottom-color: transparent;
   background: rgba(128, 128, 128, 0.12);
 }
-/* Do NOT use role=tab / role=tabpanel here — Unraid Network Settings
-   MainContentTabbed.js selects ALL [role=tab] and [role=tabpanel] on the page,
-   which collides with eth0 / Interface Extra / Routing Table and blanks them. */
 .tbn-tab-panel[hidden] { display: none !important; }
 </style>
 
