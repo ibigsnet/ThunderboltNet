@@ -429,7 +429,7 @@ if (!$has_hw):
     Sticker <strong>40&nbsp;Gb/s</strong> is not PCIe full-duplex 40 each way: lanes are <strong>simplex</strong>, so 40G-class ≈ <strong>full-duplex ~20&nbsp;G</strong> (20 each direction at once).
     <em>Single-lane</em> / 20&nbsp;Gb/s · 1-lane is a common <em>trained</em> result on dual-capable hosts under Linux host-to-host — not “this port is only 20G” and not a failed install.
     Sticker rates (40&nbsp;Gb/s, 80&nbsp;Gb/s, …) are capability class; <strong>trained</strong> rate and lanes are what you get.
-    <?= tbn_docs_more_html('docs/standards-and-speeds.md', 'Directionality &amp; speeds ↗') ?><br><br>
+    <?= tbn_docs_more_html('docs/standards-and-speeds.md', 'Directionality & speeds ↗') ?><br><br>
     <strong>Never</strong> unbind the Thunderbolt NHI to “fix” networking — that can wedge the controller until reboot.
     <?= tbn_help_docs_footer('docs/standards-and-speeds.md', 'Standards & speeds') ?>
     · <?= tbn_docs_more_html('docs/troubleshooting.md', 'Troubleshooting ↗') ?>

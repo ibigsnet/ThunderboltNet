@@ -2406,6 +2406,10 @@ function tbn_docs_bar_html($active = 'overview') {
 /**
  * Short inline “more in docs” anchor for hints / helpers.
  */
+/**
+ * Docs link for help footers. $label is plain text (use "&" not "&amp;") — htmlspecialchars
+ * runs here; pre-encoded entities double-escape and show as literal "&amp;" in the WebUI.
+ */
 function tbn_docs_more_html($path, $label = 'More in docs') {
   return '<a class="tbn-docs-more" href="' . htmlspecialchars(tbn_docs_url($path))
     . '" target="_blank" rel="noopener">' . htmlspecialchars($label) . '</a>';

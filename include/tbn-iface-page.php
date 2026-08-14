@@ -188,7 +188,7 @@ if (strpos($nm, '.') === false) {
         <code>set_mac</code> (many bond modes fail). Apply with fewer than two members is ignored.<br><br>
         <strong>Roadmap:</strong> better dual-path detection and bond+OpenFabric metrics when the kernel
         exposes two usable paths — dual-cable bonding is <em>not</em> a non-goal.
-        <?= tbn_help_docs_footer('docs/links-and-topology.md', 'Links, bonding &amp; topology') ?>
+        <?= tbn_help_docs_footer('docs/links-and-topology.md', 'Links, bonding & topology') ?>
       </blockquote>
 
       <div class="tbn-bond-opts tbn-hidden">
@@ -548,7 +548,7 @@ if (strpos($nm, '.') === false) {
       In our testing, jumbo did not move TCP much past ~13–14&nbsp;Gbit/s on a 1-lane path; it can cut retrans/CPU a bit
       if <strong>both ends</strong> match. Mismatch (9000 vs 1500) can drop or stall traffic.
       Optional: set <strong>9000 on both ends</strong> for bulk if you care about fewer packets/s.
-      <?= tbn_help_docs_footer('docs/mtu-and-throughput.md', 'MTU &amp; throughput') ?>
+      <?= tbn_help_docs_footer('docs/mtu-and-throughput.md', 'MTU & throughput') ?>
     </blockquote>
 
     <dl>

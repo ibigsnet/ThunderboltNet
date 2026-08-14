@@ -201,7 +201,7 @@ if (!$has_hw):
       Single-lane (~20&nbsp;Gb/s · 1-lane) is common for Thunderbolt host-to-host under Linux.<br><br>
       <strong>Link quality</strong> — trained rate first; yellow <em>Single-lane</em> means below controller class max,
       not a failed install. ~10–15&nbsp;Gbit/s TCP is normal for 1-lane. Optional MTU&nbsp;9000 on <em>both</em> ends can cut retrans/CPU a bit — not negotiated, and not dual-lane.
-      <?= tbn_docs_more_html('docs/standards-and-speeds.md', 'Directionality &amp; speeds ↗') ?><br><br>
+      <?= tbn_docs_more_html('docs/standards-and-speeds.md', 'Directionality & speeds ↗') ?><br><br>
       <strong>Local IPv4 / MAC / state</strong> under REMOTE are <em>this Unraid end</em> of that link.
       Set addresses on each <strong>tbnN</strong> tab (one tab per live peer path). Start simple: <strong>one cable per peer, static IP</strong>; multi-peer and OpenFabric when you need them.
       Dual-cable to the same peer is limited today (often one netdev); bonding remains a roadmap when the kernel exposes two paths — see topology docs.
