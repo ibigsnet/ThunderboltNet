@@ -1,11 +1,4 @@
-Menu="ThunderboltNet:40"
-Title="Settings"
-Tag="gears"
-Markdown="false"
----
 <?php
-require_once '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-page-boot.php';
-tbn_page_open('settings');
 if (!$has_hw):
 ?>
   <div class="tbn-notice" role="status">
@@ -430,4 +423,3 @@ if (!$has_hw):
     · <?= tbn_docs_more_html('docs/troubleshooting.md', 'Troubleshooting ↗') ?>
   </blockquote>
 <?php endif; /* has_hw */ ?>
-<?php tbn_page_close(); ?>

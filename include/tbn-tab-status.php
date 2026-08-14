@@ -1,13 +1,4 @@
-Menu="ThunderboltNet:10"
-Title="Status"
-Tag="info-circle"
-Markdown="false"
----
-<?php
-require_once '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-page-boot.php';
-tbn_page_open('status');
-?>
-  <?php /* Shown only on standalone /Settings/ThunderboltNet (CA launch). Hidden when already under Network Settings with eth0/tbn tabs. */ ?>
+<?php /* Shown only on standalone /Settings/ThunderboltNet (CA launch). Hidden when already under Network Settings with eth0/tbn tabs. */ ?>
   <div class="tbn-entry-banner" id="tbn-entry-banner" role="note" hidden>
     <div class="tbn-entry-banner-main">
       <strong>Network Settings · Thunderbolt</strong>
@@ -170,4 +161,3 @@ tbn_page_open('status');
     </blockquote>
   </div>
 <?php endif; /* has_hw */ ?>
-<?php tbn_page_close(); ?>

@@ -1,11 +1,4 @@
-Menu="ThunderboltNet:30"
-Title="Hardware"
-Tag="microchip"
-Markdown="false"
----
 <?php
-require_once '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-page-boot.php';
-tbn_page_open('hardware');
 if (!$has_hw):
 ?>
   <div class="tbn-notice" role="status">
@@ -153,4 +146,3 @@ if (!$has_hw):
   }
 ?>
 <?php endif; /* has_hw */ ?>
-<?php tbn_page_close(); ?>

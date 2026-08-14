@@ -1,11 +1,4 @@
-Menu="ThunderboltNet:20"
-Title="Peers"
-Tag="users"
-Markdown="false"
----
 <?php
-require_once '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-page-boot.php';
-tbn_page_open('peers');
 if (!$has_hw):
 ?>
   <div class="tbn-notice" role="status">
@@ -506,4 +499,3 @@ if (!$has_hw):
 <?php endif; ?>
   </div>
 <?php endif; /* has_hw */ ?>
-<?php tbn_page_close(); ?>
