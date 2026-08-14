@@ -16,7 +16,7 @@
   UI: Network Settings siblings via ibigsGotoNetTab(Title) — never deep-link
   /Settings/ThunderboltNet or /Settings/FabricRouting (standalone CA pages).
 -->
-<!ENTITY version "2026.08.14ak">
+<!ENTITY version "2026.08.14al">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -39,6 +39,10 @@
 
 <CHANGES>
 ###&version;
+- Status: blue <code>inline_help</code> under each This host field (domain security, modules,
+  listening, multi-hop) instead of one dump at the bottom of the section.
+
+###2026.08.14ak
 - **Fix:** in-page Thunderbolt tabs must not use ARIA <code>role=tab</code> /
   <code>role=tabpanel</code> — Unraid Network Settings selects all of those and
   broke Interface Extra / Routing Table (and tab switching). Use data-* only.
