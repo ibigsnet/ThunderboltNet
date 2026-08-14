@@ -50,3 +50,8 @@ By contributing, you agree that your contributions are licensed under the **GNU 
 - `main` — development (may break)
 - `stable` — production / CA channel only; maintainers merge release-ready work here
 
+
+## Public docs vs private notes
+
+- **GitHub** — product docs only (no lab hostnames, no session/agent diaries).
+- **Local** — `.grok-notes/` (gitignored) for lab notes and assistant scratch work.
