@@ -6,6 +6,9 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+###2026.08.15ai
+- CA entry banner: plain user wording (no tab inventory / maintainer-style copy).
+
 ###2026.08.15ah
 - CA / standalone Settings: orange Network Settings redirect banner on all sub-tabs (Status · Peers · Hardware · Settings), not only Status.
 
