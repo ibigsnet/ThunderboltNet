@@ -143,7 +143,12 @@
         <p><span class="tbn-companion-status tbn-status-ok">Installed</span>
           <a href="/Settings/NBDExport">Network Services → NBD</a> — whole-disk over a Thunderbolt IP.</p>
 <?php else: ?>
-        <p class="tbn-muted">Optional. Search <strong>NBD Export</strong> in CA.</p>
+        <p><span class="tbn-companion-status tbn-status-warn">Not installed</span>
+          Optional whole-disk export/image over a Thunderbolt or LAN IP. Skip if you only need host networking.</p>
+        <p>
+          Install <strong>NBD Export</strong> from CA or
+          <a href="https://raw.githubusercontent.com/ibigsnet/NBDExport/stable/nbd.plg" target="_blank" rel="noopener">raw .plg</a>.
+        </p>
 <?php endif; ?>
       </div>
       <div id="tbn-companion-usb4stream" class="tbn-companion-card tbn-companion-muted">

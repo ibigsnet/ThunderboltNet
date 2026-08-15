@@ -6,6 +6,9 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+###2026.08.15aj
+- Companion card Block export (NBD): Not installed / Install from CA or raw .plg (aligned with Multi-hop FRR card).
+
 ###2026.08.15ai
 - CA entry banner: plain user wording (no tab inventory / maintainer-style copy).
 
