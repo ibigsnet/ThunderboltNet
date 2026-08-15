@@ -212,8 +212,8 @@ Scale the same steps up or down:
 
 ## Related
 
-- [routing-openfabric.md](routing-openfabric.md) — FRR, metrics, rings, FabricRouting split  
+- [routing-openfabric.md](routing-openfabric.md) — FRR, metrics, rings, Fabric Routing split  
 - [links-and-topology.md](links-and-topology.md) — Thunderbolt path model  
 - [peer-scenarios.md](peer-scenarios.md) — peer OS matrix  
-- [DEVELOPMENT.md](DEVELOPMENT.md) — engineering stages  
-- FabricRouting: https://github.com/ibigsnet/FabricRouting  
+- Fabric Routing: https://github.com/ibigsnet/FabricRouting  
+

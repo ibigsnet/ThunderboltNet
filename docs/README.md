@@ -13,7 +13,7 @@ Physical Thunderbolt/USB4 path  →  kernel thunderbolt_net (thunderboltN)
 
 | You want… | Start here |
 |-----------|------------|
-| Install / version / tags | [../RELEASES.md](../RELEASES.md) |
+| Install / update | [../RELEASES.md](../RELEASES.md) |
 | First plug / defaults | [../DOCS.md](../DOCS.md) |
 | Why is my rate “only 20G · 1-lane”? | [standards-and-speeds.md](standards-and-speeds.md) |
 | Dual cable / multi-peer / ring | [links-and-topology.md](links-and-topology.md) |
@@ -27,22 +27,21 @@ Physical Thunderbolt/USB4 path  →  kernel thunderbolt_net (thunderboltN)
 
 | Doc | Contents |
 |-----|----------|
-| [driver-options.md](driver-options.md) | Load modules, **E2E flow control** (host-wide), when to change |
+| [driver-options.md](driver-options.md) | Load modules, E2E flow control (host-wide), when to change |
 | [peer-scenarios.md](peer-scenarios.md) | Unraid ↔ Linux, Proxmox, macOS, Windows, docks/hubs |
 | [addressing.md](addressing.md) | `/24` vs `/30`, unique subnets, multi-peer examples |
-| [standards-and-speeds.md](standards-and-speeds.md) | **Directionality**, bandwidth **table**, **mixing** gens/cables/lanes, FAQ |
-| [port-icons.md](port-icons.md) | Rear-panel silkscreen: lightning/40 vs SS¹⁰/SS²⁰ — do I have Thunderbolt? |
-| [mtu-and-throughput.md](mtu-and-throughput.md) | MTU 1500 vs 9000, packet-rate overhead, both-ends jumbo |
-| [dashboard-network.md](dashboard-network.md) | Dashboard Interface list: thunderboltN / bond-tbN graphs & errors |
-| [usb4stream.md](usb4stream.md) | USB4STREAM raw path vs tbn net vs IB research; plugin support |
+| [standards-and-speeds.md](standards-and-speeds.md) | Directionality, bandwidth table, mixing gens/cables/lanes, FAQ |
+| [port-icons.md](port-icons.md) | Rear-panel silkscreen: lightning/40 vs SS — do I have Thunderbolt? |
+| [mtu-and-throughput.md](mtu-and-throughput.md) | MTU 1500 vs 9000, jumbo both ends |
+| [dashboard-network.md](dashboard-network.md) | Dashboard Interface list: thunderboltN / bond-tbN |
+| [usb4stream.md](usb4stream.md) | USB4STREAM raw path vs tbn net (kernel feature, not this plugin) |
 | [requirements.md](requirements.md) | Hardware, BIOS, kernel modules, security |
-| [fabric-link-map.md](fabric-link-map.md) | Multi-host peer link validation (green/orange/red) |
+| [fabric-link-map.md](fabric-link-map.md) | Multi-host peer link validation |
 | [links-and-topology.md](links-and-topology.md) | Per-path model, multi-peer, dual cable, bonding, rings |
-| [routing-openfabric.md](routing-openfabric.md) | FRR / OpenFabric — defaults, metrics, FabricRouting split, pros/cons |
-| [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md) | Mixed fabric: Proxmox/Debian + Unraid (example ring, lab phases) |
+| [routing-openfabric.md](routing-openfabric.md) | FRR / OpenFabric — defaults, metrics, Fabric Routing split |
+| [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md) | Mixed fabric: Proxmox/Debian + Unraid |
 | [settings-reference.md](settings-reference.md) | Every global and tbnN field |
-| [troubleshooting.md](troubleshooting.md) | Reseating cables, multi-cable recovery, common failures |
-| [safe-mode-recovery.md](safe-mode-recovery.md) | Safe Mode / no plugins: manual modprobe + IP; keep persistence off |
-| [DEVELOPMENT.md](DEVELOPMENT.md) | Engineering stages and lab phases (maintainers / advanced) |
-| [../RELEASES.md](../RELEASES.md) | Install URLs, version strings, **git tag / ship checklist** |
+| [troubleshooting.md](troubleshooting.md) | Common failures and recovery |
+| [safe-mode-recovery.md](safe-mode-recovery.md) | Safe Mode / no plugins: manual modprobe + IP |
+| [../RELEASES.md](../RELEASES.md) | Install URLs (`stable` / `main` / freezes) |
 | [../CONTRIBUTING.md](../CONTRIBUTING.md) | How to contribute |
