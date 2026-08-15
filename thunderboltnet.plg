@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.15af">
+<!ENTITY version "2026.08.15ag">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,6 +27,10 @@
 
 <CHANGES>
 ###&version;
+- **Uninstall:** remove all plugin-owned flash config and runtime scratch (clean reinstall).
+- No longer preserve peers.json/ifaces on flash after remove.
+
+###2026.08.15af
 - Fix: do not wipe Unraid /tmp/plugins working copy during install prepare.
 
 ###2026.08.14ap
@@ -46,13 +50,6 @@
 ###2026.08.14al
 - Status: per-field inline_help for This host.
 
-###2026.08.14ak
-- **Fix:** in-page Thunderbolt tabs must not use ARIA <code>role=tab</code> /
-  <code>role=tabpanel</code> — Unraid Network Settings selects all of those and
-  broke Interface Extra / Routing Table (and tab switching). Use data-* only.
-
-### Older releases
-- Full changelog (all versions): https://github.com/ibigsnet/ThunderboltNet/blob/main/CHANGELOG.md
 </CHANGES>
 
 <FILE Run="/bin/bash">
@@ -126,23 +123,13 @@ for p in /var/log/packages/ThunderboltNet-*; do
   removepkg "$(basename "$p")" 2>/dev/null || true
 done
 rm -rf /usr/local/emhttp/plugins/ThunderboltNet
-# Flash: keep peers + iface settings + recovery sheet
-CFG=/boot/config/plugins/ThunderboltNet
-KEEP=/tmp/tbn-uninstall-keep-$$
-mkdir -p "$KEEP/ifaces"
-[ -f "$CFG/peers.json" ] && cp -a "$CFG/peers.json" "$KEEP/" 2>/dev/null || true
-[ -d "$CFG/ifaces" ] && cp -a "$CFG/ifaces/." "$KEEP/ifaces/" 2>/dev/null || true
-[ -f "$CFG/ThunderboltNet-RECOVERY.txt" ] && cp -a "$CFG/ThunderboltNet-RECOVERY.txt" "$KEEP/" 2>/dev/null || true
+# Flash config + runtime scratch (full uninstall — reinstall starts clean)
 rm -rf /boot/config/plugins/ThunderboltNet
-mkdir -p /boot/config/plugins/ThunderboltNet/ifaces
-[ -f "$KEEP/peers.json" ] && cp -a "$KEEP/peers.json" /boot/config/plugins/ThunderboltNet/ && echo "ThunderboltNet: kept peers.json"
-[ -d "$KEEP/ifaces" ] && [ -n "$(ls -A "$KEEP/ifaces" 2>/dev/null)" ] && \
-  cp -a "$KEEP/ifaces/." /boot/config/plugins/ThunderboltNet/ifaces/ && echo "ThunderboltNet: kept ifaces/"
-[ -f "$KEEP/ThunderboltNet-RECOVERY.txt" ] && \
-  cp -a "$KEEP/ThunderboltNet-RECOVERY.txt" /boot/config/plugins/ThunderboltNet/
-rm -rf "$KEEP"
+rm -rf /var/tmp/tbn-mesh-rl-* /tmp/tbn-uninstall-keep-* 2>/dev/null || true
+rm -f /tmp/plugins/thunderboltnet.txt 2>/dev/null || true
 # Note: do not delete /tmp/plugins/thunderboltnet.plg here — Unraid install working copy
-echo "ThunderboltNet: removed (peers + iface settings preserved on flash)."
+# Note: do not touch /boot/config/plugins-removed/ (Unraid-owned)
+echo "ThunderboltNet: removed."
 ]]></INLINE>
 </FILE>
 

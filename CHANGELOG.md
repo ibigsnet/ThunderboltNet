@@ -1,3 +1,6 @@
+## 2026.08.15ag
+- Uninstall: full flash wipe (peers/ifaces/recovery no longer preserved).
+
 # Changelog — ThunderboltNet
 
 User-facing history for this plugin. The `.plg` file (Community Applications / Plugins page) shows only the **most recent releases**; this file is the complete record.
