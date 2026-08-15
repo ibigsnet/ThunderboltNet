@@ -15,7 +15,7 @@
 
   Network Settings sibling tabs: stay on Network Settings (not standalone CA launch paths).
 -->
-<!ENTITY version "2026.08.14aq">
+<!ENTITY version "2026.08.15ab">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -23,6 +23,8 @@
 <!ENTITY forum "https://forums.unraid.net/topic/200065-plugin-thunderbolt-net-host-to-host-networking-over-thunderbolt-345-and-usb44v2/">
 <!ENTITY plugdir "/usr/local/emhttp/plugins/ThunderboltNet">
 <!ENTITY configdir "/boot/config/plugins/ThunderboltNet">
+<!ENTITY pkg "ThunderboltNet-&version;-x86_64-1">
+<!ENTITY pkgfile "&pkg;.txz">
 ]>
 
 <PLUGIN name="&name;"
@@ -38,6 +40,7 @@
 
 <CHANGES>
 ###&version;
+- <strong>Install:</strong> single runtime <code>.txz</code> package (faster updates; docs on GitHub).
 - **Fix:** array-start no longer dumps “dashboard-ports: done — hard-refresh Dashboard…” into the
   Unraid footer status bar. Routine apply logs go to syslog; interactive CLI still prints hints.
 
@@ -339,234 +342,49 @@
 
 </CHANGES>
 
+<!-- Payload: archive/&pkgfile; (one download). -->
+
 <FILE Run="/bin/bash">
 <INLINE><![CDATA[
-echo "ThunderboltNet: preparing directories..."
+echo "ThunderboltNet: preparing package install..."
+mkdir -p /boot/config/plugins/ThunderboltNet
 rm -rf /usr/local/emhttp/plugins/ThunderboltNet
-rm -rf /usr/local/emhttp/plugins/thunderboltnet
-mkdir -p /usr/local/emhttp/plugins/ThunderboltNet/include
-mkdir -p /usr/local/emhttp/plugins/ThunderboltNet/scripts
-mkdir -p /boot/config/plugins/ThunderboltNet/ifaces
-mkdir -p /boot/config/plugins/ThunderboltNet/frr
-echo "ThunderboltNet: directories ready."
+rm -f /boot/config/plugins/ThunderboltNet/ThunderboltNet-*.txz 2>/dev/null || true
+echo "ThunderboltNet: ready."
 ]]></INLINE>
 </FILE>
 
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/ThunderboltNet.page">
-<URL>&raw;/ThunderboltNet.page?v=&version;</URL>
-</FILE>
-
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-page-boot.php">
-<URL>&raw;/include/tbn-page-boot.php?v=&version;</URL>
-</FILE>
-
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-tab-status.php">
-<URL>&raw;/include/tbn-tab-status.php?v=&version;</URL>
-</FILE>
-
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-tab-peers.php">
-<URL>&raw;/include/tbn-tab-peers.php?v=&version;</URL>
-</FILE>
-
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-tab-hardware.php">
-<URL>&raw;/include/tbn-tab-hardware.php?v=&version;</URL>
-</FILE>
-
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-tab-settings.php">
-<URL>&raw;/include/tbn-tab-settings.php?v=&version;</URL>
-</FILE>
-
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/default.cfg">
-<URL>&raw;/default.cfg?v=&version;</URL>
-</FILE>
-
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/default-iface.cfg">
-<URL>&raw;/default-iface.cfg?v=&version;</URL>
-</FILE>
-
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/README.md">
-<INLINE>
-<![CDATA[
-**Thunderbolt Net**
-
-Host-to-host networking over Thunderbolt-family ports on Unraid (Thunderbolt 3/4/5 and USB4-class hosts where Linux exposes them). Fabric overview, per-link tbn0/tbn1… settings (one or more peers), PCI/IOMMU, driver options, known peers, activity; optional OpenFabric multi-host fabric. Shows kernel trained rate and lane status (may be below the port marketing class).
-]]>
-</INLINE>
-</FILE>
-
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/thunderboltnet.css">
-<URL>&raw;/thunderboltnet.css?v=&version;</URL>
-</FILE>
-
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/thunderboltnet.js">
-<URL>&raw;/thunderboltnet.js?v=&version;</URL>
-</FILE>
-
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php">
-<URL>&raw;/include/tbn-lib.php?v=&version;</URL>
-</FILE>
-
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-openfabric.php">
-<URL>&raw;/include/tbn-openfabric.php?v=&version;</URL>
-</FILE>
-
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-iface-page.php">
-<URL>&raw;/include/tbn-iface-page.php?v=&version;</URL>
-</FILE>
-
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/get-status.php">
-<URL>&raw;/include/get-status.php?v=&version;</URL>
-</FILE>
-
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-apply.php">
-<URL>&raw;/include/tbn-apply.php?v=&version;</URL>
-</FILE>
-
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-update.php">
-<URL>&raw;/include/tbn-update.php?v=&version;</URL>
-</FILE>
-
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-update-iface.php">
-<URL>&raw;/include/tbn-update-iface.php?v=&version;</URL>
-</FILE>
-
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-update-listening.php">
-<URL>&raw;/include/tbn-update-listening.php?v=&version;</URL>
-</FILE>
-
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-pci-panel.php">
-<URL>&raw;/include/tbn-pci-panel.php?v=&version;</URL>
-</FILE>
-
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-ignore-warning.php">
-<URL>&raw;/include/tbn-ignore-warning.php?v=&version;</URL>
-</FILE>
-
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh.php">
-<URL>&raw;/include/tbn-mesh.php?v=&version;</URL>
-</FILE>
-
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh-export.php">
-<URL>&raw;/include/tbn-mesh-export.php?v=&version;</URL>
-</FILE>
-
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh-poll.php">
-<URL>&raw;/include/tbn-mesh-poll.php?v=&version;</URL>
-</FILE>
-
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/docs/fabric-link-map.md">
-<URL>&raw;/docs/fabric-link-map.md?v=&version;</URL>
-</FILE>
-
-
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt">
-<URL>&raw;/ThunderboltNet-RECOVERY.txt?v=&version;</URL>
-</FILE>
-
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-status">
-<URL>&raw;/scripts/tbn-status?v=&version;</URL>
-</FILE>
-
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports">
-<URL>&raw;/scripts/tbn-dashboard-ports?v=&version;</URL>
-</FILE>
-
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-openfabric">
-<URL>&raw;/scripts/tbn-openfabric?v=&version;</URL>
-</FILE>
-
-<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/event/started">
-<URL>&raw;/event/started?v=&version;</URL>
+<FILE Name="/boot/config/plugins/ThunderboltNet/&pkgfile;" Run="upgradepkg --install-new --reinstall">
+<URL>&raw;/archive/&pkgfile;?v=&version;</URL>
 </FILE>
 
 <FILE Run="/bin/bash">
 <INLINE><![CDATA[
+
 echo "ThunderboltNet: finishing install..."
-chmod 755 /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-status 2>/dev/null || true
-chmod 755 /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports 2>/dev/null || true
-chmod 755 /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-openfabric 2>/dev/null || true
+chmod 755 /usr/local/emhttp/plugins/ThunderboltNet/scripts/* 2>/dev/null || true
 chmod 755 /usr/local/emhttp/plugins/ThunderboltNet/event/started 2>/dev/null || true
-mkdir -p /boot/config/plugins/ThunderboltNet/ifaces
-mkdir -p /boot/config/plugins/ThunderboltNet/frr
-if [ ! -f /boot/config/plugins/ThunderboltNet/ThunderboltNet.cfg ]; then
-  if [ -f /usr/local/emhttp/plugins/ThunderboltNet/default.cfg ]; then
-    cp -a /usr/local/emhttp/plugins/ThunderboltNet/default.cfg /boot/config/plugins/ThunderboltNet/ThunderboltNet.cfg
-    echo "ThunderboltNet: created default ThunderboltNet.cfg"
-  fi
+mkdir -p /boot/config/plugins/ThunderboltNet
+if [ ! -f /boot/config/plugins/ThunderboltNet/ThunderboltNet.cfg ] && [ -f /usr/local/emhttp/plugins/ThunderboltNet/default.cfg ]; then
+  cp -a /usr/local/emhttp/plugins/ThunderboltNet/default.cfg /boot/config/plugins/ThunderboltNet/ThunderboltNet.cfg
 fi
-# Generate tbnN tabs for any live thunderbolt* ifaces
-# Drop failed nested-xmenu pages (2026.08.14ag) — content is include/tbn-tab-*.php now
-rm -f /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltStatus.page \
-      /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltPeers.page \
-      /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltHardware.page \
-      /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltSettings.page 2>/dev/null || true
-# Guard: empty xmenu parent must never remain (CDN/skip-download edge cases)
-if ! grep -q 'tbn-subtabs' /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltNet.page 2>/dev/null; then
-  echo "ThunderboltNet: repairing ThunderboltNet.page (in-page tabs)…"
-  wget -q -O /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltNet.page \
-    "&raw;/ThunderboltNet.page?v=&version;" 2>/dev/null || true
+if [ -f /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt ]; then
+  cp -a /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt /boot/config/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt
 fi
-for _tbn_f in tbn-page-boot.php tbn-tab-status.php tbn-tab-peers.php tbn-tab-hardware.php tbn-tab-settings.php; do
-  if [ ! -s "/usr/local/emhttp/plugins/ThunderboltNet/include/${_tbn_f}" ]; then
-    wget -q -O "/usr/local/emhttp/plugins/ThunderboltNet/include/${_tbn_f}" \
-      "&raw;/include/${_tbn_f}?v=&version;" 2>/dev/null || true
-  fi
-done
-php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; tbn_sync_iface_pages();' 2>/dev/null || true
-# OpenFabric conf preview (no-op if FRR missing)
-php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; if (function_exists("tbn_of_apply")) { tbn_of_apply(); }' 2>/dev/null || true
-# Dashboard Interface list: thunderboltN / bond-tbN / br-tbN (throughput + errors)
-if [ -x /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports ]; then
-  /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports apply || true
-fi
-# Remove older multi-path recovery copies (discoverability experiment)
-rm -f /boot/ThunderboltNet-SAFE-MODE-RECOVERY.txt \
-      /boot/config/ThunderboltNet-SAFE-MODE-RECOVERY.txt 2>/dev/null || true
-# Offline recovery sheet — Thunderbolt in the name (find /boot -iname '*Thunderbolt*').
-# Left on flash after uninstall. Not multi-copied; not a system manpage.
-SRC=/usr/local/emhttp/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt
-DSTDIR=/boot/config/plugins/ThunderboltNet
-DST="$DSTDIR/ThunderboltNet-RECOVERY.txt"
-# Remove older recovery filenames from prior experiments
-rm -f /boot/ThunderboltNet-SAFE-MODE-RECOVERY.txt \
-      /boot/config/ThunderboltNet-SAFE-MODE-RECOVERY.txt \
-      "$DSTDIR/SAFE-MODE-RECOVERY.txt" \
-      /usr/local/emhttp/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt 2>/dev/null || true
-if [ -f "$SRC" ]; then
-  mkdir -p "$DSTDIR"
-  cp -a "$SRC" "$DST"
-  echo "ThunderboltNet: offline recovery on flash (Safe Mode / no plugins):"
-  echo "  cat $DST"
-  echo "  find /boot -iname '*Thunderbolt*' "
-fi
-echo "ThunderboltNet: install complete."
-echo "ThunderboltNet: Configure → Settings → Network Settings → Thunderbolt"
-echo "ThunderboltNet: Per-link IPs → Thunderbolt tbn0 / tbn1 tabs when a peer is online."
-echo "ThunderboltNet: CA Actions→Settings opens the Thunderbolt overview alone;"
-echo "ThunderboltNet:   use Network Settings for the full eth0 / Thunderbolt / tbn strip."
-echo "ThunderboltNet: Optional multi-hop → install FabricRouting (Network Settings → Fabric Routing) — not USB4STREAM."
+echo "ThunderboltNet: install complete. Settings → Network Settings → Thunderbolt"
 echo "ThunderboltNet: Hard-refresh the browser (Ctrl+Shift+R)."
-# One-time green notification (first install only; -x single ticket)
-MARKER=/boot/config/plugins/ThunderboltNet/first_run_notified
-if [ ! -f "$MARKER" ] && [ -x /usr/local/emhttp/webGui/scripts/notify ]; then
-  /usr/local/emhttp/webGui/scripts/notify \
-    -e "Thunderbolt Net installed" \
-    -s "Thunderbolt Net ready" \
-    -d "Configure under Network Settings → Thunderbolt (tbn tabs for IPs). Safe Mode offline TB help: cat /boot/config/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt (or find /boot -iname '*Thunderbolt*')" \
-    -i "normal" \
-    -m "CA Settings opens the Thunderbolt overview. For eth0 + tbn tabs together: Settings → Network Settings. Optional multi-hop: FabricRouting (Network Settings → Fabric Routing) — routing packages, not thunderbolt_stream/USB4STREAM. Optional disk imaging: Network Services → NBD." \
-    -l "/Settings/ThunderboltNet" \
-    -x 2>/dev/null || true
-  touch "$MARKER" 2>/dev/null || true
-  echo "ThunderboltNet: first-run notification posted (once)."
-fi
-ls -la /usr/local/emhttp/plugins/ThunderboltNet/ || true
-ls -la /usr/local/emhttp/plugins/ThunderboltNet/Tbn*.page 2>/dev/null || true
+
 ]]></INLINE>
 </FILE>
 
 <FILE Run="/bin/bash" Method="remove">
 <INLINE><![CDATA[
+echo "ThunderboltNet: removing..."
+removepkg ThunderboltNet 2>/dev/null || true
+for p in /var/log/packages/ThunderboltNet-*; do
+  [ -e "$p" ] || continue
+  removepkg "$(basename "$p")" 2>/dev/null || true
+done
 echo "ThunderboltNet: removing plugin (full cleanup)..."
 
 EXTRA=/boot/config/network-extra.cfg
@@ -648,6 +466,7 @@ else
 fi
 echo "ThunderboltNet: left ThunderboltNet-RECOVERY.txt on flash under plugins/ThunderboltNet/ (if present)."
 echo "ThunderboltNet: removed (peers + iface settings preserved on flash)."
+
 ]]></INLINE>
 </FILE>
 
