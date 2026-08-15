@@ -50,6 +50,8 @@
 ###2026.08.14al
 - Status: per-field inline_help for This host.
 
+### Older releases
+- Full changelog (all versions): https://github.com/ibigsnet/ThunderboltNet/blob/main/CHANGELOG.md
 </CHANGES>
 
 <FILE Run="/bin/bash">
