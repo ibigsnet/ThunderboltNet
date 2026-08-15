@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.15ae">
+<!ENTITY version "2026.08.15af">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,7 +27,7 @@
 
 <CHANGES>
 ###&version;
-- Install/remove cleanup: canonical paths; leave .plg file to Unraid.
+- Fix: do not wipe Unraid /tmp/plugins working copy during install prepare.
 
 ###2026.08.14ap
 - **Fix:** Cables and safety help link showed literal “Directionality &amp; speeds” (double-escaped
@@ -58,7 +58,7 @@
 <FILE Run="/bin/bash">
 <INLINE><![CDATA[
 echo "ThunderboltNet: preparing..."
-rm -f /tmp/plugins/thunderboltnet.plg /tmp/plugins/thunderboltnet.txt 2>/dev/null || true
+# Note: do not delete /tmp/plugins/thunderboltnet.plg here — Unraid install working copy
 mkdir -p /boot/config/plugins/ThunderboltNet
 rm -rf /usr/local/emhttp/plugins/ThunderboltNet
 rm -f /boot/config/plugins/ThunderboltNet/ThunderboltNet-*.txz 2>/dev/null || true
@@ -141,7 +141,7 @@ mkdir -p /boot/config/plugins/ThunderboltNet/ifaces
 [ -f "$KEEP/ThunderboltNet-RECOVERY.txt" ] && \
   cp -a "$KEEP/ThunderboltNet-RECOVERY.txt" /boot/config/plugins/ThunderboltNet/
 rm -rf "$KEEP"
-rm -f /tmp/plugins/thunderboltnet.plg /tmp/plugins/thunderboltnet.txt 2>/dev/null || true
+# Note: do not delete /tmp/plugins/thunderboltnet.plg here — Unraid install working copy
 echo "ThunderboltNet: removed (peers + iface settings preserved on flash)."
 ]]></INLINE>
 </FILE>
