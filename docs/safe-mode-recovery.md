@@ -6,61 +6,24 @@ You can still bring up a **minimal host-to-host path** by hand for recovery or m
 
 This is **not** the same as **array Maintenance mode** (array started, disks not mounted). In array Maintenance, the plugin *can* still load on a normal boot; this page is about **no plugins**.
 
----
+**Need the offline commands now?** Jump to **[Bare-minimum manual recovery](#bare-minimum-manual-recovery-unraid-console)** — modules, iface, address, ping. Kernel names are `thunderbolt0`, `thunderbolt1`, … (not `tbnN`; those are plugin Settings tab labels only).
 
+## Contents
 
-## Local copy (offline / Safe Mode)
-
-**Leave on flash after uninstall:** yes — useful recovery text, not a running service.
-
-**One path** (Thunderbolt in the name and directory):
-
-```bash
-cat /boot/config/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt
-```
-
-**How you find it when you only remember “Thunderbolt”:**
-
-```bash
-find /boot -iname '*Thunderbolt*' 2>/dev/null
-ls /boot/config/plugins/ThunderboltNet/ 2>/dev/null
-```
-
-Optional pager (local file only — does **not** install a system manpage):
-
-```bash
-man -l /boot/config/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt
-```
-
-**While the WebUI still works** (learn the path *before* Safe Mode):  
-**Settings → Network Settings → Thunderbolt → Recovery** shows the same path and commands.
-
-When plugins are loaded, full guide also under:
-
-```bash
-less /usr/local/emhttp/plugins/ThunderboltNet/docs/safe-mode-recovery.md
-```
-
-This setup does **not** install system manpages, shell aliases, or multi-copy clutter on `/boot/` root.
-
----
-## Recommendation
-
-| Approach | When | Default advice |
-|----------|------|----------------|
-| **Manual commands** (this page) | Rare recovery boots | **Use this** |
-| **Persistent auto-bootstrap** (modprobe.d + `go` / early scripts that run without plugins) | Only if you *must* have TB every safe boot | **Keep off** unless you fully own the flash hooks and uninstall path |
-
-**Default: no persistent auto-bootstrap** for every boot environment.
-
-Reasons to keep persistence **off**:
-
-- Safe Mode is for a **minimal, predictable** system; silent network scripts on flash are easy to forget.
-- Thunderbolt domains wedge more often with **multiple cables** or half-connected ports — automation that races “first iface up” can hide that.
-- A bad static plan or default route on TB can strand management if you also lose the main NIC.
-- Plugin uninstall will not always clean hand-edited `go` / modprobe snippets unless you designed that carefully.
-
-If you ever add a product feature for “persist recovery IP without plugins,” it should default **No**, write only minimal flash hooks, and remove them on disable/uninstall. Until then: **manual only**.
+| | |
+|--|--|
+| **[Bare-minimum manual recovery](#bare-minimum-manual-recovery-unraid-console)** | Console commands: modules → netdev → **IP on `thunderboltN`** → ping |
+| → [1. Modules](#1-modules) | `modprobe thunderbolt` / `thunderbolt_net` |
+| → [2. Wait for a netdev](#2-one-cable-then-wait-for-a-netdev) | Find `thunderbolt0` (etc.) |
+| → [3. Addresses](#3-addresses-example-plan) | `ip link` / `ip addr` examples |
+| → [4. Verify](#4-verify) | `ping` and show address |
+| → [5. Services (optional)](#5-services-optional) | SSH/SMB on TB without the plugin |
+| [Careful cable practice](#careful-cable-practice-do-this-first) | One cable only — do this before addressing |
+| [Offline docs on flash](#offline-docs-on-flash-no-internet) | Local recovery text when GitHub/WebUI is unavailable |
+| [Recommendation](#recommendation) | Prefer manual; avoid persistent auto-bootstrap |
+| [After recovery](#after-recovery) | Back to normal boot + plugin Apply |
+| [What Safe Mode will not do](#what-safe-mode-will-not-do-for-you) | UI / OpenFabric / plugin Apply missing |
+| [Related](#related) | Troubleshooting, addressing, drivers |
 
 ---
 
@@ -152,7 +115,54 @@ ip -br addr show thunderbolt0
 
 ### 5. Services (optional)
 
-SMB/NFS/SSH on TB require the service to listen on that address (or `0.0.0.0`). In safe mode the plugin will **not** edit `network-extra.cfg`. Prefer **SSH to the TB IP** or tools you start by hand. Avoid binding management services to TB unless you understand the exposure.
+SMB/NFS/SSH on TB require the service to listen on that address (or `0.0.0.0`). In Safe Mode the plugin will **not** edit `network-extra.cfg`. Prefer **SSH to the TB IP** or tools you start by hand. Avoid binding management services to TB unless you understand the exposure.
+
+---
+
+## Offline docs on flash (no internet)
+
+A short recovery sheet is kept on the Unraid flash for when GitHub or the WebUI is unavailable (Safe Mode, no plugins, offline lab).
+
+**Path:**
+
+```bash
+cat /boot/config/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt
+```
+
+**Find it when you only remember “Thunderbolt”:**
+
+```bash
+find /boot -iname '*Thunderbolt*' 2>/dev/null
+ls /boot/config/plugins/ThunderboltNet/ 2>/dev/null
+```
+
+Optional pager (local file only — does **not** install a system manpage):
+
+```bash
+man -l /boot/config/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt
+```
+
+**While the WebUI still works** (learn the path *before* Safe Mode):  
+**Settings → Network Settings → Thunderbolt → Recovery** shows the same path and commands.
+
+When plugins are loaded, this full guide is also on the host:
+
+```bash
+less /usr/local/emhttp/plugins/ThunderboltNet/docs/safe-mode-recovery.md
+```
+
+Left on flash after uninstall (recovery text only — not a running service). No system manpages, shell aliases, or extra copies on `/boot/` root.
+
+---
+
+## Recommendation
+
+| Approach | When | Default advice |
+|----------|------|----------------|
+| **Manual commands** (this page) | Rare recovery boots | **Use this** |
+| **Persistent auto-bootstrap** (modprobe.d + `go` / early scripts without plugins) | Only if you *must* have TB every safe boot | **Keep off** unless you own those flash hooks |
+
+**Default: no persistent auto-bootstrap.** Safe Mode should stay minimal; forgotten flash network scripts and multi-cable races are easy ways to strand management.
 
 ---
 
