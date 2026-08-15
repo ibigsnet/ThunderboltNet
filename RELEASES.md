@@ -1,184 +1,57 @@
-# Thunderbolt Net releases
+# Thunderbolt Net — install & releases
 
-## How to install or update
+## Install
 
-You can get the plugin in **either** of these ways. Both install the same Unraid plugin.
+### Community Applications (recommended)
 
-### Option A — Community Applications (recommended for most users)
+1. Unraid **Apps** → search **Thunderbolt Net**
+2. **Install** or **Update**
+3. Hard-refresh the browser, then **Settings → Network Settings → Thunderbolt**
 
-1. On Unraid, open the **Apps** tab (Community Applications).
-2. Search for **Thunderbolt Net** (or “Thunderbolt”).
-3. Open the app and click **Install** (or **Update** if already installed).
-4. Hard-refresh the browser (**Ctrl+Shift+R** / **Cmd+Shift+R**).
-5. Open **Settings → Network Settings → Thunderbolt** (and **tbn0** / **tbn1** tabs when links exist).
+CA is fed from [unraid-templates](https://github.com/ibigsnet/unraid-templates). Updates may lag a short time after a GitHub push.
 
-**Support in CA:** use the app’s **Support** menu — **Support** goes to the [Unraid forum thread](https://forums.unraid.net/topic/200065-plugin-thunderbolt-net-host-to-host-networking-over-thunderbolt-345-and-usb44v2/), **Project** goes to [GitHub](https://github.com/ibigsnet/ThunderboltNet).
+### Manual install (raw plugin URL)
 
-CA is fed from the [unraid-templates](https://github.com/ibigsnet/unraid-templates) repo; updates may lag a short time after a GitHub release.
+**Plugins → Install Plugin** → paste a **raw** URL ending in `.plg` (not a GitHub “blob” page):
 
-### Option B — Plugins → Install Plugin (raw URL)
+| Channel | Use when | URL |
+|---------|----------|-----|
+| **Production (`stable`)** | Normal install / CA channel | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/stable/thunderboltnet.plg` |
+| **Lab (`main`)** | Newest development tree | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg` |
+| **Recommended freeze** | Known-good pin | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/stable-recommended-2026.08.13ad/thunderboltnet.plg` |
+| **Pinned version** | Install or roll back to a fixed tag | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/vVERSION/thunderboltnet.plg` |
 
-1. On Unraid: **Plugins → Install Plugin**.
-2. Paste a **raw** `.plg` URL (must end in `.plg` — not a GitHub “blob” page).
-3. Click **Install**.
-4. Hard-refresh the browser, then open **Settings → Network Settings → Thunderbolt**.
+- **`stable`** — what CA installs; production updates.
+- **`main`** — lab only; can be ahead of CA.
+- **Tags / freezes** — exact trees that never change.
 
-| Track | When to use | URL pattern |
-|-------|-------------|-------------|
-| **Latest (`main`)** | Always get the newest published tree | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/stable/thunderboltnet.plg` |
-| **Recommended freeze** | Known-good before multi-host map work | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/stable-recommended-2026.08.13ad/thunderboltnet.plg` |
-| **Pinned tag** | Install/rollback to any fixed version | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/vVERSION/thunderboltnet.plg` |
-
-### Recommended freeze (2026-08-13)
+### Recommended freeze
 
 | | |
 |--|--|
-| **Label** | **Recommended** (fleet freeze before multi-host fabric map) |
-| **Plugin version** | **`2026.08.13ad`** |
-| **Tag** | [`stable-recommended-2026.08.13ad`](https://github.com/ibigsnet/ThunderboltNet/releases/tag/stable-recommended-2026.08.13ad) |
-| **Also** | `v2026.08.13ad` |
-| **Install / rollback** | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/stable-recommended-2026.08.13ad/thunderboltnet.plg` |
+| **Version** | **2026.08.13ad** |
+| **Tag** | [`stable-recommended-2026.08.13ad`](https://github.com/ibigsnet/ThunderboltNet/releases/tag/stable-recommended-2026.08.13ad) (also `v2026.08.13ad`) |
+| **Install** | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/stable-recommended-2026.08.13ad/thunderboltnet.plg` |
 
-Includes OpenFabric policy when FRR is present, Fabric Routing companion naming, Thunderbolt wording (not ambiguous “TB”), link quality UX, USB4STREAM detect-only. **`main` may move ahead** after this pin for multi-host reporting work.
-
-Older pin (pre-OpenFabric era): `v2026.08.05ad`.
-
-After install, confirm the version under **Plugins** (or the plugin version string on disk).
+OpenFabric policy when FRR is present, Fabric Routing companion, link quality UX, USB4STREAM detect-only. Older pin: `v2026.08.05ad`.
 
 ### After install
 
-- Plug a Thunderbolt/USB4 host-to-host cable (not SuperSpeed-only USB-C).
-- Configure addressing on the **tbnN** tab for the live iface (kernel name is often `thunderbolt0`).
-- Optional: **Dashboard → Interface** may list `thunderbolt0` for throughput/errors.
-- Read [DOCS.md](https://github.com/ibigsnet/ThunderboltNet/blob/main/DOCS.md) and [docs/standards-and-speeds.md](https://github.com/ibigsnet/ThunderboltNet/blob/main/docs/standards-and-speeds.md).
+- Use a Thunderbolt/USB4 host-to-host cable (not SuperSpeed-only USB-C).
+- Set addressing on the **tbnN** tab for the live interface (often `thunderbolt0`).
+- Docs: [DOCS.md](DOCS.md) · [standards and speeds](docs/standards-and-speeds.md)
+
+### Roll back
+
+Paste a freeze or `vVERSION` raw `.plg` URL under **Plugins → Install Plugin**, then hard-refresh.
 
 ---
 
-## Version strings
+## Version numbers
 
-Unraid plugin updates use lexicographic `strcmp()` (not PHP `version_compare`).
+Plugin versions look like `2026.08.14aq` (date + two-letter suffix). Unraid compares them as plain strings for “update available.”
 
-| Form | Meaning |
-|------|---------|
-| `YYYY.MM.DD` | First ship that calendar day (lab wall clock) |
-| `YYYY.MM.DDaa` | Further ships same day (`ab` … `az`, `ba`, …) |
-
-- No hyphens. After the bare date, **two-letter** suffixes only (never single `a`–`z`).
-- Bump only `<!ENTITY version "…">` in the `.plg`; assets use `?v=&version;`.
-- Add a `###&version;` entry under `<CHANGES>` in the same ship.
-- Versions only move forward for existing installs (`strcmp`); do not rewind a mistaken future date.
-
-### Cross-plugin UI links (fleet standard)
-
-Network Settings uses an **xmenu tab strip** (eth0 · Thunderbolt · Fabric Routing · tbn…).  
-Deep links like `/Settings/ThunderboltNet` or `/Settings/FabricRouting` open the **standalone CA launch page** and drop the strip.
-
-| Do | Don’t |
-|----|--------|
-| `href="/Settings/NetworkSettings"` + `onclick="return ibigsGotoNetTab('Thunderbolt', event)"` | `href="/Settings/ThunderboltNet"` |
-| `ibigsGotoNetTab('Fabric Routing', event)` | `href="/Settings/FabricRouting"` |
-| Tab needle = page **Title** (`Thunderbolt`, `Fabric Routing`, `tbn0`, …) | Guessing single-letter version suffixes |
-
-Shared API (any of these aliases work; first loaded plugin defines the impl):
-
-- **`ibigsGotoNetTab(needle, event)`** — canonical  
-- `tbnGotoNetTab` / `frrGotoNetTab` / `nbdGotoNetTab` — aliases  
-
-`sessionStorage`: `ibigsWantTab` (canonical) and `tbnWantTab` (legacy).  
-Network Services → **NBD** is a separate menu (`/Settings/NBDExport`); not a Network Settings tab.
-
----
-
-## Git tags and GitHub Releases
-
-### What a tag is for
-
-| Artifact | Role |
-|----------|------|
-| **Plugin version** (`2026.08.11aa` in `.plg`) | What Unraid compares for “update available” |
-| **Git tag** (`v2026.08.11aa`) | Pins the **full tree** so a raw `.plg` URL never drifts |
-| **GitHub Release** (optional but preferred) | Human-readable notes; same tag as the pin |
-
-Tag name = `v` + exact plugin version entity (example: plugin `2026.08.05ac` → tag `v2026.08.05ac`).
-
-### Next major line of work (after this freeze)
-
-**Multi-host Thunderbolt link map (planned — not in 2026.08.13ad):** share local trained TX/RX with peer Unraid hosts running Thunderbolt Net (plus FRR OpenFabric context), show neighbor-reported links in a second color band, green when both ends agree (including valid asymmetric Thunderbolt 5-style 20/60 vs 60/20), yellow when only local data, red when both plugins disagree. Design notes live in maintainer planning; implement after this recommended freeze.
-
-### When to tag
-
-Tag when you want a **reproducible install/rollback** point — typically after a tested ship to `main`, not for every intermediate commit.
-
-- **Do tag:** user-facing fix, new feature, defaults change, docs that ship with a version bump.
-- **Skip tag:** pure mid-work commits on a branch before merge; experiment that never hits `main`.
-
-If `main` has already bumped the `.plg` past the last tag (e.g. `ad` on main, last tag `ac`), either:
-
-1. Tag the current `main` tip as `v…ad` once you are happy with it, **or**
-2. Leave it untagged until the next intentional ship (Latest URL still works).
-
-### Maintainer checklist (ship a release)
-
-Do this on a clean tree after the feature is on `main` and smoke-tested (or immediately before push if you ship in one step).
-
-1. **Version**
-   - Set `<!ENTITY version "YYYY.MM.DDxx">` in `thunderboltnet.plg`.
-   - Update `<CHANGES>` for that version (short, user-facing bullets).
-2. **Commit**
-   - Prefer: `YYYY.MM.DDxx: short description` for the product change, then  
-     `YYYY.MM.DDxx: plg version/changelog for …` if split (existing style).
-   - Verify the diff: **never** push emptied `.plg` / `.page` / `.css` / large PHP (history has accidental empty-file restores).
-3. **Push `main`**
-   - `git push origin main`
-   - Latest install URL now serves this tree.
-4. **Tag** (annotated)
-   ```bash
-   git tag -a "vYYYY.MM.DDxx" -m "Thunderbolt Net YYYY.MM.DDxx"
-   git push origin "vYYYY.MM.DDxx"
-   ```
-5. **GitHub Release** (recommended)
-   - Create a release for that tag.
-   - Paste the same changelog bullets; link DOCS / forum as needed.
-6. **RELEASES.md table**
-   - Add a row under [Stable baselines](#stable-baselines-git-tags).
-   - Point the “pinned” example URL at the new tag if it is the current recommended pin.
-7. **Community Applications** (when you want Apps to refresh)
-   - CA reads [unraid-templates](https://github.com/ibigsnet/unraid-templates) (`plugins/thunderboltnet.xml`).
-   - Usually no XML change if `PluginURL` already tracks `main`; bump Overview/text only when product story changes.
-   - Allow a short CA cache lag after GitHub updates.
-8. **Forum** (optional)
-   - Note the version on the support thread for heavy changes.
-
-### Roll back to a tag
-
-1. **Plugins → Install Plugin** → paste that tag’s raw `.plg` URL.  
-2. Hard-refresh the browser.
-
-### Tracks at a glance
-
-```text
-develop on branch → merge to main → bump .plg version + CHANGES
-       → push main          (= Latest URL)
-       → git tag vVERSION   (= pin / rollback URL)
-       → GitHub Release + RELEASES.md row
-       → CA templates if Overview needs a refresh
-```
-
----
-
-## Stable baselines (Git tags)
-
-| Tag | Plugin version | Notes |
-|-----|----------------|--------|
-| `main` (Latest) | **2026.08.11ak** | Links empty-state fix; uninstall keeps peers.json; entry banner only on CA launch; OpenFabric FRR chip |
-| [`v2026.08.05ad`](https://github.com/ibigsnet/ThunderboltNet/releases/tag/v2026.08.05ad) | **2026.08.05ad** | **Stable pin** before OpenFabric work: standards guide (directionality, bandwidth table, mixing, FAQ) |
-| [`v2026.08.05ac`](https://github.com/ibigsnet/ThunderboltNet/releases/tag/v2026.08.05ac) | **2026.08.05ac** | First GitHub Release: USB4STREAM awareness, Dashboard Thunderbolt ports, forum + GitHub support links |
-
-Prefer **`v2026.08.05ad`** for freeze/rollback. Prefer **Latest** for newest (OpenFabric settings work when FRR is present; multi-hop needs FRR via [FabricRouting](https://github.com/ibigsnet/FabricRouting) or other install).
-### Roll back to a tag
-
-1. **Plugins → Install Plugin** → paste that tag’s raw `.plg` URL (see table above / GitHub tags).  
-2. Hard-refresh the browser.
+Changelog bullets ship in the plugin’s **Plugins** page (from the `.plg`), and optionally as [GitHub Releases](https://github.com/ibigsnet/ThunderboltNet/releases).
 
 ---
 
@@ -186,9 +59,8 @@ Prefer **`v2026.08.05ad`** for freeze/rollback. Prefer **Latest** for newest (Op
 
 | | |
 |--|--|
-| **GitHub repo** | https://github.com/ibigsnet/ThunderboltNet |
-| **GitHub releases** | https://github.com/ibigsnet/ThunderboltNet/releases |
-| **Unraid forum (support)** | https://forums.unraid.net/topic/200065-plugin-thunderbolt-net-host-to-host-networking-over-thunderbolt-345-and-usb44v2/ |
-| **Docs** | [DOCS.md](https://github.com/ibigsnet/ThunderboltNet/blob/main/DOCS.md) · [docs/](https://github.com/ibigsnet/ThunderboltNet/tree/main/docs) |
-| **OpenFabric / FRR (LTS design)** | [docs/routing-openfabric.md](docs/routing-openfabric.md) |
-| **FabricRouting companion** (optional FRR packages) | https://github.com/ibigsnet/FabricRouting |
+| **GitHub** | https://github.com/ibigsnet/ThunderboltNet |
+| **Releases** | https://github.com/ibigsnet/ThunderboltNet/releases |
+| **Forum support** | https://forums.unraid.net/topic/200065-plugin-thunderbolt-net-host-to-host-networking-over-thunderbolt-345-and-usb44v2/ |
+| **Docs** | [DOCS.md](DOCS.md) · [docs/](docs/) |
+| **Fabric Routing** (optional FRR packages) | https://github.com/ibigsnet/FabricRouting |
