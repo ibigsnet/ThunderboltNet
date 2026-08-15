@@ -1,9 +1,13 @@
-# Local-only — not on public GitHub
-.grok-notes/
-*.local.md
-NOTES.local.md
-.private/
+# Editor / OS
 *~
 *.swp
 .DS_Store
+.idea/
+.vscode/
+.cursor/
+
+# Local scratch files
+*.local.md
+NOTES.local.md
+.private/
 patches/
