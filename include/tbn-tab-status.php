@@ -1,16 +1,4 @@
-<?php /* Shown only on standalone /Settings/ThunderboltNet (CA launch). Hidden when already under Network Settings with eth0/tbn tabs. */ ?>
-  <div class="tbn-entry-banner" id="tbn-entry-banner" role="note" hidden>
-    <div class="tbn-entry-banner-main">
-      <strong>Network Settings · Thunderbolt</strong>
-      <span class="tbn-muted"> — Status · Peers · Hardware · Settings. Per-link IPs on top-level <strong>tbnN</strong> tabs.</span>
-    </div>
-    <div class="tbn-entry-banner-actions">
-      <a class="tbn-btn-link" href="/Settings/NetworkSettings"
-         onclick="return ibigsGotoNetTab('Thunderbolt', event)">Open Network Settings (eth0 / Thunderbolt / tbn…)</a>
-      <span class="tbn-muted tbn-entry-hint">CA <em>Settings</em> opens Thunderbolt alone; use Network Settings for eth + tbn together.</span>
-    </div>
-  </div>
-
+<?php /* Entry banner lives in ThunderboltNet.page (all sub-tabs). */ ?>
 <?php if (!$has_hw): ?>
   <div class="tbn-notice" role="status">
     <h4>No Thunderbolt host controller detected</h4>

@@ -216,17 +216,18 @@
   }
 
   /**
-   * Entry banner is for CA / Plugins launch (/Settings/ThunderboltNet) where the
+   * Entry banner (above Status/Peers/Hardware/Settings) is for standalone
+   * CA / Plugins launch (/Settings/ThunderboltNet or /Apps/Settings/…) where the
    * eth0 · Thunderbolt · tbn… strip is missing. Hide when already on Network Settings
-   * or when those tabs are visible.
+   * or when those sibling tabs are visible.
    */
   function tbnInNetworkSettingsStrip() {
     var path = (location.pathname || '').toLowerCase();
     if (path.indexOf('/settings/networksettings') !== -1) {
       return true;
     }
-    // Explicit standalone plugin page (CA Settings button, Plugins launch)
-    if (path.indexOf('/settings/thunderboltnet') !== -1) {
+    // Explicit standalone plugin page (CA Settings, Plugins list launch)
+    if (path.indexOf('thunderboltnet') !== -1 && path.indexOf('networksettings') === -1) {
       return false;
     }
     // Embedded / unusual paths: eth0 (or eth) + Thunderbolt tabs present

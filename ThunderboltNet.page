@@ -55,6 +55,22 @@ if (!empty($_GET['tbn_tab'])) {
 <div class="tbn-wrap">
 <?= tbn_docs_bar_html('overview') ?>
 
+<?php
+/* Standalone CA / Plugins launch (/Settings/ThunderboltNet): show on every
+ * sub-tab. JS hides when already under Network Settings (eth0 · Thunderbolt · tbn…). */
+?>
+  <div class="tbn-entry-banner" id="tbn-entry-banner" role="note" hidden>
+    <div class="tbn-entry-banner-main">
+      <strong>Network Settings · Thunderbolt</strong>
+      <span class="tbn-muted"> — Status · Peers · Hardware · Settings. Per-link IPs on top-level <strong>tbnN</strong> tabs.</span>
+    </div>
+    <div class="tbn-entry-banner-actions">
+      <a class="tbn-btn-link" href="/Settings/NetworkSettings"
+         onclick="return ibigsGotoNetTab('Thunderbolt', event)">Open Network Settings (eth0 / Thunderbolt / tbn…)</a>
+      <span class="tbn-muted tbn-entry-hint">CA <em>Settings</em> opens Thunderbolt alone; use Network Settings for eth + tbn together.</span>
+    </div>
+  </div>
+
   <div class="tbn-subtabs" aria-label="Thunderbolt sections">
     <button type="button" id="tbn-tab-btn-status" data-tbn-tab="status"
       class="<?= $tab === 'status' ? 'is-active' : '' ?>">Status</button>

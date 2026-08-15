@@ -6,6 +6,9 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+###2026.08.15ah
+- CA / standalone Settings: orange Network Settings redirect banner on all sub-tabs (Status · Peers · Hardware · Settings), not only Status.
+
 ###2026.08.15ag
 - Uninstall: full flash wipe (peers/ifaces/recovery no longer preserved).
 
