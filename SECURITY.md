@@ -37,5 +37,6 @@ Unraid **Safe Mode** does not load this plugin.
 
 ## Contact
 
-- Support: Unraid forum thread on the plugin’s Apps card  
-- Project: https://github.com/ibigsnet/ThunderboltNet  
+- **Support (forum):** https://forums.unraid.net/topic/200065-plugin-thunderbolt-net-host-to-host-networking-over-thunderbolt-345-and-usb44v2/  
+- **Project:** https://github.com/ibigsnet/ThunderboltNet  
+
