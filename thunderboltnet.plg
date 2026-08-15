@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.15ad">
+<!ENTITY version "2026.08.15ae">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,7 +27,7 @@
 
 <CHANGES>
 ###&version;
-- Cleaner install/remove scripts (canonical paths only).
+- Install/remove cleanup: canonical paths; leave .plg file to Unraid.
 
 ###2026.08.14ap
 - **Fix:** Cables and safety help link showed literal “Directionality &amp; speeds” (double-escaped
@@ -141,7 +141,6 @@ mkdir -p /boot/config/plugins/ThunderboltNet/ifaces
 [ -f "$KEEP/ThunderboltNet-RECOVERY.txt" ] && \
   cp -a "$KEEP/ThunderboltNet-RECOVERY.txt" /boot/config/plugins/ThunderboltNet/
 rm -rf "$KEEP"
-rm -f /boot/config/plugins/thunderboltnet.plg 2>/dev/null || true
 rm -f /tmp/plugins/thunderboltnet.plg /tmp/plugins/thunderboltnet.txt 2>/dev/null || true
 echo "ThunderboltNet: removed (peers + iface settings preserved on flash)."
 ]]></INLINE>
