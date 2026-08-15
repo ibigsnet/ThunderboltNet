@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.15ac">
+<!ENTITY version "2026.08.15ad">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,8 +27,7 @@
 
 <CHANGES>
 ###&version;
-- Install: single runtime <code>.txz</code> (docs on GitHub only).
-- Plugins changelog shows recent entries; full history linked below.
+- Cleaner install/remove scripts (canonical paths only).
 
 ###2026.08.14ap
 - **Fix:** Cables and safety help link showed literal “Directionality &amp; speeds” (double-escaped
@@ -58,7 +57,8 @@
 
 <FILE Run="/bin/bash">
 <INLINE><![CDATA[
-echo "ThunderboltNet: preparing package install..."
+echo "ThunderboltNet: preparing..."
+rm -f /tmp/plugins/thunderboltnet.plg /tmp/plugins/thunderboltnet.txt 2>/dev/null || true
 mkdir -p /boot/config/plugins/ThunderboltNet
 rm -rf /usr/local/emhttp/plugins/ThunderboltNet
 rm -f /boot/config/plugins/ThunderboltNet/ThunderboltNet-*.txz 2>/dev/null || true
@@ -72,33 +72,27 @@ echo "ThunderboltNet: ready."
 
 <FILE Run="/bin/bash">
 <INLINE><![CDATA[
-
 echo "ThunderboltNet: finishing install..."
 chmod 755 /usr/local/emhttp/plugins/ThunderboltNet/scripts/* 2>/dev/null || true
 chmod 755 /usr/local/emhttp/plugins/ThunderboltNet/event/started 2>/dev/null || true
 mkdir -p /boot/config/plugins/ThunderboltNet
-if [ ! -f /boot/config/plugins/ThunderboltNet/ThunderboltNet.cfg ] && [ -f /usr/local/emhttp/plugins/ThunderboltNet/default.cfg ]; then
+if [ ! -f /boot/config/plugins/ThunderboltNet/ThunderboltNet.cfg ] \
+   && [ -f /usr/local/emhttp/plugins/ThunderboltNet/default.cfg ]; then
   cp -a /usr/local/emhttp/plugins/ThunderboltNet/default.cfg /boot/config/plugins/ThunderboltNet/ThunderboltNet.cfg
 fi
 if [ -f /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt ]; then
-  cp -a /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt /boot/config/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt
+  cp -a /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt \
+    /boot/config/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt
 fi
 echo "ThunderboltNet: install complete. Settings → Network Settings → Thunderbolt"
 echo "ThunderboltNet: Hard-refresh the browser (Ctrl+Shift+R)."
-
 ]]></INLINE>
 </FILE>
 
 <FILE Run="/bin/bash" Method="remove">
 <INLINE><![CDATA[
 echo "ThunderboltNet: removing..."
-removepkg ThunderboltNet 2>/dev/null || true
-for p in /var/log/packages/ThunderboltNet-*; do
-  [ -e "$p" ] || continue
-  removepkg "$(basename "$p")" 2>/dev/null || true
-done
-echo "ThunderboltNet: removing plugin (full cleanup)..."
-
+# Drop TB ifaces from network-extra include list (keep other includes)
 EXTRA=/boot/config/network-extra.cfg
 if [ -f "$EXTRA" ]; then
   INC=$(sed -n 's/^include_interfaces="\(.*\)"/\1/p' "$EXTRA" | head -1)
@@ -106,12 +100,8 @@ if [ -f "$EXTRA" ]; then
   NEW=""
   for if in $INC; do
     case "$if" in
-      thunderbolt*|bond-tb|bond-tb*|br-tb)
-        echo "ThunderboltNet: dropping $if from include_interfaces"
-        ;;
-      *)
-        NEW="${NEW}${NEW:+ }$if"
-        ;;
+      thunderbolt*|bond-tb|bond-tb*|br-tb) ;;
+      *) NEW="${NEW}${NEW:+ }$if" ;;
     esac
   done
   {
@@ -119,66 +109,41 @@ if [ -f "$EXTRA" ]; then
     echo "exclude_interfaces=\"${EXC}\""
   } > "$EXTRA"
 fi
-
-for conf in \
-  /etc/modprobe.d/thunderbolt_net.conf \
-  /boot/config/modprobe.d/thunderbolt_net.conf
-do
+for conf in /etc/modprobe.d/thunderbolt_net.conf /boot/config/modprobe.d/thunderbolt_net.conf; do
   if [ -f "$conf" ] && grep -q 'thunderbolt_net' "$conf" 2>/dev/null; then
     rm -f "$conf"
-    echo "ThunderboltNet: removed $conf"
   fi
 done
 if [ -d /boot/config/modprobe.d ] && [ -z "$(ls -A /boot/config/modprobe.d 2>/dev/null)" ]; then
   rmdir /boot/config/modprobe.d 2>/dev/null || true
 fi
-
-# Restore stock Dashboard port lists before removing scripts
 if [ -x /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports ]; then
   /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports remove || true
 fi
-
+# Package + emhttp
+for p in /var/log/packages/ThunderboltNet-*; do
+  [ -e "$p" ] || continue
+  removepkg "$(basename "$p")" 2>/dev/null || true
+done
 rm -rf /usr/local/emhttp/plugins/ThunderboltNet
-rm -rf /usr/local/emhttp/plugins/thunderboltnet
-rm -rf /usr/local/emhttp/plugins/Thunderboltnet
-rm -f /usr/local/emhttp/webGui/Thunderbolt*.page /usr/local/emhttp/webGui/Tbn*.page 2>/dev/null || true
-rm -f /usr/local/emhttp/plugins/dynamix/Thunderbolt*.page /usr/local/emhttp/plugins/dynamix/Tbn*.page 2>/dev/null || true
-
-# Flash: wipe plugin tree but KEEP known peers + per-tbn iface settings (reinstall-safe)
+# Flash: keep peers + iface settings + recovery sheet
 CFG=/boot/config/plugins/ThunderboltNet
 KEEP=/tmp/tbn-uninstall-keep-$$
 mkdir -p "$KEEP/ifaces"
-if [ -f "$CFG/peers.json" ]; then
-  cp -a "$CFG/peers.json" "$KEEP/peers.json" 2>/dev/null || true
-fi
-if [ -d "$CFG/ifaces" ]; then
-  cp -a "$CFG/ifaces/." "$KEEP/ifaces/" 2>/dev/null || true
-fi
+[ -f "$CFG/peers.json" ] && cp -a "$CFG/peers.json" "$KEEP/" 2>/dev/null || true
+[ -d "$CFG/ifaces" ] && cp -a "$CFG/ifaces/." "$KEEP/ifaces/" 2>/dev/null || true
+[ -f "$CFG/ThunderboltNet-RECOVERY.txt" ] && cp -a "$CFG/ThunderboltNet-RECOVERY.txt" "$KEEP/" 2>/dev/null || true
 rm -rf /boot/config/plugins/ThunderboltNet
-rm -rf /boot/config/plugins/thunderboltnet
-rm -rf /boot/config/plugins/Thunderboltnet
 mkdir -p /boot/config/plugins/ThunderboltNet/ifaces
-if [ -f "$KEEP/peers.json" ]; then
-  cp -a "$KEEP/peers.json" /boot/config/plugins/ThunderboltNet/peers.json
-  echo "ThunderboltNet: kept known peers (peers.json)"
-fi
-if [ -d "$KEEP/ifaces" ] && [ -n "$(ls -A "$KEEP/ifaces" 2>/dev/null)" ]; then
-  cp -a "$KEEP/ifaces/." /boot/config/plugins/ThunderboltNet/ifaces/
-  echo "ThunderboltNet: kept per-iface settings (ifaces/)"
-fi
+[ -f "$KEEP/peers.json" ] && cp -a "$KEEP/peers.json" /boot/config/plugins/ThunderboltNet/ && echo "ThunderboltNet: kept peers.json"
+[ -d "$KEEP/ifaces" ] && [ -n "$(ls -A "$KEEP/ifaces" 2>/dev/null)" ] && \
+  cp -a "$KEEP/ifaces/." /boot/config/plugins/ThunderboltNet/ifaces/ && echo "ThunderboltNet: kept ifaces/"
+[ -f "$KEEP/ThunderboltNet-RECOVERY.txt" ] && \
+  cp -a "$KEEP/ThunderboltNet-RECOVERY.txt" /boot/config/plugins/ThunderboltNet/
 rm -rf "$KEEP"
-
+rm -f /boot/config/plugins/thunderboltnet.plg 2>/dev/null || true
 rm -f /tmp/plugins/thunderboltnet.plg /tmp/plugins/thunderboltnet.txt 2>/dev/null || true
-rm -f /tmp/plugins/ThunderboltNet* /tmp/inline*-thunderboltnet.sh 2>/dev/null || true
-
-if [ -e /usr/local/emhttp/plugins/ThunderboltNet ] || [ -e /usr/local/emhttp/plugins/thunderboltnet ]; then
-  echo "ThunderboltNet: WARNING — emhttp plugin path still present"
-else
-  echo "ThunderboltNet: emhttp plugin paths clear"
-fi
-echo "ThunderboltNet: left ThunderboltNet-RECOVERY.txt on flash under plugins/ThunderboltNet/ (if present)."
 echo "ThunderboltNet: removed (peers + iface settings preserved on flash)."
-
 ]]></INLINE>
 </FILE>
 
