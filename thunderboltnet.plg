@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.17aa">
+<!ENTITY version "2026.08.17ab">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -23,79 +23,37 @@
   min="6.12.0"
   support="&forum;"
   project="https://github.com/&github;"
-  readme="https://raw.githubusercontent.com/&github;/stable/README.md">
+  readme="https://raw.githubusercontent.com/&github;/main/README.md">
 
 <CHANGES>
 ###&version;
-- <strong>Audit harden:</strong> dashboard-ports only ensure when TB present or already patched;
-  uninstall strips <code>br-tb*</code>; network-extra preserves unknown keys; Peers toolbar
-  (checkbox + actions outside table — no nested forms); Last seen uses Date and Time format;
-  SECURITY.md matches full flash wipe.
+- <strong>Mesh/peer harden:</strong> never poll self as a peer; Link check shows — when token off
+  (not a stale green); online row tint no longer looks like mesh Match green.
+- <strong>Install channel:</strong> CA + PluginURL use GitHub <code>main</code> for now
+  (same .txz name per version on main/stable; only the raw URL host path differs).
+
+###2026.08.17aa
+- <strong>Audit harden:</strong> dashboard-ports ensure (skip stock patch without TB);
+  uninstall <code>br-tb*</code>; network-extra preserves unknown keys; Peers toolbar outside table;
+  Last seen uses Date and Time format; SECURITY matches full flash wipe.
 
 ###2026.08.16ag
-- <strong>Dashboard ports harden:</strong> heal file modes from stock backups; status reports
-  mode + update_3 worker; heal subcommand. Documents clock incident (update_3 lost +x).
+- Dashboard ports: heal modes; status/heal for update_3 worker (clock incident).
 
 ###2026.08.16af
-- <strong>Dashboard clock:</strong> port-list patch no longer strips execute bit from
-  dynamix <code>nchan/update_3</code> (that worker publishes date/time). Self-heal + restart
-  the poller after apply.
+- Dashboard clock: preserve +x on dynamix nchan update_3.
 
 ###2026.08.16ae
-- <strong>Boot lifecycle:</strong> udev + L3 reapply on plugin <code>startup</code> (Unraid up,
-  array not required) and again on array <code>started</code> (Normal or Maintenance). Hotplug
-  still uses udev. Config works before array Online when the path is already up.
+- Boot lifecycle: udev + L3 on startup and array started.
 
 ###2026.08.16ad
-- <strong>Peer plans:</strong> desired local IPv4 is bound to remote fabric UUID (not tbn slot /
-  not MAC). Apply on a tbn tab (or Save live path as peer plan) stores it; hotplug/boot applies
-  to whichever thunderboltN that peer is on. <strong>Forget selected peers</strong> removes list
-  memory only - does not use Unraid Interface Rules.
-
-###2026.08.16ac
-- <strong>Known peers:</strong> after unplug/replug, no more ghost offline row (empty name)
-  beside the real peer. Hotplug race created <code>iface:thunderboltN</code> when fabric UUID
-  was briefly missing; now merge/dedupe into the UUID peer.
-
-###2026.08.16ab
-- <strong>Install/upgrade:</strong> always removepkg prior ThunderboltNet-* packages and wipe
-  emhttp plugin dirs (canonical + legacy casings) before installing the new .txz — no mixed
-  leftover files after versioned updates.
-
-###2026.08.16aa
-- <strong>Fabric devices:</strong> ID and netdev names use one monospace size on peer and
-  service/domain rows; service netdev labeled <em>same as peer</em> (not a second NIC).
-
-###2026.08.15an
-- <strong>OpenFabric:</strong> default off; settings hidden until FRR packages are installed.
-  Installing FRR auto-enables OpenFabric (opt out once with Enable=No).
-
-###2026.08.15am
-- <strong>Peer link check</strong> defaults <strong>on</strong> (Peers column: Link check).
-  Clearer header/labels; shared token still required on both Unraid hosts for green Match.
-
-###2026.08.15al
-- <strong>Known peers:</strong> remember on Apply / boot reapply (not only when opening Peers UI).
-  Empty-state copy no longer uses lab placeholders like “Machine B”.
+- Peer plans by fabric UUID; Forget selected peers.
 
 ###2026.08.15ak
-- <strong>Persist L3 across reboot and cable reseat:</strong> stop dhcpcd when applying Static
-  (no stacked 169.254), re-apply saved tbn addresses at array start, and udev hotplug for
-  thunderbolt* netdevs. Thanks to <strong>Vinney</strong> on the Unraid forums for root-causing
-  and field-testing the fix path.
-
-###2026.08.15aj
-- Companion card <strong>Block export (NBD)</strong>: same Not installed / CA or raw .plg wording as Multi-hop (FRR).
-
-###2026.08.15ai
-- <strong>CA entry banner:</strong> plain user wording (no tab-map / maintainer-style copy).
-
-###2026.08.15ah
-- <strong>CA / standalone Settings:</strong> orange Network Settings redirect banner shows on
-  <strong>all</strong> sub-tabs (Status · Peers · Hardware · Settings), not only Status.
+- Persist L3: dhcpcd kill, array reapply, udev hotplug (thanks Vinney).
 
 ### Older releases
-- Full changelog (all versions): https://github.com/ibigsnet/ThunderboltNet/blob/main/CHANGELOG.md
+- Full changelog: https://github.com/ibigsnet/ThunderboltNet/blob/main/CHANGELOG.md
 </CHANGES>
 
 <FILE Run="/bin/bash">

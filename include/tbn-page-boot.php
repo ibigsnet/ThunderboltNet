@@ -12,6 +12,19 @@ if (!is_array($cfg)) {
 }
 $cfg = array_merge(tbn_load_cfg(), $cfg);
 
+// Peer link check needs a shared token; mint one when export is on but token empty
+if (is_file('/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh.php')) {
+  require_once '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh.php';
+}
+if (function_exists('tbn_mesh_ensure_token') && function_exists('tbn_write_global_cfg')) {
+  $before = trim((string)($cfg['mesh_token'] ?? ''));
+  tbn_mesh_ensure_token($cfg);
+  $after = trim((string)($cfg['mesh_token'] ?? ''));
+  if ($before === '' && $after !== '' && ($cfg['mesh_report'] ?? 'no') === 'yes') {
+    tbn_write_global_cfg($cfg);
+  }
+}
+
 tbn_sync_iface_pages();
 
 $status = tbn_status();

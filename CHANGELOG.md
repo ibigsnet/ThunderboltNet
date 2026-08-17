@@ -1,3 +1,9 @@
+## 2026.08.17ab
+
+- Mesh: never poll self as peer; Link check — when token missing; softer online row tint.
+- CA/install channel documented as **main** for now; plg CHANGES trimmed (Plugins UI was showing every ### block).
+- Auto-mint mesh token when mesh_report=yes and token empty.
+
 ## 2026.08.17aa
 
 - **Audit harden:** dashboard-ports `ensure` (skip stock patch without TB; heal if already patched); uninstall `br-tb*`; network-extra preserves unknown keys; Peers toolbar (checkbox actions outside table); Last seen uses Date and Time format; SECURITY + recovery sheet match full flash wipe; Safe Mode sheet notes Vinney findings live in normal-boot docs.

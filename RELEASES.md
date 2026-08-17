@@ -2,65 +2,36 @@
 
 ## Install
 
-### Community Applications (recommended)
+### Community Applications (current)
 
-1. Unraid **Apps** → search **Thunderbolt Net**
+1. Unraid **Apps** → search **Thunderbolt Net** (author RifleJock)
 2. **Install** or **Update**
-3. Hard-refresh the browser, then **Settings → Network Settings → Thunderbolt**
+3. Hard-refresh the browser → **Settings → Network Settings → Thunderbolt**
 
-CA is fed from [unraid-templates](https://github.com/ibigsnet/unraid-templates). Updates may lag a short time after a GitHub push.
+CA catalog: [unraid-templates](https://github.com/ibigsnet/unraid-templates)  
+**PluginURL (today):** `main` branch raw `.plg` (not a separate “stable-only” feed).
 
-### Manual install (raw plugin URL)
+### Manual install
 
-**Plugins → Install Plugin** → paste a **raw** URL ending in `.plg` (not a GitHub “blob” page):
+```
+https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg
+```
 
-| Channel | Use when | URL |
-|---------|----------|-----|
-| **Production (`stable`)** | Normal install / CA channel | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/stable/thunderboltnet.plg` |
-| **Lab (`main`)** | Newest development tree | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg` |
-| **Recommended freeze** | Known-good pin | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/stable-recommended-2026.08.17aa/thunderboltnet.plg` |
-| **Pinned version** | Install or roll back to a fixed tag | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/vVERSION/thunderboltnet.plg` |
+| Channel | Role |
+|---------|------|
+| **`main`** | Current CA + production install URL |
+| **`stable`** | Optional mirror branch (same tree when we sync it); may lag if forgotten — prefer **main** until we re-document dual-channel |
 
-- **`stable`** — what CA installs; production updates.
-- **`main`** — lab only; can be ahead of CA.
-- **Tags / freezes** — exact trees that never change.
+### Why two branches felt “broken”
 
-### Recommended freeze
+- Unraid stores **one** plugin version string (e.g. `2026.08.17aa`). Switching CA from `stable` → `main` **does not** change the package **filename** if the version is identical — only which GitHub path hosts the `.plg` / `.txz`.
+- If one branch is missing `archive/….txz` for that version, install fails mid-upgrade.
+- The Plugins page **CHANGES** list is **every `###` heading inside the `.plg`**, not GitHub Releases. Too many `###` blocks = a long “release” list + Older releases line. That is by design of Unraid’s plugin UI, not CA inventing versions.
 
-| | |
-|--|--|
-| **Version** | **2026.08.17aa** |
-| **Tag** | [`stable-recommended-2026.08.17aa`](https://github.com/ibigsnet/ThunderboltNet/releases/tag/stable-recommended-2026.08.17aa) (also `v2026.08.17aa`) |
-| **Install** | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/stable-recommended-2026.08.17aa/thunderboltnet.plg` |
-
-OpenFabric policy when FRR is present, Fabric Routing companion, link quality UX, USB4STREAM detect-only. Older pin: `v2026.08.05ad`.
-
-### After install
-
-- Use a Thunderbolt/USB4 host-to-host cable (not SuperSpeed-only USB-C).
-- Set addressing on the **tbnN** tab for the live interface (often `thunderbolt0`).
-- Docs: [DOCS.md](DOCS.md) · [standards and speeds](docs/standards-and-speeds.md)
+Pinned tags (`vYYYY.MM.DDxx`, `stable-recommended-…`) remain installable by raw URL when we cut them.
 
 ### Roll back
 
-Paste a freeze or `vVERSION` raw `.plg` URL under **Plugins → Install Plugin**, then hard-refresh.
+Paste an older raw `.plg` URL (tag or commit) under **Plugins → Install Plugin**, hard-refresh.
 
----
-
-## Version numbers
-
-Plugin versions look like `2026.08.14aq` (date + two-letter suffix). Unraid compares them as plain strings for “update available.”
-
-Changelog bullets ship in the plugin’s **Plugins** page (from the `.plg`), and optionally as [GitHub Releases](https://github.com/ibigsnet/ThunderboltNet/releases).
-
----
-
-## Links
-
-| | |
-|--|--|
-| **GitHub** | https://github.com/ibigsnet/ThunderboltNet |
-| **Releases** | https://github.com/ibigsnet/ThunderboltNet/releases |
-| **Forum support** | https://forums.unraid.net/topic/200065-plugin-thunderbolt-net-host-to-host-networking-over-thunderbolt-345-and-usb44v2/ |
-| **Docs** | [DOCS.md](DOCS.md) · [docs/](docs/) |
-| **Fabric Routing** (optional FRR packages) | https://github.com/ibigsnet/FabricRouting |
+Full history: [CHANGELOG.md](CHANGELOG.md)

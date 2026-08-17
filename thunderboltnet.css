@@ -536,8 +536,12 @@
 .tbn-peers-memory .tbn-peer-offline td {
   opacity: 0.85;
 }
+/* Online path presence only — keep subtle so it is not confused with mesh "Match" green */
 .tbn-peers-memory .tbn-peer-online td {
-  background: rgba(60, 160, 90, 0.04);
+  background: rgba(80, 120, 180, 0.05);
+}
+.tbn-peers-memory tr.tbn-mesh-row-green td {
+  /* mesh validation row tint stays on status column via border helpers below */
 }
 .tbn-listen-warn {
   color: inherit;

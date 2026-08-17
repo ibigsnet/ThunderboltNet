@@ -304,13 +304,39 @@ function tbn_mesh_is_private_ip($ip) {
   return false;
 }
 
+/**
+ * IPv4 addresses on this host (any iface) — used to avoid polling ourselves.
+ *
+ * @return array<string,true>
+ */
+function tbn_mesh_local_ipv4_set() {
+  static $cache = null;
+  if (is_array($cache)) {
+    return $cache;
+  }
+  $cache = [];
+  $lines = [];
+  @exec('ip -4 -o addr show scope global 2>/dev/null', $lines);
+  foreach ($lines as $line) {
+    if (preg_match('/\binet\s+(\d+\.\d+\.\d+\.\d+)/', $line, $m)) {
+      $cache[$m[1]] = true;
+    }
+  }
+  // Always exclude loopback
+  $cache['127.0.0.1'] = true;
+  return $cache;
+}
+
 function tbn_mesh_peer_targets(array $cfg = null, array $links = null) {
   if ($cfg === null) $cfg = tbn_load_cfg();
   if ($links === null) $links = tbn_link_summaries();
+  $local_ips = tbn_mesh_local_ipv4_set();
   $ips = [];
   foreach (preg_split('/[\s,;]+/', trim((string)($cfg['mesh_peer_ips'] ?? ''))) as $ip) {
     $ip = trim($ip);
-    if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) $ips[$ip] = 'manual';
+    if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) && empty($local_ips[$ip])) {
+      $ips[$ip] = 'manual';
+    }
   }
   foreach ($links as $L) {
     $if = $L['iface'] ?? '';
@@ -318,7 +344,7 @@ function tbn_mesh_peer_targets(array $cfg = null, array $links = null) {
     $lines = [];
     @exec('ip neigh show dev ' . escapeshellarg($if) . ' 2>/dev/null', $lines);
     foreach ($lines as $line) {
-      if (preg_match('/^([0-9.]+)\s+/', $line, $m) && tbn_mesh_is_private_ip($m[1])) {
+      if (preg_match('/^([0-9.]+)\s+/', $line, $m) && tbn_mesh_is_private_ip($m[1]) && empty($local_ips[$m[1]])) {
         $ips[$m[1]] = 'neigh';
       }
     }
@@ -376,6 +402,7 @@ function tbn_mesh_poll_all(array $cfg = null) {
   $peers = tbn_load_peers_memory();
   $now = time();
   $our_host = $local_snap['hostname'] ?? '';
+  $our_id = $local_snap['host_id'] ?? tbn_mesh_host_id();
 
   foreach (array_slice($targets, 0, 16) as $t) {
     $result['polled']++;
@@ -384,10 +411,23 @@ function tbn_mesh_poll_all(array $cfg = null) {
       $result['edges'][] = ['ip' => $t['ip'], 'ok' => false, 'error' => $fetch['error'], 'code' => $fetch['code']];
       continue;
     }
-    $result['ok']++;
     $data = $fetch['data'];
-    $hid = $data['host_id'];
+    $hid = trim((string)($data['host_id'] ?? ''));
+    // Never treat our own export as a peer (self-poll / dual-IP confusion)
+    if ($hid !== '' && $our_id !== '' && strcasecmp($hid, $our_id) === 0) {
+      $result['edges'][] = ['ip' => $t['ip'], 'ok' => false, 'error' => 'self_host_id', 'code' => 0];
+      continue;
+    }
+    $remote_host = trim((string)($data['hostname'] ?? ''));
+    if ($remote_host !== '' && $our_host !== '' && strcasecmp($remote_host, $our_host) === 0) {
+      $result['edges'][] = ['ip' => $t['ip'], 'ok' => false, 'error' => 'self_hostname', 'code' => 0];
+      continue;
+    }
+    $result['ok']++;
     $safe = preg_replace('/[^a-f0-9-]/i', '', $hid);
+    if ($safe === '') {
+      $safe = 'peer-' . md5($t['ip']);
+    }
     $data['_fetched_at'] = date('c');
     $data['_fetch_ip'] = $t['ip'];
     $data['_source'] = $t['source'];
@@ -397,21 +437,31 @@ function tbn_mesh_poll_all(array $cfg = null) {
     foreach ($local_snap['links'] as $ll) {
       if (($ll['media'] ?? '') !== 'thunderbolt') continue;
       $pname = trim((string)($ll['peer_name'] ?? ''));
+      $puid = trim((string)($ll['peer_unique_id'] ?? ''));
       $match = null;
+      // Prefer fabric UUID match (remote link's peer_unique_id should be us; or peer_key)
       foreach ($data['links'] ?? [] as $pl) {
         if (($pl['media'] ?? '') !== 'thunderbolt') continue;
+        $pl_uid = trim((string)($pl['peer_unique_id'] ?? ''));
+        // Their "peer" UUID is our host's fabric id — hard without local domain UUID; use name cross-check
         $pl_name = trim((string)($pl['peer_name'] ?? ''));
-        if ($pname !== '' && strcasecmp($pname, $data['hostname'] ?? '') === 0) {
-          if ($our_host !== '' && strcasecmp($pl_name, $our_host) === 0) {
+        if ($puid !== '' && $pl_uid !== '' && strcasecmp($puid, $pl_uid) === 0) {
+          // same remote id on both sides is wrong (would be same peer); skip
+        }
+        if ($pname !== '' && $remote_host !== '' && strcasecmp($pname, $remote_host) === 0) {
+          if ($our_host !== '' && ($pl_name === '' || strcasecmp($pl_name, $our_host) === 0)) {
             $match = $pl;
             break;
           }
         }
       }
+      // Single TB link each side: only if we already trust this is a different host
       if ($match === null) {
         $loc_tb = array_values(array_filter($local_snap['links'], function ($x) { return ($x['media'] ?? '') === 'thunderbolt'; }));
         $rem_tb = array_values(array_filter($data['links'] ?? [], function ($x) { return ($x['media'] ?? '') === 'thunderbolt'; }));
-        if (count($loc_tb) === 1 && count($rem_tb) === 1 && ($ll['local_iface'] ?? '') === ($loc_tb[0]['local_iface'] ?? '')) {
+        if (count($loc_tb) === 1 && count($rem_tb) === 1
+            && ($ll['local_iface'] ?? '') === ($loc_tb[0]['local_iface'] ?? '')
+            && $hid !== '' && $our_id !== '' && strcasecmp($hid, $our_id) !== 0) {
           $match = $rem_tb[0];
         }
       }
@@ -508,10 +558,15 @@ function tbn_mesh_badge_html(array $val = null, $enabled = null) {
     $enabled = tbn_mesh_enabled(tbn_load_cfg());
   }
   if ($enabled === false) {
-    return '<span class="tbn-muted" title="Peer link check is off (Thunderbolt → Settings)">—</span>';
+    // Do not show stale green/orange from an old poll when check is off or token missing
+    return '<span class="tbn-muted" title="Peer link check is off or shared token unset (Thunderbolt → Settings)">—</span>';
   }
   if (!$val || empty($val['status'])) {
     return '<span class="tbn-mesh-pill tbn-mesh-orange" title="Waiting for the other Unraid plugin to report rates">Checking…</span>';
+  }
+  // Stale self-match artifacts
+  if (($val['reason'] ?? '') === 'self' || ($val['error'] ?? '') === 'self_host_id') {
+    return '<span class="tbn-muted" title="Ignored self report">—</span>';
   }
   $st = $val['status'];
   $label = tbn_mesh_status_label($st, $val['reason'] ?? '');
