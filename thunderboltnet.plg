@@ -27,7 +27,13 @@
 
 <CHANGES>
 ###&version;
-- <strong>Known peers:</strong> after unplug/replug, no more ghost Offline row (empty name)
+- <strong>Peer plans:</strong> desired local IPv4 is bound to remote fabric UUID (not tbn slot /
+  not MAC). Apply on a tbn tab (or Save live path as peer plan) stores it; hotplug/boot applies
+  to whichever thunderboltN that peer is on. <strong>Forget selected peers</strong> removes list
+  memory only - does not use Unraid Interface Rules.
+
+###2026.08.16ac
+- <strong>Known peers:</strong> after unplug/replug, no more ghost offline row (empty name)
   beside the real peer. Hotplug race created <code>iface:thunderboltN</code> when fabric UUID
   was briefly missing; now merge/dedupe into the UUID peer.
 
