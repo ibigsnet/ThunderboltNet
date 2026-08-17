@@ -26,7 +26,7 @@ https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.pl
 
 - Unraid stores **one** plugin version string (e.g. `2026.08.17aa`). Switching CA from `stable` → `main` **does not** change the package **filename** if the version is identical — only which GitHub path hosts the `.plg` / `.txz`.
 - If one branch is missing `archive/….txz` for that version, install fails mid-upgrade.
-- The Plugins page **CHANGES** list is **every `###` heading inside the `.plg`**, not GitHub Releases. Too many `###` blocks = a long “release” list + Older releases line. That is by design of Unraid’s plugin UI, not CA inventing versions.
+- The Plugins page **CHANGES** list is **every `###` heading inside the `.plg`**, not GitHub Releases. Keep about **7 summarized notes** (bundle rapid micro-ships as version **ranges** with a short generalized line). Final block: **Older releases** → full [`CHANGELOG.md`](CHANGELOG.md). See `~/.grok/rules/plugin-changes-and-changelog.md`.
 
 Pinned tags (`vYYYY.MM.DDxx`, `stable-recommended-…`) remain installable by raw URL when we cut them.
 

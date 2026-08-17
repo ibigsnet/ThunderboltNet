@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.17ak">
+<!ENTITY version "2026.08.17al">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,34 +27,25 @@
 
 <CHANGES>
 ###&version;
-- Gateway help: leave empty for P2P; uplink-only (rare). Default-route metric caution retained.
+- Plugins/CA notes method: ~7 summarized entries (ranges OK); Older releases → CHANGELOG.
+- Gateway empty for P2P (rare uplink only) from ak.
 
-###2026.08.17aj
-- Default-route help: low metric can steal eth0/br0 topology.
-
-###2026.08.17ai
-- Restore MTU inline_help facts (1500 / 9000 / driver max).
-
-###2026.08.17ah
-- Info: eth0-style $.post + swal (CSRF fix).
-
-###2026.08.17ag
-- tbnN eth0-like MTU/VLAN/bonding cleanup.
+###2026.08.17ag–ak
+- Blue help and eth0-layout polish: MTU number + jumbo checkbox and facts (1500 / 9000 / driver max),
+  VLANs after MTU, bonding WIP only when Yes, Network Info via $.post+swal (CSRF), gateway/default-route
+  metric warnings. Full detail in CHANGELOG.
 
 ###2026.08.17af
-- Peers legend once; Info dialog; bonding WIP (always) + live IP notes (superseded by ag).
+- Peers: single Link check legend; Info button; bonding experiment surface.
 
 ###2026.08.17ae
-- Fix Status/Peers/Hardware/Settings sub-tabs after tbnN-before-overview reorder (#tbn-overview).
+- Fix Status/Peers/Hardware/Settings sub-tabs after tbnN reorder (#tbn-overview).
 
-###2026.08.17ad
-- Packaging follow-up for 2026.08.17ac (Mbps speed format edge case).
-
-###2026.08.17ac
-- Tab order: tbnN after Wireless, Thunderbolt overview after tbnN; Peers UX + Status install helpers.
+###2026.08.17ac–ad
+- Tab order (tbnN after Wireless, overview after tbnN); Peers UX; Status CA install helpers; speed format follow-up.
 
 ###2026.08.17ab
-- Mesh: never poll self; Link check — when token off; softer online row tint.
+- Mesh: never poll self; Link check when token off; softer online row tint.
 
 ### Older releases
 - Full changelog: https://github.com/ibigsnet/ThunderboltNet/blob/main/CHANGELOG.md

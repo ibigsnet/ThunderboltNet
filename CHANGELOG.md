@@ -1,3 +1,9 @@
+## 2026.08.17al
+
+- **CA / Plugins `<CHANGES>`:** ~7 summarized notes; bundle rapid ships as version ranges
+  (e.g. ag–ak blue help / eth0 polish); Older releases → full CHANGELOG.md. Agent rule:
+  `plugin-changes-and-changelog.md`.
+
 ## 2026.08.17ak
 
 - **IPv4/IPv6 default gateway** help: leave empty for peer-to-peer; only for intentional uplink (rare).
