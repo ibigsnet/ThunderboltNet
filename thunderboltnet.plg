@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.17ah">
+<!ENTITY version "2026.08.17ai">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,7 +27,10 @@
 
 <CHANGES>
 ###&version;
-- <strong>Info:</strong> use eth0-style $.post + swal (fixes CSRF empty hang on Loading…).
+- Restore MTU inline_help facts (live MTU, driver min/max ~65522, 1500 default, 9000 both ends).
+
+###2026.08.17ah
+- Info: eth0-style $.post + swal (CSRF fix).
 
 ###2026.08.17ag
 - tbnN eth0-like MTU/VLAN/bonding cleanup.

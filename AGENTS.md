@@ -13,6 +13,7 @@ Prefer GitHub push + UI update; avoid routine SSH file edits on the boxes.
 - **Match eth0** (`/usr/local/emhttp/plugins/dynamix/Eth0.page` on NIROG or read-only 10.1.0.1): description+Info → MAC → bonding → bridging → protocol/addressing → MTU → VLANs.
 - Live kernel addresses / link details → **Info** dialog (`tbn-network-info.php`), not permanent form rows with commentary.
 - **No essay prose in the form.** No tip spans, no “live on the interface…” asides, no unverified claims in option labels (`— least bad`, `— usually fails…`). Verified caveats → `docs/` or blue `inline_help` after testing.
+- **Never blank verified facts** when cleaning UI (MTU 1500 default, jumbo 9000 both ends, driver max ~65522, live MTU line). Remove narration only.
 - Bonding WIP notice: only when **Enable bonding = Yes**.
 - Bond name field may stay for now; default `bond-tb0` (not Unraid `bond0`).
 

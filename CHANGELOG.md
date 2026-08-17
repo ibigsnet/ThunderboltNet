@@ -1,3 +1,9 @@
+## 2026.08.17ai
+
+- Restore MTU blue-help facts removed in the eth0-control pass: live MTU, driver min/max
+  (often ~65522), product default **1500**, typical jumbo **9000** on both ends, not negotiated.
+  Keep eth0-style number + Enable jumbo frames; input max uses driver max (not eth 9198 cap).
+
 ## 2026.08.17ah
 
 - **Network Info:** use the same `$.post` + `swal` path as eth0. Raw `fetch` POST omitted

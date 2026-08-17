@@ -458,6 +458,9 @@ if (strpos($nm, '.') === false) {
 <?php
   $mtu_mode = tbn_normalize_mtu_mode($cfg);
   $mtu_lim = tbn_iface_mtu_limits($if);
+  $mtu_live = ($live['mtu'] ?? '') !== ''
+    ? $live['mtu']
+    : tbn_sysfs_str('/sys/class/net/' . $if . '/mtu');
   $mtu_use = ($mtu_mode !== 'default');
   $mtu_val = '';
   if ($mtu_use) {
@@ -467,15 +470,16 @@ if (strpos($nm, '.') === false) {
       $mtu_val = (string)$cfg['MTU'];
     }
   }
-  $jumbo_title = "Allows ethernet frames larger than 1500 bytes.\n"
-    . "Peers must match; mismatched MTU can drop or stall traffic.\n"
-    . "Use with care.";
+  // eth0-style tooltip on the jumbo checkbox; Thunderbolt driver max is typically ~65522
+  $jumbo_title = "Allows frames larger than 1500 bytes (common jumbo: 9000).\n"
+    . "Driver range on this iface: " . (int)$mtu_lim['min'] . "–" . (int)$mtu_lim['max'] . ".\n"
+    . "Both ends must match; mismatch can drop or stall traffic.";
 ?>
     <dl>
       <dt>Desired MTU:</dt>
       <dd>
         <input type="number" name="MTU" class="narrow tbn-mtu-input" min="<?= (int)$mtu_lim['min'] ?>"
-          max="<?= (int)min(9198, (int)$mtu_lim['max']) ?>" placeholder="1500"
+          max="<?= (int)$mtu_lim['max'] ?>" placeholder="1500"
           value="<?= htmlspecialchars($mtu_val) ?>"
           <?= ($mtu_use && !$is_bond_slave) ? '' : 'disabled' ?>>
         <span>
@@ -489,7 +493,11 @@ if (strpos($nm, '.') === false) {
       </dd>
     </dl>
     <blockquote class="inline_help">
-      Same control as eth0: leave unchecked for 1500; enable jumbo to set a larger MTU (often 9000).
+      Live: <strong><?= htmlspecialchars(tbn_format_mtu_live($mtu_live, $mtu_mode)) ?></strong>
+      · driver allows <?= (int)$mtu_lim['min'] ?>–<?= (int)$mtu_lim['max'] ?>
+      (thunderbolt_net often ~65522).<br>
+      Product default <strong>1500</strong> (compatible first plug). Typical jumbo: <strong>9000</strong> on <em>both</em> ends —
+      MTU is not negotiated. Mismatch (9000 vs 1500) can drop or stall traffic.
       <?= tbn_help_docs_footer('docs/mtu-and-throughput.md', 'MTU & throughput') ?>
     </blockquote>
 
