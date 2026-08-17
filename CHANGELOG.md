@@ -1,7 +1,15 @@
+## 2026.08.17ag
+
+- **tbnN closer to eth0:** Desired MTU number field + **Enable jumbo frames** checkbox (not a mode
+  dropdown); **Enable VLANs** after MTU; bonding orange WIP only when bonding is Yes; clean mode
+  labels (no unverified “least bad” / “usually fails”); remove on-form live-IP essay rows — live
+  addresses stay in the **Info** dialog.
+- **main** only — test on NIROG before CA/stable.
+
 ## 2026.08.17af
 
 - **Peers cleanup:** Link check legend printed twice (standalone + reports panel) — keep one panel only.
-- **tbnN:** remove stray “Overview / fabric / driver options: Thunderbolt” footer; label **IPv4 (kernel now)** vs form address with mismatch notice; bonding always visible with orange **experimental / WIP** warning; **Info** button opens a Network Info dialog (configured vs kernel).
+- **tbnN:** remove stray overview footer; kernel-now vs form IP notes; bonding WIP always shown; Info dialog.
 - Shipped to **main** for lab test first (not auto-promoted to stable).
 
 ## 2026.08.17ae
