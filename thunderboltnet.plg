@@ -121,7 +121,7 @@ if [ -f /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt ]; 
   cp -a /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt \
     /boot/config/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt
 fi
-# Hotplug + boot reapply for thunderbolt* L3 (Vinney / forum findings)
+# Hotplug + boot reapply for thunderbolt* L3 (forum persistence findings)
 php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; tbn_install_net_udev();' 2>/dev/null || true
 /bin/bash /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-net-reapply >/dev/null 2>&1 || true
 udevadm trigger --subsystem-match=net --action=add 2>/dev/null || true

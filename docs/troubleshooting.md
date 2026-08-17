@@ -119,7 +119,7 @@ While plugins work: WebUI **Thunderbolt → Recovery** shows the same path.
 
 ## Static IP missing after reboot or unplug/replug
 
-Classic field report (Unraid forum; **Vinney** and others): path trains, `thunderbolt0` exists, **no** (or wrong) static address until you re-open the plugin and Apply.
+Classic field report (Unraid forum): path trains, `thunderbolt0` exists, **no** (or wrong) static address until you re-open the plugin and Apply.
 
 | Check | What to do |
 |-------|------------|
@@ -137,7 +137,7 @@ Classic field report (Unraid forum; **Vinney** and others): path trains, `thunde
 |---------|--------|-----|
 | `ip addr` shows your static **and** a `169.254.…` | Leftover **dhcpcd** (or dhclient) still managing the iface after switching to Static | Apply Static again on a current plugin (stops DHCP clients first); or `dhcpcd -k thunderbolt0` then re-Apply |
 
-Do not leave mixed static + link-local if you expect clean peer-local routing. Design notes: [peers-and-plans.md](peers-and-plans.md#1-address-disappeared-after-reboot-or-unplug-vinney--forum).
+Do not leave mixed static + link-local if you expect clean peer-local routing. Design notes: [peers-and-plans.md](peers-and-plans.md#1-address-disappeared-after-reboot-or-unplug-forum-reports).
 
 ## Two Known peers rows (one blank offline)
 
