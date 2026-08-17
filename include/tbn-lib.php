@@ -58,7 +58,7 @@ function tbn_load_cfg() {
     'openfabric_router_id' => '',
     'openfabric_net' => '',
     'openfabric_metric_reference_mbps' => '20000',
-    'mesh_report' => 'no',
+    'mesh_report' => 'yes',
     'mesh_token' => '',
     'mesh_poll_secs' => '60',
     'mesh_stale_secs' => '300',
@@ -1828,6 +1828,14 @@ function tbn_diagnostics_text() {
  */
 function tbn_status() {
   $cfg = tbn_load_cfg();
+  // Peer link check defaults on: ensure a token exists and is saved once
+  if (function_exists('tbn_mesh_ensure_token') && function_exists('tbn_write_global_cfg')) {
+    $before = trim((string)($cfg['mesh_token'] ?? ''));
+    tbn_mesh_ensure_token($cfg);
+    if (($cfg['mesh_report'] ?? 'yes') === 'yes' && $before === '' && trim((string)($cfg['mesh_token'] ?? '')) !== '') {
+      @tbn_write_global_cfg($cfg);
+    }
+  }
   $probe = tbn_hardware_probe();
   $links = tbn_link_summaries();
   // Plug-and-play: persist last-seen peers; re-apply remembered listening prefs
@@ -3079,7 +3087,7 @@ function tbn_write_global_cfg(array $cfg) {
     'openfabric_router_id' => '',
     'openfabric_net' => '',
     'openfabric_metric_reference_mbps' => '20000',
-    'mesh_report' => 'no',
+    'mesh_report' => 'yes',
     'mesh_token' => '',
     'mesh_poll_secs' => '60',
     'mesh_stale_secs' => '300',

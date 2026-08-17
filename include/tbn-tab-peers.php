@@ -11,7 +11,8 @@ if (!$has_hw):
       Online and offline peers. Services dropdown = SMB/NFS/SSH/web on that Thunderbolt IP (saves on change).
       Link rate: equal RX/TX shows <strong>full-duplex</strong>; asymmetric shows
       <strong>TX (to peer)</strong> and <strong>RX (from peer)</strong>.
-      <strong>Validated</strong> uses the last peer-plugin compare (green/orange/red) — see Fabric reports legend.
+      <strong>Link check</strong> compares trained rates with the other Unraid’s Thunderbolt Net plugin
+      (green = match, orange = waiting, red = mismatch). Both hosts need the same shared token under Settings.
     </p>
 <?php if (!$peers_mem): ?>
     <div class="tbn-empty-peers" role="status">
@@ -26,7 +27,7 @@ if (!$has_hw):
       <thead>
         <tr>
           <th>Status</th>
-          <th>Peer validation</th>
+          <th title="Compares this host’s trained Thunderbolt rates with the peer Unraid plugin (not FRR). Green = agree, orange = waiting for peer report, red = disagree.">Link check</th>
           <th>Peer</th>
           <th>Tab / iface</th>
           <th>Local IPv4</th>
@@ -82,15 +83,17 @@ if (!$has_hw):
     }
     $can_apply_live = ($online && $if !== '' && preg_match('/^thunderbolt\d+$/', $if));
     $mesh_val = $p['mesh_validation'] ?? null;
-    $mesh_row = 'tbn-mesh-row-orange';
-    if (is_array($mesh_val)) {
+    $mesh_on = function_exists('tbn_mesh_enabled') ? tbn_mesh_enabled($cfg) : false;
+    $mesh_row = '';
+    if ($mesh_on && is_array($mesh_val)) {
       if (($mesh_val['status'] ?? '') === 'green') $mesh_row = 'tbn-mesh-row-green';
       elseif (($mesh_val['status'] ?? '') === 'red') $mesh_row = 'tbn-mesh-row-red';
+      elseif (($mesh_val['status'] ?? '') === 'orange') $mesh_row = 'tbn-mesh-row-orange';
     }
 ?>
         <tr class="<?= $online ? 'tbn-peer-online' : 'tbn-peer-offline' ?> <?= $pref === 'yes' ? 'tbn-listen-on' : 'tbn-listen-off' ?> <?= $mesh_row ?>">
           <td><?= $online ? '<span class="tbn-badge tbn-badge-ok">Online</span>' : '<span class="tbn-badge tbn-badge-unknown">Offline</span>' ?></td>
-          <td class="tbn-mesh-val-cell"><?= function_exists('tbn_mesh_badge_html') ? tbn_mesh_badge_html(is_array($mesh_val) ? $mesh_val : null) : '—' ?></td>
+          <td class="tbn-mesh-val-cell"><?= function_exists('tbn_mesh_badge_html') ? tbn_mesh_badge_html(is_array($mesh_val) ? $mesh_val : null, $mesh_on) : '—' ?></td>
           <td>
             <strong><?= htmlspecialchars(($p['peer_name'] ?? '') !== '' ? $p['peer_name'] : '—') ?></strong>
 <?php if (!empty($p['stack'])): ?>

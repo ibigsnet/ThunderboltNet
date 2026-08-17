@@ -182,50 +182,47 @@ if (!$has_hw):
 
   <div class="tbn-section tbn-advanced"
        data-tbn-advanced="mesh"
-       data-tbn-default-open="<?= (($cfg['mesh_report'] ?? 'no') === 'yes') ? '1' : '0' ?>">
+       data-tbn-default-open="<?= (($cfg['mesh_report'] ?? 'yes') === 'yes') ? '1' : '0' ?>">
     <div class="tbn-advanced-head">
-      <h3>Advanced: Fabric reports (multi-host)</h3>
+      <h3>Advanced: Peer link check</h3>
       <button type="button" class="tbn-advanced-toggle" data-tbn-adv-toggle="mesh"
-        data-show="Show Fabric reports"
-        data-hide="Hide Fabric reports">Show Fabric reports</button>
-<?php if (($cfg['mesh_report'] ?? 'no') === 'yes'): ?>
-      <span class="tbn-advanced-chip tbn-chip-ok">Export on</span>
+        data-show="Show peer link check"
+        data-hide="Hide peer link check">Show peer link check</button>
+<?php if (($cfg['mesh_report'] ?? 'yes') === 'yes'): ?>
+      <span class="tbn-advanced-chip tbn-chip-ok">On (default)</span>
 <?php else: ?>
-      <span class="tbn-advanced-chip tbn-chip-muted">Export off</span>
+      <span class="tbn-advanced-chip tbn-chip-muted">Off</span>
 <?php endif; ?>
     </div>
-    <div class="tbn-advanced-body" id="tbn-adv-mesh"<?= (($cfg['mesh_report'] ?? 'no') === 'yes') ? '' : ' hidden' ?>>
+    <div class="tbn-advanced-body" id="tbn-adv-mesh"<?= (($cfg['mesh_report'] ?? 'yes') === 'yes') ? '' : ' hidden' ?>>
       <p class="tbn-note">
-        Optional peer-to-peer link snapshots between <strong>your</strong> Unraid hosts that run this plugin
-        (same LAN or other private path both can reach). Stays on those hosts only —
-        nothing is sent to the internet, GitHub, or plugin developers.
-        See <?= tbn_docs_more_html('docs/fabric-link-map.md', 'Fabric link map ↗') ?>.
+        Peers table <strong>Link check</strong> column: this Unraid and the peer Unraid’s Thunderbolt Net plugin
+        compare trained rates (green match / orange waiting / red mismatch). Private underlay only —
+        not the internet or FRR. See <?= tbn_docs_more_html('docs/fabric-link-map.md', 'details ↗') ?>.
       </p>
       <dl>
-        <dt>Enable fabric reports:</dt>
+        <dt>Enable peer link check:</dt>
         <dd>
           <select name="mesh_report">
-            <?= mk_option($cfg['mesh_report'] ?? 'no', 'no', 'No (default)') ?>
-            <?= mk_option($cfg['mesh_report'] ?? 'no', 'yes', 'Yes — export + poll peers') ?>
+            <?= mk_option($cfg['mesh_report'] ?? 'yes', 'yes', 'Yes (default) — compare rates with peer Unraid plugins') ?>
+            <?= mk_option($cfg['mesh_report'] ?? 'yes', 'no', 'No') ?>
           </select>
         </dd>
       </dl>
       <blockquote class="inline_help">
-        Each Unraid with Thunderbolt Net can export a small JSON snapshot of <em>its</em> links and poll peers
-        for <em>theirs</em> (green / orange / red compare).<br><br>
-        <strong>Paths:</strong> any private IP both plugins can reach — usually Thunderbolt (<code>tbnN</code>) IPs;
-        optionally private Ethernet (field below). A live Thunderbolt cable is not required if you only list eth fabric
-        interfaces and peer IPs.<br><br>
-        Settings live in this plugin UI; both hosts need the plugin. <strong>Not</strong> a cloud or telemetry service.<br><br>
-        <strong>Yes</strong> — peers with the same token may fetch this host’s snapshot; this host polls peers.
-        <strong>No</strong> — export off. Orange “unverified” is normal when off.
+        Each host exports a small JSON snapshot of its Thunderbolt (and optional private eth) links and polls peers
+        for theirs. Used only for the Peers <strong>Link check</strong> column.<br><br>
+        <strong>Paths:</strong> private IPs both plugins can reach — usually Thunderbolt (<code>tbnN</code>) IPs;
+        optionally private Ethernet below.<br><br>
+        <strong>Same token on both Unraid hosts</strong> (copy/paste). Auto-filled on Apply if empty while Yes.<br><br>
+        <strong>Not</strong> cloud/telemetry and <strong>not</strong> FRR — multi-hop routing is the Fabric Routing companion.
       </blockquote>
       <dl>
         <dt>Shared token:</dt>
         <dd>
           <input type="text" name="mesh_token" maxlength="64" style="width:28em"
             value="<?= htmlspecialchars($cfg['mesh_token'] ?? '') ?>"
-            placeholder="auto-generated on Apply if empty and Yes"
+            placeholder="auto-generated on Apply if empty and Yes — copy to peer Unraid"
             autocomplete="off">
         </dd>
       </dl>

@@ -6,6 +6,10 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+###2026.08.15am
+- Peer link check defaults **on**; Peers column renamed **Link check** with clearer Match / Checking / Mismatch labels.
+  Shared token still required on both hosts for a green match (not FRR).
+
 ###2026.08.15al
 - Known peers: save on Apply / reapply (not only when Peers tab loads status). Empty-state copy: no lab “Machine B” placeholder.
 

@@ -40,7 +40,7 @@ function tbn_mesh_plugin_version() {
 
 function tbn_mesh_cfg_defaults() {
   return [
-    'mesh_report' => 'no',
+    'mesh_report' => 'yes',
     'mesh_token' => '',
     'mesh_poll_secs' => '60',
     'mesh_stale_secs' => '300',
@@ -503,16 +503,30 @@ function tbn_mesh_legend_html() {
     . '</div>';
 }
 
-function tbn_mesh_badge_html(array $val = null) {
+function tbn_mesh_badge_html(array $val = null, $enabled = null) {
+  if ($enabled === null && function_exists('tbn_load_cfg')) {
+    $enabled = tbn_mesh_enabled(tbn_load_cfg());
+  }
+  if ($enabled === false) {
+    return '<span class="tbn-muted" title="Peer link check is off (Thunderbolt → Settings)">—</span>';
+  }
   if (!$val || empty($val['status'])) {
-    return '<span class="tbn-mesh-pill tbn-mesh-orange" title="No peer plugin validation yet">Unverified</span>';
+    return '<span class="tbn-mesh-pill tbn-mesh-orange" title="Waiting for the other Unraid plugin to report rates">Checking…</span>';
   }
   $st = $val['status'];
   $label = tbn_mesh_status_label($st, $val['reason'] ?? '');
+  // Shorter table labels
+  if ($st === 'green') {
+    $label = ($val['reason'] ?? '') === 'agree_asymmetric' ? 'Match (asymmetric)' : 'Match';
+  } elseif ($st === 'red') {
+    $label = 'Mismatch';
+  } elseif ($st === 'orange') {
+    $label = (($val['reason'] ?? '') === 'peer_stale') ? 'Stale' : 'Checking…';
+  }
   $cls = 'tbn-mesh-orange';
   if ($st === 'green') $cls = 'tbn-mesh-green';
   elseif ($st === 'red') $cls = 'tbn-mesh-red';
-  $title = htmlspecialchars($label . (!empty($val['info']) ? ' — ' . $val['info'] : ''), ENT_QUOTES);
+  $title = htmlspecialchars(tbn_mesh_status_label($st, $val['reason'] ?? '') . (!empty($val['info']) ? ' — ' . $val['info'] : ''), ENT_QUOTES);
   $html = '<span class="tbn-mesh-pill ' . $cls . '" title="' . $title . '">' . htmlspecialchars($label) . '</span>';
   if (!empty($val['info'])) {
     $html .= '<div class="tbn-mesh-info-note">' . htmlspecialchars($val['info']) . '</div>';
@@ -530,7 +544,7 @@ function tbn_mesh_reports_panel_html(array $cfg = null) {
     $poll = $j;
   }
   $html = '<div class="tbn-section tbn-mesh-panel">';
-  $html .= '<h3>Fabric reports <span class="tbn-muted">(your LAN Unraid peers)</span></h3>';
+  $html .= '<h3>Peer link check <span class="tbn-muted">(Unraid plugin rate compare)</span></h3>';
   $html .= '<p class="tbn-note">Peer rows come from <strong>other Unraid hosts on your network</strong> that run this plugin '
     . 'and share a token — not from local sysfs alone, and not from the internet or plugin developers. '
     . 'Orange = unverified, not a bad cable.</p>';
