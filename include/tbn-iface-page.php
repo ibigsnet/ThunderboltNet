@@ -142,15 +142,18 @@ if (strpos($nm, '.') === false) {
       <dd>
         <input type="text" name="DESCRIPTION" maxlength="80" autocomplete="off" spellcheck="false"
           value="<?= htmlspecialchars($cfg['DESCRIPTION'] ?? '') ?>">
+        <span class="inline-block">
+          <input type="button" class="form" value="Info" onclick="tbnNetworkInfo('<?= htmlspecialchars($if, ENT_QUOTES) ?>')">
+        </span>
       </dd>
     </dl>
-    <blockquote class="inline_help">Optional label for this link (stored in plugin config only).</blockquote>
+    <blockquote class="inline_help">Optional label (plugin config). <strong>Info</strong> shows live link / addresses like eth0.</blockquote>
 
     <dl>
       <dt>MAC address:</dt>
       <dd><span class="tbn-live"><?= htmlspecialchars(strtoupper($mac)) ?></span></dd>
     </dl>
-    <blockquote class="inline_help">Read-only kernel address for <code><?= htmlspecialchars($if) ?></code>.</blockquote>
+    <blockquote class="inline_help">Read-only kernel address for <code><?= htmlspecialchars($if) ?></code> (often changes each Thunderbolt link).</blockquote>
 
     <dl>
       <dt>Enable interface:</dt>
@@ -167,29 +170,26 @@ if (strpos($nm, '.') === false) {
 
 <?php
   $n_tb_live = count($tb_ifaces);
-  $bond_want = ($cfg['BONDING'] ?? 'no') === 'yes';
-  // Hide bond UI unless ≥2 live thunderbolt* or user already enabled bonding
-  $show_bond_section = $n_tb_live >= 2 || $bond_want || $is_bond_slave;
 ?>
-<?php if ($show_bond_section): ?>
     <div class="tbn-section-bond">
+      <div class="tbn-notice tbn-bond-wip" role="status">
+        <strong>Bonding — experimental / WIP.</strong>
+        Not recommended for normal use yet. Dual-cable to the <em>same</em> peer often still yields one netdev;
+        Thunderbolt slaves may reject <code>set_mac</code> (many bond modes fail). Prefer one cable per peer + static IP.
+        Leaving this on <strong>No</strong> is the safe default.
+      </div>
       <dl>
         <dt>Enable bonding:</dt>
         <dd>
           <select name="BONDING" class="tbn-ctl-bond" <?= $is_bond_slave ? 'disabled' : '' ?>>
             <?= mk_option($cfg['BONDING'] ?? 'no', 'no', 'No') ?>
-            <?= mk_option($cfg['BONDING'] ?? 'no', 'yes', 'Yes — when ≥2 live Thunderbolt netdevs') ?>
+            <?= mk_option($cfg['BONDING'] ?? 'no', 'yes', 'Yes (experimental)') ?>
           </select>
         </dd>
       </dl>
       <blockquote class="inline_help">
         Thunderbolt-only Linux bond (<code>bond-tb0</code>, …), not Unraid eth <code>bond0</code>.
-        Needs <strong>two or more live</strong> <code>thunderbolt*</code> netdevs already present
-        (today usually two <em>different</em> peers). Two cables to the <em>same</em> peer often still yield
-        <strong>one</strong> netdev — bonding cannot invent a second slave, and Thunderbolt slaves may reject
-        <code>set_mac</code> (many bond modes fail). Apply with fewer than two members is ignored.<br><br>
-        <strong>Roadmap:</strong> better dual-path detection and bond+OpenFabric metrics when the kernel
-        exposes two usable paths — dual-cable bonding is <em>not</em> a non-goal.
+        Needs <strong>two or more live</strong> <code>thunderbolt*</code> netdevs. Apply with fewer than two members is ignored.
         <?= tbn_help_docs_footer('docs/links-and-topology.md', 'Links, bonding & topology') ?>
       </blockquote>
 
@@ -207,7 +207,7 @@ if (strpos($nm, '.') === false) {
         </dl>
         <blockquote class="inline_help">
           Prefer <strong>active-backup</strong> if you truly have two Thunderbolt netdevs. 802.3ad/LACP is a poor fit
-          for <code>thunderbolt_net</code> (no set_mac, flaky MII).
+          for <code>thunderbolt_net</code>.
         </blockquote>
 
         <dl>
@@ -219,7 +219,7 @@ if (strpos($nm, '.') === false) {
           </dd>
         </dl>
         <blockquote class="inline_help">
-          Default <code>bond-tb0</code> (then <code>bond-tb1</code>, …). Do not reuse Unraid eth <code>bond0</code>.
+          Default <code>bond-tb0</code>. Do not reuse Unraid eth <code>bond0</code>.
         </blockquote>
 
         <dl>
@@ -242,21 +242,10 @@ if (strpos($nm, '.') === false) {
           </dd>
         </dl>
         <blockquote class="inline_help">
-          Live <code>thunderbolt*</code> only. Select at least two. Same-peer dual-cable does not create two members.
+          Live <code>thunderbolt*</code> only. Select at least two.
         </blockquote>
       </div>
     </div>
-<?php else: ?>
-    <input type="hidden" name="BONDING" value="no">
-    <blockquote class="inline_help">
-      <strong>Bonding:</strong> not offered with a single live <code>thunderbolt*</code> path (the common case).
-      Same-peer dual-cable often still yields one netdev today; multi-path bonding is a roadmap item when
-      two paths appear. If the Thunderbolt domain wedges after dual-cable tests: unplug <em>all</em> Thunderbolt cables on
-      <em>both</em> machines, wait, plug one cable only.
-      <?= tbn_help_docs_footer('docs/links-and-topology.md', 'Bonding roadmap') ?>
-    </blockquote>
-<?php endif; ?>
-
 <?php
   $tbn_frr_live = false;
   if (function_exists('tbn_of_frr_detect')) {
@@ -588,21 +577,45 @@ if (strpos($nm, '.') === false) {
       <code>thunderboltN</code> via peers/tabs.
     </blockquote>
 
+<?php
+  $cfg_ip = trim((string)($cfg['IPADDR'] ?? ''));
+  $live_ip_disp = $addrs ? implode(', ', $addrs) : '—';
+  $live_mismatch = ($cfg_ip !== '' && $addrs && !in_array($cfg_ip, array_map(function ($a) {
+    return preg_replace('#/\d+$#', '', $a);
+  }, $addrs), true));
+?>
     <dl>
-      <dt>IPv4 (live):</dt>
-      <dd><span class="tbn-live" data-tbn-live-ip4="<?= htmlspecialchars($if) ?>"><?= htmlspecialchars($addrs ? implode(', ', $addrs) : '—') ?></span></dd>
+      <dt>IPv4 (kernel now):</dt>
+      <dd>
+        <code class="tbn-live" data-tbn-live-ip4="<?= htmlspecialchars($if) ?>"><?= htmlspecialchars($live_ip_disp) ?></code>
+        <span class="tbn-muted"> — live on the interface (not the form until Apply)</span>
+      </dd>
     </dl>
     <dl>
-      <dt>IPv6 (live):</dt>
-      <dd><span class="tbn-live" data-tbn-live-ip6="<?= htmlspecialchars($if) ?>"><?= htmlspecialchars($addrs6 ? implode(', ', $addrs6) : '—') ?></span></dd>
+      <dt>IPv6 (kernel now):</dt>
+      <dd>
+        <code class="tbn-live" data-tbn-live-ip6="<?= htmlspecialchars($if) ?>"><?= htmlspecialchars($addrs6 ? implode(', ', $addrs6) : '—') ?></code>
+      </dd>
     </dl>
+<?php if ($live_mismatch): ?>
+    <div class="tbn-notice" role="status" style="max-width:40rem">
+      <p style="margin:0">
+        Form is set to <code><?= htmlspecialchars($cfg_ip) ?></code> but the kernel still has
+        <code><?= htmlspecialchars($live_ip_disp) ?></code>. Click <strong>Apply</strong> to push the form address
+        (or wait if Apply just ran — refresh if it still differs).
+      </p>
+    </div>
+<?php endif; ?>
     <dl>
       <dt>Bond / bridge membership:</dt>
       <dd>
         <span class="tbn-live"><?= htmlspecialchars($membership ? implode(' ', $membership) : ($master !== '' ? $master : 'none')) ?></span>
       </dd>
     </dl>
-    <blockquote class="inline_help">Read-only live membership.</blockquote>
+    <blockquote class="inline_help">
+      <strong>IPv4 address</strong> above is what you configure (saved on flash).
+      <strong>Kernel now</strong> is what Linux currently has on <code><?= htmlspecialchars($if) ?></code> — it only changes after a successful Apply (or hotplug reapply of a peer plan).
+    </blockquote>
 
     <p class="tbn-actions">
       <input type="submit" name="#apply" value="Apply" <?= $is_bond_slave ? '' : 'disabled' ?>>
@@ -610,13 +623,6 @@ if (strpos($nm, '.') === false) {
       <input type="button" value="Done" onclick="done()">
     </p>
   </form>
-
-  <p class="tbn-note">
-    Overview / fabric / driver options:
-    <a href="/Settings/NetworkSettings" onclick="return ibigsGotoNetTab('Thunderbolt', event)">Thunderbolt</a>
-  </p>
-
-  <?= tbn_docs_bar_html('iface') ?>
 
 <?php endif; ?>
 

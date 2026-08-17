@@ -229,24 +229,21 @@ if (!$has_hw):
     </div>
 
     <details class="tbn-details-help">
-      <summary>How Known peers works (identity · plan · link check)</summary>
+      <summary>How Known peers works (identity · plan · toolbar)</summary>
       <div class="tbn-details-body">
         <p><strong>Identity</strong> — fabric UUID of the remote host (not rear-panel port, not a stable MAC).
         We do not use stock Interface Rules for Thunderbolt host-net.</p>
         <p><strong>Live IPv4 vs Peer plan</strong> — Live is whatever is on the path <em>right now</em> (may be empty until you Apply a tbn tab).
         Plan is the saved address for <em>this remote</em>; on reconnect it is applied to whichever <code>thunderboltN</code> they appear on.</p>
-        <p><strong>Link check</strong> — optional plugin-to-plugin rate compare when both Unraid hosts share a token
-        (Settings → Peer link check). Stuck <em>Unverified</em> usually means the other host is not Unraid, token differs, or reports are off — not a cable fault. Not FRR.</p>
-        <p><strong>Toolbar</strong> — checkboxes + actions below the table (not inside cells).</p>
+        <p><strong>Link check</strong> column — optional Unraid↔Unraid rate compare (shared token under Settings). Key and poll status are in the section below. Not FRR.</p>
+        <p><strong>Toolbar</strong> — checkboxes + actions below the table (not inside cells). Harden is a separate security override.</p>
         <?= tbn_help_docs_footer('docs/peers-and-plans.md', 'Peers & plans') ?>
         · <?= tbn_help_docs_footer('docs/settings-reference.md', 'Settings reference') ?>
       </div>
     </details>
 
 <?php
-  if (function_exists('tbn_mesh_legend_html')) {
-    echo tbn_mesh_legend_html();
-  }
+  // One panel only: includes the Match/Unverified legend once (do not also call tbn_mesh_legend_html here).
   if (function_exists('tbn_mesh_reports_panel_html')) {
     echo tbn_mesh_reports_panel_html($cfg);
   }

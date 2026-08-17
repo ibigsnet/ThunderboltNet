@@ -607,27 +607,25 @@ function tbn_mesh_reports_panel_html(array $cfg = null) {
     $poll = $j;
   }
   $html = '<div class="tbn-section tbn-mesh-panel">';
-  $html .= '<h3>Peer link check <span class="tbn-muted">(Unraid plugin rate compare)</span></h3>';
-  $html .= '<p class="tbn-note">Peer rows come from <strong>other Unraid hosts on your network</strong> that run this plugin '
-    . 'and share a token — not from local sysfs alone, and not from the internet or plugin developers. '
-    . 'Orange = unverified, not a bad cable.</p>';
+  $html .= '<h3>Peer link check</h3>';
+  $html .= '<p class="tbn-note">Optional Unraid↔Unraid trained-rate compare via a shared token '
+    . '(Thunderbolt → Settings → Peer link check). <strong>Not FRR.</strong> '
+    . 'Orange / Unverified is not a bad cable.</p>';
+  // Single legend for the Peers tab (callers must not also print tbn_mesh_legend_html).
   $html .= tbn_mesh_legend_html();
   if (!$enabled) {
-    $html .= '<p class="tbn-muted">Fabric reports are <strong>off</strong> on this host. '
-      . 'Enable on each Unraid peer: '
+    $html .= '<p class="tbn-muted">Link check is <strong>off</strong> or the token is empty on this host. '
       . '<a href="/Settings/NetworkSettings" onclick="return tbnGotoFabricReportsSettings(event)">'
-      . 'Network Settings → Thunderbolt → Settings → Show Fabric reports → Enable fabric reports'
-      . '</a>'
-      . ' (same shared token). Optional: list private eth ifaces / peer IPs for non-Thunderbolt fabric paths.</p>';
+      . 'Open Settings → enable fabric reports + set the same token on both Unraid hosts</a>.</p>';
     $html .= '</div>';
     return $html;
   }
   $at = $poll['at'] ?? '';
   $html .= '<p class="tbn-muted">Last poll: ' . htmlspecialchars($at !== '' ? $at : 'never')
-    . ' · Hosts cached: ' . count($hosts) . '</p>';
+    . ' · Peer reports cached: ' . count($hosts) . '</p>';
   if (!$hosts) {
-    $html .= '<p class="tbn-muted">No peer reports yet. On each peer Unraid: export on, same token, and a reachable private IP '
-      . '(Thunderbolt tbn IP and/or eth fabric — add Mesh peer IPs if needed).</p>';
+    $html .= '<p class="tbn-muted">No peer reports yet. On each other Unraid: same token, export on, and a reachable private IP '
+      . '(Thunderbolt tbn IP and/or listed Mesh peer IPs).</p>';
     $html .= '</div>';
     return $html;
   }

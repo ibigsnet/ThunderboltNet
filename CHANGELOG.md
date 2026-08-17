@@ -1,3 +1,9 @@
+## 2026.08.17af
+
+- **Peers cleanup:** Link check legend printed twice (standalone + reports panel) — keep one panel only.
+- **tbnN:** remove stray “Overview / fabric / driver options: Thunderbolt” footer; label **IPv4 (kernel now)** vs form address with mismatch notice; bonding always visible with orange **experimental / WIP** warning; **Info** button opens a Network Info dialog (configured vs kernel).
+- Shipped to **main** for lab test first (not auto-promoted to stable).
+
 ## 2026.08.17ae
 
 - **Fix Status/Peers/Hardware/Settings sub-tabs:** after moving tbnN before the Thunderbolt overview, Network Settings’ single DOM made `querySelector('.tbn-wrap')` bind the first **tbnN** page. Overview now uses `#tbn-overview` / `data-tbn-overview` so in-page tabs always target the correct panels. CA users: update via Apps (stable).
