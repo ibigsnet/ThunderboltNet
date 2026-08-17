@@ -55,7 +55,7 @@ Means the Type‑C port can do DisplayPort Alt Mode (monitors). It does **not** 
 **Example board silk (⚡40 + SS²⁰ + SS¹⁰ ports):**  
 The **40** + lightning Type‑C ports are Thunderbolt/USB4. SS²⁰ / SS¹⁰ are USB SuperSpeed banks. Ethernet 10G/2.5G is separate.
 
-**PLUSH-style host (no Thunderbolt controller):**  
+**Host with no Thunderbolt controller:**  
 You may only see SS¹⁰ / USB‑A / Ethernet. The plugin empty state is expected; use the icon table to confirm silkscreen matches “USB only.”
 
 ---

@@ -77,7 +77,7 @@ It is **not** a full replacement for path reapply — it **sits on top** of it.
 
 **What users saw**
 
-- Online row with the real name (e.g. Holo / NIROG) **and** an Offline row with **blank** name, same tbn/IP, low visit count.
+- Online row with the real peer name **and** an Offline row with a **blank** name, same tbn/IP, low sighting count.
 
 **Root cause**
 
@@ -106,7 +106,7 @@ Forum persistence reports drove **path reapply + dhcpcd kill**. Peer plans addre
 | Concept | Key | Examples |
 |---------|-----|----------|
 | **Live path** | Kernel netdev name | `thunderbolt0` → Settings tab **tbn0** |
-| **Remote host** | Fabric **unique_id** (UUID) | Holo, NIROG, a laptop |
+| **Remote host** | Fabric **unique_id** (UUID) | Peer hostname / advertised name |
 
 `tbn0` / `tbn1` are **path slots** for host-net interfaces. They are **not** rear-panel ports and not permanent “eth-like” NICs. The kernel may assign a different `thunderboltN` after unplug order changes.
 

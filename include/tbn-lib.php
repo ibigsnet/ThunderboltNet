@@ -874,7 +874,7 @@ function tbn_peer_plan_from_iface_cfg(array $cfg) {
 }
 
 /**
- * Seed plan from last_local_addrs like ["10.255.0.3/24"] (first IPv4 only).
+ * Seed plan from last_local_addrs like ["10.255.0.2/24"] (first IPv4 only).
  */
 function tbn_peer_plan_from_addrs($addrs) {
   if (!is_array($addrs)) {

@@ -144,7 +144,7 @@ Do not leave mixed static + link-local if you expect clean peer-local routing. D
 
 | Symptom | Cause | Fix |
 |---------|--------|-----|
-| Online **Holo/NIROG** + Offline **—** same tbn/IP | Hotplug briefly had no fabric UUID → ghost key `iface:thunderboltN` | Update to **≥ 2026.08.16ac** (dedupe); open Peers once, or **Forget** the blank row |
+| Online named peer + Offline **—** same tbn/IP | Hotplug briefly had no fabric UUID → ghost key `iface:thunderboltN` | Update to **≥ 2026.08.16ac** (dedupe); open Peers once, or **Forget** the blank row |
 
 [peers-and-plans.md](peers-and-plans.md#3-two-known-peers-rows-after-unplugreplug-lab).
 
