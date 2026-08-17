@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.15ak">
+<!ENTITY version "2026.08.15al">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,6 +27,10 @@
 
 <CHANGES>
 ###&version;
+- <strong>Known peers:</strong> remember on Apply / boot reapply (not only when opening Peers UI).
+  Empty-state copy no longer uses lab placeholders like “Machine B”.
+
+###2026.08.15ak
 - <strong>Persist L3 across reboot and cable reseat:</strong> stop dhcpcd when applying Static
   (no stacked 169.254), re-apply saved tbn addresses at array start, and udev hotplug for
   thunderbolt* netdevs. Thanks to <strong>Vinney</strong> on the Unraid forums for root-causing
@@ -48,10 +52,6 @@
 
 ###2026.08.15af
 - Fix: do not wipe Unraid /tmp/plugins working copy during install prepare.
-
-###2026.08.14ap
-- **Fix:** Cables and safety help link showed literal “Directionality &amp; speeds” (double-escaped
-  label). Same for Peers / MTU / bonding doc footers that used pre-encoded ampersands.
 
 ### Older releases
 - Full changelog (all versions): https://github.com/ibigsnet/ThunderboltNet/blob/main/CHANGELOG.md

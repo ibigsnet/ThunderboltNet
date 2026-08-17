@@ -2854,6 +2854,12 @@ function tbn_reapply_live_ifaces($if_filter = null) {
   if (function_exists('tbn_sync_iface_pages')) {
     tbn_sync_iface_pages();
   }
+  // Apply/reapply paths must remember peers even when nobody opened the Peers UI tab.
+  try {
+    tbn_remember_live_peers(tbn_link_summaries());
+  } catch (Throwable $e) {
+    // non-fatal
+  }
   return $out;
 }
 
@@ -2941,6 +2947,12 @@ function tbn_apply_iface($if) {
       }
     }
     // else: leave bonding=yes in cfg but do not create a useless 1-slave bond
+  }
+  // Remember peers on Apply so Peers list fills without requiring a separate UI load.
+  try {
+    tbn_remember_live_peers(tbn_link_summaries());
+  } catch (Throwable $e) {
+    // non-fatal
   }
   return ['ok' => true, 'iface' => $if, 'cfg' => $cfg, 'netdevs' => tbn_list_netdevs()];
 }

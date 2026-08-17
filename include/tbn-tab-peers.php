@@ -17,8 +17,8 @@ if (!$has_hw):
     <div class="tbn-empty-peers" role="status">
       <p class="tbn-muted" style="margin:0">
         <strong>No remembered peers yet.</strong>
-        Connect a peer (e.g. Machine B), open this tab once — it is stored offline after unplug.
-        Full plugin reinstall used to wipe this list; current builds keep <code>peers.json</code> on uninstall.
+        With a peer linked, open Thunderbolt (or Apply on a tbn tab) once — the peer is stored on flash and remains after unplug.
+        Uninstall keeps this list so a reinstall does not forget known peers.
       </p>
     </div>
 <?php else: ?>

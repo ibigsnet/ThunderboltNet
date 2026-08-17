@@ -6,6 +6,9 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+###2026.08.15al
+- Known peers: save on Apply / reapply (not only when Peers tab loads status). Empty-state copy: no lab “Machine B” placeholder.
+
 ###2026.08.15ak
 - **Persist addresses after reboot and link drop:** kill dhcpcd/dhclient when applying Static
   (stops stacked 169.254.x.x); re-apply saved per-link flash config at array start; udev rule
