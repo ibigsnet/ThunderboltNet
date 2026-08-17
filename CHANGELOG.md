@@ -1,3 +1,7 @@
+## 2026.08.17ae
+
+- **Fix Status/Peers/Hardware/Settings sub-tabs:** after moving tbnN before the Thunderbolt overview, Network Settings’ single DOM made `querySelector('.tbn-wrap')` bind the first **tbnN** page. Overview now uses `#tbn-overview` / `data-tbn-overview` so in-page tabs always target the correct panels. CA users: update via Apps (stable).
+
 ## 2026.08.17ad
 
 - Packaging: Mbps→Gb/s heuristic in `tbn_format_gbps` for large numeric speeds (sysfs strings unchanged).

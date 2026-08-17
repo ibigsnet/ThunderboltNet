@@ -59,7 +59,12 @@ if (!empty($_GET['tbn_tab'])) {
 .tbn-tab-panel[hidden] { display: none !important; }
 </style>
 
-<div class="tbn-wrap">
+<?php
+/* id=tbn-overview: Network Settings embeds every sibling page in one DOM.
+ * tbnN tabs (Menu 1010+) also use .tbn-wrap and sort *before* this overview (1080).
+ * Sub-tab JS must bind this wrap only — never document.querySelector('.tbn-wrap'). */
+?>
+<div class="tbn-wrap" id="tbn-overview" data-tbn-overview="1">
 <?= tbn_docs_bar_html('overview') ?>
 
 <?php
@@ -112,11 +117,21 @@ if (!empty($_GET['tbn_tab'])) {
 <script src="/plugins/ThunderboltNet/thunderboltnet.js?v=<?= htmlspecialchars($ver) ?>"></script>
 <script>
 (function () {
-  // Scope to .tbn-wrap only — never touch Unraid Network Settings tab strip.
-  var root = document.querySelector('.tbn-wrap');
+  // Network Settings embeds ALL sibling pages (eth0, tbn0, Thunderbolt, …) in one document.
+  // tbnN pages also use .tbn-wrap and now sort *before* this overview — so
+  // document.querySelector('.tbn-wrap') would bind the wrong tree and Status/Peers
+  // sub-tabs would never swap panels. Always prefer #tbn-overview.
+  var root = document.getElementById('tbn-overview')
+    || document.querySelector('.tbn-wrap[data-tbn-overview="1"]')
+    || (function () {
+      var sub = document.querySelector('.tbn-subtabs');
+      return sub ? sub.closest('.tbn-wrap') : null;
+    })();
   if (!root) return;
+
   function activate(name) {
-    var tabs = root.querySelectorAll('[data-tbn-tab]');
+    // Only buttons/panels inside THIS overview wrap
+    var tabs = root.querySelectorAll('.tbn-subtabs [data-tbn-tab]');
     var panels = {
       status: root.querySelector('[data-tbn-panel="status"]'),
       peers: root.querySelector('[data-tbn-panel="peers"]'),
@@ -129,8 +144,13 @@ if (!empty($_GET['tbn_tab'])) {
     });
     Object.keys(panels).forEach(function (k) {
       if (!panels[k]) return;
-      if (k === name) panels[k].removeAttribute('hidden');
-      else panels[k].setAttribute('hidden', 'hidden');
+      if (k === name) {
+        panels[k].removeAttribute('hidden');
+        // Unraid/jQuery may have set display:none — clear so panels reappear
+        try { panels[k].style.removeProperty('display'); } catch (e0) {}
+      } else {
+        panels[k].setAttribute('hidden', 'hidden');
+      }
     });
     try {
       if (window.history && window.history.replaceState) {
@@ -141,15 +161,18 @@ if (!empty($_GET['tbn_tab'])) {
       sessionStorage.setItem('tbnInnerTab', name);
     } catch (e) {}
   }
-  root.querySelectorAll('[data-tbn-tab]').forEach(function (btn) {
+
+  root.querySelectorAll('.tbn-subtabs [data-tbn-tab]').forEach(function (btn) {
     btn.addEventListener('click', function (ev) {
       ev.preventDefault();
       ev.stopPropagation();
       activate(btn.getAttribute('data-tbn-tab'));
     });
   });
+
   // Used by mesh panel / other panels already on Network Settings
   window.tbnActivateInnerTab = activate;
+
   try {
     var q = new URL(window.location.href).searchParams.get('tbn_tab');
     var saved = sessionStorage.getItem('tbnInnerTab');
@@ -160,7 +183,8 @@ if (!empty($_GET['tbn_tab'])) {
       sessionStorage.removeItem('tbnWantExpand');
       setTimeout(function () {
         var toggle = root.querySelector('[data-tbn-adv-toggle="' + expand + '"]');
-        var body = document.getElementById('tbn-adv-' + expand);
+        var body = root.querySelector('#tbn-adv-' + expand)
+          || document.getElementById('tbn-adv-' + expand);
         if (toggle && body && body.hasAttribute('hidden')) {
           toggle.click();
         }

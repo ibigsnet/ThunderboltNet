@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.17ad">
+<!ENTITY version "2026.08.17ae">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,26 +27,25 @@
 
 <CHANGES>
 ###&version;
+- <strong>Fix:</strong> Status / Peers / Hardware / Settings sub-tabs after tab reorder.
+  Network Settings embeds all sibling pages; bind overview via <code>#tbn-overview</code>
+  (not first <code>.tbn-wrap</code>, which is now a tbnN page).
+
+###2026.08.17ad
 - Packaging follow-up for 2026.08.17ac (Mbps speed format edge case).
 
 ###2026.08.17ac
-- <strong>Tab order:</strong> tbnN after Wireless, Thunderbolt overview after tbnN (before Interface Extra).
-  Overview icon <code>fa-bolt</code>; tbnN keeps sitemap.
-- <strong>Peers UX:</strong> clearer Live IPv4 / Peer plan / toolbar; link rate “using N of M lanes”;
-  lanes LOCAL vs REMOTE; Link check key on Peers (not Hardware); Unverified vs Waiting labels.
-- <strong>Status:</strong> CA + manual .plg copy helpers for Fabric Routing and NBD Export.
+- Tab order: tbnN after Wireless, Thunderbolt overview after tbnN (before Interface Extra).
+  Peers UX + Status CA/plg install helpers.
 
 ###2026.08.17ab
-- Mesh: never poll self; Link check — when token off; softer online row tint (not mesh green).
+- Mesh: never poll self; Link check — when token off; softer online row tint.
 
 ###2026.08.17aa
-- Audit harden: dashboard-ports ensure; Peers toolbar; Last seen Date/Time; full flash wipe.
+- Audit harden: dashboard-ports ensure; Peers toolbar; Last seen Date/Time.
 
 ###2026.08.16ag
 - Dashboard ports: heal modes; status/heal for update_3 worker (clock incident).
-
-###2026.08.16af
-- Dashboard clock: preserve +x on dynamix nchan update_3.
 
 ### Older releases
 - Full changelog: https://github.com/ibigsnet/ThunderboltNet/blob/main/CHANGELOG.md

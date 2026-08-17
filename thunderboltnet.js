@@ -334,17 +334,21 @@
     } catch (e) { /* ignore */ }
 
     function openInner() {
+      var ov = document.getElementById('tbn-overview')
+        || document.querySelector('.tbn-wrap[data-tbn-overview="1"]');
       if (typeof window.tbnActivateInnerTab === 'function') {
         window.tbnActivateInnerTab('settings');
       } else {
-        var btn = document.querySelector('.tbn-wrap [data-tbn-tab="settings"]');
+        var btn = (ov || document).querySelector('[data-tbn-tab="settings"]');
         if (btn) {
           btn.click();
         }
       }
       setTimeout(function () {
-        var toggle = document.querySelector('.tbn-wrap [data-tbn-adv-toggle="mesh"]');
-        var body = document.getElementById('tbn-adv-mesh');
+        var scope = ov || document;
+        var toggle = scope.querySelector('[data-tbn-adv-toggle="mesh"]');
+        var body = scope.querySelector('#tbn-adv-mesh')
+          || document.getElementById('tbn-adv-mesh');
         if (toggle && body && body.hasAttribute('hidden')) {
           toggle.click();
         }
