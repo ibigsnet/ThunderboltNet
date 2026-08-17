@@ -2,17 +2,29 @@
 
 Each live kernel interface `thunderboltN` (Settings tab **tbnN**) is its own L2 segment to **one** remote peer path. Addressing is almost always **static**.
 
+**Peer plans:** desired local IPv4 can also be stored per **remote fabric UUID** (Peers tab). On reconnect, that plan is applied to **whichever** `thunderboltN` the peer appears on — so renumber (tbn0↔tbn1) does not strand the IP on the wrong host. See [peers-and-plans.md](peers-and-plans.md).
+
 ---
 
 ## Contents
 
 - [Product defaults](#product-defaults)
+- [Path-slot cfg vs peer plan](#path-slot-cfg-vs-peer-plan)
 - [Small LAN (/24) vs point-to-point (/30)](#small-lan-24-vs-point-to-point-30)
 - [Hard rule: unique subnet per Thunderbolt link](#hard-rule-unique-subnet-per-thunderbolt-link)
 - [Examples](#examples)
 - [DHCP](#dhcp)
 - [OpenFabric / multi-hop](#openfabric-multi-hop)
 - [Related](#related)
+
+## Path-slot cfg vs peer plan
+
+| Store | Key | Use |
+|-------|-----|-----|
+| `ifaces/thunderboltN.cfg` | Interface **name** | Eth-like tab editor; reapply when no peer plan |
+| Peer plan in `peers.json` | Remote **UUID** | Preferred on hotplug/boot when that peer is live on any path |
+
+**Apply on a tbn tab** while linked writes both: path cfg **and** peer plan for the remote host.
 
 ## Product defaults
 
@@ -120,6 +132,8 @@ A filled **gateway** without default route still only matters for routes you add
 Underlay addressing above is still required when OpenFabric is on (link IPs + unique subnets). Multi-hop reachability usually uses **loopback /32 router-ids** learned via FRR, not by putting every host on one big Thunderbolt subnet. See [routing-openfabric.md](routing-openfabric.md) and [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md).
 
 ## Related
+
+- [peers-and-plans.md](peers-and-plans.md) — UUID identity, Forget peer, why not Interface Rules  
 
 - Peer OS setup: [peer-scenarios.md](peer-scenarios.md)  
 - Settings fields: [settings-reference.md](settings-reference.md)  

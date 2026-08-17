@@ -100,10 +100,11 @@ OpenFabric **policy** lives on Thunderbolt Net (Advanced). FRR **packages** live
 1. Confirm a Thunderbolt-family **host controller** is visible (Thunderbolt tab shows hardware, not the empty state).
 2. Use a certified Thunderbolt / USB4-class cable that matches both hosts (Thunderbolt 3/4/5, USB4, USB4 v2 as applicable — not SS-only SuperSpeed USB). Start with **one cable per peer path**; multi-path bonding is optional when two netdevs exist ([topology](docs/links-and-topology.md)).
 3. On **Thunderbolt → Driver options**, leave **E2E flow control = No** unless a peer scenario says otherwise.
-4. When `thunderbolt0` appears, open **tbn0**, set a **static** IPv4 (e.g. `10.255.0.2/24`), leave **MTU 1500** unless both ends will set jumbo, Apply.
+4. When `thunderbolt0` appears, open **tbn0**, set a **static** IPv4 (e.g. `10.255.0.2/24`), leave **MTU 1500** unless both ends will set jumbo, **Apply**. That also stores a **peer plan** for the remote host (fabric UUID) so unplug/replug can restore L3 even if the path renumbers.
 5. On the peer, matching address (e.g. `10.255.0.1/24`). MTU is not auto-negotiated — only raise to 9000 if you set **both** ends.
-6. Ping both ways. **Trained** rate can be less than the port sticker (e.g. **20 Gb/s · 1-lane** on a dual-capable Thunderbolt 4 host is common under Linux). A sticker **40 Gb/s** class path is typically **~20 G each direction** (simplex lanes), not PCIe-style 40 each way — expect roughly **~10–15 Gbit/s** TCP one way on a 1-lane train ([speeds / directionality](docs/standards-and-speeds.md)).
-7. If dual-cable experiments wedged the fabric: unplug **all** Thunderbolt cables on **both** machines, wait, plug **one** cable only ([troubleshooting](docs/troubleshooting.md)).
+6. Ping both ways. Check **Peers**: one Known peers row, **Peer plan** shows your Unraid-side address, listening Yes if you want SMB/NFS/web on the TB IP.
+7. **Trained** rate can be less than the port sticker (e.g. **20 Gb/s · 1-lane**). Sticker **40 Gb/s** is typically **~20 G each direction** (simplex lanes) — expect roughly **~10–15 Gbit/s** TCP one way on a 1-lane train ([speeds](docs/standards-and-speeds.md)).
+8. If dual-cable experiments wedged the fabric: unplug **all** Thunderbolt cables on **both** machines, wait, plug **one** cable only ([troubleshooting](docs/troubleshooting.md)).
 
 ---
 
@@ -141,20 +142,31 @@ These are **supported directions**, not throwaway experiments. Defaults favor in
 | **Mixed OpenFabric fabric** | Unraid + Proxmox/Debian (or other FRR) peers | Shared area/NET/metrics; FRR both sides | [fabric-proxmox-unraid.md](docs/fabric-proxmox-unraid.md) |
 | **FabricRouting (companion)** | Opt-in install of FRR packages/daemons (invasive) | Separate plugin; not required for static Thunderbolt | [ibigsnet/FabricRouting](https://github.com/ibigsnet/FabricRouting) |
 | **Bonding multi-path** | Thunderbolt-only `bond-tb*` when ≥2 netdevs | Off by default; dual-cable same-peer **roadmap** | [links-and-topology.md](docs/links-and-topology.md) |
-| **Peer memory** | Remember hosts and last address plan | Store peers today; auto-restore plan next | Below |
+| **Peer memory + peer plans** | Remember hosts by fabric UUID; desired local IPv4 follows the peer | **Supported** — see [peers-and-plans.md](docs/peers-and-plans.md) |
 | **Activity / unplug** | Safe to disconnect hints | Heuristic today; tighter idle later | Settings UI |
 | **USB4STREAM** | Raw path awareness where kernel allows | Off until module exists; never break tbn IP | [usb4stream.md](docs/usb4stream.md) |
 
 ### Peer plug-and-play (underlay)
 
-| Supported now | Next supported increments |
-|---------------|---------------------------|
-| Open Thunderbolt tab while a peer is connected → peer stored in `peers.json` | Auto-restore last static IP when that laptop returns |
-| **Activity / unplug** row (refresh twice for traffic rate) | Tighter idle detection (share/session aware) |
-| **Known peers** table (online/offline, last rates, last IPv4) | Health strip / notifications optional |
-| Manual tbnN Apply for addresses | One-click “use last plan for this peer” |
+| Supported now | Notes |
+|---------------|--------|
+| Peer stored in `peers.json` by **remote fabric UUID** (not MAC, not panel port) | Status/Peers load, Apply, hotplug reapply |
+| **Peer plan** (desired local IPv4) bound to that UUID | Saved on **tbn Apply** while linked, or Peers → **Save live path as peer plan** |
+| Plan reapplied on **hotplug / array start** to whichever `thunderboltN` that peer is on | Survives tbn0↔tbn1 renumber when cable order changes |
+| **Known peers** table: online/offline, path, live IP, peer plan, listening, **Forget** | Does **not** use Unraid Interface Rules |
+| Ghost offline rows after unplug (blank name) | Deduped when UUID returns (**16ac+**) |
+| Path-slot cfg `ifaces/thunderboltN.cfg` | Still eth-like cache for the **name**; peer plan is preferred when a UUID plan exists |
 
-Goal: plug in a laptop or mini-PC (including future Strix Halo / Gorgon Halo / DGX Spark class peers), transfer, unplug when idle is safe — without redoing IP setup every time. Multi-hop and **rings** are the OpenFabric pillar; dual-cable bonding is a separate multi-path roadmap.
+| Optional next | |
+|---------------|--|
+| Inline edit of peer plan while offline | Capture + Apply is enough for v1 |
+| Tighter activity / idle (share-aware unplug) | Heuristic today |
+
+**Not** stock Network Settings → Interface Rules (MAC→ethN). Thunderbolt host-net MACs often change each link; binding by MAC would thrash. Identity is fabric UUID inside this plugin.
+
+Goal: plug in a laptop or mini-PC, transfer, unplug when idle is safe — without redoing IP every time **and** without assuming tbn0 is always the same remote host. Multi-hop/rings = OpenFabric; dual-cable bonding = separate roadmap.
+
+Full write-up: [peers-and-plans.md](docs/peers-and-plans.md).
 
 ---
 
@@ -162,7 +174,7 @@ Goal: plug in a laptop or mini-PC (including future Strix Halo / Gorgon Halo / D
 
 **Install:** Apps (CA) or Plugins → Install Plugin — see [RELEASES.md](RELEASES.md) (same two-track pattern as Storage Guard).
 
-**Uninstall:** Plugins → Thunderbolt Net → Remove. The plugin remove script cleans Thunderbolt listening includes, modprobe snippets, Dashboard port patches, and emhttp paths. It **keeps** flash `peers.json` (known peers) and `ifaces/` (per-tbn settings) so a reinstall does not forget previously seen peers. Other flash state under the plugin dir is removed. It does **not** remove FabricRouting or FRR. Hard-refresh after remove.
+**Uninstall:** Plugins → Thunderbolt Net → Remove. Cleans Thunderbolt listening includes, modprobe snippets, Dashboard port patches, emhttp paths, and **wipes** flash `/boot/config/plugins/ThunderboltNet` (including `peers.json` and `ifaces/`) for a clean reinstall. Does **not** remove Fabric Routing or FRR. Hard-refresh after remove. Recovery text may be left only if a release still documents a recovery file — prefer [safe-mode-recovery.md](docs/safe-mode-recovery.md).
 
 ## Releases
 

@@ -8,7 +8,7 @@ OpenFabric is the **control plane** for multi-hop fabrics (rings, “reach C thr
 
 | Field | Default | Scope | Summary |
 |-------|---------|-------|---------|
-| Enable OpenFabric | **Yes** | Host | Intent: fabric when FRR available; No = never manage fabricd |
+| Enable OpenFabric | **No** until FRR packages present | Host | Hidden until FRR; auto-on when FRR appears (user may set No) |
 | OpenFabric IPv6 | Yes | Host | Also run IPv6 openfabric on ifaces |
 | OpenFabric area | 1 | Host | Must match peers in the same fabric |
 | Router ID | auto `10.254.x.y` | Host | `/32` on `lo`, passive |
@@ -31,15 +31,34 @@ Not per-tbn: changing E2E affects every Thunderbolt network interface on Unraid.
 
 ---
 
+## Peers tab — Known peers
+
+Full detail: [peers-and-plans.md](peers-and-plans.md).
+
+| Field / action | Summary |
+|----------------|---------|
+| Status | Online / offline for remembered fabric UUID |
+| Path | Live `tbnN` / `thunderboltN` (may renumber) |
+| Live IPv4 | Kernel address on the path right now |
+| Peer plan | Desired local IPv4 for this UUID; preferred on hotplug/boot |
+| Save live path as peer plan | Copy current tbn L3 onto this peer |
+| Apply peer plan now | Push plan to the path this peer currently uses |
+| Unraid services | Per-peer listening Yes/No (remembered) |
+| Forget selected peers | Drop from `peers.json` only — not eth Interface Rules |
+| Link check | Optional peer Unraid rate compare (shared token) |
+
+Does **not** register Thunderbolt in stock **Interface Rules** (MAC→name). Host-net MACs are unstable.
+
+---
+
 ## Per-link — Thunderbolt tbnN tab
 
 | Field | Default | Summary |
 |-------|---------|---------|
 | Interface description | empty | Cosmetic label in plugin config |
-| MAC address | (live) | Read-only (host-net MAC often changes each link — not used for Interface Rules) |
-| Peer plan (Peers tab) | per remote UUID | Desired local IPv4 for that peer; auto-applied on reconnect to whatever `thunderboltN` the kernel assigns |
-| Forget peer | Peers tab | Remove Known peers row + plan + listening memory only; does not touch eth Interface Rules |
+| MAC address | (live) | Read-only (often changes each link) |
 | Enable interface | Yes | `ip link set up/down` on Apply |
+| Apply (side effect) | — | Also **captures peer plan** for the live remote UUID on this path |
 | Enable bonding | No (hidden unless ≥2 live Thunderbolt interfaces) | Thunderbolt-only bond when two+ `thunderbolt*`; same-peer dual-cable often one netdev — [roadmap](links-and-topology.md) |
 | Bonding mode | active-backup | Prefer active-backup; 802.3ad usually fails on Thunderbolt |
 | Bond name | bond-tb0 | Thunderbolt-only bond (`bond-tb0`, … — not Unraid `bond0`) |
