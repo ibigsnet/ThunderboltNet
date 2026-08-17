@@ -18,7 +18,7 @@ CA is fed from [unraid-templates](https://github.com/ibigsnet/unraid-templates).
 |---------|----------|-----|
 | **Production (`stable`)** | Normal install / CA channel | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/stable/thunderboltnet.plg` |
 | **Lab (`main`)** | Newest development tree | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg` |
-| **Recommended freeze** | Known-good pin | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/stable-recommended-2026.08.13ad/thunderboltnet.plg` |
+| **Recommended freeze** | Known-good pin | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/stable-recommended-2026.08.17aa/thunderboltnet.plg` |
 | **Pinned version** | Install or roll back to a fixed tag | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/vVERSION/thunderboltnet.plg` |
 
 - **`stable`** — what CA installs; production updates.
@@ -29,9 +29,9 @@ CA is fed from [unraid-templates](https://github.com/ibigsnet/unraid-templates).
 
 | | |
 |--|--|
-| **Version** | **2026.08.13ad** |
-| **Tag** | [`stable-recommended-2026.08.13ad`](https://github.com/ibigsnet/ThunderboltNet/releases/tag/stable-recommended-2026.08.13ad) (also `v2026.08.13ad`) |
-| **Install** | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/stable-recommended-2026.08.13ad/thunderboltnet.plg` |
+| **Version** | **2026.08.17aa** |
+| **Tag** | [`stable-recommended-2026.08.17aa`](https://github.com/ibigsnet/ThunderboltNet/releases/tag/stable-recommended-2026.08.17aa) (also `v2026.08.17aa`) |
+| **Install** | `https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/stable-recommended-2026.08.17aa/thunderboltnet.plg` |
 
 OpenFabric policy when FRR is present, Fabric Routing companion, link quality UX, USB4STREAM detect-only. Older pin: `v2026.08.05ad`.
 
