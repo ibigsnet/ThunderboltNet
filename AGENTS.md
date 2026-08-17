@@ -8,6 +8,9 @@
 
 Prefer GitHub push + UI update; avoid routine SSH file edits on the boxes.
 
+**main:** OK to push often (small UI/docs/help fixes included) — easier snapshots/restore on NIROG.
+**stable / CA:** never promote casually; only when asked after lab soak on main.
+
 ## Network Settings (tbnN) UI
 
 - **Match eth0** (`/usr/local/emhttp/plugins/dynamix/Eth0.page` on NIROG or read-only 10.1.0.1): description+Info → MAC → bonding → bridging → protocol/addressing → MTU → VLANs.

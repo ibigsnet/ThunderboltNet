@@ -1,8 +1,13 @@
+## 2026.08.17ak
+
+- **IPv4/IPv6 default gateway** help: leave empty for peer-to-peer; only for intentional uplink (rare).
+- Docs/addressing.md: gateway + default-route section expanded (metric / topology caution).
+
 ## 2026.08.17aj
 
-- **Enable default route** help (IPv4/IPv6): warn that Thunderbolt often gets a much lower metric
-  than eth0/br0, so Yes can steal the host default and mess up topology. Leave No unless tbn is
-  intentionally the internet path (rare). Docs/addressing.md aligned.
+- **Enable default route** help (IPv4/IPv6): Thunderbolt often gets a much lower metric than eth0/br0,
+  so Yes can steal the host default and mess up topology. Leave No unless tbn is intentionally the
+  internet path (rare).
 
 ## 2026.08.17ai
 

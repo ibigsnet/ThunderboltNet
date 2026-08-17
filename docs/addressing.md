@@ -33,7 +33,7 @@ Each live kernel interface `thunderboltN` (Settings tab **tbnN**) is its own L2 
 | Assignment | Static | No DHCP server on a pure host↔host cable |
 | Suggestion | `10.255.N.2` for `thunderboltN` | Unique third octet per link |
 | Mask | **/24** (`255.255.255.0`) | Familiar; room for a few extra addresses (VM, alias) |
-| Gateway | empty | Peer-local traffic only |
+| Gateway | empty | Peer-local only; set only if tbn is an uplink (rare) |
 | Enable default route | **No** | Internet stays on eth0/br0; Yes can steal default via lower metric |
 
 Peer is conventionally `.1` on the same subnet (not enforced).
@@ -114,13 +114,15 @@ Same idea with /30: `10.255.0.2/30` and `10.255.1.2/30`.
 | tbn0 | `10.255.0.2/24` | `10.255.0.1/24` |
 | tbn1 | `10.255.1.2/24` | `10.255.1.1/24` |
 
-### Default route
+### Gateway and default route
 
-Leave **Enable default route = No** unless this Thunderbolt link should carry Unraid internet traffic (rare).
+For normal host↔host peer-to-peer, leave **IPv4/IPv6 default gateway** empty and **Enable default route = No**.
 
-Thunderbolt interfaces often install a **much lower route metric** than eth0/br0 (high bandwidth). Enabling a default route on tbn can therefore **outrank** the normal LAN/WAN default and send general traffic over the Thunderbolt path — breaking expected topology if you were not counting on that.
+Only configure a gateway (and optionally default route) if this Thunderbolt link is intentionally an **uplink** or you need specific routes via that peer — uncommon. Otherwise you are wiring routing policy you do not need for P2P addressing.
 
-A filled **gateway** without default route still only matters for routes you add toward that gateway.
+Thunderbolt interfaces often install a **much lower route metric** than eth0/br0 (high bandwidth). Enabling a **default route** on tbn can **outrank** the normal LAN/WAN default and send general traffic over the Thunderbolt path — breaking expected topology if you were not counting on that.
+
+A filled **gateway** without default route still only matters for routes you add toward that gateway (it does not by itself replace eth0/br0 internet).
 
 ---
 

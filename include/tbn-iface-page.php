@@ -381,7 +381,11 @@ if (strpos($nm, '.') === false) {
               <input type="text" name="GATEWAY" class="tbn-ip" maxlength="15" value="<?= htmlspecialchars($cfg['GATEWAY'] ?? '') ?>">
             </dd>
           </dl>
-          <blockquote class="inline_help">Usually empty for peer-to-peer.</blockquote>
+          <blockquote class="inline_help">
+            Leave empty for normal peer-to-peer. A gateway on tbn is only useful if this link is an uplink
+            (or you have specific routes via that peer). Same risk as default route: wrong gateway/routing here
+            can pull traffic off eth0/br0. Rare for host↔host Thunderbolt.
+          </blockquote>
           <dl>
             <dt>Enable default route (IPv4):</dt>
             <dd>
@@ -431,7 +435,9 @@ if (strpos($nm, '.') === false) {
               <input type="text" name="GATEWAY6" class="tbn-ip6" maxlength="39" value="<?= htmlspecialchars($cfg['GATEWAY6'] ?? '') ?>">
             </dd>
           </dl>
-          <blockquote class="inline_help">Usually empty for peer-to-peer.</blockquote>
+          <blockquote class="inline_help">
+            Leave empty for peer-to-peer. Only set if tbn is an intentional IPv6 uplink/path via that peer (rare).
+          </blockquote>
           <dl>
             <dt>Enable default route (IPv6):</dt>
             <dd>
