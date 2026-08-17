@@ -6,6 +6,11 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+###2026.08.16ae
+- **Boot lifecycle:** install udev + L3 reapply on plugin **`startup`** (Unraid up; array not
+  required) and again on array **`started`** (Normal or Maintenance). Fixes TB config when the
+  array is stopped/delayed or when users need the path before array Online. Hotplug still via udev.
+
 ###2026.08.16ad
 - **Peer plans (UUID-keyed L3):** desired local IPv4 follows the remote host across
   `thunderbolt0`/`tbn0` renumber. Saved on tbn Apply (or Peers → Save live path as peer plan);

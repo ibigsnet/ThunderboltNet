@@ -16,10 +16,10 @@ cp -a "$ROOT"/include/* "$DEST/include/"
 for s in tbn-status tbn-dashboard-ports tbn-openfabric tbn-net-reapply; do
   [ -f "$ROOT/scripts/$s" ] && cp -a "$ROOT/scripts/$s" "$DEST/scripts/"
 done
-cp -a "$ROOT/event/started" "$DEST/event/" 2>/dev/null || true
+cp -a "$ROOT"/event/* "$DEST/event/" 2>/dev/null || true
 [ -d "$ROOT/udev" ] && cp -a "$ROOT"/udev/* "$DEST/udev/" 2>/dev/null || true
 rm -f "$DEST/scripts/pack-txz.sh" 2>/dev/null || true
-chmod 755 "$DEST/scripts/"* "$DEST/event/started" 2>/dev/null || true
+chmod 755 "$DEST/scripts/"* "$DEST/event/"* 2>/dev/null || true
 mkdir -p "$ROOT/archive"
 OUT="$ROOT/archive/${PKG}.txz"
 rm -f "$OUT"

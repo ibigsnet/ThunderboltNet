@@ -1,0 +1,22 @@
+#!/bin/bash
+# Unraid plugin event: startup
+# Runs after plugins install at system boot — independent of array state.
+# (Array may be stopped, never started yet, or later started in Maintenance.)
+#
+# Job: restore RAM udev rule + re-apply TB L3 so host-net works before
+# array Online (management over Thunderbolt, early peer link, etc.).
+# Heavier work (Dashboard port patch, OpenFabric) waits for event/started.
+
+logger -t ThunderboltNet "event/startup: install udev + reapply L3"
+
+php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; tbn_install_net_udev();' 2>/dev/null || true
+
+REAPPLY=/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-net-reapply
+if [ -f "$REAPPLY" ]; then
+  /bin/bash "$REAPPLY" >/dev/null 2>&1 || true
+fi
+
+# Netdevs that appeared before the rule was restored
+udevadm trigger --subsystem-match=net --action=add 2>/dev/null || true
+
+exit 0

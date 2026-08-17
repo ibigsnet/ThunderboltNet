@@ -123,10 +123,11 @@ Classic field report (Unraid forum): path trains, `thunderbolt0` exists, **no** 
 
 | Check | What to do |
 |-------|------------|
-| Plugin version | Prefer a build **≥ 2026.08.15ak** (path reapply + dhcpcd kill) and **≥ 2026.08.16ad** (peer plans) |
+| Plugin version | Prefer **≥ 2026.08.15ak** (reapply + dhcpcd kill), **≥ 2026.08.16ad** (peer plans), **≥ 2026.08.16ae** (startup + array started) |
 | Flash plan | `ifaces/thunderboltN.cfg` or Peers → **Peer plan** for that UUID |
-| udev | `/etc/udev/rules.d/99-thunderboltnet-net.rules` present after install |
-| Logs | `grep tbn-net-reapply /var/log/syslog` after plug |
+| udev | `/etc/udev/rules.d/99-thunderboltnet-net.rules` after **startup** or install (RAM root is refilled each boot) |
+| Array state | Reapply also runs at plugin **startup** (before array Online). Array **started** (Normal/Maintenance) runs a second pass |
+| Logs | `grep -E 'tbn-net-reapply|event/startup|ThunderboltNet' /var/log/syslog` after boot/plug |
 | Apply once while linked | tbn Apply (or **Save live path as peer plan**) so both path cfg and peer plan exist |
 
 **Why:** host-net netdevs are recreated on link; Unraid eth `network.cfg` does not own them. The plugin re-applies flash plans on array start and netdev add. Peer plans fix the case where **name** reapply alone is wrong after renumber — [peers-and-plans.md](peers-and-plans.md#why-this-design-field-findings).

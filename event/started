@@ -1,24 +1,28 @@
 #!/bin/bash
-# Array start: Dashboard TB ports, OpenFabric, then re-apply per-link L3 + udev.
-# (LimeTech may replace nchan/update_3 and DashStats.page.)
+# Unraid plugin event: started
+# Runs when the array has started (Normal or Maintenance mode).
+# Not the same as "Unraid OS is up" — see event/startup for early udev/L3.
+#
+# Job: Dashboard TB ports, OpenFabric, and a second reapply (peer may
+# appear after array start; udev may need a refresh after full boot).
+
 SCRIPT=/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports
 if [ -x "$SCRIPT" ]; then
   # Quiet stdout: Unraid merges event stdout into "Array Started • …" footer.
-  # Routine success → syslog only; real WARN still on stderr.
   "$SCRIPT" apply >/dev/null || true
 fi
 
 # OpenFabric: regenerate conf + best-effort FRR reload (no-op if FRR missing)
 php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; if (function_exists("tbn_of_apply")) { tbn_of_apply(); }' 2>/dev/null || true
 
-# Ensure net hotplug rule is installed (RAM OS may wipe /etc/udev/rules.d on boot)
+# Re-assert udev (RAM root) + L3 after array start
 php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; tbn_install_net_udev();' 2>/dev/null || true
 
-# Re-apply saved thunderbolt* addresses (boot with peer still cabled)
 REAPPLY=/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-net-reapply
-if [ -x "$REAPPLY" ] || [ -f "$REAPPLY" ]; then
+if [ -f "$REAPPLY" ]; then
   /bin/bash "$REAPPLY" >/dev/null 2>&1 || true
 fi
 
-# Replay add for netdevs that appeared before the rule was loaded
 udevadm trigger --subsystem-match=net --action=add 2>/dev/null || true
+
+exit 0

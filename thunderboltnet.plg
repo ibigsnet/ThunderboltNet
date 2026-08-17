@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.16ad">
+<!ENTITY version "2026.08.16ae">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,6 +27,11 @@
 
 <CHANGES>
 ###&version;
+- <strong>Boot lifecycle:</strong> udev + L3 reapply on plugin <code>startup</code> (Unraid up,
+  array not required) and again on array <code>started</code> (Normal or Maintenance). Hotplug
+  still uses udev. Config works before array Online when the path is already up.
+
+###2026.08.16ad
 - <strong>Peer plans:</strong> desired local IPv4 is bound to remote fabric UUID (not tbn slot /
   not MAC). Apply on a tbn tab (or Save live path as peer plan) stores it; hotplug/boot applies
   to whichever thunderboltN that peer is on. <strong>Forget selected peers</strong> removes list
@@ -111,7 +116,7 @@ if [ ! -f /usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php ]; then
   exit 1
 fi
 chmod 755 /usr/local/emhttp/plugins/ThunderboltNet/scripts/* 2>/dev/null || true
-chmod 755 /usr/local/emhttp/plugins/ThunderboltNet/event/started 2>/dev/null || true
+chmod 755 /usr/local/emhttp/plugins/ThunderboltNet/event/* 2>/dev/null || true
 mkdir -p /boot/config/plugins/ThunderboltNet
 if [ ! -f /boot/config/plugins/ThunderboltNet/ThunderboltNet.cfg ] \
    && [ -f /usr/local/emhttp/plugins/ThunderboltNet/default.cfg ]; then

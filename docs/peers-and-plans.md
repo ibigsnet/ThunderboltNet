@@ -44,8 +44,9 @@ Thunderbolt host-net under Linux is **not** a stable eth0-style NIC. Several ind
 | Mechanism | Role |
 |-----------|------|
 | `ifaces/thunderboltN.cfg` on flash | Path-slot L3 plan (eth-like by **name**) |
-| `tbn-net-reapply` + array **started** event | Re-apply saved path cfg when storage is up |
-| udev `99-thunderboltnet-net.rules` | On `ACTION=add` for `thunderbolt*`, re-apply that iface |
+| `tbn-net-reapply` + plugin **`startup`** | Early boot: Unraid up, **array not required** — udev + L3 if path already live |
+| `tbn-net-reapply` + array **`started`** | When array reaches Started (Normal **or Maintenance**) — second pass + OpenFabric/Dashboard |
+| udev `99-thunderboltnet-net.rules` | On `ACTION=add` for `thunderbolt*`, re-apply that iface (works any time rule is installed) |
 | Stop dhcpcd/dhclient before static apply | Prevents stacked 169.254 after Static apply |
 
 That layer answers: **“static should come back on this netdev name after drop/reboot.”**  
@@ -130,8 +131,14 @@ A **peer plan** is the desired **local** IPv4 (and related L3 fields) for *this 
 | **tbn Apply** while peer is linked | Writes path cfg, applies live, **captures peer plan** onto that UUID |
 | Peers → **Save live path as peer plan** | Same capture without changing other tbn fields |
 | Peers → **Apply peer plan now** | Push plan onto the path that peer currently uses |
-| **Hotplug / array-start** (`tbn-net-reapply`) | For each live path: if peer has a plan → apply it; else use `ifaces/*.cfg` if present |
+| **Hotplug** (udev) | Same reapply when a `thunderbolt*` netdev appears (any array state, if rule is present) |
+| **Plugin `startup`** | After plugins install at boot: restore udev + reapply (array may still be stopped) |
+| **Array `started`** | After array start (incl. Maintenance): reapply again; Dashboard ports; OpenFabric |
 | Open Peers/Status | Refresh online flags; dedupe ghost `iface:` rows; seed plan from last addrs if missing |
+
+**Maintenance mode:** array **Started** still runs `event/started` — L3 reapply and udev reinstall run. Do not assume “maintenance = no plugin events.”
+
+**Array stopped / never started:** rely on **`startup`** + **udev** (and plugin install finish). If you need TB L3 only after a late cable plug with array still stopped, udev handles it once the rule is on disk from `startup` or install.
 
 ## Forget peer
 
