@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.16ae">
+<!ENTITY version "2026.08.16af">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,6 +27,11 @@
 
 <CHANGES>
 ###&version;
+- <strong>Dashboard clock:</strong> port-list patch no longer strips execute bit from
+  dynamix <code>nchan/update_3</code> (that worker publishes date/time). Self-heal + restart
+  the poller after apply.
+
+###2026.08.16ae
 - <strong>Boot lifecycle:</strong> udev + L3 reapply on plugin <code>startup</code> (Unraid up,
   array not required) and again on array <code>started</code> (Normal or Maintenance). Hotplug
   still uses udev. Config works before array Online when the path is already up.

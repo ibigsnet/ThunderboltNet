@@ -6,6 +6,10 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+###2026.08.16af
+- **Dashboard clock:** `tbn-dashboard-ports` no longer drops `+x` on dynamix `nchan/update_3`
+  (that poller publishes Dashboard date/time). Restore mode after patch and restart the worker.
+
 ###2026.08.16ae
 - **Boot lifecycle:** install udev + L3 reapply on plugin **`startup`** (Unraid up; array not
   required) and again on array **`started`** (Normal or Maintenance). Fixes TB config when the
