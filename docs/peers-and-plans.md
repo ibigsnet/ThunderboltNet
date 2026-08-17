@@ -2,10 +2,15 @@
 
 How Thunderbolt Net remembers remote hosts and restores local addressing without Unraid **Interface Rules**.
 
+This page is both **how it works** and **why** we built it this way — including field reports from the Unraid support thread (notably **Vinney** on L3 persistence after reboot and cable reseat) and lab follow-ups on renumber, MACs, and Known peers ghosts.
+
+**Forum:** [Plugin support thread](https://forums.unraid.net/topic/200065-plugin-thunderbolt-net-host-to-host-networking-over-thunderbolt-345-and-usb44v2/)
+
 ---
 
 ## Contents
 
+- [Why this design (field findings)](#why-this-design-field-findings)
 - [Two identities](#two-identities)
 - [Peer plan (L3 follows the remote host)](#peer-plan-l3-follows-the-remote-host)
 - [What Apply / hotplug do](#what-apply--hotplug-do)
@@ -13,6 +18,87 @@ How Thunderbolt Net remembers remote hosts and restores local addressing without
 - [Why not Interface Rules / MAC](#why-not-interface-rules--mac)
 - [Multi-peer and renumber](#multi-peer-and-renumber)
 - [Related](#related)
+
+## Why this design (field findings)
+
+Thunderbolt host-net under Linux is **not** a stable eth0-style NIC. Several independent problems stacked; the plugin answers them in layers.
+
+### 1. Address disappeared after reboot or unplug (Vinney / forum)
+
+**What users saw**
+
+- Static IPv4 set on `thunderbolt0` / tbn tab looked fine while the cable was up.  
+- After **reboot** or **unplug/replug**, the netdev came back **without** the static address (or only half-configured).  
+- Sometimes **169.254.x.x** (link-local) appeared **stacked next to** the static address after switching from DHCP-ish bring-up to Static.
+
+**Root causes (plugin + kernel)**
+
+| Cause | Detail |
+|-------|--------|
+| Netdev lifecycle | `thunderbolt_net` often **destroys and recreates** the netdev on each link setup (new MAC is normal). Unraid `network.cfg` eth blocks do **not** own these ifaces. |
+| No reapply hook | Until the Vinney-driven work: nothing re-pushed flash plans on **array start** or **udev net add**. |
+| Leftover dhcpcd | After a path used DHCP clients, switching to Static without **killing dhcpcd/dhclient** left the client re-adding **169.254.x.x** beside the static. |
+
+**What we shipped (persistence layer)**
+
+| Mechanism | Role |
+|-----------|------|
+| `ifaces/thunderboltN.cfg` on flash | Path-slot L3 plan (eth-like by **name**) |
+| `tbn-net-reapply` + array **started** event | Re-apply saved path cfg when storage is up |
+| udev `99-thunderboltnet-net.rules` | On `ACTION=add` for `thunderbolt*`, re-apply that iface |
+| Stop dhcpcd/dhclient before static apply | Prevents stacked 169.254 (Vinney analysis) |
+
+That layer answers: **“static should come back on this netdev name after drop/reboot.”**  
+Credit: **Vinney** on the Unraid forums — bug report, root-cause notes, and field-testing of the reapply path (see CHANGELOG **2026.08.15ak**).
+
+### 2. Same host, wrong or empty IP after path renumber (lab / multi-peer)
+
+**What users hit next**
+
+- Persistence by **name** is not enough when **order of cables** or **which peer comes up first** changes which remote sits on `thunderbolt0` vs `thunderbolt1`.  
+- A plan saved only as “whatever is tbn0” can land on the **wrong** host after swaps.  
+- Two remotes both “set up on tbn0 at different times” then plugged together → one path gets the old slot cfg; the other may get nothing unless you Apply tbn1.
+
+**What we shipped (identity layer)**
+
+| Mechanism | Role |
+|-----------|------|
+| Known peers keyed by **remote fabric UUID** | Stable “who is on the other end” |
+| **Peer plan** (desired local IPv4, etc.) on that UUID | L3 follows the **host**, not the slot name |
+| Capture plan on **tbn Apply** (or Peers → Save live path as peer plan) | One Apply while linked is enough |
+| Reapply prefers **peer plan** when the live path has a known UUID | Then falls back to path-slot `ifaces/*.cfg` |
+| **Forget peer** | Drop UUID memory/plan without touching eth Interface Rules |
+
+That layer answers: **“this laptop should get its Unraid-side address even if the kernel renames the path.”**  
+It is **not** a full replacement for Vinney’s path reapply — it **sits on top** of it.
+
+### 3. Two Known peers rows after unplug/replug (lab)
+
+**What users saw**
+
+- Online row with the real name (e.g. Holo / NIROG) **and** an Offline row with **blank** name, same tbn/IP, low visit count.
+
+**Root cause**
+
+- On hotplug, fabric **`unique_id` can be empty for a moment**.  
+- Plugin fell back to key `iface:thunderboltN`.  
+- When UUID appeared, the real row updated online; the `iface:` row stayed offline forever.
+
+**What we shipped**
+
+- Prefer an existing UUID peer on the same iface when UUID is missing.  
+- Merge/delete `iface:` ghosts when a UUID peer shares that iface (**2026.08.16ac**).
+
+### 4. What peer plans deliberately do *not* claim
+
+| Not claimed | Why |
+|-------------|-----|
+| Fixes dual-lane / sticker 40G training | Kernel/ICM/cable — see [standards-and-speeds.md](standards-and-speeds.md) |
+| Dual-cable same peer = two netdevs | Often still one path — [links-and-topology.md](links-and-topology.md) |
+| Stable local MAC → tbnN like Interface Rules | MAC churn on host-net — wrong tool |
+| Vinney’s every edge case on every OEM peer | Forum path was Unraid static + recreate; we generalize from that |
+
+Vinney’s reports drove **path reapply + dhcpcd kill**. Peer plans address the **next** class of issues once reapply works: **who owns the plan when names move**.
 
 ## Two identities
 
@@ -82,8 +168,9 @@ Always use **unique subnets per peer path** (e.g. `10.255.0.0/24` vs `10.255.1.0
 
 ## Related
 
+- [troubleshooting.md](troubleshooting.md) — IP missing after unplug, 169.254 stack, ghost peers, wrong IP after renumber  
 - [addressing.md](addressing.md)  
 - [peer-scenarios.md](peer-scenarios.md)  
 - [links-and-topology.md](links-and-topology.md)  
 - [settings-reference.md](settings-reference.md)  
-- [troubleshooting.md](troubleshooting.md)  
+- [CHANGELOG.md](../CHANGELOG.md) — **2026.08.15ak** (Vinney persistence), **16ac** (ghost rows), **16ad** (peer plans)  

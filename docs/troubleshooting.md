@@ -9,6 +9,10 @@
 - [No Thunderbolt hardware detected](#no-thunderbolt-hardware-detected)
 - [Interface never appears (`thunderbolt0` missing)](#interface-never-appears-thunderbolt0-missing)
 - [Link trains but no ping](#link-trains-but-no-ping)
+- [Static IP missing after reboot or unplug/replug](#static-ip-missing-after-reboot-or-unplugreplug)
+- [Static IP plus 169.254.x.x on the same iface](#static-ip-plus-169254xx-on-the-same-iface)
+- [Two Known peers rows (one blank Offline)](#two-known-peers-rows-one-blank-offline)
+- [Wrong peer got the old tbn0 address after cable swaps](#wrong-peer-got-the-old-tbn0-address-after-cable-swaps)
 - [Single-lane / 20 Gb/s · 1-lane on a dual-capable host](#single-lane-20-gbs-1-lane-on-a-dual-capable-host)
 - [Two cables, still one interface (or worse)](#two-cables-still-one-interface-or-worse)
 - [One-way traffic / flaky after reboot](#one-way-traffic-flaky-after-reboot)
@@ -110,7 +114,46 @@ While plugins work: WebUI **Thunderbolt → Recovery** shows the same path.
 2. `ip link` shows UP, carrier 1.  
 3. Peer firewall (Windows especially).  
 4. Unraid E2E **No**; **reseat** once; retest ([driver-options.md](driver-options.md)).  
-5. Keep default route **No** so you aren’t blackholing other traffic while testing.
+5. Keep default route **No** so you aren’t blackholing other traffic while testing.  
+6. If the iface is UP but has **no** IPv4, see [Static IP missing after reboot or unplug/replug](#static-ip-missing-after-reboot-or-unplugreplug).
+
+## Static IP missing after reboot or unplug/replug
+
+Classic field report (Unraid forum; **Vinney** and others): path trains, `thunderbolt0` exists, **no** (or wrong) static address until you re-open the plugin and Apply.
+
+| Check | What to do |
+|-------|------------|
+| Plugin version | Prefer a build **≥ 2026.08.15ak** (path reapply + dhcpcd kill) and **≥ 2026.08.16ad** (peer plans) |
+| Flash plan | `ifaces/thunderboltN.cfg` or Peers → **Peer plan** for that UUID |
+| udev | `/etc/udev/rules.d/99-thunderboltnet-net.rules` present after install |
+| Logs | `grep tbn-net-reapply /var/log/syslog` after plug |
+| Apply once while linked | tbn Apply (or **Save live path as peer plan**) so both path cfg and peer plan exist |
+
+**Why:** host-net netdevs are recreated on link; Unraid eth `network.cfg` does not own them. The plugin re-applies flash plans on array start and netdev add. Peer plans fix the case where **name** reapply alone is wrong after renumber — [peers-and-plans.md](peers-and-plans.md#why-this-design-field-findings).
+
+## Static IP plus 169.254.x.x on the same iface
+
+| Symptom | Cause | Fix |
+|---------|--------|-----|
+| `ip addr` shows your static **and** a `169.254.…` | Leftover **dhcpcd** (or dhclient) still managing the iface after switching to Static | Apply Static again on a current plugin (stops DHCP clients first); or `dhcpcd -k thunderbolt0` then re-Apply |
+
+Do not leave mixed static + link-local if you expect clean peer-local routing. Design notes: [peers-and-plans.md](peers-and-plans.md#1-address-disappeared-after-reboot-or-unplug-vinney--forum).
+
+## Two Known peers rows (one blank offline)
+
+| Symptom | Cause | Fix |
+|---------|--------|-----|
+| Online **Holo/NIROG** + Offline **—** same tbn/IP | Hotplug briefly had no fabric UUID → ghost key `iface:thunderboltN` | Update to **≥ 2026.08.16ac** (dedupe); open Peers once, or **Forget** the blank row |
+
+[peers-and-plans.md](peers-and-plans.md#3-two-known-peers-rows-after-unplugreplug-lab).
+
+## Wrong peer got the old tbn0 address after cable swaps
+
+| Symptom | Cause | Fix |
+|---------|--------|-----|
+| After multi-peer or re-order, the “wrong” machine has the IP you saved for tbn0 | Path-slot cfg is by **name**; kernel renumbered who sits on `thunderbolt0` | Give each remote a **peer plan** (Apply while that peer is linked); confirm Peers → Peer plan; unplug/replug |
+
+Peer plan is preferred over path-slot cfg when the live path has a known UUID. [peers-and-plans.md](peers-and-plans.md#2-same-host-wrong-or-empty-ip-after-path-renumber-lab--multi-peer).
 
 ## Single-lane / 20 Gb/s · 1-lane on a dual-capable host
 
