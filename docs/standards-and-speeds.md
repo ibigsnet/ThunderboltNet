@@ -248,6 +248,18 @@ UI and docs use **Gb/s** consistently (e.g. `20 Gb/s · 1-lane`, `Max ~40 Gb/s �
 - A high-gen host that trains **20&nbsp;Gb/s · 1-lane** is **common for Linux host-to-host**. Not a failed install.  
 - Sticker **“40&nbsp;Gb/s”** = **class** (often 20+20 when fully trained) — **not** “40&nbsp;Gbit/s TCP each direction like full-duplex PCIe.”
 
+### How the UI builds “20 Gb/s full-duplex · using 1 of 2 lanes”
+
+**Not dummy text.** `tbn_format_link_rate()` reads live sysfs on the peer path:
+
+| Input | Source |
+|-------|--------|
+| Rate | `rx_speed` / `tx_speed` (trained) |
+| Used lanes | `max(rx_lanes, tx_lanes)` from the **same path** |
+| “of M” | Host controller **class max** lanes (`tbn_controller_capability()`, e.g. 2 for TB4 dual-lane class) |
+
+So “using **1** of **2** lanes” means: this cable trained with **1** active lane each way, while this host’s controller class is dual-lane capable. Both ends can show the same when Linux host-net trains single-lane. It is **not** a live PPS/throughput calculation — it is **trained link state** from the connection manager / thunderbolt driver.
+
 Linux sysfs often exposes:
 
 - `generation` on the local controller (`0-0`)  

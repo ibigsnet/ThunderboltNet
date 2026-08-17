@@ -1028,9 +1028,6 @@
 .tbn-peers-memory tr.tbn-mesh-row-red td:first-child {
   box-shadow: inset 4px 0 0 #c33;
 }
-.tbn-mesh-panel {
-  margin-top: 0.5rem;
-}
 .tbn-mesh-hosts td {
   vertical-align: top;
 }
@@ -1081,17 +1078,23 @@
 }
 .tbn-details-help {
   margin: 0.85rem 0 1rem;
-  max-width: 52rem;
+  max-width: 100%;
   border: 1px solid rgba(80, 140, 200, 0.35);
   border-radius: 6px;
   background: rgba(80, 140, 200, 0.06);
-  padding: 0.35rem 0.75rem 0.5rem;
+  padding: 0.45rem 0.9rem 0.55rem 1.15rem;
+  box-sizing: border-box;
 }
 .tbn-details-help > summary {
   cursor: pointer;
   font-weight: 600;
-  padding: 0.35rem 0;
+  padding: 0.4rem 0.25rem 0.4rem 0;
   list-style-position: outside;
+  /* Keep disclosure marker inside the blue bubble */
+  margin-left: 0.15rem;
+}
+.tbn-details-help > summary::-webkit-details-marker {
+  color: rgba(80, 140, 200, 0.9);
 }
 .tbn-details-help .tbn-details-body {
   padding: 0.25rem 0 0.5rem;
@@ -1101,18 +1104,47 @@
 .tbn-details-help .tbn-details-body p {
   margin: 0.4rem 0;
 }
+.tbn-mesh-panel {
+  margin: 1.25rem 0 1.5rem;
+  padding: 1rem 1.15rem 1.15rem;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+  border: 1px solid rgba(128, 128, 128, 0.28);
+  border-radius: 8px;
+  background: rgba(128, 128, 128, 0.04);
+  text-align: center;
+}
+.tbn-mesh-panel > h3 {
+  margin: 0 0 0.5rem;
+  text-align: center;
+}
+.tbn-mesh-panel > .tbn-note,
+.tbn-mesh-panel > .tbn-muted {
+  max-width: 52rem;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
 .tbn-mesh-legend {
-  margin: 0.75rem 0 1rem;
-  padding: 0.65rem 0.85rem;
+  margin: 0.85rem auto 1rem;
+  padding: 0.75rem 1rem;
   border-radius: 6px;
   border: 1px solid rgba(128, 128, 128, 0.3);
   background: rgba(128, 128, 128, 0.06);
   font-size: 0.9em;
-  line-height: 1.5;
-  max-width: 56rem;
+  line-height: 1.55;
+  max-width: 52rem;
+  text-align: left;
 }
 .tbn-mesh-legend-title {
-  margin: 0 0 0.4rem;
+  margin: 0 0 0.45rem;
+  text-align: center;
+}
+.tbn-mesh-panel .tbn-table {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: left;
 }
 /* Online = soft blue (path up). Mesh green/red only on first cell accents. */
 .tbn-peers-memory .tbn-peer-online td {

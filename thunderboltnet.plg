@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.17al">
+<!ENTITY version "2026.08.17am">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,10 +27,11 @@
 
 <CHANGES>
 ###&version;
-- Plugins/CA notes method: ~7 summarized entries (ranges OK); Older releases → CHANGELOG.
-- Gateway empty for P2P (rare uplink only) from ak.
+- Dashboard: re-apply thunderboltN ports patch on every install/upgrade (dropdown fix).
+- Help/docs: default-route advanced wording; DHCP server backlog note; .1/.2 stance; lanes math docs;
+  Peers link-check panel layout; Known peers details marker inset.
 
-###2026.08.17ag–ak
+###2026.08.17ag–al
 - Blue help and eth0-layout polish: MTU number + jumbo checkbox and facts (1500 / 9000 / driver max),
   VLANs after MTU, bonding WIP only when Yes, Network Info via $.post+swal (CSRF), gateway/default-route
   metric warnings. Full detail in CHANGELOG.
@@ -98,6 +99,11 @@ fi
 php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; tbn_install_net_udev();' 2>/dev/null || true
 /bin/bash /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-net-reapply >/dev/null 2>&1 || true
 udevadm trigger --subsystem-match=net --action=add 2>/dev/null || true
+# Dashboard Interface dropdown: include thunderboltN (re-apply after every upgrade;
+# Unraid OS updates can also restore stock DashStats / update_3).
+if [ -x /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports ]; then
+  /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports ensure >/dev/null 2>&1 || true
+fi
 echo "ThunderboltNet: packages now: $(ls /var/log/packages/ThunderboltNet-* 2>/dev/null | xargs -n1 basename 2>/dev/null | tr '\n' ' ')"
 echo "ThunderboltNet: install complete. Settings → Network Settings → Thunderbolt"
 echo "ThunderboltNet: Hard-refresh the browser (Ctrl+Shift+R)."

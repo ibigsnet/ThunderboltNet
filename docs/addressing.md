@@ -31,12 +31,30 @@ Each live kernel interface `thunderboltN` (Settings tab **tbnN**) is its own L2 
 | Item | Default | Rationale |
 |------|---------|-----------|
 | Assignment | Static | No DHCP server on a pure host↔host cable |
-| Suggestion | `10.255.N.2` for `thunderboltN` | Unique third octet per link |
+| Suggestion (seed) | `10.255.N.2` for `thunderboltN` | Historical seed; unique third octet per link |
 | Mask | **/24** (`255.255.255.0`) | Familiar; room for a few extra addresses (VM, alias) |
 | Gateway | empty | Peer-local only; set only if tbn is an uplink (rare) |
 | Enable default route | **No** | Internet stays on eth0/br0; Yes can steal default via lower metric |
 
-Peer is conventionally `.1` on the same subnet (not enforced).
+### Recommended host numbers (.1 vs .2)
+
+From a routing/tshoot habit (CCIE-style): treat **Unraid as `.1`** on each link subnet (stable infrastructure / “near” end of the pipe) and give the **peer `.2`**. That matches how most people label router↔host and reads cleanly in `ip route` / traceroute.
+
+| Role | Recommended | Notes |
+|------|-------------|--------|
+| Unraid tbnN | **`10.255.N.1/24`** (or `/30`) | Prefer for **new** links |
+| Far peer | **`10.255.N.2/...`** | |
+| Current plugin seed | still `10.255.N.2` on Unraid | Kept so existing labs are not reshuffled; either works for P2P if both ends agree |
+
+Either `.1`/`.2` orientation is fine for peer-to-peer **without** a default route. Be consistent per link; do not put two Thunderbolt ifaces in the same subnet.
+
+### Address assignment modes
+
+| Mode | Today | Notes |
+|------|-------|--------|
+| **Static** | Yes (default) | Usual for Thunderbolt P2P |
+| **Automatic** | Yes | DHCP **client** only — often no server on the cable |
+| **DHCP server** (host scheme, serve far end) | **Not yet** | Sensible future option (seed from our `10.255.N.0/24` plan); tracked as product backlog, not in the UI yet |
 
 ---
 
@@ -128,7 +146,11 @@ A filled **gateway** without default route still only matters for routes you add
 
 ## DHCP
 
-**Automatic** on tbnN is best-effort. Pure host↔host links usually have **no** DHCP server. Prefer static both ends.
+**Automatic** on tbnN is a DHCP **client** only (best-effort). Pure host↔host links usually have **no** DHCP server. Prefer **Static** both ends.
+
+### Future: DHCP server on Unraid (not in UI yet)
+
+A third assignment mode — Unraid hosts DHCP for the far end using our `10.255.N.0/24` (or `/30`) scheme — is a reasonable product idea (plug peer in, it gets an address). Not implemented; do not expect dnsmasq/kea from this plugin today. When added, it would stay opt-in and must not fight LAN DHCP on eth0/br0.
 
 ---
 

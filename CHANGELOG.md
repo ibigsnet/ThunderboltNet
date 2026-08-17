@@ -1,3 +1,12 @@
+## 2026.08.17am
+
+- **Dashboard:** call `tbn-dashboard-ports ensure` on plugin install/upgrade so thunderboltN
+  reappears in the Interface graph dropdown (patch was only re-applied on array start).
+- **Help:** default-route text (+ advanced); DHCP client vs future server note; drop “(no page reload)”.
+- **Docs:** Unraid `.1` / peer `.2` recommended stance; /24 vs /30 retained; lanes UI math
+  (`rx_lanes`/`tx_lanes` + controller max) documented in standards-and-speeds.
+- **Peers UI:** Known peers `<details>` marker inset; Peer link check panel full-width + centered.
+
 ## 2026.08.17al
 
 - **CA / Plugins `<CHANGES>`:** ~7 summarized notes; bundle rapid ships as version ranges

@@ -346,7 +346,7 @@ if (strpos($nm, '.') === false) {
         </dd>
       </dl>
       <blockquote class="inline_help">
-        Same idea as eth0: choosing IPv4, IPv6, or both shows the matching assignment fields (no page reload).
+        Same idea as eth0: choosing IPv4, IPv6, or both shows the matching assignment fields.
       </blockquote>
 
       <div class="tbn-proto-ipv4 tbn-hidden">
@@ -360,7 +360,10 @@ if (strpos($nm, '.') === false) {
           </dd>
         </dl>
         <blockquote class="inline_help">
-          <strong>Static</strong> (usual for Thunderbolt P2P). <strong>Automatic</strong> tries DHCP (often no server on the cable).
+          <strong>Static</strong> — usual for Thunderbolt P2P.
+          <strong>Automatic</strong> — DHCP <em>client</em> (often no server on the cable).
+          A future <strong>DHCP server</strong> mode (host our scheme, serve far-end clients) is under consideration — not offered yet.
+          <?= tbn_help_docs_footer('docs/addressing.md', 'Addressing') ?>
         </blockquote>
         <div class="tbn-static-ipv4 tbn-hidden">
           <dl>
@@ -399,7 +402,8 @@ if (strpos($nm, '.') === false) {
             Default <strong>No</strong> — keep internet on eth0/br0.
             Turning this <strong>Yes</strong> can steal the host default route: Thunderbolt often gets a
             <em>much lower</em> metric (high bandwidth), so traffic that should use LAN/WAN may leave via tbn instead
-            and break normal topology. Only enable if this link is intentionally your path to the internet (rare).
+            and break normal topology. Only enable if this link is intentionally your path to the internet (rare)
+            or you know what you are doing (advanced).
           </blockquote>
         </div>
       </div>
