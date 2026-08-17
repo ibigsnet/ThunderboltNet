@@ -7,18 +7,19 @@ VERSION="${1:-$(sed -n 's/.*ENTITY version "\([^"]*\)".*/\1/p' thunderboltnet.pl
 PKG="ThunderboltNet-${VERSION}-x86_64-1"
 STAGE=$(mktemp -d); trap 'rm -rf "$STAGE"' EXIT
 DEST="$STAGE/usr/local/emhttp/plugins/ThunderboltNet"
-mkdir -p "$DEST"/{include,scripts,event}
+mkdir -p "$DEST"/{include,scripts,event,udev}
 cp -a "$ROOT/ThunderboltNet.page" "$ROOT/default.cfg" "$ROOT/default-iface.cfg" \
   "$ROOT/README.md" "$ROOT/thunderboltnet.css" "$ROOT/thunderboltnet.js" \
   "$ROOT/ThunderboltNet-RECOVERY.txt" "$DEST/"
 cp -a "$ROOT"/include/* "$DEST/include/"
-cp -a "$ROOT"/scripts/tbn-status "$ROOT"/scripts/tbn-dashboard-ports "$ROOT"/scripts/tbn-openfabric "$DEST/scripts/" 2>/dev/null || true
 # only runtime scripts
-for s in tbn-status tbn-dashboard-ports tbn-openfabric; do
+for s in tbn-status tbn-dashboard-ports tbn-openfabric tbn-net-reapply; do
   [ -f "$ROOT/scripts/$s" ] && cp -a "$ROOT/scripts/$s" "$DEST/scripts/"
 done
 cp -a "$ROOT/event/started" "$DEST/event/" 2>/dev/null || true
+[ -d "$ROOT/udev" ] && cp -a "$ROOT"/udev/* "$DEST/udev/" 2>/dev/null || true
 rm -f "$DEST/scripts/pack-txz.sh" 2>/dev/null || true
+chmod 755 "$DEST/scripts/"* "$DEST/event/started" 2>/dev/null || true
 mkdir -p "$ROOT/archive"
 OUT="$ROOT/archive/${PKG}.txz"
 rm -f "$OUT"

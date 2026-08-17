@@ -2496,6 +2496,31 @@ function tbn_write_iface_cfg($if, array $cfg) {
 }
 
 /**
+ * Stop DHCP clients on a netdev (before static apply).
+ * Without this, dhcpcd started for USE_DHCP=yes keeps running after Static
+ * is selected and re-adds 169.254.x.x alongside the static address.
+ * Credit: Vinney (Unraid forums) — root cause on Thunderbolt Net support thread.
+ *
+ * $family: 4, 6, or 0 for both.
+ */
+function tbn_iface_stop_dhcp_clients($if, $family = 0) {
+  if ($if === '' || !is_dir('/sys/class/net/' . $if)) {
+    return;
+  }
+  $ife = escapeshellarg($if);
+  $do4 = ($family === 0 || $family === 4);
+  $do6 = ($family === 0 || $family === 6);
+  if ($do4) {
+    @exec("dhcpcd -k {$ife} 2>/dev/null || true");
+    @exec("dhclient -r {$ife} 2>/dev/null || true");
+  }
+  if ($do6) {
+    @exec("dhcpcd -6 -k {$ife} 2>/dev/null || true");
+    @exec("dhclient -6 -r {$ife} 2>/dev/null || true");
+  }
+}
+
+/**
  * Drop L3 state on an iface so re-Apply is clean.
  * Kernel connected routes follow addresses; also flush residual routes on this dev
  * (stale defaults / stacked subnets from earlier applies that used "addr replace").
@@ -2585,6 +2610,7 @@ function tbn_apply_ip_block($dev, array $cfg, $prefix = '') {
     $use = $cfg[$prefix . 'USE_DHCP'] ?? ($prefix === '' ? ($cfg['USE_DHCP'] ?? 'no') : 'no');
     if ($use === 'yes') {
       // DHCP client will install its own addresses/routes — clear static leftovers first
+      tbn_iface_stop_dhcp_clients($dev, 4);
       tbn_iface_flush_l3($dev, 4);
       @exec("dhcpcd -n {$ife} 2>/dev/null || dhclient -1 {$ife} 2>/dev/null || true");
     } else {
@@ -2597,6 +2623,8 @@ function tbn_apply_ip_block($dev, array $cfg, $prefix = '') {
       if (strpos((string)$nm, '.') !== false) {
         $cidr = (string)tbn_mask_to_prefix($nm);
       }
+      // Kill any prior dhcpcd/dhclient so 169.254.x.x does not reappear next to static.
+      tbn_iface_stop_dhcp_clients($dev, 4);
       // Always clear first: "ip addr replace" only swaps ONE address; stacked
       // 10.255.0.0/24 + 10.255.1.0/24 both stay as kernel connected routes.
       tbn_iface_flush_l3($dev, 4);
@@ -2617,6 +2645,7 @@ function tbn_apply_ip_block($dev, array $cfg, $prefix = '') {
   if ($do6) {
     $use6 = $cfg[$prefix . 'USE_DHCP6'] ?? 'no';
     if ($use6 === 'yes') {
+      tbn_iface_stop_dhcp_clients($dev, 6);
       tbn_iface_flush_l3($dev, 6);
       @exec("dhcpcd -6 -n {$ife} 2>/dev/null || dhclient -6 -1 {$ife} 2>/dev/null || true");
     } else {
@@ -2625,6 +2654,7 @@ function tbn_apply_ip_block($dev, array $cfg, $prefix = '') {
       if ($p6 < 1 || $p6 > 128) {
         $p6 = 64;
       }
+      tbn_iface_stop_dhcp_clients($dev, 6);
       tbn_iface_flush_l3($dev, 6);
       if ($ip6 !== '' && filter_var($ip6, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
         $target6 = escapeshellarg($ip6 . '/' . $p6);
@@ -2798,6 +2828,60 @@ PAGE;
     if (preg_match('/Tbn(\d+)\.page$/', $f, $m) && empty($keep[(int)$m[1]])) {
       @unlink($f);
     }
+  }
+}
+
+/**
+ * Re-apply saved per-link configs to live thunderbolt* netdevs.
+ * Used at array start and on netdev hotplug (link drop recreates the iface + MAC).
+ * Only ifaces with a saved flash cfg under ifaces/ are touched (skip pure defaults).
+ *
+ * @param string|null $if_filter When set (e.g. thunderbolt0), only that iface.
+ * @return array<string,array> map iface => tbn_apply_iface result
+ */
+function tbn_reapply_live_ifaces($if_filter = null) {
+  $out = [];
+  $names = tbn_list_tb_iface_names();
+  if (is_string($if_filter) && $if_filter !== '') {
+    $names = in_array($if_filter, $names, true) ? [$if_filter] : [];
+  }
+  foreach ($names as $if) {
+    if (!is_file(tbn_iface_cfg_path($if))) {
+      continue;
+    }
+    $out[$if] = tbn_apply_iface($if);
+  }
+  if (function_exists('tbn_sync_iface_pages')) {
+    tbn_sync_iface_pages();
+  }
+  return $out;
+}
+
+/**
+ * Install udev rule so thunderbolt* netdevs re-apply flash cfg on add (hotplug).
+ * Rule lives under the plugin tree and is symlinked/copied into /etc/udev/rules.d.
+ */
+function tbn_install_net_udev() {
+  $src = tbn_plugin_root() . '/udev/99-thunderboltnet-net.rules';
+  $dst = '/etc/udev/rules.d/99-thunderboltnet-net.rules';
+  if (!is_file($src)) {
+    return false;
+  }
+  if (!is_dir('/etc/udev/rules.d')) {
+    @mkdir('/etc/udev/rules.d', 0755, true);
+  }
+  $ok = @copy($src, $dst);
+  if ($ok) {
+    @exec('udevadm control --reload-rules 2>/dev/null || true');
+  }
+  return $ok;
+}
+
+function tbn_remove_net_udev() {
+  $dst = '/etc/udev/rules.d/99-thunderboltnet-net.rules';
+  if (is_file($dst)) {
+    @unlink($dst);
+    @exec('udevadm control --reload-rules 2>/dev/null || true');
   }
 }
 

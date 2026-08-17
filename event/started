@@ -1,5 +1,5 @@
 #!/bin/bash
-# Array start: Dashboard TB ports + OpenFabric/FRR re-apply when enabled.
+# Array start: Dashboard TB ports, OpenFabric, then re-apply per-link L3 + udev.
 # (LimeTech may replace nchan/update_3 and DashStats.page.)
 SCRIPT=/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports
 if [ -x "$SCRIPT" ]; then
@@ -10,3 +10,15 @@ fi
 
 # OpenFabric: regenerate conf + best-effort FRR reload (no-op if FRR missing)
 php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; if (function_exists("tbn_of_apply")) { tbn_of_apply(); }' 2>/dev/null || true
+
+# Ensure net hotplug rule is installed (RAM OS may wipe /etc/udev/rules.d on boot)
+php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; tbn_install_net_udev();' 2>/dev/null || true
+
+# Re-apply saved thunderbolt* addresses (boot with peer still cabled)
+REAPPLY=/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-net-reapply
+if [ -x "$REAPPLY" ] || [ -f "$REAPPLY" ]; then
+  /bin/bash "$REAPPLY" >/dev/null 2>&1 || true
+fi
+
+# Replay add for netdevs that appeared before the rule was loaded
+udevadm trigger --subsystem-match=net --action=add 2>/dev/null || true

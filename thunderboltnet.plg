@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.15aj">
+<!ENTITY version "2026.08.15ak">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,6 +27,12 @@
 
 <CHANGES>
 ###&version;
+- <strong>Persist L3 across reboot and cable reseat:</strong> stop dhcpcd when applying Static
+  (no stacked 169.254), re-apply saved tbn addresses at array start, and udev hotplug for
+  thunderbolt* netdevs. Thanks to <strong>Vinney</strong> on the Unraid forums for root-causing
+  and field-testing the fix path.
+
+###2026.08.15aj
 - Companion card <strong>Block export (NBD)</strong>: same Not installed / CA or raw .plg wording as Multi-hop (FRR).
 
 ###2026.08.15ai
@@ -46,10 +52,6 @@
 ###2026.08.14ap
 - **Fix:** Cables and safety help link showed literal “Directionality &amp; speeds” (double-escaped
   label). Same for Peers / MTU / bonding doc footers that used pre-encoded ampersands.
-
-###2026.08.14ao
-- Fabric reports: clear LAN peer-to-peer wording (not cloud/telemetry); TB and optional eth paths;
-  off-message path + clickable jump to Settings → Show Fabric reports.
 
 ### Older releases
 - Full changelog (all versions): https://github.com/ibigsnet/ThunderboltNet/blob/main/CHANGELOG.md
@@ -84,6 +86,10 @@ if [ -f /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt ]; 
   cp -a /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt \
     /boot/config/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt
 fi
+# Hotplug + boot reapply for thunderbolt* L3 (Vinney / forum findings)
+php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; tbn_install_net_udev();' 2>/dev/null || true
+/bin/bash /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-net-reapply >/dev/null 2>&1 || true
+udevadm trigger --subsystem-match=net --action=add 2>/dev/null || true
 echo "ThunderboltNet: install complete. Settings → Network Settings → Thunderbolt"
 echo "ThunderboltNet: Hard-refresh the browser (Ctrl+Shift+R)."
 ]]></INLINE>
@@ -92,6 +98,9 @@ echo "ThunderboltNet: Hard-refresh the browser (Ctrl+Shift+R)."
 <FILE Run="/bin/bash" Method="remove">
 <INLINE><![CDATA[
 echo "ThunderboltNet: removing..."
+php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; tbn_remove_net_udev();' 2>/dev/null || true
+rm -f /etc/udev/rules.d/99-thunderboltnet-net.rules 2>/dev/null || true
+udevadm control --reload-rules 2>/dev/null || true
 # Drop TB ifaces from network-extra include list (keep other includes)
 EXTRA=/boot/config/network-extra.cfg
 if [ -f "$EXTRA" ]; then

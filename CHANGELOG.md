@@ -6,6 +6,12 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+###2026.08.15ak
+- **Persist addresses after reboot and link drop:** kill dhcpcd/dhclient when applying Static
+  (stops stacked 169.254.x.x); re-apply saved per-link flash config at array start; udev rule
+  on thunderbolt* net add for hotplug. Thanks to **Vinney** on the Unraid forums for the bug
+  report, root cause analysis, and workaround notes that shaped this fix.
+
 ###2026.08.15aj
 - Companion card Block export (NBD): Not installed / Install from CA or raw .plg (aligned with Multi-hop FRR card).
 

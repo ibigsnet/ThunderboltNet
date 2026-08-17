@@ -1,0 +1,4 @@
+# Thunderbolt Net — re-apply flash L3 config when thunderbolt* netdevs appear.
+# thunderbolt_net destroys/recreates the netdev (new MAC) on each link setup.
+# Invoke via bash: Unraid flash is often FAT32 (no execute bit on scripts).
+ACTION=="add", SUBSYSTEM=="net", KERNEL=="thunderbolt*", RUN+="/bin/bash /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-net-reapply %k"

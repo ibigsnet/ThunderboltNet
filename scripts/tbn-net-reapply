@@ -1,0 +1,55 @@
+#!/bin/bash
+# Re-apply Thunderbolt Net per-link flash config to live thunderbolt* netdevs.
+# Usage:
+#   tbn-net-reapply              # all live ifaces with saved ifaces/*.cfg
+#   tbn-net-reapply thunderbolt0 # one iface (udev %k)
+# Called from event/started and udev (hotplug). Quiet by default; logs to syslog.
+
+set -u
+IFACE="${1:-}"
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:${PATH:-}"
+
+# Brief settle — netdev may not be fully ready at the first udev moment
+sleep 0.4
+
+PHP_BIN=""
+for c in /usr/bin/php /usr/local/bin/php php; do
+  if command -v "$c" >/dev/null 2>&1 || [ -x "$c" ]; then
+    PHP_BIN="$c"
+    break
+  fi
+done
+if [ -z "$PHP_BIN" ]; then
+  logger -t ThunderboltNet "tbn-net-reapply: php not found"
+  exit 0
+fi
+
+LIB=/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php
+if [ ! -f "$LIB" ]; then
+  logger -t ThunderboltNet "tbn-net-reapply: plugin lib missing"
+  exit 0
+fi
+
+if [ -n "$IFACE" ]; then
+  case "$IFACE" in
+    thunderbolt*) ;;
+    *) exit 0 ;;
+  esac
+  OUT=$("$PHP_BIN" -r '
+    require_once "'"$LIB"'";
+    $if = $argv[1];
+    $r = tbn_reapply_live_ifaces($if);
+    echo json_encode($r);
+  ' "$IFACE" 2>/dev/null) || true
+else
+  OUT=$("$PHP_BIN" -r '
+    require_once "'"$LIB"'";
+    $r = tbn_reapply_live_ifaces(null);
+    echo json_encode($r);
+  ' 2>/dev/null) || true
+fi
+
+if [ -n "${OUT:-}" ] && [ "$OUT" != "[]" ] && [ "$OUT" != "{}" ]; then
+  logger -t ThunderboltNet "tbn-net-reapply${IFACE:+ $IFACE}: $OUT"
+fi
+exit 0
