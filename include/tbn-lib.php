@@ -2256,10 +2256,30 @@ function tbn_write_include_interfaces(array $ifaces) {
   $path = tbn_network_extra_path();
   $ifaces = array_values(array_unique(array_filter(array_map('trim', $ifaces))));
   $exclude = '';
+  $extra_lines = [];
   if (is_readable($path)) {
-    $raw = file_get_contents($path);
-    if (preg_match('/^exclude_interfaces="([^"]*)"/m', $raw, $m)) {
-      $exclude = $m[1];
+    $raw = (string)file_get_contents($path);
+    foreach (preg_split('/\r\n|\r|\n/', $raw) as $line) {
+      $trim = trim($line);
+      if ($trim === '' || $trim[0] === '#' || $trim[0] === ';') {
+        // Keep comments only if they are not ours (preserve unknown file structure lightly)
+        if ($trim !== '') {
+          $extra_lines[] = $line;
+        }
+        continue;
+      }
+      if (preg_match('/^include_interfaces=/', $trim)) {
+        continue;
+      }
+      if (preg_match('/^exclude_interfaces="([^"]*)"/', $trim, $m)) {
+        $exclude = $m[1];
+        continue;
+      }
+      if (preg_match('/^exclude_interfaces=/', $trim)) {
+        continue;
+      }
+      // Preserve any future/other keys other plugins may add
+      $extra_lines[] = $line;
     }
   }
   $dir = dirname($path);
@@ -2268,6 +2288,9 @@ function tbn_write_include_interfaces(array $ifaces) {
   }
   $body = 'include_interfaces="' . implode(' ', $ifaces) . "\"\n";
   $body .= 'exclude_interfaces="' . $exclude . "\"\n";
+  foreach ($extra_lines as $el) {
+    $body .= rtrim($el) . "\n";
+  }
   return @file_put_contents($path, $body) !== false;
 }
 
@@ -3374,6 +3397,122 @@ function tbn_plugin_version() {
     }
   }
   return 'unknown';
+}
+
+/**
+ * Parse a stored timestamp to Unix seconds.
+ * Accepts ISO-8601 (date('c')), common date strings, or numeric epoch.
+ *
+ * @param mixed $when
+ * @return int|null
+ */
+function tbn_parse_when($when) {
+  if ($when === null || $when === '' || $when === '—') {
+    return null;
+  }
+  if (is_int($when) || is_float($when)) {
+    $ts = (int)$when;
+    return $ts > 0 ? $ts : null;
+  }
+  $s = trim((string)$when);
+  if ($s === '') {
+    return null;
+  }
+  if (preg_match('/^\d{9,12}$/', $s)) {
+    $ts = (int)$s;
+    return $ts > 0 ? $ts : null;
+  }
+  $ts = strtotime($s);
+  if ($ts === false || $ts <= 0) {
+    return null;
+  }
+  return $ts;
+}
+
+/**
+ * Format a stored time for UI using Unraid Display / Date and Time prefs.
+ *
+ * Storage stays ISO-8601 with offset (date('c')) for machine sort/portability.
+ * Display follows Settings → Date and Time (display date + 12/24h time), via
+ * stock my_time() when available — same as the rest of Unraid.
+ *
+ * @param mixed $when ISO string, epoch, etc.
+ * @return string Human-readable local time, or "—" / raw fallback
+ */
+function tbn_format_when($when) {
+  $ts = tbn_parse_when($when);
+  if ($ts === null) {
+    $raw = is_scalar($when) ? trim((string)$when) : '';
+    return ($raw === '' || $raw === '—') ? '—' : $raw;
+  }
+
+  // Stock Unraid helper (Settings → Date and Time → display date/time)
+  if (function_exists('my_time')) {
+    $out = my_time($ts);
+    if (is_string($out) && $out !== '' && strtolower($out) !== 'unknown') {
+      return $out;
+    }
+  }
+
+  // Fallback: same formula as Helpers.php my_time() without requiring $display global
+  $date_fmt = '%c';
+  $time_fmt = '%R';
+  if (isset($GLOBALS['display']) && is_array($GLOBALS['display'])) {
+    $date_fmt = (string)($GLOBALS['display']['date'] ?? $date_fmt);
+    $time_fmt = (string)($GLOBALS['display']['time'] ?? $time_fmt);
+  } elseif (is_readable('/boot/config/plugins/dynamix/dynamix.cfg')) {
+    $ini = @parse_ini_file('/boot/config/plugins/dynamix/dynamix.cfg', true);
+    if (is_array($ini) && !empty($ini['display'])) {
+      $date_fmt = (string)($ini['display']['date'] ?? $date_fmt);
+      $time_fmt = (string)($ini['display']['time'] ?? $time_fmt);
+    }
+  }
+  // my_date legacy map (Wrappers.php) — strftime-ish → PHP date()
+  $legacy = [
+    '%c' => 'D j M Y h:i A',
+    '%A' => 'l',
+    '%Y' => 'Y',
+    '%B' => 'F',
+    '%e' => 'j',
+    '%d' => 'd',
+    '%m' => 'm',
+    '%I' => 'h',
+    '%H' => 'H',
+    '%M' => 'i',
+    '%S' => 's',
+    '%p' => 'A',
+    '%R' => 'H:i',
+    '%F' => 'Y-m-d',
+    '%T' => 'H:i:s',
+  ];
+  $fmt = $date_fmt;
+  if ($date_fmt !== '%c') {
+    $fmt = $date_fmt . ', ' . $time_fmt;
+  }
+  return date(strtr($fmt, $legacy), $ts);
+}
+
+/**
+ * HTML for a when-column: pretty local time, title=ISO for precision on hover.
+ *
+ * @param mixed $when
+ * @return string Safe HTML (escaped text)
+ */
+function tbn_format_when_html($when) {
+  $pretty = tbn_format_when($when);
+  $raw = is_scalar($when) ? trim((string)$when) : '';
+  if ($pretty === '—' || $raw === '' || $raw === '—') {
+    return '—';
+  }
+  // Prefer true ISO in title when we have it; else re-export from epoch
+  $title = $raw;
+  if ($title === '' || $title === $pretty) {
+    $ts = tbn_parse_when($when);
+    $title = $ts ? date('c', $ts) : $pretty;
+  }
+  return '<span class="tbn-when" title="' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '">'
+    . htmlspecialchars($pretty, ENT_QUOTES, 'UTF-8')
+    . '</span>';
 }
 
 /** Parsed list of globally ignored warning keys. */

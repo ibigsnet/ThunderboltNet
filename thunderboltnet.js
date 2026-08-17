@@ -609,6 +609,80 @@
   };
 
   /**
+   * Known peers toolbar: checkbox selection + one form outside the table.
+   * Nested forms inside the peer-plan column broke layout (invalid HTML).
+   */
+  window.tbnPeersToolbarSubmit = function (form, evt) {
+    var submitter = (evt && evt.submitter) || (document.activeElement && document.activeElement.form === form
+      ? document.activeElement
+      : null);
+    var action = '';
+    if (submitter && submitter.getAttribute) {
+      action = submitter.getAttribute('data-tbn-action') || '';
+    }
+    if (!action) {
+      // Fallback: first checked-looking submit
+      var btns = form.querySelectorAll('[data-tbn-action]');
+      for (var i = 0; i < btns.length; i++) {
+        if (btns[i] === document.activeElement) {
+          action = btns[i].getAttribute('data-tbn-action') || '';
+          break;
+        }
+      }
+    }
+    var hidden = form.querySelector('#tbn_peer_action') || form.querySelector('input[name="tbn_peer_action"]');
+    if (hidden) {
+      hidden.value = action;
+    }
+    var boxes = document.querySelectorAll('input.tbn-peer-sel[form="tbn-peers-action-form"]:checked, input.tbn-peer-sel:checked');
+    // Prefer form-associated checkboxes
+    if (!boxes.length) {
+      boxes = document.querySelectorAll('input[name="tbn_peer_keys[]"]:checked');
+    }
+    if (!boxes.length) {
+      alert('Select at least one peer (checkbox) first.');
+      return false;
+    }
+    if (action === 'forget') {
+      return confirm(
+        'Forget selected peers from this list?\n\n' +
+        'Removes Known peers memory and peer L3 plans only.\n' +
+        'Does not delete tbn tab configs or change eth Interface Rules.'
+      );
+    }
+    if (action === 'capture_plan') {
+      var anyOnline = false;
+      for (var c = 0; c < boxes.length; c++) {
+        if (boxes[c].getAttribute('data-online') === '1') {
+          anyOnline = true;
+          break;
+        }
+      }
+      if (!anyOnline) {
+        alert('Save live path needs at least one selected peer that is Online.');
+        return false;
+      }
+      return confirm('Save the live tbn path (IP/MTU/listening) as peer plan for each selected online peer?');
+    }
+    if (action === 'apply_plan') {
+      var anyPlan = false;
+      for (var a = 0; a < boxes.length; a++) {
+        if (boxes[a].getAttribute('data-online') === '1' && boxes[a].getAttribute('data-has-plan') === '1') {
+          anyPlan = true;
+          break;
+        }
+      }
+      if (!anyPlan) {
+        alert('Apply peer plan needs a selected Online peer that already has a peer plan.');
+        return false;
+      }
+      return confirm('Apply stored peer plan to each selected online peer’s live path?');
+    }
+    alert('Unknown action.');
+    return false;
+  };
+
+  /**
    * Known peers: save services preference on select change (no grey Apply button).
    * Must submit the Apply control so update.php runs #include.
    */

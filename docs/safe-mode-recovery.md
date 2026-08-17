@@ -151,7 +151,8 @@ When plugins are loaded, this full guide is also on the host:
 less /usr/local/emhttp/plugins/ThunderboltNet/docs/safe-mode-recovery.md
 ```
 
-Left on flash after uninstall (recovery text only — not a running service). No system manpages, shell aliases, or extra copies on `/boot/` root.
+**While the plugin is installed**, install copies this sheet to the flash path above.  
+**Full uninstall** removes `/boot/config/plugins/ThunderboltNet/` (including the sheet) — print or copy it first if you expect Safe Mode after remove. No system manpages or extra copies on `/boot/` root.
 
 ---
 
@@ -170,8 +171,11 @@ Left on flash after uninstall (recovery text only — not a running service). No
 
 1. Prefer returning to a **normal** boot (plugins on) when the emergency is over.  
 2. Fix the underlying issue (LAN, flash, misconfig) so Safe Mode is temporary.  
-3. Re-enable the plugin path: Settings → Network Settings → Thunderbolt / tbn tabs → Apply.  
-4. Keep multi-cable experiments for **after** single-link stability.
+3. Re-enable the plugin path: Settings → Network Settings → Thunderbolt / tbn tabs → **Apply** (saves peer plan / path cfg).  
+4. On a current build, **normal** boots re-apply L3 via plugin `startup` + array `started` + udev hotplug — you should not need Safe Mode steps for everyday reboot/unplug.  
+5. Keep multi-cable experiments for **after** single-link stability.
+
+Vinney’s forum findings (static missing after reboot, 169.254 stacking) are about **plugin-on** persistence, not Safe Mode. Those are covered in [peers-and-plans.md](peers-and-plans.md) and [troubleshooting.md](troubleshooting.md) — not something you re-solve with longer recovery manuals.
 
 ---
 

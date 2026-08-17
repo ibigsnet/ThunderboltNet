@@ -8,7 +8,7 @@ You will think "Thunderbolt networking" — not "SAFE-MODE-RECOVERY".
   find /boot -iname '*Thunderbolt*' 2>/dev/null
   ls /boot/config/plugins/ThunderboltNet/ 2>/dev/null
 
-Canonical path on flash (left after uninstall on purpose):
+Canonical path on flash (present while the plugin is installed; full uninstall removes it):
 
   cat /boot/config/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt
 
@@ -74,7 +74,10 @@ Plugin-style plan example — change to match YOUR peer:
   Peer:         10.255.0.1/24 on its TB netdev
 
   IFACE=thunderbolt0
+  # If a 169.254.x.x address is already stacked, drop DHCP client first:
+  #   dhcpcd -k "$IFACE" 2>/dev/null || true
   ip link set "$IFACE" up
+  ip addr flush dev "$IFACE" scope global 2>/dev/null || true
   ip addr add 10.255.0.2/24 dev "$IFACE"
 
 Peer:
@@ -95,6 +98,8 @@ replace LAN internet for this session.
 -----------------
   - Prefer a normal boot (plugins on) when the emergency is over
   - Settings → Network Settings → Thunderbolt / tbn tabs → Apply
+  - Everyday reboot/unplug L3 is the plugin’s job (startup + udev + Apply),
+    not these Safe Mode steps
   - Full docs (when online): docs/safe-mode-recovery.md in the repo
 
 

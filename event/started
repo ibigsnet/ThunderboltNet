@@ -9,7 +9,8 @@
 SCRIPT=/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports
 if [ -x "$SCRIPT" ]; then
   # Quiet stdout: Unraid merges event stdout into "Array Started • …" footer.
-  "$SCRIPT" apply >/dev/null || true
+  # ensure = heal if already patched; apply only when TB hardware/netdev present.
+  "$SCRIPT" ensure >/dev/null || true
 fi
 
 # OpenFabric: regenerate conf + best-effort FRR reload (no-op if FRR missing)

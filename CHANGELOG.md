@@ -1,3 +1,7 @@
+## 2026.08.17aa
+
+- **Audit harden:** dashboard-ports `ensure` (skip stock patch without TB; heal if already patched); uninstall `br-tb*`; network-extra preserves unknown keys; Peers toolbar (checkbox actions outside table); Last seen uses Date and Time format; SECURITY + recovery sheet match full flash wipe; Safe Mode sheet notes Vinney findings live in normal-boot docs.
+
 # Changelog — ThunderboltNet
 
 User-facing history for this plugin. The `.plg` file (Community Applications / Plugins page) shows only the **most recent releases**; this file is the complete record.

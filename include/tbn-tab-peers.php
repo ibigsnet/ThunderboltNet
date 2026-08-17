@@ -23,15 +23,14 @@ if (!$has_hw):
       </p>
     </div>
 <?php else: ?>
-    <form method="POST" action="/update.php" target="progressFrame" id="tbn-peers-forget-form"
-      onsubmit="return confirm('Forget selected peers from this list?\n\nRemoves Known peers memory and peer L3 plans only.\nDoes not delete tbn tab configs or change eth Interface Rules.');">
-      <input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">
-      <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update-peers.php">
-      <input type="hidden" name="tbn_peer_action" value="forget">
+    <?php /* Table is not wrapped in the action form — nested forms broke layout. Checkboxes use form= */ ?>
+    <div class="tbn-peers-table-wrap">
     <table class="tbn-table tbn-wide tbn-peers-memory">
       <thead>
         <tr>
-          <th title="Select for Forget peer"></th>
+          <th class="tbn-peers-sel" title="Select row for toolbar actions">
+            <span class="tbn-sr-only">Select</span>
+          </th>
           <th>Status</th>
           <th title="Compares this host’s trained Thunderbolt rates with the peer Unraid plugin (not FRR).">Link check</th>
           <th>Peer</th>
@@ -89,6 +88,7 @@ if (!$has_hw):
     }
     $plan_lbl = function_exists('tbn_peer_plan_label') ? tbn_peer_plan_label($p) : '—';
     $plan = is_array($p['plan'] ?? null) ? $p['plan'] : [];
+    $has_plan = function_exists('tbn_peer_plan_is_usable') && tbn_peer_plan_is_usable($plan);
     $mesh_val = $p['mesh_validation'] ?? null;
     $mesh_on = function_exists('tbn_mesh_enabled') ? tbn_mesh_enabled($cfg) : false;
     $mesh_row = '';
@@ -98,9 +98,16 @@ if (!$has_hw):
       elseif (($mesh_val['status'] ?? '') === 'orange') $mesh_row = 'tbn-mesh-row-orange';
     }
 ?>
-        <tr class="<?= $online ? 'tbn-peer-online' : 'tbn-peer-offline' ?> <?= $pref === 'yes' ? 'tbn-listen-on' : 'tbn-listen-off' ?> <?= $mesh_row ?>">
-          <td>
-            <input type="checkbox" name="tbn_forget_keys[]" value="<?= htmlspecialchars((string)$pkey) ?>" form="tbn-peers-forget-form" title="Select to forget">
+        <tr class="<?= $online ? 'tbn-peer-online' : 'tbn-peer-offline' ?> <?= $pref === 'yes' ? 'tbn-listen-on' : 'tbn-listen-off' ?> <?= $mesh_row ?>"
+          data-online="<?= $online ? '1' : '0' ?>"
+          data-has-plan="<?= $has_plan ? '1' : '0' ?>">
+          <td class="tbn-peers-sel">
+            <input type="checkbox" name="tbn_peer_keys[]" value="<?= htmlspecialchars((string)$pkey) ?>"
+              form="tbn-peers-action-form"
+              class="tbn-peer-sel"
+              data-online="<?= $online ? '1' : '0' ?>"
+              data-has-plan="<?= $has_plan ? '1' : '0' ?>"
+              title="Select for toolbar actions">
           </td>
           <td><?= $online ? '<span class="tbn-badge tbn-badge-ok">Online</span>' : '<span class="tbn-badge tbn-badge-unknown">Offline</span>' ?></td>
           <td class="tbn-mesh-val-cell"><?= function_exists('tbn_mesh_badge_html') ? tbn_mesh_badge_html(is_array($mesh_val) ? $mesh_val : null, $mesh_on) : '—' ?></td>
@@ -124,31 +131,10 @@ if (!$has_hw):
           <td><code class="tbn-live" data-tbn-live-ip4="<?= htmlspecialchars($if) ?>"><?= htmlspecialchars($addrs !== '' ? $addrs : '—') ?></code></td>
           <td>
             <code title="Bound to peer UUID; applied on hotplug/boot when this remote is on any thunderboltN"><?= htmlspecialchars($plan_lbl) ?></code>
-<?php if ($online && $if !== ''): ?>
-            <form method="POST" action="/update.php" target="progressFrame" class="tbn-plan-capture-form" style="margin-top:0.35rem">
-              <input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">
-              <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update-peers.php">
-              <input type="hidden" name="tbn_peer_action" value="capture_plan">
-              <input type="hidden" name="tbn_iface" value="<?= htmlspecialchars($if) ?>">
-              <input type="submit" name="#apply" value="Save live path as peer plan" class="tbn-btn-small" title="Copy current tbn IP/MTU/listening onto this peer UUID">
-            </form>
-<?php endif; ?>
-<?php if (function_exists('tbn_peer_plan_is_usable') && tbn_peer_plan_is_usable($plan) && $online && $if !== ''): ?>
-            <form method="POST" action="/update.php" target="progressFrame" class="tbn-plan-apply-form" style="margin-top:0.25rem">
-              <input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">
-              <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update-peers.php">
-              <input type="hidden" name="tbn_peer_action" value="apply_plan">
-              <input type="hidden" name="tbn_peer_key" value="<?= htmlspecialchars((string)$pkey) ?>">
-              <input type="hidden" name="plan_auto" value="<?= htmlspecialchars($plan['auto'] ?? 'yes') ?>">
-              <input type="hidden" name="plan_use_dhcp" value="<?= htmlspecialchars($plan['USE_DHCP'] ?? 'no') ?>">
-              <input type="hidden" name="plan_ipaddr" value="<?= htmlspecialchars($plan['IPADDR'] ?? '') ?>">
-              <input type="hidden" name="plan_netmask" value="<?= htmlspecialchars($plan['NETMASK'] ?? '24') ?>">
-              <input type="hidden" name="plan_gateway" value="<?= htmlspecialchars($plan['GATEWAY'] ?? '') ?>">
-              <input type="hidden" name="plan_default_route" value="<?= htmlspecialchars($plan['DEFAULT_ROUTE'] ?? 'no') ?>">
-              <input type="hidden" name="plan_mtu_mode" value="<?= htmlspecialchars($plan['MTU_MODE'] ?? 'default') ?>">
-              <input type="hidden" name="plan_mtu" value="<?= htmlspecialchars($plan['MTU'] ?? '1500') ?>">
-              <input type="submit" name="#apply" value="Apply peer plan now" class="tbn-btn-small">
-            </form>
+<?php if ($online && $has_plan): ?>
+            <span class="tbn-muted tbn-plan-hint"><br>Use toolbar to apply</span>
+<?php elseif ($online): ?>
+            <span class="tbn-muted tbn-plan-hint"><br>Use toolbar to save live path</span>
 <?php endif; ?>
           </td>
           <td>
@@ -179,17 +165,35 @@ if (!$has_hw):
 <?php endif; ?>
           </td>
           <td title="Equal rates = full-duplex. Asymmetric = TX to peer · RX from peer."><?= htmlspecialchars($rate !== '' && $rate !== ' / ' ? $rate : '—') ?></td>
-          <td class="tbn-muted"><?= htmlspecialchars($p['last_seen'] ?? '—') ?></td>
+          <td class="tbn-muted"><?= function_exists('tbn_format_when_html')
+            ? tbn_format_when_html($p['last_seen'] ?? '')
+            : htmlspecialchars($p['last_seen'] ?? '—') ?></td>
         </tr>
 <?php endforeach; ?>
       </tbody>
     </table>
-      <p class="tbn-actions">
-        <input type="submit" name="#apply" value="Forget selected peers" class="tbn-harden-btn">
+    </div>
+
+    <form method="POST" action="/update.php" target="progressFrame" id="tbn-peers-action-form" class="tbn-peers-toolbar"
+      onsubmit="return tbnPeersToolbarSubmit(this, event);">
+      <input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">
+      <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update-peers.php">
+      <input type="hidden" name="tbn_peer_action" id="tbn_peer_action" value="">
+      <p class="tbn-actions tbn-peers-actions">
+        <input type="submit" name="#apply" value="Forget selected" class="tbn-harden-btn"
+          data-tbn-action="forget"
+          title="Remove selected peers from this list (memory + peer plan only)">
+        <input type="submit" name="#apply" value="Save live path as peer plan" class="tbn-btn-small"
+          data-tbn-action="capture_plan"
+          title="Copy current tbn IP/MTU/listening onto each selected online peer UUID">
+        <input type="submit" name="#apply" value="Apply peer plan now" class="tbn-btn-small"
+          data-tbn-action="apply_plan"
+          title="Apply stored peer plan to each selected online peer’s live path">
       </p>
       <p class="tbn-hint">
-        <strong>Forget peer</strong> removes the row, listening memory, and peer L3 plan from flash.
-        Per-path <code>ifaces/thunderboltN.cfg</code> files and Unraid eth Interface Rules are left alone.
+        <strong>Select</strong> one or more rows, then use the toolbar.
+        <strong>Forget</strong> removes memory and peer L3 plan only — not <code>ifaces/thunderboltN.cfg</code> or eth Interface Rules.
+        <strong>Save / Apply plan</strong> need an online path for that peer.
       </p>
     </form>
 <?php endif; ?>
@@ -214,10 +218,11 @@ if (!$has_hw):
       (Thunderbolt host-net often gets a new MAC each link). We do <strong>not</strong> register names in
       Unraid’s stock Interface Rules (that path is for eth PCI/MAC and is easy to break across OS updates).<br><br>
       <strong>Peer plan</strong> — desired local IPv4 for <em>this remote</em>. Saved when you Apply a tbn tab
-      while they are linked, or via <em>Save live path as peer plan</em>. On hotplug/boot, the plan is applied
-      to whichever <code>thunderboltN</code> that peer appears on (so cable order / tbn0 vs tbn1 renumber is OK).<br><br>
+      while they are linked, or select the row and use the toolbar <em>Save live path as peer plan</em>.
+      On hotplug/boot, the plan is applied to whichever <code>thunderboltN</code> that peer appears on
+      (so cable order / tbn0 vs tbn1 renumber is OK).<br><br>
       <strong>Path (tbnN)</strong> — live kernel slot only; may change after unplug order. Use Peer plan for long-term L3.<br><br>
-      <strong>Forget selected peers</strong> — drop from this list only (not eth, not other plugins).
+      <strong>Toolbar</strong> — checkbox rows, then Forget / Save plan / Apply plan (no buttons inside the table).
       <strong>Harden</strong> — all peers services No + strip TB from network-extra.
       <?= tbn_help_docs_footer('docs/settings-reference.md', 'Settings reference') ?>
     </blockquote>

@@ -468,9 +468,45 @@
 .tbn-uuid-short code {
   font-size: 0.85em;
 }
-.tbn-plan-capture-form,
-.tbn-plan-apply-form {
+/* Known peers: plan actions live in toolbar (no nested forms in table) */
+.tbn-peers-table-wrap {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.tbn-peers-memory th.tbn-peers-sel,
+.tbn-peers-memory td.tbn-peers-sel {
+  width: 2rem;
+  text-align: center;
+  vertical-align: middle;
+}
+.tbn-peers-memory .tbn-plan-hint {
+  font-size: 0.82em;
+  line-height: 1.25;
+}
+.tbn-peers-toolbar {
+  margin-top: 0.75rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(128, 128, 128, 0.25);
+}
+.tbn-peers-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.65rem;
+  align-items: center;
+}
+.tbn-peers-actions .tbn-btn-small,
+.tbn-peers-actions .tbn-harden-btn {
   margin: 0;
+}
+.tbn-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
 }
 
 /* Activity / safe-unplug */

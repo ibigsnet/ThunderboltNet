@@ -17,7 +17,17 @@ What Thunderbolt Net changes on the Unraid **Dashboard**, what broke, who was af
 
 ## What the plugin patches (only these)
 
-On **apply** (plugin install finish and array `event/started`), `scripts/tbn-dashboard-ports` edits **exactly two** LimeTech files, each by replacing **one** `grep -Po` pattern that builds the network Interface list:
+On array `event/started`, `scripts/tbn-dashboard-ports **ensure**` runs (not a blind apply):
+
+| Situation | Behavior |
+|-----------|----------|
+| Already patched | Heal file modes + restart `update_3` worker if needed |
+| Thunderbolt bus or `thunderbolt*` netdev present | Apply the port-list patch |
+| No Thunderbolt hardware | **Skip** — leave stock dynamix alone |
+
+Manual: `tbn-dashboard-ports apply|remove|status|heal|ensure`.
+
+When it does apply, it edits **exactly two** LimeTech files, each by replacing **one** `grep -Po` pattern that builds the network Interface list:
 
 | File | Role | Why we touch it |
 |------|------|-----------------|

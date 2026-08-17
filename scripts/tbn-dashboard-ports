@@ -213,6 +213,22 @@ status_workers() {
   echo "  other nchan (sample): update_1=$(pgrep -c -f 'nchan/update_1' 2>/dev/null || echo 0) update_2=$(pgrep -c -f 'nchan/update_2' 2>/dev/null || echo 0)"
 }
 
+# True if TB controller or a thunderbolt* netdev is present (worth patching Dashboard).
+tb_present() {
+  if [ -d /sys/bus/thunderbolt ]; then
+    return 0
+  fi
+  local n
+  for n in /sys/class/net/thunderbolt*; do
+    [ -e "$n" ] && return 0
+  done
+  return 1
+}
+
+already_patched() {
+  grep -qF "$MARKER" "$UPDATE3" 2>/dev/null || grep -qF "$MARKER" "$DASH" 2>/dev/null
+}
+
 cmd="${1:-status}"
 case "$cmd" in
   apply)
@@ -223,6 +239,27 @@ case "$cmd" in
       log "done — hard-refresh Dashboard; choose thunderbolt0 in the Interface dropdown"
     else
       log "apply complete"
+    fi
+    ;;
+  ensure)
+    # Array-start safe: do not patch stock dynamix on hosts with no Thunderbolt.
+    # If we already patched (upgrade path), heal modes + worker only.
+    if already_patched; then
+      heal_mode "$UPDATE3"
+      heal_mode "$DASH"
+      if ! pgrep -f 'php -q .*/nchan/update_3' >/dev/null 2>&1; then
+        restart_nchan_update3
+      else
+        heal_mode "$UPDATE3"
+      fi
+      log "ensure: already patched — healed modes"
+    elif tb_present; then
+      apply_file "$UPDATE3"
+      apply_file "$DASH"
+      restart_nchan_update3
+      log "ensure: applied (Thunderbolt present)"
+    else
+      log "ensure: skip stock patch (no Thunderbolt hardware/netdev)"
     fi
     ;;
   remove)
@@ -249,7 +286,7 @@ case "$cmd" in
     status_workers
     ;;
   *)
-    echo "Usage: $0 apply|remove|status|heal" >&2
+    echo "Usage: $0 apply|remove|status|heal|ensure" >&2
     exit 2
     ;;
 esac
