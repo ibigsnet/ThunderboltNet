@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.16aa">
+<!ENTITY version "2026.08.16ab">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,6 +27,11 @@
 
 <CHANGES>
 ###&version;
+- <strong>Install/upgrade:</strong> always removepkg prior ThunderboltNet-* packages and wipe
+  emhttp plugin dirs (canonical + legacy casings) before installing the new .txz — no mixed
+  leftover files after versioned updates.
+
+###2026.08.16aa
 - <strong>Fabric devices:</strong> ID and netdev names use one monospace size on peer and
   service/domain rows; service netdev labeled <em>same as peer</em> (not a second NIC).
 
@@ -67,7 +72,17 @@
 echo "ThunderboltNet: preparing..."
 # Note: do not delete /tmp/plugins/thunderboltnet.plg here — Unraid install working copy
 mkdir -p /boot/config/plugins/ThunderboltNet
-rm -rf /usr/local/emhttp/plugins/ThunderboltNet
+# YYYY.MM.DDxx package names: always remove prior installs so upgradepkg cannot leave mixed files
+for p in /var/log/packages/ThunderboltNet-*; do
+  [ -e "$p" ] || continue
+  echo "ThunderboltNet: removing old package $(basename "$p")"
+  removepkg "$(basename "$p")" 2>/dev/null || true
+done
+# Live tree: canonical path + historical casings from older plugin layouts
+rm -rf /usr/local/emhttp/plugins/ThunderboltNet \
+       /usr/local/emhttp/plugins/thunderboltnet \
+       /usr/local/emhttp/plugins/Thunderboltnet 2>/dev/null || true
+# Cached plugin runtime .txz only (not user config / peers / ifaces)
 rm -f /boot/config/plugins/ThunderboltNet/ThunderboltNet-*.txz 2>/dev/null || true
 echo "ThunderboltNet: ready."
 ]]></INLINE>
@@ -80,6 +95,10 @@ echo "ThunderboltNet: ready."
 <FILE Run="/bin/bash">
 <INLINE><![CDATA[
 echo "ThunderboltNet: finishing install..."
+if [ ! -f /usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php ]; then
+  echo "ThunderboltNet: ERROR — package did not install (missing tbn-lib.php)"
+  exit 1
+fi
 chmod 755 /usr/local/emhttp/plugins/ThunderboltNet/scripts/* 2>/dev/null || true
 chmod 755 /usr/local/emhttp/plugins/ThunderboltNet/event/started 2>/dev/null || true
 mkdir -p /boot/config/plugins/ThunderboltNet
@@ -95,6 +114,7 @@ fi
 php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; tbn_install_net_udev();' 2>/dev/null || true
 /bin/bash /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-net-reapply >/dev/null 2>&1 || true
 udevadm trigger --subsystem-match=net --action=add 2>/dev/null || true
+echo "ThunderboltNet: packages now: $(ls /var/log/packages/ThunderboltNet-* 2>/dev/null | xargs -n1 basename 2>/dev/null | tr '\n' ' ')"
 echo "ThunderboltNet: install complete. Settings → Network Settings → Thunderbolt"
 echo "ThunderboltNet: Hard-refresh the browser (Ctrl+Shift+R)."
 ]]></INLINE>

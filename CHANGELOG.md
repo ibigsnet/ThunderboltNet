@@ -6,6 +6,12 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+###2026.08.16ab
+- **Install/upgrade hygiene:** prepare always `removepkg`s every prior `ThunderboltNet-*`
+  package and wipes emhttp plugin dirs (canonical + legacy casings) before the new `.txz`.
+  Prevents mixed leftover files when Unraid updates across `YYYY.MM.DDxx` package names.
+  Finish step fails loudly if core files did not land.
+
 ###2026.08.16aa
 - Fabric devices table: sysfs IDs and netdev names share one monospace style on peer and
   service/domain rows (detail rows no longer shrink identifiers). Service netdev shows
