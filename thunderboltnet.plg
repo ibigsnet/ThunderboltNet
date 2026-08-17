@@ -4,9 +4,9 @@
 <!ENTITY author "RifleJock">
 <!ENTITY version "2026.08.17aa">
 <!ENTITY launch "Settings/ThunderboltNet">
-<!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
+<!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/stable/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
-<!ENTITY raw "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main">
+<!ENTITY raw "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/stable">
 <!ENTITY forum "https://forums.unraid.net/topic/200065-plugin-thunderbolt-net-host-to-host-networking-over-thunderbolt-345-and-usb44v2/">
 <!ENTITY plugdir "/usr/local/emhttp/plugins/ThunderboltNet">
 <!ENTITY configdir "/boot/config/plugins/ThunderboltNet">
