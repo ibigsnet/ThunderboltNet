@@ -15,3 +15,8 @@ Prefer GitHub push + UI update; avoid routine SSH file edits on the boxes.
 - **No essay prose in the form.** No tip spans, no “live on the interface…” asides, no unverified claims in option labels (`— least bad`, `— usually fails…`). Verified caveats → `docs/` or blue `inline_help` after testing.
 - Bonding WIP notice: only when **Enable bonding = Yes**.
 - Bond name field may stay for now; default `bond-tb0` (not Unraid `bond0`).
+
+## Network Info
+
+Use eth0’s pattern only: `$.post('/plugins/ThunderboltNet/include/tbn-network-info.php', {port}, …)` + `swal`.
+Unraid `$(document).ajaxSend` appends `csrf_token`. Raw `fetch` POST without CSRF exits empty and looks “stuck loading.”

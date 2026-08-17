@@ -1,7 +1,7 @@
 <?php
 /**
- * AJAX: Thunderbolt iface "Info" dialog (eth0 Network Info analogue).
- * POST port=thunderboltN
+ * AJAX: Thunderbolt iface "Info" dialog — same shape as dynamix NetworkInfo.php / eth0.
+ * POST port=thunderboltN  (csrf_token added by Unraid $(document).ajaxSend)
  */
 header('Content-Type: text/html; charset=utf-8');
 header('Cache-Control: no-store');
@@ -44,34 +44,67 @@ if ($parent) {
 }
 $rate = function_exists('tbn_format_link_rate')
   ? tbn_format_link_rate($rx, $tx, ['rx_lanes' => $rl, 'tx_lanes' => $tl])
-  : trim(($rx ?: '—') . ' / ' . ($tx ?: '—'));
+  : trim(($rx ?: '') . ' / ' . ($tx ?: ''));
+if ($rate === '' || $rate === ' / ') {
+  $rate = 'Unknown';
+}
+
+$link = 'Unknown';
+if ($present) {
+  if ($oper === 'up' && ($carrier === '1' || $carrier === '')) {
+    $link = 'Yes';
+  } elseif ($oper !== '') {
+    $link = ucfirst($oper);
+  }
+}
 
 $gw4 = '';
 if ($present) {
-  $gw4 = trim((string)@shell_exec("ip -4 route show default dev " . escapeshellarg($if) . " 2>/dev/null | awk '{print \$3;exit}'"));
+  $gw4 = trim((string)@shell_exec(
+    'ip -4 route show default dev ' . escapeshellarg($if) . " 2>/dev/null | awk '{print \$3;exit}'"
+  ));
 }
+
+// Strip CIDR for eth0-like address column (NetworkInfo shows bare IPs)
+$ipv4 = [];
+foreach ($addrs as $a) {
+  $ipv4[] = preg_replace('#/\d+$#', '', $a);
+}
+$ipv6 = [];
+foreach ($addrs6 as $a) {
+  // skip link-local for the main list (eth0 NetworkInfo uses scope global)
+  if (stripos($a, 'fe80:') === 0) {
+    continue;
+  }
+  $ipv6[] = preg_replace('#/\d+$#', '', $a);
+}
+
 echo "<table style='text-align:left;font-size:1.2rem'>";
 echo "<tr><td>&nbsp;</td><td>&nbsp;</td></tr>";
-echo "<tr><td>Interface:</td><td><code>" . htmlspecialchars($if) . "</code> (" . htmlspecialchars(tbn_label_for_iface($if)) . ")</td></tr>";
-echo "<tr><td>Link state:</td><td>" . htmlspecialchars($oper !== '' ? $oper : 'Unknown')
-  . " · carrier " . htmlspecialchars($carrier === '' ? 'n/a' : $carrier) . "</td></tr>";
-echo "<tr><td>MAC address:</td><td>" . htmlspecialchars($mac !== '' ? $mac : $none) . "</td></tr>";
-echo "<tr><td>Trained rate:</td><td>" . htmlspecialchars($rate !== '' ? $rate : $none) . "</td></tr>";
-echo "<tr><td>Peer name:</td><td>" . htmlspecialchars($peer !== '' ? $peer : $none) . "</td></tr>";
-echo "<tr><td>MTU:</td><td>" . htmlspecialchars($mtu !== '' ? $mtu : $none) . "</td></tr>";
-if ($addrs) {
-  foreach ($addrs as $ip) {
-    echo "<tr><td>IPv4 address:</td><td><code>" . htmlspecialchars($ip) . "</code></td></tr>";
+echo "<tr><td>Interface link:</td><td>" . htmlspecialchars($link) . "</td></tr>";
+echo "<tr><td>Interface speed:</td><td>" . htmlspecialchars($rate) . "</td></tr>";
+if ($peer !== '') {
+  echo "<tr><td>Peer name:</td><td>" . htmlspecialchars($peer) . "</td></tr>";
+}
+if ($mac !== '') {
+  echo "<tr><td>MAC address:</td><td>" . htmlspecialchars($mac) . "</td></tr>";
+}
+if ($mtu !== '') {
+  echo "<tr><td>MTU:</td><td>" . htmlspecialchars($mtu) . "</td></tr>";
+}
+if (count($ipv4)) {
+  foreach ($ipv4 as $ip) {
+    echo "<tr><td>IPv4 address:</td><td>" . htmlspecialchars($ip) . "</td></tr>";
   }
 } else {
   echo "<tr><td>IPv4 address:</td><td>" . $missing . "</td></tr>";
 }
-echo "<tr><td>IPv4 default gateway:</td><td>" . ($gw4 !== '' ? htmlspecialchars($gw4) : $none) . "</td></tr>";
-if ($addrs6) {
-  foreach ($addrs6 as $ip) {
-    echo "<tr><td>IPv6 address:</td><td><code>" . htmlspecialchars($ip) . "</code></td></tr>";
+echo "<tr><td>IPv4 default gateway:</td><td>" . ($gw4 !== '' ? htmlspecialchars($gw4) : $missing) . "</td></tr>";
+if (count($ipv6)) {
+  foreach ($ipv6 as $ip) {
+    echo "<tr><td>IPv6 address:</td><td>" . htmlspecialchars($ip) . "</td></tr>";
   }
 } else {
-  echo "<tr><td>IPv6 address:</td><td>" . $none . "</td></tr>";
+  echo "<tr><td>IPv6 address:</td><td>" . $missing . "</td></tr>";
 }
 echo "</table>";

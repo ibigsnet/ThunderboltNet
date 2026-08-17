@@ -1,3 +1,9 @@
+## 2026.08.17ah
+
+- **Network Info:** use the same `$.post` + `swal` path as eth0. Raw `fetch` POST omitted
+  Unraid’s CSRF token (`local_prepend.php` exits empty) so the custom modal stuck on Loading….
+  Not a separate service — still `include/tbn-network-info.php`, just the stock Unraid AJAX pattern.
+
 ## 2026.08.17ag
 
 - **tbnN closer to eth0:** Desired MTU number field + **Enable jumbo frames** checkbox (not a mode

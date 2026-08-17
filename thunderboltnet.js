@@ -372,45 +372,27 @@
   };
 
   /**
-   * eth0-like Info popup for thunderboltN (see include/tbn-network-info.php).
+   * Same pattern as eth0 networkInfo(): jQuery $.post (CSRF via Unraid ajaxSend) + swal.
+   * Raw fetch POST is rejected by local_prepend.php (missing csrf_token → empty exit).
    */
   window.tbnNetworkInfo = function (port) {
-    if (!port) {
+    if (!port || typeof $ === 'undefined' || typeof $.post !== 'function') {
       return;
     }
-    var title = 'Network Info';
-    function show(html) {
-      var existing = document.getElementById('tbn-netinfo-modal');
-      if (existing) {
-        existing.remove();
+    $.post('/plugins/ThunderboltNet/include/tbn-network-info.php', { port: port }, function (text) {
+      if (typeof swal === 'function') {
+        swal({
+          title: 'Network Info',
+          text: text,
+          animation: 'none',
+          html: true,
+          confirmButtonText: 'Ok'
+        });
+      } else {
+        window.alert(String(text).replace(/<[^>]+>/g, ' '));
       }
-      var wrap = document.createElement('div');
-      wrap.id = 'tbn-netinfo-modal';
-      wrap.setAttribute('role', 'dialog');
-      wrap.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:10000;display:flex;align-items:center;justify-content:center;padding:1rem';
-      wrap.innerHTML = '<div style="background:var(--background-color,#1c1c1c);color:inherit;padding:1.25rem 1.5rem;border-radius:8px;max-width:36rem;width:100%;max-height:80vh;overflow:auto;box-shadow:0 8px 32px rgba(0,0,0,.4)">'
-        + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;gap:1rem">'
-        + '<strong>' + title + '</strong>'
-        + '<button type="button" id="tbn-netinfo-close">Done</button></div>'
-        + html + '</div>';
-      document.body.appendChild(wrap);
-      document.getElementById('tbn-netinfo-close').onclick = function () { wrap.remove(); };
-      wrap.addEventListener('click', function (e) { if (e.target === wrap) wrap.remove(); });
-    }
-    show('<p class="tbn-muted">Loading…</p>');
-    var fd = new FormData();
-    fd.append('port', port);
-    fetch('/plugins/ThunderboltNet/include/tbn-network-info.php', {
-      method: 'POST',
-      body: fd,
-      credentials: 'same-origin',
-      cache: 'no-store'
-    })
-      .then(function (r) { return r.text(); })
-      .then(function (html) { show(html); })
-      .catch(function () { show('<p>Could not load interface info.</p>'); });
+    });
   };
-
   window.tbnConfirmReset = function (form) {
     if (!form) {
       return false;

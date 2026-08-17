@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.17ag">
+<!ENTITY version "2026.08.17ah">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,9 +27,10 @@
 
 <CHANGES>
 ###&version;
-- <strong>tbnN:</strong> closer eth0 layout — Desired MTU + Enable jumbo frames checkbox;
-  VLANs after MTU; bonding WIP only when bonding Yes; no live-IP essay on the form (Info dialog).
-- Main only this build — test on NIROG before CA/stable.
+- <strong>Info:</strong> use eth0-style $.post + swal (fixes CSRF empty hang on Loading…).
+
+###2026.08.17ag
+- tbnN eth0-like MTU/VLAN/bonding cleanup.
 
 ###2026.08.17af
 - Peers legend once; Info dialog; bonding WIP (always) + live IP notes (superseded by ag).
