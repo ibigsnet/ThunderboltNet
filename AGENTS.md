@@ -11,6 +11,7 @@ Prefer GitHub push + UI update; avoid routine SSH file edits on the boxes.
 **main:** OK to push often (small UI/docs/help fixes included) — easier snapshots/restore on NIROG.
 **stable / CA:** never promote casually; only when asked after lab soak on main.
 
+When bumping `&version;`: always `pack-txz.sh` **and commit** `archive/ThunderboltNet-&version;-x86_64-1.txz` in the **same** push as the `.plg`. A version bump without the txz on GitHub raw → Plugins “Invalid URL / Server error” and the box stays on the old version.
 ## Network Settings (tbnN) UI
 
 - **Match eth0** (`/usr/local/emhttp/plugins/dynamix/Eth0.page` on NIROG or read-only 10.1.0.1): description+Info → MAC → bonding → bridging → protocol/addressing → MTU → VLANs.
