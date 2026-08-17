@@ -24,6 +24,29 @@ if (!$has_hw):
       <input type="hidden" name="address_plan" value="<?= htmlspecialchars($cfg['address_plan'] ?? 'small-lan') ?>">
       <input type="hidden" name="openfabric_auto_install_frr" value="<?= htmlspecialchars($cfg['openfabric_auto_install_frr'] ?? 'yes') ?>">
 
+<?php
+  // Preserve OpenFabric keys when the advanced form is hidden (no FRR yet)
+  $of_keys_preserve = [
+    'openfabric_enable', 'openfabric_user_off', 'openfabric_ipv6', 'openfabric_area',
+    'openfabric_router_id', 'openfabric_net', 'openfabric_metric_reference_mbps',
+  ];
+?>
+<?php if (!$frr_present): ?>
+  <?php foreach ($of_keys_preserve as $ok): ?>
+      <input type="hidden" name="<?= htmlspecialchars($ok) ?>" value="<?= htmlspecialchars($cfg[$ok] ?? ($ok === 'openfabric_enable' || $ok === 'openfabric_user_off' ? 'no' : '')) ?>">
+  <?php endforeach; ?>
+  <div class="tbn-section tbn-section-routing">
+    <h3>Multi-hop routing (optional)</h3>
+    <p class="tbn-note">
+      Single-cable static <strong>tbn</strong> IPs work without this.
+      For rings / multi-hop / Proxmox FRR peers, install
+      <a href="#tbn-companion-frr" class="tbn-jump-frr">Fabric Routing</a>
+      (packages). OpenFabric settings appear here automatically when FRR is live —
+      and OpenFabric is turned <strong>on</strong> for you unless you turn it off later.
+      <?= tbn_docs_more_html('docs/routing-openfabric.md', 'When to use OpenFabric ↗') ?>
+    </p>
+  </div>
+<?php else: ?>
   <div class="tbn-section tbn-section-routing tbn-advanced"
        data-tbn-advanced="openfabric"
        data-tbn-default-open="<?= $of_expand_default ? '1' : '0' ?>">
@@ -32,52 +55,15 @@ if (!$has_hw):
       <button type="button" class="tbn-advanced-toggle" data-tbn-adv-toggle="openfabric"
         data-show="Show OpenFabric settings"
         data-hide="Hide OpenFabric settings">Show OpenFabric settings</button>
-<?php if ($frr_present): ?>
       <span class="tbn-advanced-chip tbn-chip-ok"><?= htmlspecialchars($of_mode_label) ?></span>
-<?php elseif ($of_mode === 'openfabric-want-frr'): ?>
-      <a class="tbn-advanced-chip tbn-chip-warn tbn-chip-link" href="#tbn-companion-frr"
-         title="Jump to Multi-hop companion card (install Fabric Routing packages)"><?= htmlspecialchars($of_mode_label) ?> ↗</a>
-<?php else: ?>
-      <span class="tbn-advanced-chip tbn-chip-muted"><?= htmlspecialchars($of_mode_label) ?></span>
-<?php endif; ?>
     </div>
     <p class="tbn-note tbn-advanced-summary">
-      Optional <strong>IP routing fabric</strong> for <strong>rings, multi-hop, and mixed Proxmox/Unraid labs</strong>
-      (reach a host that is not directly cabled; failover when a link drops).
-      <strong>Skip this</strong> if you only use one peer cable with static tbn IPs — that always works without FRR.
-    </p>
-<?php if (!$frr_present): ?>
-    <p class="tbn-note tbn-frr-cta">
-      <strong>Needs FRR packages</strong> (this plugin does not install them).
-      <a href="#tbn-companion-frr" class="tbn-jump-frr">↑ Jump to Multi-hop companion</a>
-      for install status and the Fabric Routing link — then return here for OpenFabric policy (area, metrics, participate).
-      <?= tbn_docs_more_html('docs/routing-openfabric.md', 'When to use OpenFabric ↗') ?>
-    </p>
-<?php else: ?>
-    <p class="tbn-note tbn-advanced-summary">
-      FRR is present — packages/daemons at <a href="/Settings/NetworkSettings" onclick="return ibigsGotoNetTab('Fabric Routing', event)">Network Settings → Fabric Routing</a>.
-      Policy (area, metrics, participate) is on this page.
+      FRR is installed — packages/daemons at
+      <a href="/Settings/NetworkSettings" onclick="return ibigsGotoNetTab('Fabric Routing', event)">Network Settings → Fabric Routing</a>.
+      OpenFabric is enabled by default when FRR is detected (you can set No below).
       <?= tbn_docs_more_html('docs/routing-openfabric.md', 'OpenFabric guide ↗') ?>
-      · <?= tbn_docs_more_html('docs/fabric-proxmox-unraid.md', 'Proxmox + Unraid fabric ↗') ?>
     </p>
-<?php endif; ?>
     <div class="tbn-advanced-body" id="tbn-adv-openfabric"<?= $of_expand_default ? '' : ' hidden' ?>>
-    <dl>
-      <dt>OpenFabric status:</dt>
-      <dd class="tbn-muted">FRR · router-id · metrics · participate</dd>
-    </dl>
-    <blockquote class="inline_help">
-      <strong>What this is:</strong> OpenFabric (FRR <code>fabricd</code>) is an IS-IS–derived <em>IP routing</em> protocol.
-      Thunderbolt Net generates conf, auto <strong>metrics</strong> from trained rate (prefer faster ring hops),
-      and applies when FRR is installed. It is <em>not</em> Thunderbolt domain security and not a kernel module.<br><br>
-      <strong>When you want it:</strong> 3+ hosts, full/partial <strong>rings</strong>, multi-hop “through a neighbor”,
-      hot-plug labs, or interop with <strong>Proxmox/Debian FRR</strong> peers
-      (<?= tbn_docs_more_html('docs/fabric-proxmox-unraid.md', 'mixed fabric guide') ?>).
-      <strong>When you can skip it:</strong> two hosts, one cable, static IPs only — leave packages uninstalled.<br><br>
-      <strong>Who installs FRR?</strong> Not this plugin. Optional companion
-      <a href="#tbn-companion-frr">Fabric Routing</a> (Network Settings → Fabric Routing; packages + daemons), or your own FRR.
-      <?= tbn_help_docs_footer('docs/routing-openfabric.md', 'FRR / OpenFabric (pros, cost, topologies)') ?>
-    </blockquote>
     <?php
       if (!function_exists('tbn_of_status_html')) {
         $__of = '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-openfabric.php';
@@ -85,26 +71,21 @@ if (!$has_hw):
           require_once $__of;
         }
       }
-      echo function_exists('tbn_of_status_html') ? tbn_of_status_html() : '<p class="tbn-muted">OpenFabric module not installed yet — update plugin files.</p>';
+      echo function_exists('tbn_of_status_html') ? tbn_of_status_html() : '';
     ?>
-
-    <?php /* Unraid help: one <dl> per setting, then <blockquote class="inline_help"> as next sibling. */ ?>
 
     <dl>
       <dt>Enable OpenFabric:</dt>
       <dd>
         <select name="openfabric_enable">
-          <?= mk_option($cfg['openfabric_enable'] ?? 'yes', 'yes', 'Yes (default — fabric when FRR available)') ?>
+          <?= mk_option($cfg['openfabric_enable'] ?? 'yes', 'yes', 'Yes (default when FRR is installed)') ?>
           <?= mk_option($cfg['openfabric_enable'] ?? 'yes', 'no', 'No — static underlay only') ?>
         </select>
       </dd>
     </dl>
     <blockquote class="inline_help">
-      <strong>Yes</strong> (product default) — generate OpenFabric config, enable IP forwarding for Thunderbolt multi-hop,
-      ensure router-id on <code>lo</code>, and start/reload FRR <code>fabricd</code> when present.
-      If FRR is missing, behavior degrades to static underlay with a clear status line.<br><br>
-      <strong>No</strong> — never manage fabricd for this plugin; classic tbn static only.
-      Per-link participate/metric remain on each <strong>tbnN</strong> tab when Yes.
+      <strong>Yes</strong> — multi-hop OpenFabric (conf, forwarding, fabricd). Turned on automatically after FRR packages install.<br><br>
+      <strong>No</strong> — static tbn only; we will not auto-enable again until you set Yes.
       <?= tbn_help_docs_footer('docs/routing-openfabric.md', 'Should I enable OpenFabric?') ?>
     </blockquote>
 
@@ -119,7 +100,6 @@ if (!$has_hw):
     </dl>
     <blockquote class="inline_help">
       When Yes, generated conf also runs <code>ipv6 router openfabric</code> on participating ifaces and enables IPv6 forwarding.
-      Use IPv4 only if your fabric peers are v4-only.
     </blockquote>
 
     <dl>
@@ -130,7 +110,7 @@ if (!$has_hw):
       </dd>
     </dl>
     <blockquote class="inline_help">
-      FRR <code>router openfabric &lt;area&gt;</code> tag. Default <strong>1</strong>. All nodes in the same fabric should match.
+      FRR <code>router openfabric &lt;area&gt;</code> tag. Default <strong>1</strong>. All fabric nodes should match.
     </blockquote>
 
     <dl>
@@ -142,9 +122,7 @@ if (!$has_hw):
       </dd>
     </dl>
     <blockquote class="inline_help">
-      Stable IPv4 router-id installed on <code>lo</code> as <code>/32</code> (passive in OpenFabric).
-      Empty = auto from machine-id hash in <code>10.254.0.0/16</code> (lab fabric space — not your LAN).
-      Set explicitly for multi-Unraid labs so peers can document fixed IDs.
+      Stable IPv4 router-id on <code>lo</code> as <code>/32</code>. Empty = auto from machine-id.
     </blockquote>
 
     <dl>
@@ -156,8 +134,7 @@ if (!$has_hw):
       </dd>
     </dl>
     <blockquote class="inline_help">
-      Full IS-IS style NET (e.g. <code>49.0001.xxxx.xxxx.xxxx.00</code>). Empty = generated from router-id.
-      Only override if you are aligning with an existing fabric design (CCIE/lab).
+      Full IS-IS style NET. Empty = generated from router-id.
     </blockquote>
 
     <dl>
@@ -169,16 +146,12 @@ if (!$has_hw):
       </dd>
     </dl>
     <blockquote class="inline_help">
-      Auto interface metric ≈ <code>reference / trained_Mbps</code> (min 1) — same idea as OSPF auto-cost reference bandwidth.
-      Faster trained Thunderbolt links get <strong>lower</strong> cost so rings prefer them.
-      Default <strong>20000</strong> (~20&nbsp;Gbit/s — typical Linux Thunderbolt host-net one-way class).
-      Auto cost ≈ reference ÷ trained Mb/s (floor 1). Links at or above ~20G share metric <strong>1</strong>;
-      use <strong>manual</strong> metric on a tbn tab if a 40/80/100G path (e.g. DAC) must win over 20G Thunderbolt.
+      Auto metric ≈ reference / trained_Mbps (faster paths preferred). Default <strong>20000</strong>.
       Per-link mode/metric: each <strong>tbn</strong> tab.
-      <?= tbn_help_docs_footer('docs/routing-openfabric.md', 'Path cost and metrics') ?>
     </blockquote>
     </div><!-- .tbn-advanced-body openfabric -->
   </div>
+<?php endif; ?>
 
   <div class="tbn-section tbn-advanced"
        data-tbn-advanced="mesh"

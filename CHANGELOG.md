@@ -6,6 +6,10 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+###2026.08.15an
+- OpenFabric default **off**; multi-hop settings hidden until FRR is installed (companion CTA only).
+  When FRR packages appear, OpenFabric is **auto-enabled** (user can set No to opt out permanently until Yes again).
+
 ###2026.08.15am
 - Peer link check defaults **on**; Peers column renamed **Link check** with clearer Match / Checking / Mismatch labels.
   Shared token still required on both hosts for a green match (not FRR).

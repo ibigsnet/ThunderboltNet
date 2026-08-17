@@ -50,8 +50,9 @@ function tbn_load_cfg() {
     'bond_mode' => 'active-backup',
     // Space-separated warning keys the user chose to hide globally (e.g. vfio:0000:11:00.0)
     'ignore_warnings' => '',
-    // OpenFabric / FRR — multi-host fabric (default on; degrades if FRR missing)
-    'openfabric_enable' => 'yes',
+    // OpenFabric / FRR — multi-hop only (default off = static tbn underlay)
+    'openfabric_enable' => 'no',
+    'openfabric_user_off' => 'no',
     'openfabric_auto_install_frr' => 'yes',
     'openfabric_ipv6' => 'yes',
     'openfabric_area' => '1',
@@ -1828,6 +1829,10 @@ function tbn_diagnostics_text() {
  */
 function tbn_status() {
   $cfg = tbn_load_cfg();
+  // FRR installed → OpenFabric on (unless user explicitly turned it off)
+  if (function_exists('tbn_of_maybe_auto_enable_from_frr')) {
+    $cfg = tbn_of_maybe_auto_enable_from_frr($cfg);
+  }
   // Peer link check defaults on: ensure a token exists and is saved once
   if (function_exists('tbn_mesh_ensure_token') && function_exists('tbn_write_global_cfg')) {
     $before = trim((string)($cfg['mesh_token'] ?? ''));
@@ -3080,7 +3085,8 @@ function tbn_write_global_cfg(array $cfg) {
     'bond_name' => 'bond-tb0',
     'bond_mode' => 'active-backup',
     'ignore_warnings' => '',
-    'openfabric_enable' => 'yes',
+    'openfabric_enable' => 'no',
+    'openfabric_user_off' => 'no',
     'openfabric_auto_install_frr' => 'yes',
     'openfabric_ipv6' => 'yes',
     'openfabric_area' => '1',

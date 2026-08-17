@@ -10,14 +10,24 @@ if (is_file($mesh_php)) {
 
 $cfg = tbn_load_cfg();
 
-// Auto-generate mesh token when enabling fabric reports
+// Remember explicit OpenFabric No so a later FRR install does not force it back on
+if (function_exists('tbn_write_global_cfg')) {
+  if (($cfg['openfabric_enable'] ?? 'no') === 'no') {
+    $cfg['openfabric_user_off'] = 'yes';
+  } else {
+    $cfg['openfabric_user_off'] = 'no';
+  }
+  tbn_write_global_cfg($cfg);
+  $cfg = tbn_load_cfg();
+}
+
+// Auto-generate mesh token when enabling peer link check
 if (function_exists('tbn_mesh_ensure_token')) {
   $live = tbn_load_cfg();
   tbn_mesh_ensure_token($live);
   if (trim((string)($live['mesh_token'] ?? '')) !== '' && function_exists('tbn_write_global_cfg')) {
-    // If form left token empty but report=yes, persist generated token
     $form_tok = trim((string)($cfg['mesh_token'] ?? ''));
-    if (($live['mesh_report'] ?? 'no') === 'yes' && $form_tok === '') {
+    if (($live['mesh_report'] ?? 'yes') === 'yes' && $form_tok === '') {
       tbn_write_global_cfg($live);
     }
   }

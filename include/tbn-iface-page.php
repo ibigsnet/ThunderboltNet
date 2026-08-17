@@ -255,6 +255,16 @@ if (strpos($nm, '.') === false) {
     </blockquote>
 <?php endif; ?>
 
+<?php
+  $tbn_frr_live = false;
+  if (function_exists('tbn_of_frr_detect')) {
+    $tbn_frr_live = !empty(tbn_of_frr_detect()['present']);
+  } elseif (is_file('/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-openfabric.php')) {
+    require_once '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-openfabric.php';
+    $tbn_frr_live = function_exists('tbn_of_frr_detect') && !empty(tbn_of_frr_detect()['present']);
+  }
+?>
+<?php if ($tbn_frr_live): ?>
     <div class="tbn-section-openfabric">
       <dl>
         <dt>OpenFabric participate:</dt>
@@ -299,6 +309,11 @@ if (strpos($nm, '.') === false) {
         Used only when metric mode is Manual. Leave empty for auto even if mode is manual (falls back to auto).
       </blockquote>
     </div>
+<?php else: ?>
+    <input type="hidden" name="OPENFABRIC_PARTICIPATE" value="<?= htmlspecialchars($cfg['OPENFABRIC_PARTICIPATE'] ?? 'yes') ?>">
+    <input type="hidden" name="OPENFABRIC_METRIC_MODE" value="<?= htmlspecialchars($cfg['OPENFABRIC_METRIC_MODE'] ?? 'auto') ?>">
+    <input type="hidden" name="OPENFABRIC_METRIC" value="<?= htmlspecialchars($cfg['OPENFABRIC_METRIC'] ?? '') ?>">
+<?php endif; ?>
 
     <div class="tbn-section-bridge">
       <dl>

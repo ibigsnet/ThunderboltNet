@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.15am">
+<!ENTITY version "2026.08.15an">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,6 +27,10 @@
 
 <CHANGES>
 ###&version;
+- <strong>OpenFabric:</strong> default off; settings hidden until FRR packages are installed.
+  Installing FRR auto-enables OpenFabric (opt out once with Enable=No).
+
+###2026.08.15am
 - <strong>Peer link check</strong> defaults <strong>on</strong> (Peers column: Link check).
   Clearer header/labels; shared token still required on both Unraid hosts for green Match.
 
@@ -49,10 +53,6 @@
 ###2026.08.15ah
 - <strong>CA / standalone Settings:</strong> orange Network Settings redirect banner shows on
   <strong>all</strong> sub-tabs (Status · Peers · Hardware · Settings), not only Status.
-
-###2026.08.15ag
-- **Uninstall:** remove all plugin-owned flash config and runtime scratch (clean reinstall).
-- No longer preserve peers.json/ifaces on flash after remove.
 
 ### Older releases
 - Full changelog (all versions): https://github.com/ibigsnet/ThunderboltNet/blob/main/CHANGELOG.md

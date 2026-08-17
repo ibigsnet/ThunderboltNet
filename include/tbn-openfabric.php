@@ -41,7 +41,40 @@ function tbn_of_enabled(array $cfg = null) {
   if ($cfg === null) {
     $cfg = tbn_load_cfg();
   }
-  return ($cfg['openfabric_enable'] ?? 'yes') === 'yes';
+  return ($cfg['openfabric_enable'] ?? 'no') === 'yes';
+}
+
+/**
+ * When FRR packages become available, turn OpenFabric on automatically (plug-and-play).
+ * If the user later sets Enable=No, we set openfabric_user_off=yes and do not re-force.
+ * Call from status / apply paths (idempotent).
+ *
+ * @return array updated cfg
+ */
+function tbn_of_maybe_auto_enable_from_frr(array $cfg = null) {
+  if ($cfg === null) {
+    $cfg = tbn_load_cfg();
+  }
+  if (!function_exists('tbn_of_frr_detect')) {
+    return $cfg;
+  }
+  $frr = tbn_of_frr_detect();
+  if (empty($frr['present'])) {
+    return $cfg;
+  }
+  // User explicitly turned OpenFabric off while FRR was available
+  if (($cfg['openfabric_user_off'] ?? 'no') === 'yes') {
+    return $cfg;
+  }
+  if (($cfg['openfabric_enable'] ?? 'no') === 'yes') {
+    return $cfg;
+  }
+  $cfg['openfabric_enable'] = 'yes';
+  $cfg['openfabric_user_off'] = 'no';
+  if (function_exists('tbn_write_global_cfg')) {
+    @tbn_write_global_cfg($cfg);
+  }
+  return $cfg;
 }
 
 /**
@@ -589,13 +622,15 @@ function tbn_of_status() {
   $enabled = tbn_of_enabled($cfg);
   $ifaces = tbn_of_participate_ifaces($cfg);
 
+  // Without FRR packages: always static underlay for status (no scary “want FRR” fault line).
+  // Multi-hop CTA lives on the companion card / short Settings note instead.
   $mode = 'static-only';
-  if ($enabled && !empty($frr['running'])) {
-    $mode = 'openfabric-running';
-  } elseif ($enabled && !empty($frr['present'])) {
-    $mode = 'openfabric-ready';
-  } elseif ($enabled) {
-    $mode = 'openfabric-want-frr';
+  if (!empty($frr['present'])) {
+    if ($enabled && !empty($frr['running'])) {
+      $mode = 'openfabric-running';
+    } elseif ($enabled) {
+      $mode = 'openfabric-ready';
+    }
   }
 
   $neighbors = '';
@@ -630,9 +665,9 @@ function tbn_of_status_html() {
   $mode = $st['mode'];
   $label = [
     'openfabric-running' => 'OpenFabric running',
-    'openfabric-ready' => 'FRR present — apply to start / reload',
-    'openfabric-want-frr' => 'OpenFabric on — FRR not installed (static underlay)',
-    'static-only' => 'OpenFabric off — static underlay only',
+    'openfabric-ready' => 'FRR ready — OpenFabric can run',
+    'openfabric-want-frr' => 'Static underlay',
+    'static-only' => 'Static underlay',
   ][$mode] ?? $mode;
 
   $html = '<table class="tbn-table tbn-summary">';
