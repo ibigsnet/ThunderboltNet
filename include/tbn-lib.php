@@ -2704,12 +2704,12 @@ function tbn_iface_mtu_limits($if) {
  * Normalize MTU_MODE + USE_MTU/MTU (legacy) → mode string.
  */
 function tbn_normalize_mtu_mode(array $cfg) {
-  $mode = strtolower(trim((string)($cfg['MTU_MODE'] ?? '')));
-  if (in_array($mode, ['default', '9000', 'custom'], true)) {
-    return $mode;
+  // eth0-style checkbox wins when present (form posts USE_MTU=yes|no)
+  $use = strtolower(trim((string)($cfg['USE_MTU'] ?? '')));
+  if ($use === 'no' || $use === '0') {
+    return 'default';
   }
-  // Legacy: USE_MTU=yes + value
-  if (($cfg['USE_MTU'] ?? 'no') === 'yes') {
+  if ($use === 'yes' || $use === '1') {
     $v = (int)($cfg['MTU'] ?? 0);
     if ($v === 9000) {
       return '9000';
@@ -2717,6 +2717,11 @@ function tbn_normalize_mtu_mode(array $cfg) {
     if ($v >= 68) {
       return 'custom';
     }
+    return 'default';
+  }
+  $mode = strtolower(trim((string)($cfg['MTU_MODE'] ?? '')));
+  if (in_array($mode, ['default', '9000', 'custom'], true)) {
+    return $mode;
   }
   return 'default';
 }

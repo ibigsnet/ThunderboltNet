@@ -71,7 +71,7 @@ Does **not** register Thunderbolt in stock **Interface Rules** (MAC→name). Hos
 | IPv4 address / mask | 10.255.N.2 / 24 | Unique subnet per N |
 | IPv4 default gateway | empty | Optional next hop on this link |
 | Enable default route | No | Don’t steal system default from eth0 |
-| Desired MTU | **1500** (default) | Modes: **1500** · **9000 both ends** · Custom. Not negotiated to peer. Jumbo optional. See [mtu-and-throughput.md](mtu-and-throughput.md) |
+| Desired MTU | **1500** (default) | Same as eth0: number field + **Enable jumbo frames** checkbox. Jumbo often 9000; peers must match. See [mtu-and-throughput.md](mtu-and-throughput.md) |
 | Unraid services on this link (listening) | No (recommend Yes for SMB/NFS/web) | Per peer; remembered; overview table + Harden all. Does **not** start NBD — use **NBD Export** (Network Services → NBD) and bind to the Thunderbolt IP. |
 | Link rate (Known peers / quality) | (live / last) | Equal RX≈TX → **N Gb/s full-duplex** (optional · N-lane). Asymmetric → **TX … (to peer) · RX … (from peer)**. |
 | IPv4 (live) | (live) | Read-only from kernel |

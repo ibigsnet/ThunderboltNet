@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.17af">
+<!ENTITY version "2026.08.17ag">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,10 +27,12 @@
 
 <CHANGES>
 ###&version;
-- <strong>Peers:</strong> remove duplicate Link check legend (one panel only).
-- <strong>tbnN:</strong> drop stray “Overview / fabric…” footer; clarify kernel-now vs form IP;
-  always show bonding with experimental WIP warning; Info button (Network Info dialog).
-- Lab channel: main only this build — test before CA/stable.
+- <strong>tbnN:</strong> closer eth0 layout — Desired MTU + Enable jumbo frames checkbox;
+  VLANs after MTU; bonding WIP only when bonding Yes; no live-IP essay on the form (Info dialog).
+- Main only this build — test on NIROG before CA/stable.
+
+###2026.08.17af
+- Peers legend once; Info dialog; bonding WIP (always) + live IP notes (superseded by ag).
 
 ###2026.08.17ae
 - Fix Status/Peers/Hardware/Settings sub-tabs after tbnN-before-overview reorder (#tbn-overview).

@@ -50,9 +50,6 @@ $gw4 = '';
 if ($present) {
   $gw4 = trim((string)@shell_exec("ip -4 route show default dev " . escapeshellarg($if) . " 2>/dev/null | awk '{print \$3;exit}'"));
 }
-$cfg = tbn_load_iface_cfg($if);
-$cfg_ip = trim((string)($cfg['IPADDR'] ?? ''));
-
 echo "<table style='text-align:left;font-size:1.2rem'>";
 echo "<tr><td>&nbsp;</td><td>&nbsp;</td></tr>";
 echo "<tr><td>Interface:</td><td><code>" . htmlspecialchars($if) . "</code> (" . htmlspecialchars(tbn_label_for_iface($if)) . ")</td></tr>";
@@ -62,22 +59,19 @@ echo "<tr><td>MAC address:</td><td>" . htmlspecialchars($mac !== '' ? $mac : $no
 echo "<tr><td>Trained rate:</td><td>" . htmlspecialchars($rate !== '' ? $rate : $none) . "</td></tr>";
 echo "<tr><td>Peer name:</td><td>" . htmlspecialchars($peer !== '' ? $peer : $none) . "</td></tr>";
 echo "<tr><td>MTU:</td><td>" . htmlspecialchars($mtu !== '' ? $mtu : $none) . "</td></tr>";
-if ($cfg_ip !== '') {
-  echo "<tr><td>Configured IPv4:</td><td><code>" . htmlspecialchars($cfg_ip) . "</code> <span class='tbn-muted'>(form / flash)</span></td></tr>";
-}
 if ($addrs) {
   foreach ($addrs as $ip) {
-    echo "<tr><td>IPv4 (kernel):</td><td><code>" . htmlspecialchars($ip) . "</code></td></tr>";
+    echo "<tr><td>IPv4 address:</td><td><code>" . htmlspecialchars($ip) . "</code></td></tr>";
   }
 } else {
-  echo "<tr><td>IPv4 (kernel):</td><td>" . $missing . "</td></tr>";
+  echo "<tr><td>IPv4 address:</td><td>" . $missing . "</td></tr>";
 }
 echo "<tr><td>IPv4 default gateway:</td><td>" . ($gw4 !== '' ? htmlspecialchars($gw4) : $none) . "</td></tr>";
 if ($addrs6) {
   foreach ($addrs6 as $ip) {
-    echo "<tr><td>IPv6 (kernel):</td><td><code>" . htmlspecialchars($ip) . "</code></td></tr>";
+    echo "<tr><td>IPv6 address:</td><td><code>" . htmlspecialchars($ip) . "</code></td></tr>";
   }
 } else {
-  echo "<tr><td>IPv6 (kernel):</td><td>" . $none . "</td></tr>";
+  echo "<tr><td>IPv6 address:</td><td>" . $none . "</td></tr>";
 }
 echo "</table>";

@@ -646,13 +646,28 @@
     var vlan = form.VLAN_ENABLE ? form.VLAN_ENABLE.value : 'no';
     tbnShow(form.querySelector('.tbn-vlan-opts'), vlan === 'yes' && !slave);
 
-    var mtuMode = form.MTU_MODE ? form.MTU_MODE.value : 'default';
-    tbnShow(form.querySelector('.tbn-mtu-custom-wrap'), mtuMode === 'custom' && !slave);
-    if (form.USE_MTU) {
-      form.USE_MTU.value = mtuMode === 'default' ? 'no' : 'yes';
-    }
-    if (mtuMode === '9000' && form.MTU && !form.MTU.value) {
-      form.MTU.value = '9000';
+    // eth0-like: Desired MTU number + Enable jumbo frames checkbox
+    var mtuInput = form.querySelector('input.tbn-mtu-input') || form.MTU;
+    var jumboCb = form.querySelector('input.tbn-ctl-mtu[type="checkbox"]');
+    var mtuModeEl = form.querySelector('input.tbn-mtu-mode');
+    if (jumboCb && mtuInput) {
+      var jumbo = !slave && jumboCb.checked;
+      mtuInput.disabled = !jumbo;
+      if (jumbo && !mtuInput.value) {
+        mtuInput.value = '9000';
+      }
+      if (!jumbo) {
+        mtuInput.value = '';
+      }
+      if (mtuModeEl) {
+        if (!jumbo) {
+          mtuModeEl.value = 'default';
+        } else if (String(mtuInput.value) === '9000') {
+          mtuModeEl.value = '9000';
+        } else {
+          mtuModeEl.value = 'custom';
+        }
+      }
     }
 
     tbnSyncBondMembers(form);
@@ -677,6 +692,19 @@
     }
     form.addEventListener('submit', function () {
       tbnSyncBondMembers(form);
+      // eth0: when jumbo off, clear/disable MTU so Apply stores default 1500
+      var jumboCb = form.querySelector('input.tbn-ctl-mtu[type="checkbox"]');
+      var mtuInput = form.querySelector('input.tbn-mtu-input') || form.MTU;
+      var mtuModeEl = form.querySelector('input.tbn-mtu-mode');
+      if (jumboCb && mtuInput && !jumboCb.checked) {
+        mtuInput.disabled = false;
+        mtuInput.value = '';
+        if (mtuModeEl) {
+          mtuModeEl.value = 'default';
+        }
+      } else if (jumboCb && mtuInput && jumboCb.checked && mtuModeEl) {
+        mtuModeEl.value = String(mtuInput.value) === '9000' ? '9000' : 'custom';
+      }
     });
   };
 

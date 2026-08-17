@@ -172,42 +172,40 @@ if (strpos($nm, '.') === false) {
   $n_tb_live = count($tb_ifaces);
 ?>
     <div class="tbn-section-bond">
-      <div class="tbn-notice tbn-bond-wip" role="status">
-        <strong>Bonding — experimental / WIP.</strong>
-        Not recommended for normal use yet. Dual-cable to the <em>same</em> peer often still yields one netdev;
-        Thunderbolt slaves may reject <code>set_mac</code> (many bond modes fail). Prefer one cable per peer + static IP.
-        Leaving this on <strong>No</strong> is the safe default.
-      </div>
       <dl>
         <dt>Enable bonding:</dt>
         <dd>
           <select name="BONDING" class="tbn-ctl-bond" <?= $is_bond_slave ? 'disabled' : '' ?>>
             <?= mk_option($cfg['BONDING'] ?? 'no', 'no', 'No') ?>
-            <?= mk_option($cfg['BONDING'] ?? 'no', 'yes', 'Yes (experimental)') ?>
+            <?= mk_option($cfg['BONDING'] ?? 'no', 'yes', 'Yes') ?>
           </select>
         </dd>
       </dl>
       <blockquote class="inline_help">
-        Thunderbolt-only Linux bond (<code>bond-tb0</code>, …), not Unraid eth <code>bond0</code>.
-        Needs <strong>two or more live</strong> <code>thunderbolt*</code> netdevs. Apply with fewer than two members is ignored.
+        Thunderbolt-only bond (<code>bond-tb0</code>, …), not Unraid eth <code>bond0</code>.
+        Needs two or more live <code>thunderbolt*</code> members.
         <?= tbn_help_docs_footer('docs/links-and-topology.md', 'Links, bonding & topology') ?>
       </blockquote>
 
       <div class="tbn-bond-opts tbn-hidden">
+        <div class="tbn-notice tbn-bond-wip" role="status">
+          <strong>Bonding — experimental / WIP.</strong>
+          Prefer one cable per peer until multi-member paths are verified.
+          <?= tbn_help_docs_footer('docs/links-and-topology.md', 'Bonding notes') ?>
+        </div>
         <dl>
           <dt>Bonding mode:</dt>
           <dd>
             <select name="BONDING_MODE">
-              <?= mk_option($cfg['BONDING_MODE'] ?? 'active-backup', 'active-backup', 'active-backup (1) — least bad') ?>
+              <?= mk_option($cfg['BONDING_MODE'] ?? 'active-backup', 'active-backup', 'active-backup (1)') ?>
               <?= mk_option($cfg['BONDING_MODE'] ?? 'active-backup', 'balance-rr', 'balance-rr (0)') ?>
               <?= mk_option($cfg['BONDING_MODE'] ?? 'active-backup', 'balance-xor', 'balance-xor (2)') ?>
-              <?= mk_option($cfg['BONDING_MODE'] ?? 'active-backup', '802.3ad', '802.3ad (4) — usually fails on Thunderbolt') ?>
+              <?= mk_option($cfg['BONDING_MODE'] ?? 'active-backup', '802.3ad', '802.3ad (4)') ?>
             </select>
           </dd>
         </dl>
         <blockquote class="inline_help">
-          Prefer <strong>active-backup</strong> if you truly have two Thunderbolt netdevs. 802.3ad/LACP is a poor fit
-          for <code>thunderbolt_net</code>.
+          Same mode names as eth0. See docs for Thunderbolt bonding caveats.
         </blockquote>
 
         <dl>
@@ -443,6 +441,58 @@ if (strpos($nm, '.') === false) {
       </div>
     </div>
 
+    <dl>
+      <dt>Include listening interface:</dt>
+      <dd>
+        <select name="INCLUDE_LISTENING">
+          <?= mk_option($cfg['INCLUDE_LISTENING'] ?? 'no', 'no', 'No') ?>
+          <?= mk_option($cfg['INCLUDE_LISTENING'] ?? 'no', 'yes', 'Yes') ?>
+        </select>
+      </dd>
+    </dl>
+    <blockquote class="inline_help">
+      Adds <code><?= htmlspecialchars($if) ?></code> to Unraid <code>include_interfaces</code> (SMB/NFS/SSH/UI).
+      Prefer overview <strong>Known peers → Unraid services</strong> for day-to-day.
+    </blockquote>
+
+<?php
+  $mtu_mode = tbn_normalize_mtu_mode($cfg);
+  $mtu_lim = tbn_iface_mtu_limits($if);
+  $mtu_use = ($mtu_mode !== 'default');
+  $mtu_val = '';
+  if ($mtu_use) {
+    if ($mtu_mode === '9000') {
+      $mtu_val = '9000';
+    } elseif (($cfg['MTU'] ?? '') !== '') {
+      $mtu_val = (string)$cfg['MTU'];
+    }
+  }
+  $jumbo_title = "Allows ethernet frames larger than 1500 bytes.\n"
+    . "Peers must match; mismatched MTU can drop or stall traffic.\n"
+    . "Use with care.";
+?>
+    <dl>
+      <dt>Desired MTU:</dt>
+      <dd>
+        <input type="number" name="MTU" class="narrow tbn-mtu-input" min="<?= (int)$mtu_lim['min'] ?>"
+          max="<?= (int)min(9198, (int)$mtu_lim['max']) ?>" placeholder="1500"
+          value="<?= htmlspecialchars($mtu_val) ?>"
+          <?= ($mtu_use && !$is_bond_slave) ? '' : 'disabled' ?>>
+        <span>
+          <input type="hidden" name="USE_MTU" value="no">
+          <input type="checkbox" name="USE_MTU" value="yes" class="tbn-ctl-mtu"
+            <?= $mtu_use ? 'checked' : '' ?> <?= $is_bond_slave ? 'disabled' : '' ?>>
+          Enable jumbo frames
+          <i class="fa fa-info-circle blue-text hand" title="<?= htmlspecialchars($jumbo_title) ?>"></i>
+        </span>
+        <input type="hidden" name="MTU_MODE" class="tbn-mtu-mode" value="<?= htmlspecialchars($mtu_mode) ?>">
+      </dd>
+    </dl>
+    <blockquote class="inline_help">
+      Same control as eth0: leave unchecked for 1500; enable jumbo to set a larger MTU (often 9000).
+      <?= tbn_help_docs_footer('docs/mtu-and-throughput.md', 'MTU & throughput') ?>
+    </blockquote>
+
     <div class="tbn-section-vlan <?= $is_bond_slave ? 'tbn-disabled-block' : '' ?>">
       <dl>
         <dt>Enable VLANs:</dt>
@@ -454,7 +504,7 @@ if (strpos($nm, '.') === false) {
         </dd>
       </dl>
       <blockquote class="inline_help">
-        Creates Linux VLAN subinterfaces <code><?= htmlspecialchars($if) ?>.VID</code> (802.1Q), similar to eth trunk ports.
+        Creates <code><?= htmlspecialchars($if) ?>.VID</code> (802.1Q), similar to eth trunk ports.
       </blockquote>
       <div class="tbn-vlan-opts tbn-hidden">
         <dl>
@@ -466,8 +516,7 @@ if (strpos($nm, '.') === false) {
           </dd>
         </dl>
         <blockquote class="inline_help">
-          Space- or comma-separated VLAN IDs (1–4094). Apply creates/updates each
-          <code><?= htmlspecialchars($if) ?>.ID</code>. Change list and Apply to rebuild rows’ saved addresses.
+          Space- or comma-separated VLAN IDs (1–4094). Apply, then reopen this tab to edit new IDs.
         </blockquote>
 <?php foreach ($vlan_ids as $vid):
   $p = 'VLAN_' . $vid . '_';
@@ -513,109 +562,8 @@ if (strpos($nm, '.') === false) {
           </dl>
         </div>
 <?php endforeach; ?>
-<?php if ($vlan_ids && ($cfg['VLAN_ENABLE'] ?? 'no') === 'yes'): ?>
-        <p class="tbn-hint">After changing the VLAN list, Apply once, reopen this tab to edit addresses for new IDs.</p>
-<?php endif; ?>
       </div>
     </div>
-
-<?php
-  $mtu_mode = tbn_normalize_mtu_mode($cfg);
-  $mtu_lim = tbn_iface_mtu_limits($if);
-  $mtu_live = ($live['mtu'] ?? '') !== ''
-    ? $live['mtu']
-    : tbn_sysfs_str('/sys/class/net/' . $if . '/mtu');
-  $mtu_custom = ($cfg['MTU'] ?? '') !== '' ? (string)$cfg['MTU'] : '9000';
-  if ($mtu_mode === '9000') {
-    $mtu_custom = '9000';
-  }
-?>
-    <dl>
-      <dt>Desired MTU:</dt>
-      <dd>
-        <select name="MTU_MODE" class="tbn-ctl-mtu" <?= $is_bond_slave ? 'disabled' : '' ?>>
-          <?= mk_option($mtu_mode, 'default', '1500 — kernel default (compatible first plug)') ?>
-          <?= mk_option($mtu_mode, '9000', '9000 — jumbo (set on both ends)') ?>
-          <?= mk_option($mtu_mode, 'custom', 'Custom…') ?>
-        </select>
-        <span class="tbn-mtu-custom-wrap <?= $mtu_mode === 'custom' ? '' : 'tbn-hidden' ?>">
-          <input type="number" name="MTU" class="narrow tbn-mtu-custom" min="<?= (int)$mtu_lim['min'] ?>"
-            max="<?= (int)$mtu_lim['max'] ?>" placeholder="9000"
-            value="<?= htmlspecialchars($mtu_custom) ?>" <?= $is_bond_slave ? 'disabled' : '' ?>>
-        </span>
-        <input type="hidden" name="USE_MTU" value="<?= $mtu_mode === 'default' ? 'no' : 'yes' ?>">
-      </dd>
-    </dl>
-    <blockquote class="inline_help">
-      Live: <strong><?= htmlspecialchars(tbn_format_mtu_live($mtu_live, $mtu_mode)) ?></strong>
-      · driver allows <?= (int)$mtu_lim['min'] ?>–<?= (int)$mtu_lim['max'] ?>.
-      Product default is <strong>1500</strong> so first plug works with any peer still on 1500.<br><br>
-      MTU is <strong>not negotiated</strong> to the other host — setting 9000 here does not make the peer use 9000.
-      In our testing, jumbo did not move TCP much past ~13–14&nbsp;Gbit/s on a 1-lane path; it can cut retrans/CPU a bit
-      if <strong>both ends</strong> match. Mismatch (9000 vs 1500) can drop or stall traffic.
-      Optional: set <strong>9000 on both ends</strong> for bulk if you care about fewer packets/s.
-      <?= tbn_help_docs_footer('docs/mtu-and-throughput.md', 'MTU & throughput') ?>
-    </blockquote>
-
-    <dl>
-      <dt>Include listening interface:</dt>
-      <dd>
-        <select name="INCLUDE_LISTENING">
-          <?= mk_option($cfg['INCLUDE_LISTENING'] ?? 'no', 'no', 'No') ?>
-          <?= mk_option($cfg['INCLUDE_LISTENING'] ?? 'no', 'yes', 'Yes') ?>
-        </select>
-      </dd>
-    </dl>
-    <blockquote class="inline_help">
-      Puts this <strong>netdev</strong> (<code><?= htmlspecialchars($if) ?></code>) into Unraid
-      <code>network-extra.cfg</code> <em>include_interfaces</em> so host SMB / NFS / SSH / web UI can bind on
-      its address. This is an interface list — not a peer list.<br><br>
-      Day-to-day: prefer overview <strong>Known peers → Unraid services</strong> (remembers Yes/No per host and
-      re-applies when that peer reconnects). This tab control is the live override for this iface (useful when
-      the IP lives on the Thunderbolt interface itself). Bond/bridge names (<code>bond-tb0</code> / <code>br-tb0</code>)
-      are reserved for when addressing sits on those masters; host-service include today keys off
-      <code>thunderboltN</code> via peers/tabs.
-    </blockquote>
-
-<?php
-  $cfg_ip = trim((string)($cfg['IPADDR'] ?? ''));
-  $live_ip_disp = $addrs ? implode(', ', $addrs) : '—';
-  $live_mismatch = ($cfg_ip !== '' && $addrs && !in_array($cfg_ip, array_map(function ($a) {
-    return preg_replace('#/\d+$#', '', $a);
-  }, $addrs), true));
-?>
-    <dl>
-      <dt>IPv4 (kernel now):</dt>
-      <dd>
-        <code class="tbn-live" data-tbn-live-ip4="<?= htmlspecialchars($if) ?>"><?= htmlspecialchars($live_ip_disp) ?></code>
-        <span class="tbn-muted"> — live on the interface (not the form until Apply)</span>
-      </dd>
-    </dl>
-    <dl>
-      <dt>IPv6 (kernel now):</dt>
-      <dd>
-        <code class="tbn-live" data-tbn-live-ip6="<?= htmlspecialchars($if) ?>"><?= htmlspecialchars($addrs6 ? implode(', ', $addrs6) : '—') ?></code>
-      </dd>
-    </dl>
-<?php if ($live_mismatch): ?>
-    <div class="tbn-notice" role="status" style="max-width:40rem">
-      <p style="margin:0">
-        Form is set to <code><?= htmlspecialchars($cfg_ip) ?></code> but the kernel still has
-        <code><?= htmlspecialchars($live_ip_disp) ?></code>. Click <strong>Apply</strong> to push the form address
-        (or wait if Apply just ran — refresh if it still differs).
-      </p>
-    </div>
-<?php endif; ?>
-    <dl>
-      <dt>Bond / bridge membership:</dt>
-      <dd>
-        <span class="tbn-live"><?= htmlspecialchars($membership ? implode(' ', $membership) : ($master !== '' ? $master : 'none')) ?></span>
-      </dd>
-    </dl>
-    <blockquote class="inline_help">
-      <strong>IPv4 address</strong> above is what you configure (saved on flash).
-      <strong>Kernel now</strong> is what Linux currently has on <code><?= htmlspecialchars($if) ?></code> — it only changes after a successful Apply (or hotplug reapply of a peer plan).
-    </blockquote>
 
     <p class="tbn-actions">
       <input type="submit" name="#apply" value="Apply" <?= $is_bond_slave ? '' : 'disabled' ?>>
