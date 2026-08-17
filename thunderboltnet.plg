@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.17ac">
+<!ENTITY version "2026.08.17ad">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,6 +27,9 @@
 
 <CHANGES>
 ###&version;
+- Packaging follow-up for 2026.08.17ac (Mbps speed format edge case).
+
+###2026.08.17ac
 - <strong>Tab order:</strong> tbnN after Wireless, Thunderbolt overview after tbnN (before Interface Extra).
   Overview icon <code>fa-bolt</code>; tbnN keeps sitemap.
 - <strong>Peers UX:</strong> clearer Live IPv4 / Peer plan / toolbar; link rate “using N of M lanes”;
@@ -44,12 +47,6 @@
 
 ###2026.08.16af
 - Dashboard clock: preserve +x on dynamix nchan update_3.
-
-###2026.08.16ae
-- Boot lifecycle: udev + L3 on startup and array started.
-
-###2026.08.16ad
-- Peer plans by fabric UUID; Forget selected peers.
 
 ### Older releases
 - Full changelog: https://github.com/ibigsnet/ThunderboltNet/blob/main/CHANGELOG.md

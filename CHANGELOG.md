@@ -1,3 +1,7 @@
+## 2026.08.17ad
+
+- Packaging: Mbps→Gb/s heuristic in `tbn_format_gbps` for large numeric speeds (sysfs strings unchanged).
+
 ## 2026.08.17ac
 
 - **Network Settings tab order:** tbnN tabs at `1010+N` (after stock Wireless `1000`); Thunderbolt overview at `1080` (after tbnN, before Interface Extra). Overview icon **bolt** / `fa-bolt`; tbnN keeps sitemap.
