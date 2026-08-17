@@ -6,6 +6,11 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+###2026.08.16aa
+- Fabric devices table: sysfs IDs and netdev names share one monospace style on peer and
+  service/domain rows (detail rows no longer shrink identifiers). Service netdev shows
+  **same as peer** so `thunderbolt0` is not read as two different NICs.
+
 ###2026.08.15an
 - OpenFabric default **off**; multi-hop settings hidden until FRR is installed (companion CTA only).
   When FRR packages appear, OpenFabric is **auto-enabled** (user can set No to opt out permanently until Yes again).

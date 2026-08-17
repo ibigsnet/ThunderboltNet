@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.15an">
+<!ENTITY version "2026.08.16aa">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,6 +27,10 @@
 
 <CHANGES>
 ###&version;
+- <strong>Fabric devices:</strong> ID and netdev names use one monospace size on peer and
+  service/domain rows; service netdev labeled <em>same as peer</em> (not a second NIC).
+
+###2026.08.15an
 - <strong>OpenFabric:</strong> default off; settings hidden until FRR packages are installed.
   Installing FRR auto-enables OpenFabric (opt out once with Enable=No).
 

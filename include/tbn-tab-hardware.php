@@ -83,9 +83,11 @@ if (!$has_hw):
   $id = $d['id'];
   $role = 'node';
   $row_class = '';
+  $is_detail = false;
   if ($id === 'domain0' || preg_match('/^domain\d+$/', $id)) {
     $role = 'domain';
     $row_class = 'tbn-fabric-detail tbn-hidden';
+    $is_detail = true;
   } elseif ($id === '0-0') {
     $role = 'local controller';
   } elseif (preg_match('/^\d+-\d+$/', $id) && $id !== '0-0') {
@@ -93,14 +95,17 @@ if (!$has_hw):
   } elseif (preg_match('/\.\d+$/', $id)) {
     $role = 'service';
     $row_class = 'tbn-fabric-detail tbn-hidden';
+    $is_detail = true;
   }
+  $prose = $is_detail ? ' class="tbn-fabric-prose"' : '';
+  $net_list = !empty($d['netdevs']) ? implode(', ', $d['netdevs']) : '';
 ?>
         <tr<?= $row_class !== '' ? ' class="' . htmlspecialchars($row_class) . '"' : '' ?>>
-          <td><code><?= htmlspecialchars($id) ?></code></td>
-          <td><?= htmlspecialchars($role) ?></td>
-          <td><?= htmlspecialchars($d['device_name'] ?: '—') ?></td>
-          <td><?= htmlspecialchars($d['vendor_name'] ?: '—') ?></td>
-          <td><?php
+          <td class="tbn-col-ident"><code class="tbn-ident"><?= htmlspecialchars($id) ?></code></td>
+          <td<?= $prose ?>><?= htmlspecialchars($role) ?></td>
+          <td<?= $prose ?>><?= htmlspecialchars($d['device_name'] ?: '—') ?></td>
+          <td<?= $prose ?>><?= htmlspecialchars($d['vendor_name'] ?: '—') ?></td>
+          <td<?= $prose ?>><?php
             $d_rate = function_exists('tbn_format_link_rate')
               ? tbn_format_link_rate(
                   $d['rx_speed'] ?? '',
@@ -114,14 +119,27 @@ if (!$has_hw):
               : trim(($d['rx_speed'] ?: '—') . ' / ' . ($d['tx_speed'] ?: '—'));
             echo htmlspecialchars($d_rate !== '' ? $d_rate : '—');
           ?></td>
-          <td><?= htmlspecialchars(trim(($d['rx_lanes'] ?: '—') . ' / ' . ($d['tx_lanes'] ?: '—'))) ?></td>
-          <td><code><?= htmlspecialchars($d['netdevs'] ? implode(', ', $d['netdevs']) : '—') ?></code></td>
+          <td<?= $prose ?>><?= htmlspecialchars(trim(($d['rx_lanes'] ?: '—') . ' / ' . ($d['tx_lanes'] ?: '—'))) ?></td>
+          <td class="tbn-col-ident"><?php
+            if ($net_list !== '') {
+              echo '<code class="tbn-ident">' . htmlspecialchars($net_list) . '</code>';
+              if ($role === 'service') {
+                echo ' <span class="tbn-fabric-same-netdev" title="Same host-net interface as the parent peer row — not a second NIC">same as peer</span>';
+              }
+            } else {
+              echo '—';
+            }
+          ?></td>
         </tr>
 <?php endforeach; ?>
       </tbody>
     </table>
     <p class="tbn-note tbn-fabric-legend tbn-muted">
-      <code>0-0</code> host · <code>0-1</code>/<code>0-3</code> peers · <code>0-1.0</code> services (expand) · <code>domain0</code> domain.
+      <code class="tbn-ident">0-0</code> host ·
+      <code class="tbn-ident">0-1</code>/<code class="tbn-ident">0-3</code> peers ·
+      <code class="tbn-ident">0-1.0</code> services (expand) ·
+      <code class="tbn-ident">domain0</code> domain.
+      Service netdev matches the parent peer (one interface, not two).
     </p>
     <dl>
       <dt>Fabric roles:</dt>
@@ -133,7 +151,7 @@ if (!$has_hw):
       <strong>local controller — <code>0-0</code></strong> — this machine’s host router (board product / OEM). Rates usually live on peer rows.<br><br>
       <strong>peer — <code>0-1</code>, <code>0-3</code>, …</strong> — remote hosts after path training (topology IDs, not simple back-panel numbers).
       RX/TX, lanes, and netdev (e.g. <code>thunderbolt1</code> → tab <strong>tbn1</strong>) are on this row.<br><br>
-      <strong>service — <code>0-1.0</code>, …</strong> — child protocol under a peer (host networking). Empty name is normal; netdev matches the parent peer. Hidden until expanded.<br><br>
+      <strong>service — <code>0-1.0</code>, …</strong> — child protocol under a peer (host networking). Empty name is normal; netdev is the <em>same</em> interface as the parent peer (labeled “same as peer”), not a second NIC. Hidden until expanded.<br><br>
       <strong>domain — <code>domain0</code></strong> — domain container (security, etc.), not a remote PC or cable. Hidden by default.
       <?= tbn_help_docs_footer('docs/links-and-topology.md', 'Links and topology') ?>
     </blockquote>
