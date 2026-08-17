@@ -6,6 +6,13 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+###2026.08.16ad
+- **Peer plans (UUID-keyed L3):** desired local IPv4 follows the remote host across
+  `thunderbolt0`/`tbn0` renumber. Saved on tbn Apply (or Peers → Save live path as peer plan);
+  reapplied on hotplug/boot before path-slot iface cfg. **Forget selected peers** drops Known
+  peers memory/plans only — does not touch Unraid Interface Rules or eth. Visits column removed
+  from the main Peers table (was a refresh counter, not reconnects).
+
 ###2026.08.16ac
 - **Known peers:** unplug/replug no longer leaves a second Offline row (blank peer name) next
   to the real peer. Root cause: hotplug can briefly omit fabric `unique_id`, which created an

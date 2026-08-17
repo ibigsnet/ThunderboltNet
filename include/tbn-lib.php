@@ -825,8 +825,229 @@ function tbn_remember_live_peers(array $links) {
   foreach ($peers as $k => $p) {
     $peers[$k]['online'] = in_array($k, $live_keys, true);
   }
+  // Seed peer L3 plan from last live addrs when missing (migrate iface-only setups)
+  foreach ($peers as $k => $p) {
+    if (tbn_peer_plan_is_usable($p['plan'] ?? null)) {
+      continue;
+    }
+    $seed = tbn_peer_plan_from_addrs($p['last_local_addrs'] ?? []);
+    if ($seed !== null) {
+      $peers[$k]['plan'] = $seed;
+    }
+  }
   tbn_save_peers_memory($peers);
   return $peers;
+}
+
+/**
+ * Whether a peer L3 plan is complete enough to auto-apply on the live path.
+ */
+function tbn_peer_plan_is_usable($plan) {
+  if (!is_array($plan)) {
+    return false;
+  }
+  if (($plan['auto'] ?? 'yes') === 'no') {
+    return false;
+  }
+  if (($plan['USE_DHCP'] ?? 'no') === 'yes') {
+    return true;
+  }
+  $ip = trim((string)($plan['IPADDR'] ?? ''));
+  return $ip !== '' && filter_var($ip, FILTER_VALIDATE_IP) !== false;
+}
+
+/**
+ * Build a peer plan from iface cfg (tbn Apply capture).
+ */
+function tbn_peer_plan_from_iface_cfg(array $cfg) {
+  return [
+    'auto' => 'yes',
+    'USE_DHCP' => (($cfg['USE_DHCP'] ?? 'no') === 'yes') ? 'yes' : 'no',
+    'IPADDR' => (string)($cfg['IPADDR'] ?? ''),
+    'NETMASK' => (string)($cfg['NETMASK'] ?? '24'),
+    'GATEWAY' => (string)($cfg['GATEWAY'] ?? ''),
+    'DEFAULT_ROUTE' => (($cfg['DEFAULT_ROUTE'] ?? 'no') === 'yes') ? 'yes' : 'no',
+    'MTU_MODE' => (string)($cfg['MTU_MODE'] ?? 'default'),
+    'MTU' => (string)($cfg['MTU'] ?? '1500'),
+    'PROTOCOL' => (string)($cfg['PROTOCOL'] ?? 'ipv4'),
+  ];
+}
+
+/**
+ * Seed plan from last_local_addrs like ["10.255.0.3/24"] (first IPv4 only).
+ */
+function tbn_peer_plan_from_addrs($addrs) {
+  if (!is_array($addrs)) {
+    return null;
+  }
+  foreach ($addrs as $a) {
+    $a = trim((string)$a);
+    if (preg_match('#^(\d{1,3}(?:\.\d{1,3}){3})/(\d{1,2})$#', $a, $m)) {
+      if (filter_var($m[1], FILTER_VALIDATE_IP) === false) {
+        continue;
+      }
+      $pfx = (int)$m[2];
+      if ($pfx < 0 || $pfx > 32) {
+        $pfx = 24;
+      }
+      return [
+        'auto' => 'yes',
+        'USE_DHCP' => 'no',
+        'IPADDR' => $m[1],
+        'NETMASK' => (string)$pfx,
+        'GATEWAY' => '',
+        'DEFAULT_ROUTE' => 'no',
+        'MTU_MODE' => 'default',
+        'MTU' => '1500',
+        'PROTOCOL' => 'ipv4',
+      ];
+    }
+  }
+  return null;
+}
+
+/**
+ * Merge peer plan + listening into an iface cfg for apply on $if.
+ */
+function tbn_iface_cfg_from_peer(array $peer, $if) {
+  $cfg = tbn_iface_defaults($if);
+  $plan = is_array($peer['plan'] ?? null) ? $peer['plan'] : [];
+  foreach (['USE_DHCP', 'IPADDR', 'NETMASK', 'GATEWAY', 'DEFAULT_ROUTE', 'MTU_MODE', 'MTU', 'PROTOCOL'] as $k) {
+    if (isset($plan[$k]) && (string)$plan[$k] !== '') {
+      $cfg[$k] = $plan[$k];
+    }
+  }
+  $cfg['INCLUDE_LISTENING'] = (($peer['include_listening'] ?? 'no') === 'yes') ? 'yes' : 'no';
+  $cfg['ENABLE'] = 'yes';
+  return $cfg;
+}
+
+/**
+ * Human one-liner for peer plan (Peers table).
+ */
+function tbn_peer_plan_label(array $peer) {
+  $plan = $peer['plan'] ?? null;
+  if (!tbn_peer_plan_is_usable($plan)) {
+    return '—';
+  }
+  if (($plan['auto'] ?? 'yes') === 'no') {
+    return 'auto off';
+  }
+  if (($plan['USE_DHCP'] ?? 'no') === 'yes') {
+    return 'DHCP (auto)';
+  }
+  $ip = trim((string)($plan['IPADDR'] ?? ''));
+  $mask = trim((string)($plan['NETMASK'] ?? '24'));
+  if ($ip === '') {
+    return '—';
+  }
+  return $ip . '/' . $mask . ' (peer plan)';
+}
+
+/**
+ * Save L3 plan onto a remembered peer (UUID or iface: key).
+ */
+function tbn_save_peer_plan($key, array $plan, $listen = null) {
+  $key = trim((string)$key);
+  if ($key === '') {
+    return false;
+  }
+  $peers = tbn_load_peers_memory();
+  if (!isset($peers[$key])) {
+    $peers[$key] = [
+      'unique_id' => (strpos($key, 'iface:') === 0) ? '' : $key,
+      'peer_name' => '',
+      'seen_count' => 0,
+      'online' => false,
+      'include_listening' => 'no',
+    ];
+  }
+  $cur = is_array($peers[$key]['plan'] ?? null) ? $peers[$key]['plan'] : [];
+  $peers[$key]['plan'] = array_merge($cur, $plan);
+  if ($listen !== null) {
+    $peers[$key]['include_listening'] = ($listen === 'yes' || $listen === true) ? 'yes' : 'no';
+  }
+  tbn_save_peers_memory($peers);
+  return true;
+}
+
+/**
+ * After tbn Apply: if a peer is live on $if, store that path's L3 as the peer plan.
+ * Survives renumber (tbn0↔tbn1) because plan is UUID-keyed.
+ */
+function tbn_capture_peer_plan_from_iface($if) {
+  if (!preg_match('/^thunderbolt\d+$/', (string)$if)) {
+    return ['ok' => false, 'error' => 'bad iface'];
+  }
+  $links = tbn_link_summaries();
+  $peers = tbn_load_peers_memory();
+  foreach ($links as $L) {
+    if (($L['iface'] ?? '') !== $if) {
+      continue;
+    }
+    $key = tbn_peer_key_from_link($L, $peers);
+    $cfg = tbn_load_iface_cfg($if);
+    $plan = tbn_peer_plan_from_iface_cfg($cfg);
+    $listen = (($cfg['INCLUDE_LISTENING'] ?? 'no') === 'yes') ? 'yes' : 'no';
+    // Ensure peer row exists
+    tbn_remember_live_peers($links);
+    tbn_save_peer_plan($key, $plan, $listen);
+    return ['ok' => true, 'key' => $key, 'plan' => $plan];
+  }
+  return ['ok' => false, 'error' => 'no live peer on iface'];
+}
+
+/**
+ * Apply remembered peer plan onto a live netdev (write iface cfg + apply).
+ */
+function tbn_apply_peer_plan_to_iface($key, $if) {
+  $key = trim((string)$key);
+  if ($key === '' || !preg_match('/^thunderbolt\d+$/', (string)$if)) {
+    return ['ok' => false, 'applied' => false, 'error' => 'bad args'];
+  }
+  if (!is_dir('/sys/class/net/' . $if)) {
+    return ['ok' => false, 'applied' => false, 'error' => 'iface missing'];
+  }
+  $peers = tbn_load_peers_memory();
+  if (!isset($peers[$key])) {
+    return ['ok' => false, 'applied' => false, 'error' => 'unknown peer'];
+  }
+  $peer = $peers[$key];
+  if (!tbn_peer_plan_is_usable($peer['plan'] ?? null)) {
+    return ['ok' => true, 'applied' => false, 'reason' => 'no_plan'];
+  }
+  $cfg = tbn_iface_cfg_from_peer($peer, $if);
+  tbn_write_iface_cfg($if, $cfg);
+  $r = tbn_apply_iface($if, ['skip_peer_capture' => true]);
+  return [
+    'ok' => !empty($r['ok']),
+    'applied' => true,
+    'iface' => $if,
+    'key' => $key,
+    'result' => $r,
+  ];
+}
+
+/**
+ * Remove peers from Known peers (peers.json only). Does not wipe ifaces/*.cfg.
+ *
+ * @param string[] $keys
+ * @return int number removed
+ */
+function tbn_forget_peers(array $keys) {
+  $peers = tbn_load_peers_memory();
+  $n = 0;
+  foreach ($keys as $k) {
+    $k = trim((string)$k);
+    if ($k !== '' && isset($peers[$k])) {
+      unset($peers[$k]);
+      $n++;
+    }
+  }
+  if ($n > 0) {
+    tbn_save_peers_memory($peers);
+  }
+  return $n;
 }
 
 /**
@@ -2939,12 +3160,14 @@ PAGE;
 }
 
 /**
- * Re-apply saved per-link configs to live thunderbolt* netdevs.
- * Used at array start and on netdev hotplug (link drop recreates the iface + MAC).
- * Only ifaces with a saved flash cfg under ifaces/ are touched (skip pure defaults).
+ * Re-apply L3 to live thunderbolt* netdevs (array start + hotplug).
+ *
+ * Preference order per live iface:
+ *  1) Peer plan for the remote fabric UUID currently on that path (survives tbn renumber)
+ *  2) Saved ifaces/thunderboltN.cfg (path-slot cache, eth-like by name)
  *
  * @param string|null $if_filter When set (e.g. thunderbolt0), only that iface.
- * @return array<string,array> map iface => tbn_apply_iface result
+ * @return array<string,array> map iface => apply result
  */
 function tbn_reapply_live_ifaces($if_filter = null) {
   $out = [];
@@ -2952,11 +3175,33 @@ function tbn_reapply_live_ifaces($if_filter = null) {
   if (is_string($if_filter) && $if_filter !== '') {
     $names = in_array($if_filter, $names, true) ? [$if_filter] : [];
   }
-  foreach ($names as $if) {
-    if (!is_file(tbn_iface_cfg_path($if))) {
-      continue;
+  $links = [];
+  try {
+    $links = tbn_link_summaries();
+  } catch (Throwable $e) {
+    $links = [];
+  }
+  $peers = tbn_load_peers_memory();
+  $link_by_if = [];
+  foreach ($links as $L) {
+    $i = $L['iface'] ?? '';
+    if ($i !== '') {
+      $link_by_if[$i] = $L;
     }
-    $out[$if] = tbn_apply_iface($if);
+  }
+  foreach ($names as $if) {
+    $applied = false;
+    if (isset($link_by_if[$if])) {
+      $key = tbn_peer_key_from_link($link_by_if[$if], $peers);
+      $pr = tbn_apply_peer_plan_to_iface($key, $if);
+      if (!empty($pr['applied'])) {
+        $out[$if] = $pr;
+        $applied = true;
+      }
+    }
+    if (!$applied && is_file(tbn_iface_cfg_path($if))) {
+      $out[$if] = tbn_apply_iface($if, ['skip_peer_capture' => true]);
+    }
   }
   if (function_exists('tbn_sync_iface_pages')) {
     tbn_sync_iface_pages();
@@ -3000,8 +3245,10 @@ function tbn_remove_net_udev() {
 
 /**
  * Apply one iface cfg to the live system (not Unraid network.cfg).
+ *
+ * @param array $opts skip_peer_capture=true when applying from a peer plan (avoid recursion)
  */
-function tbn_apply_iface($if) {
+function tbn_apply_iface($if, array $opts = []) {
   $cfg = tbn_load_iface_cfg($if);
   if (!is_dir('/sys/class/net/' . $if)) {
     return ['ok' => false, 'error' => "interface {$if} not present"];
@@ -3060,6 +3307,14 @@ function tbn_apply_iface($if) {
     tbn_remember_live_peers(tbn_link_summaries());
   } catch (Throwable $e) {
     // non-fatal
+  }
+  // Bind this path's L3 to the live peer UUID so renumber (tbn0↔tbn1) keeps the plan.
+  if (empty($opts['skip_peer_capture'])) {
+    try {
+      tbn_capture_peer_plan_from_iface($if);
+    } catch (Throwable $e) {
+      // non-fatal — no peer on path is normal
+    }
   }
   return ['ok' => true, 'iface' => $if, 'cfg' => $cfg, 'netdevs' => tbn_list_netdevs()];
 }

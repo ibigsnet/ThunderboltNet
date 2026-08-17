@@ -36,7 +36,9 @@ Not per-tbn: changing E2E affects every Thunderbolt network interface on Unraid.
 | Field | Default | Summary |
 |-------|---------|---------|
 | Interface description | empty | Cosmetic label in plugin config |
-| MAC address | (live) | Read-only |
+| MAC address | (live) | Read-only (host-net MAC often changes each link — not used for Interface Rules) |
+| Peer plan (Peers tab) | per remote UUID | Desired local IPv4 for that peer; auto-applied on reconnect to whatever `thunderboltN` the kernel assigns |
+| Forget peer | Peers tab | Remove Known peers row + plan + listening memory only; does not touch eth Interface Rules |
 | Enable interface | Yes | `ip link set up/down` on Apply |
 | Enable bonding | No (hidden unless ≥2 live Thunderbolt interfaces) | Thunderbolt-only bond when two+ `thunderbolt*`; same-peer dual-cable often one netdev — [roadmap](links-and-topology.md) |
 | Bonding mode | active-backup | Prefer active-backup; 802.3ad usually fails on Thunderbolt |

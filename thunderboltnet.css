@@ -459,6 +459,19 @@
   opacity: 0.88;
   white-space: nowrap;
 }
+.tbn-btn-small {
+  font-size: 0.82em;
+  padding: 0.2em 0.55em;
+  margin: 0.1rem 0 0;
+  cursor: pointer;
+}
+.tbn-uuid-short code {
+  font-size: 0.85em;
+}
+.tbn-plan-capture-form,
+.tbn-plan-apply-form {
+  margin: 0;
+}
 
 /* Activity / safe-unplug */
 .tbn-badge-act-idle,

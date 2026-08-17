@@ -8,33 +8,39 @@ if (!$has_hw):
   <div class="tbn-section">
     <h3>Known peers</h3>
     <p class="tbn-note">
-      Online and offline peers. Services dropdown = SMB/NFS/SSH/web on that Thunderbolt IP (saves on change).
-      Link rate: equal RX/TX shows <strong>full-duplex</strong>; asymmetric shows
-      <strong>TX (to peer)</strong> and <strong>RX (from peer)</strong>.
-      <strong>Link check</strong> compares trained rates with the other Unraid’s Thunderbolt Net plugin
-      (green = match, orange = waiting, red = mismatch). Both hosts need the same shared token under Settings.
+      Remembered by <strong>remote fabric UUID</strong> (not panel port / not MAC).
+      <strong>Peer plan</strong> = desired local IPv4 that follows this peer when the kernel renumbers
+      <code>thunderbolt0</code>↔<code>thunderbolt1</code>. Does <strong>not</strong> use Unraid Interface Rules.
+      Services dropdown = SMB/NFS/SSH/web on that Thunderbolt IP (saves on change).
+      <strong>Link check</strong> needs the same shared token under Settings on both Unraid hosts.
     </p>
 <?php if (!$peers_mem): ?>
     <div class="tbn-empty-peers" role="status">
       <p class="tbn-muted" style="margin:0">
         <strong>No remembered peers yet.</strong>
         With a peer linked, open Thunderbolt (or Apply on a tbn tab) once — the peer is stored on flash and remains after unplug.
-        Uninstall keeps this list so a reinstall does not forget known peers.
+        Apply on a tbn tab also saves a <strong>peer plan</strong> (IP) for that remote host.
       </p>
     </div>
 <?php else: ?>
+    <form method="POST" action="/update.php" target="progressFrame" id="tbn-peers-forget-form"
+      onsubmit="return confirm('Forget selected peers from this list?\n\nRemoves Known peers memory and peer L3 plans only.\nDoes not delete tbn tab configs or change eth Interface Rules.');">
+      <input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">
+      <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update-peers.php">
+      <input type="hidden" name="tbn_peer_action" value="forget">
     <table class="tbn-table tbn-wide tbn-peers-memory">
       <thead>
         <tr>
+          <th title="Select for Forget peer"></th>
           <th>Status</th>
-          <th title="Compares this host’s trained Thunderbolt rates with the peer Unraid plugin (not FRR). Green = agree, orange = waiting for peer report, red = disagree.">Link check</th>
+          <th title="Compares this host’s trained Thunderbolt rates with the peer Unraid plugin (not FRR).">Link check</th>
           <th>Peer</th>
-          <th>Tab / iface</th>
-          <th>Local IPv4</th>
-          <th>Unraid services on this link</th>
+          <th title="Live path slot right now — may renumber after cable order changes">Path</th>
+          <th title="Live address on the path right now">Live IPv4</th>
+          <th title="Desired address bound to this peer UUID — applied on reconnect even if path is tbn1 next time">Peer plan</th>
+          <th>Unraid services</th>
           <th>Link rate</th>
           <th>Last seen</th>
-          <th>Visits</th>
         </tr>
       </thead>
       <tbody>
@@ -81,7 +87,8 @@ if (!$has_hw):
     if ($online && $if !== '') {
       $live_on = in_array($if, $include, true);
     }
-    $can_apply_live = ($online && $if !== '' && preg_match('/^thunderbolt\d+$/', $if));
+    $plan_lbl = function_exists('tbn_peer_plan_label') ? tbn_peer_plan_label($p) : '—';
+    $plan = is_array($p['plan'] ?? null) ? $p['plan'] : [];
     $mesh_val = $p['mesh_validation'] ?? null;
     $mesh_on = function_exists('tbn_mesh_enabled') ? tbn_mesh_enabled($cfg) : false;
     $mesh_row = '';
@@ -92,12 +99,18 @@ if (!$has_hw):
     }
 ?>
         <tr class="<?= $online ? 'tbn-peer-online' : 'tbn-peer-offline' ?> <?= $pref === 'yes' ? 'tbn-listen-on' : 'tbn-listen-off' ?> <?= $mesh_row ?>">
+          <td>
+            <input type="checkbox" name="tbn_forget_keys[]" value="<?= htmlspecialchars((string)$pkey) ?>" form="tbn-peers-forget-form" title="Select to forget">
+          </td>
           <td><?= $online ? '<span class="tbn-badge tbn-badge-ok">Online</span>' : '<span class="tbn-badge tbn-badge-unknown">Offline</span>' ?></td>
           <td class="tbn-mesh-val-cell"><?= function_exists('tbn_mesh_badge_html') ? tbn_mesh_badge_html(is_array($mesh_val) ? $mesh_val : null, $mesh_on) : '—' ?></td>
           <td>
             <strong><?= htmlspecialchars(($p['peer_name'] ?? '') !== '' ? $p['peer_name'] : '—') ?></strong>
 <?php if (!empty($p['stack'])): ?>
             <span class="tbn-muted"><br><?= htmlspecialchars($p['stack']) ?></span>
+<?php endif; ?>
+<?php if (strpos((string)$pkey, 'iface:') !== 0): ?>
+            <span class="tbn-muted tbn-uuid-short" title="<?= htmlspecialchars((string)$pkey) ?>"><br><code><?= htmlspecialchars(substr((string)$pkey, 0, 13)) ?>…</code></span>
 <?php endif; ?>
           </td>
           <td>
@@ -110,8 +123,36 @@ if (!$has_hw):
           </td>
           <td><code class="tbn-live" data-tbn-live-ip4="<?= htmlspecialchars($if) ?>"><?= htmlspecialchars($addrs !== '' ? $addrs : '—') ?></code></td>
           <td>
+            <code title="Bound to peer UUID; applied on hotplug/boot when this remote is on any thunderboltN"><?= htmlspecialchars($plan_lbl) ?></code>
+<?php if ($online && $if !== ''): ?>
+            <form method="POST" action="/update.php" target="progressFrame" class="tbn-plan-capture-form" style="margin-top:0.35rem">
+              <input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">
+              <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update-peers.php">
+              <input type="hidden" name="tbn_peer_action" value="capture_plan">
+              <input type="hidden" name="tbn_iface" value="<?= htmlspecialchars($if) ?>">
+              <input type="submit" name="#apply" value="Save live path as peer plan" class="tbn-btn-small" title="Copy current tbn IP/MTU/listening onto this peer UUID">
+            </form>
+<?php endif; ?>
+<?php if (function_exists('tbn_peer_plan_is_usable') && tbn_peer_plan_is_usable($plan) && $online && $if !== ''): ?>
+            <form method="POST" action="/update.php" target="progressFrame" class="tbn-plan-apply-form" style="margin-top:0.25rem">
+              <input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">
+              <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update-peers.php">
+              <input type="hidden" name="tbn_peer_action" value="apply_plan">
+              <input type="hidden" name="tbn_peer_key" value="<?= htmlspecialchars((string)$pkey) ?>">
+              <input type="hidden" name="plan_auto" value="<?= htmlspecialchars($plan['auto'] ?? 'yes') ?>">
+              <input type="hidden" name="plan_use_dhcp" value="<?= htmlspecialchars($plan['USE_DHCP'] ?? 'no') ?>">
+              <input type="hidden" name="plan_ipaddr" value="<?= htmlspecialchars($plan['IPADDR'] ?? '') ?>">
+              <input type="hidden" name="plan_netmask" value="<?= htmlspecialchars($plan['NETMASK'] ?? '24') ?>">
+              <input type="hidden" name="plan_gateway" value="<?= htmlspecialchars($plan['GATEWAY'] ?? '') ?>">
+              <input type="hidden" name="plan_default_route" value="<?= htmlspecialchars($plan['DEFAULT_ROUTE'] ?? 'no') ?>">
+              <input type="hidden" name="plan_mtu_mode" value="<?= htmlspecialchars($plan['MTU_MODE'] ?? 'default') ?>">
+              <input type="hidden" name="plan_mtu" value="<?= htmlspecialchars($plan['MTU'] ?? '1500') ?>">
+              <input type="submit" name="#apply" value="Apply peer plan now" class="tbn-btn-small">
+            </form>
+<?php endif; ?>
+          </td>
+          <td>
             <form method="POST" action="/update.php" target="progressFrame" class="tbn-listen-form">
-              <?php // #file unused ($save=false in include); keep path for Unraid form plumbing only ?>
               <input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">
               <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update-listening.php">
               <input type="hidden" name="tbn_listen_action" value="set">
@@ -136,24 +177,21 @@ if (!$has_hw):
 <?php else: ?>
             <p class="tbn-hint">Remembered Yes — applied when this peer is online.</p>
 <?php endif; ?>
-            <p class="tbn-hint tbn-muted">
-              Block export (NBD) is separate —
-<?php if (function_exists('tbn_nbdexport_present') && tbn_nbdexport_present()): ?>
-              <a href="/Settings/NbdExport">Network Services → NBD</a>
-              (bind to this IP; not controlled by listening Yes).
-<?php else: ?>
-              use <strong>NBD Export</strong> under Network Services when installed
-              (bind to this IP; not controlled by listening Yes).
-<?php endif; ?>
-            </p>
           </td>
           <td title="Equal rates = full-duplex. Asymmetric = TX to peer · RX from peer."><?= htmlspecialchars($rate !== '' && $rate !== ' / ' ? $rate : '—') ?></td>
           <td class="tbn-muted"><?= htmlspecialchars($p['last_seen'] ?? '—') ?></td>
-          <td><?= (int)($p['seen_count'] ?? 0) ?></td>
         </tr>
 <?php endforeach; ?>
       </tbody>
     </table>
+      <p class="tbn-actions">
+        <input type="submit" name="#apply" value="Forget selected peers" class="tbn-harden-btn">
+      </p>
+      <p class="tbn-hint">
+        <strong>Forget peer</strong> removes the row, listening memory, and peer L3 plan from flash.
+        Per-path <code>ifaces/thunderboltN.cfg</code> files and Unraid eth Interface Rules are left alone.
+      </p>
+    </form>
 <?php endif; ?>
     <form method="POST" action="/update.php" target="progressFrame" class="tbn-harden-form"
       onsubmit="return confirm('Turn OFF Unraid host services on ALL Thunderbolt links and clear remembered Yes for every peer?');">
@@ -168,16 +206,19 @@ if (!$has_hw):
       </p>
     </form>
     <dl>
-      <dt>Known peers / services:</dt>
-      <dd class="tbn-muted">Per-peer listen · remember · harden</dd>
+      <dt>Known peers:</dt>
+      <dd class="tbn-muted">UUID identity · peer plan · listen · forget</dd>
     </dl>
     <blockquote class="inline_help">
-      Peers stay listed when offline so settings return when they reconnect (by peer UUID).<br><br>
-      <strong>Unraid services</strong> — <strong>Yes</strong> recommended for SMB / NFS / web / big file copies on that Thunderbolt IP;
-      default for new peers is <strong>No</strong> (safer). Writes <code>network-extra.cfg</code> include list.
-      Whole-disk imaging uses <strong>NBD Export</strong> (Network Services → NBD) bound to the same IP — not this dropdown.
-      Dropdown saves immediately (no Apply). VM VNC / Docker ports are separate.<br><br>
-      <strong>Harden: all peers services No</strong> — force every peer preference and live Thunderbolt includes back to No.
+      <strong>Identity</strong> — fabric UUID of the remote host, not the rear-panel port and not a stable MAC
+      (Thunderbolt host-net often gets a new MAC each link). We do <strong>not</strong> register names in
+      Unraid’s stock Interface Rules (that path is for eth PCI/MAC and is easy to break across OS updates).<br><br>
+      <strong>Peer plan</strong> — desired local IPv4 for <em>this remote</em>. Saved when you Apply a tbn tab
+      while they are linked, or via <em>Save live path as peer plan</em>. On hotplug/boot, the plan is applied
+      to whichever <code>thunderboltN</code> that peer appears on (so cable order / tbn0 vs tbn1 renumber is OK).<br><br>
+      <strong>Path (tbnN)</strong> — live kernel slot only; may change after unplug order. Use Peer plan for long-term L3.<br><br>
+      <strong>Forget selected peers</strong> — drop from this list only (not eth, not other plugins).
+      <strong>Harden</strong> — all peers services No + strip TB from network-extra.
       <?= tbn_help_docs_footer('docs/settings-reference.md', 'Settings reference') ?>
     </blockquote>
   </div>
