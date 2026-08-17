@@ -1100,6 +1100,10 @@ function tbn_format_gbps($raw) {
   }
   if (is_numeric($raw)) {
     $n = (float)$raw;
+    // Some paths use Mbps integers (e.g. 20000); sysfs strings are usually "20.00 Gb/s"
+    if ($n > 500) {
+      $n = $n / 1000.0;
+    }
   } elseif (preg_match('/([\d.]+)/', (string)$raw, $m)) {
     $n = (float)$m[1];
   } else {
