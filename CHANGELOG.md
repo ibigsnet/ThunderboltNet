@@ -1,3 +1,9 @@
+## 2026.08.17aj
+
+- **Enable default route** help (IPv4/IPv6): warn that Thunderbolt often gets a much lower metric
+  than eth0/br0, so Yes can steal the host default and mess up topology. Leave No unless tbn is
+  intentionally the internet path (rare). Docs/addressing.md aligned.
+
 ## 2026.08.17ai
 
 - Restore MTU blue-help facts removed in the eth0-control pass: live MTU, driver min/max

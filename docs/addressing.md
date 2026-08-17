@@ -34,7 +34,7 @@ Each live kernel interface `thunderboltN` (Settings tab **tbnN**) is its own L2 
 | Suggestion | `10.255.N.2` for `thunderboltN` | Unique third octet per link |
 | Mask | **/24** (`255.255.255.0`) | Familiar; room for a few extra addresses (VM, alias) |
 | Gateway | empty | Peer-local traffic only |
-| Enable default route | **No** | Internet stays on eth0/br0 |
+| Enable default route | **No** | Internet stays on eth0/br0; Yes can steal default via lower metric |
 
 Peer is conventionally `.1` on the same subnet (not enforced).
 
@@ -116,7 +116,10 @@ Same idea with /30: `10.255.0.2/30` and `10.255.1.2/30`.
 
 ### Default route
 
-Leave **Enable default route = No** unless this Thunderbolt link should carry **all** Unraid internet traffic (rare).  
+Leave **Enable default route = No** unless this Thunderbolt link should carry Unraid internet traffic (rare).
+
+Thunderbolt interfaces often install a **much lower route metric** than eth0/br0 (high bandwidth). Enabling a default route on tbn can therefore **outrank** the normal LAN/WAN default and send general traffic over the Thunderbolt path — breaking expected topology if you were not counting on that.
+
 A filled **gateway** without default route still only matters for routes you add toward that gateway.
 
 ---

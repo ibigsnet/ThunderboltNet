@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.17ai">
+<!ENTITY version "2026.08.17aj">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,7 +27,10 @@
 
 <CHANGES>
 ###&version;
-- Restore MTU inline_help facts (live MTU, driver min/max ~65522, 1500 default, 9000 both ends).
+- Default-route help: Thunderbolt low metric can steal eth0/br0 topology (leave No unless rare WAN-via-tbn).
+
+###2026.08.17ai
+- Restore MTU inline_help facts (1500 / 9000 / driver max).
 
 ###2026.08.17ah
 - Info: eth0-style $.post + swal (CSRF fix).

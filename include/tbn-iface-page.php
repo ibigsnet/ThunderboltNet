@@ -391,7 +391,12 @@ if (strpos($nm, '.') === false) {
               </select>
             </dd>
           </dl>
-          <blockquote class="inline_help">Default No — keep internet on eth0/br0.</blockquote>
+          <blockquote class="inline_help">
+            Default <strong>No</strong> — keep internet on eth0/br0.
+            Turning this <strong>Yes</strong> can steal the host default route: Thunderbolt often gets a
+            <em>much lower</em> metric (high bandwidth), so traffic that should use LAN/WAN may leave via tbn instead
+            and break normal topology. Only enable if this link is intentionally your path to the internet (rare).
+          </blockquote>
         </div>
       </div>
 
@@ -436,7 +441,10 @@ if (strpos($nm, '.') === false) {
               </select>
             </dd>
           </dl>
-          <blockquote class="inline_help">Default No.</blockquote>
+          <blockquote class="inline_help">
+            Default <strong>No</strong>. Same caution as IPv4: a Thunderbolt default route can outrank eth0/br0 on metric
+            and mess up host routing. Leave No unless tbn is meant to carry internet (rare).
+          </blockquote>
         </div>
       </div>
     </div>
