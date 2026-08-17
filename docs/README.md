@@ -36,6 +36,7 @@ Physical Thunderbolt/USB4 path  →  kernel thunderbolt_net (thunderboltN)
 | [port-icons.md](port-icons.md) | Rear-panel silkscreen: lightning/40 vs SS — do I have Thunderbolt? |
 | [mtu-and-throughput.md](mtu-and-throughput.md) | MTU 1500 vs 9000, jumbo both ends |
 | [dashboard-network.md](dashboard-network.md) | Dashboard Interface list: thunderboltN / bond-tbN |
+| [dashboard-ports-and-clock.md](dashboard-ports-and-clock.md) | What we patch on Dashboard; clock incident; heal/status |
 | [usb4stream.md](usb4stream.md) | USB4STREAM raw path vs tbn net (kernel feature, not this plugin) |
 | [requirements.md](requirements.md) | Hardware, BIOS, kernel modules, security |
 | [fabric-link-map.md](fabric-link-map.md) | Multi-host peer link validation |

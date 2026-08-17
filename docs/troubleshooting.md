@@ -93,6 +93,18 @@ While plugins work: WebUI **Thunderbolt → Recovery** shows the same path.
 
 ---
 
+## Dashboard clock missing or frozen
+
+Often **not** NTP. Thunderbolt Net’s Dashboard port-list patch rewrites dynamix **`nchan/update_3`**, which also publishes **date/time**. A past bug dropped that file’s execute bit and stopped the worker.
+
+| Check | Action |
+|-------|--------|
+| `tbn-dashboard-ports status` | Expect `update_3` **patched**, **mode=755**, **worker: running** |
+| Quick heal | `bash /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports heal` |
+| Plugin version | **≥ 2026.08.16af** (fix), **≥ 16ag** (status/heal) |
+
+Full write-up: [dashboard-ports-and-clock.md](dashboard-ports-and-clock.md).
+
 ## No Thunderbolt hardware detected
 
 - Board/CPU may lack a host controller, or it is disabled in BIOS.  

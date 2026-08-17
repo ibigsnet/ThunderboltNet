@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.16af">
+<!ENTITY version "2026.08.16ag">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,6 +27,10 @@
 
 <CHANGES>
 ###&version;
+- <strong>Dashboard ports harden:</strong> heal file modes from stock backups; status reports
+  mode + update_3 worker; heal subcommand. Documents clock incident (update_3 lost +x).
+
+###2026.08.16af
 - <strong>Dashboard clock:</strong> port-list patch no longer strips execute bit from
   dynamix <code>nchan/update_3</code> (that worker publishes date/time). Self-heal + restart
   the poller after apply.

@@ -6,6 +6,10 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+###2026.08.16ag
+- **Dashboard ports harden:** heal modes from stock backups for both patched dynamix files;
+  `tbn-dashboard-ports status|heal`; full incident write-up in docs/dashboard-ports-and-clock.md.
+
 ###2026.08.16af
 - **Dashboard clock:** `tbn-dashboard-ports` no longer drops `+x` on dynamix `nchan/update_3`
   (that poller publishes Dashboard date/time). Restore mode after patch and restart the worker.

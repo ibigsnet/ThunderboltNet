@@ -3,9 +3,14 @@
 #
 # Stock dynamix only lists bondN / ethN / wlanN (+ lo). Kernel names for this
 # plugin are thunderboltN (Settings tabs tbn0, tbn1, …), plus optional bond-tbN
-# and br-tbN. Patch:
-#   - plugins/dynamix/nchan/update_3
-#   - plugins/dynamix/DashStats.page
+# and br-tbN. Patch (content only — one grep line each file):
+#   - plugins/dynamix/nchan/update_3     (nchan worker: net stats + Dashboard clock)
+#   - plugins/dynamix/DashStats.page     (UI port list for Interface dropdown)
+#
+# INCIDENT (2026.08.16): early replace used mktemp+mv which dropped file mode.
+# update_3 lost +x → nchan worker never stayed up → Dashboard clock frozen/missing
+# for anyone who ran apply. Fixed 2026.08.16af+ (preserve mode, self-heal, restart).
+# See docs/dashboard-ports-and-clock.md
 #
 # Usage: tbn-dashboard-ports apply|remove|status
 # No python3 required (Unraid stock often lacks it).
@@ -48,17 +53,39 @@ backup_once() {
   fi
 }
 
+# Restore mode from stock backup when present; else sensible defaults.
+# nchan workers: 755. DashStats.page: 644 (stock Unraid).
+heal_mode() {
+  local f="$1" base mode
+  base=$(basename "$f")
+  [ -f "$f" ] || return 0
+  if [ -f "$BACKUP_DIR/$base.stock" ]; then
+    mode=$(stat -c '%a' "$BACKUP_DIR/$base.stock" 2>/dev/null || true)
+  fi
+  if [ -z "${mode:-}" ]; then
+    if [ "$base" = "update_3" ]; then
+      mode=755
+    else
+      mode=644
+    fi
+  fi
+  chmod "$mode" "$f" 2>/dev/null || true
+  # update_3 must be executable even if stock backup was wrong
+  if [ "$base" = "update_3" ] && [ ! -x "$f" ]; then
+    chmod 755 "$f" 2>/dev/null || true
+  fi
+}
+
 # Replace first occurrence of $old with $new in file (bash only).
-# Preserve mode/owner: mktemp+mv would drop +x on nchan/update_3 and kill the
-# Dashboard clock (update_3 publishes current_time via nchan).
+# Never use mv over the target from a temp file without restoring mode —
+# that dropped +x on update_3 and broke the Dashboard clock (nchan).
 replace_first() {
   local f="$1" old="$2" new="$3"
   local tmp done=0 line mode
-  mode=$(stat -c '%a' "$f" 2>/dev/null || echo 755)
+  mode=$(stat -c '%a' "$f" 2>/dev/null || echo 644)
   tmp=$(mktemp)
   while IFS= read -r line || [ -n "$line" ]; do
     if [ "$done" -eq 0 ] && [[ "$line" == *"$old"* ]]; then
-      # shell parameter expansion replace first only
       line="${line/"$old"/$new}"
       done=1
     fi
@@ -67,7 +94,8 @@ replace_first() {
   if [ "$done" -eq 1 ]; then
     cat "$tmp" >"$f"
     rm -f "$tmp"
-    chmod "$mode" "$f" 2>/dev/null || chmod 755 "$f" 2>/dev/null || true
+    chmod "$mode" "$f" 2>/dev/null || true
+    heal_mode "$f"
     return 0
   fi
   rm -f "$tmp"
@@ -81,12 +109,8 @@ apply_file() {
     return 0
   fi
   if grep -qF "$MARKER" "$f" 2>/dev/null; then
-    # Self-heal: earlier builds stripped +x from update_3 → no Dashboard clock
-    if [ "$(basename "$f")" = "update_3" ] && [ ! -x "$f" ]; then
-      chmod 755 "$f" 2>/dev/null || true
-      log "restored execute bit on $f"
-    fi
-    log "already applied: $f"
+    heal_mode "$f"
+    log "already applied: $f (mode $(stat -c '%a' "$f" 2>/dev/null || echo '?'))"
     return 0
   fi
   if ! grep -qF "grep -Po '^(bond|eth|wlan)" "$f" 2>/dev/null; then
@@ -95,11 +119,8 @@ apply_file() {
   fi
   backup_once "$f"
   if replace_first "$f" "$STOCK" "$PATCHED"; then
-    # nchan scripts must stay executable (php -q path still works if +x; monitor may require it)
-    if [ "$(basename "$f")" = "update_3" ]; then
-      chmod 755 "$f" 2>/dev/null || true
-    fi
-    log "applied: $f"
+    heal_mode "$f"
+    log "applied: $f (mode $(stat -c '%a' "$f" 2>/dev/null || echo '?'))"
   else
     warn "WARN: failed to patch $f (stock pattern not exact match)"
   fi
@@ -114,38 +135,41 @@ remove_file() {
   if [ -f "$BACKUP_DIR/$base.stock" ]; then
     if grep -qF "$MARKER" "$f" 2>/dev/null || grep -q 'thunderbolt' "$f" 2>/dev/null; then
       cp -a "$BACKUP_DIR/$base.stock" "$f"
+      heal_mode "$f"
       log "restored stock: $f"
     fi
     return 0
   fi
   if grep -qF "$MARKER" "$f" 2>/dev/null; then
     if replace_first "$f" "$PATCHED" "$STOCK"; then
+      heal_mode "$f"
       log "reverted: $f"
     else
-      # try without relying on exact PATCHED string
-      local tmp
+      local tmp mode
+      mode=$(stat -c '%a' "$f" 2>/dev/null || echo 644)
       tmp=$(mktemp)
       while IFS= read -r line || [ -n "$line" ]; do
         if [[ "$line" == *"$MARKER"* ]]; then
           line="${line//$PATCHED/$STOCK}"
-          # brute: any line with marker → restore stock grep fragment roughly
           if [[ "$line" == *"$MARKER"* ]]; then
             line=$(printf '%s\n' "$line" | sed "s/grep -Po '[^']*'/grep -Po '^(bond|eth|wlan)\\\\d+\$'/")
           fi
         fi
         printf '%s\n' "$line"
-      done <"$f" >"$tmp" && mv "$tmp" "$f" || rm -f "$tmp"
+      done <"$f" >"$tmp"
+      cat "$tmp" >"$f"
+      rm -f "$tmp"
+      chmod "$mode" "$f" 2>/dev/null || true
+      heal_mode "$f"
       log "reverted (fallback): $f"
     fi
   fi
 }
 
 restart_nchan_update3() {
-  # Ensure executable — Dashboard clock + net stats come from this poller
   if [ -f "$UPDATE3" ]; then
-    chmod 755 "$UPDATE3" 2>/dev/null || true
+    heal_mode "$UPDATE3"
   fi
-  # Stop existing worker by PID (avoid pkill -f self-match)
   local pid
   for pid in $(pgrep -f 'php -q .*/nchan/update_3' 2>/dev/null || true); do
     if tr '\0' ' ' <"/proc/$pid/cmdline" 2>/dev/null | grep -q 'nchan/update_3'; then
@@ -153,26 +177,40 @@ restart_nchan_update3() {
     fi
   done
   sleep 0.3
-  if [ -f "$UPDATE3" ]; then
-    # Same invocation Unraid uses for nchan workers
+  if [ -f "$UPDATE3" ] && [ -x "$UPDATE3" -o -r "$UPDATE3" ]; then
     nohup /usr/bin/php -q "$UPDATE3" >/dev/null 2>&1 &
     log "restarted nchan update_3 (Dashboard network + clock)"
+  else
+    warn "WARN: cannot start update_3 (missing or unreadable)"
   fi
 }
 
 status_file() {
-  local f="$1"
+  local f="$1" mode exe worker
   if [ ! -f "$f" ]; then
     echo "  missing: $f"
     return
   fi
+  mode=$(stat -c '%a' "$f" 2>/dev/null || echo '?')
+  if [ -x "$f" ]; then exe=yes; else exe=no; fi
   if grep -qF "$MARKER" "$f" 2>/dev/null; then
-    echo "  patched: $f"
+    echo "  patched: $f  mode=$mode executable=$exe"
   elif grep -qF "$STOCK" "$f" 2>/dev/null; then
-    echo "  stock:   $f"
+    echo "  stock:   $f  mode=$mode executable=$exe"
   else
-    echo "  other:   $f"
+    echo "  other:   $f  mode=$mode executable=$exe"
   fi
+}
+
+status_workers() {
+  local n
+  n=$(pgrep -fc 'php -q .*/nchan/update_3' 2>/dev/null || echo 0)
+  if pgrep -f 'php -q .*/nchan/update_3' >/dev/null 2>&1; then
+    echo "  update_3 worker: running (count~$(pgrep -f 'php -q .*/nchan/update_3' 2>/dev/null | wc -l))"
+  else
+    echo "  update_3 worker: NOT running (Dashboard clock/net tile will freeze)"
+  fi
+  echo "  other nchan (sample): update_1=$(pgrep -c -f 'nchan/update_1' 2>/dev/null || echo 0) update_2=$(pgrep -c -f 'nchan/update_2' 2>/dev/null || echo 0)"
 }
 
 cmd="${1:-status}"
@@ -181,7 +219,6 @@ case "$cmd" in
     apply_file "$UPDATE3"
     apply_file "$DASH"
     restart_nchan_update3
-    # Install-time hint only when interactive — not every array start (pollutes footer).
     if [ -t 1 ] || [ "${TBN_DASH_VERBOSE:-0}" = "1" ]; then
       log "done — hard-refresh Dashboard; choose thunderbolt0 in the Interface dropdown"
     else
@@ -195,13 +232,24 @@ case "$cmd" in
     log "removed dashboard port patches"
     ;;
   status)
-    # Always print status to stdout (CLI / troubleshooting).
     echo "ThunderboltNet dashboard-ports: status"
     status_file "$UPDATE3"
     status_file "$DASH"
+    status_workers
+    echo "  (only these two dynamix files are patched; see docs/dashboard-ports-and-clock.md)"
+    ;;
+  heal)
+    # Fix modes + worker without re-patching content
+    heal_mode "$UPDATE3"
+    heal_mode "$DASH"
+    restart_nchan_update3
+    log "heal complete"
+    status_file "$UPDATE3"
+    status_file "$DASH"
+    status_workers
     ;;
   *)
-    echo "Usage: $0 apply|remove|status" >&2
+    echo "Usage: $0 apply|remove|status|heal" >&2
     exit 2
     ;;
 esac
