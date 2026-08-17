@@ -158,9 +158,5 @@ if (!$has_hw):
 <?php endif; ?>
   </div>
 
-<?php
-  if (function_exists('tbn_mesh_reports_panel_html')) {
-    echo tbn_mesh_reports_panel_html($cfg);
-  }
-?>
+<?php /* Peer link check panel lives on Peers (with the Link check column). */ ?>
 <?php endif; /* has_hw */ ?>

@@ -1054,3 +1054,138 @@
   background: rgba(0,0,0,0.06);
   border-radius: 3px;
 }
+
+/* ---- Peers / Links layout (2026.08.17ac) ---- */
+.tbn-section-peers,
+.tbn-section-links {
+  margin-top: 0.5rem;
+  padding-top: 0.25rem;
+}
+.tbn-section-links {
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: 2px solid rgba(128, 128, 128, 0.4);
+}
+.tbn-peers-toolbar {
+  margin-top: 0.75rem;
+  padding: 0.75rem 0 0.25rem;
+  border-top: 1px solid rgba(128, 128, 128, 0.28);
+}
+.tbn-peers-toolbar-foot {
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 2px solid rgba(128, 128, 128, 0.4);
+}
+.tbn-harden-form {
+  margin-top: 0.25rem;
+}
+.tbn-details-help {
+  margin: 0.85rem 0 1rem;
+  max-width: 52rem;
+  border: 1px solid rgba(80, 140, 200, 0.35);
+  border-radius: 6px;
+  background: rgba(80, 140, 200, 0.06);
+  padding: 0.35rem 0.75rem 0.5rem;
+}
+.tbn-details-help > summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 0.35rem 0;
+  list-style-position: outside;
+}
+.tbn-details-help .tbn-details-body {
+  padding: 0.25rem 0 0.5rem;
+  font-size: 0.92em;
+  line-height: 1.45;
+}
+.tbn-details-help .tbn-details-body p {
+  margin: 0.4rem 0;
+}
+.tbn-mesh-legend {
+  margin: 0.75rem 0 1rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 6px;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  background: rgba(128, 128, 128, 0.06);
+  font-size: 0.9em;
+  line-height: 1.5;
+  max-width: 56rem;
+}
+.tbn-mesh-legend-title {
+  margin: 0 0 0.4rem;
+}
+/* Online = soft blue (path up). Mesh green/red only on first cell accents. */
+.tbn-peers-memory .tbn-peer-online td {
+  background: rgba(70, 130, 200, 0.07);
+}
+.tbn-peers-memory .tbn-peer-offline td {
+  opacity: 0.88;
+}
+/* Services Yes should not paint whole row green over online blue */
+.tbn-peers-memory tr.tbn-listen-on.tbn-peer-online td {
+  background: rgba(70, 130, 200, 0.07);
+}
+.tbn-peers-memory tr.tbn-listen-off.tbn-peer-online td {
+  background: rgba(70, 130, 200, 0.05);
+}
+
+/* Companion install (Status) */
+.tbn-install-box {
+  margin: 0.5rem 0 0.25rem;
+  font-size: 0.92em;
+  line-height: 1.5;
+}
+.tbn-install-label {
+  margin-right: 0.25rem;
+}
+.tbn-plg-panel {
+  margin-top: 0.4rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  background: rgba(0, 0, 0, 0.08);
+  max-width: 40rem;
+}
+.tbn-plg-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.5rem;
+  align-items: center;
+}
+.tbn-plg-row .tbn-plg-url {
+  flex: 1 1 16rem;
+  min-width: 12rem;
+  max-width: 100%;
+  font-family: ui-monospace, monospace;
+  font-size: 0.85em;
+}
+button.tbn-btn-link,
+.tbn-btn-link {
+  cursor: pointer;
+  font: inherit;
+  color: var(--orange-hover, #ff8c2f);
+  background: none;
+  border: none;
+  padding: 0;
+  text-decoration: underline;
+}
+button.tbn-btn-small,
+.tbn-btn-small {
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9em;
+  padding: 0.25em 0.65em;
+}
+
+/* tbnN iface — closer to stock eth lead line */
+.tbn-iface-lead {
+  margin: 0 0 1rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  border: 1px solid rgba(128, 128, 128, 0.28);
+  background: rgba(128, 128, 128, 0.06);
+  font-size: 0.95em;
+}
+.tbn-iface-form dl {
+  /* keep Unraid 35%/1fr grid */
+}

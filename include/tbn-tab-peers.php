@@ -5,20 +5,20 @@ if (!$has_hw):
     <p>No Thunderbolt host controller — see the <strong>Status</strong> tab for diagnostics.</p>
   </div>
 <?php else: ?>
-  <div class="tbn-section">
+  <div class="tbn-section tbn-section-peers">
     <h3>Known peers</h3>
     <p class="tbn-note">
-      Remembered by <strong>remote fabric UUID</strong> (not panel port / not MAC).
-      <strong>Peer plan</strong> = desired local IPv4 that follows this peer when the kernel renumbers
-      <code>thunderbolt0</code>↔<code>thunderbolt1</code>. Does <strong>not</strong> use Unraid Interface Rules.
-      Services dropdown = SMB/NFS/SSH/web on that Thunderbolt IP (saves on change).
-      <strong>Link check</strong> needs the same shared token under Settings on both Unraid hosts.
+      Each row is a <strong>remote host</strong> (fabric UUID), not a rear-panel port.
+      <strong>Status</strong> = path up right now ·
+      <strong>Live IPv4</strong> = address on this Unraid path <em>now</em> ·
+      <strong>Peer plan</strong> = saved IPv4 for this remote (survives tbn0↔tbn1 renumber) ·
+      <strong>Link check</strong> = optional Unraid↔Unraid rate compare (shared token) — not FRR.
     </p>
 <?php if (!$peers_mem): ?>
     <div class="tbn-empty-peers" role="status">
       <p class="tbn-muted" style="margin:0">
         <strong>No remembered peers yet.</strong>
-        With a peer linked, open Thunderbolt (or Apply on a tbn tab) once — the peer is stored on flash and remains after unplug.
+        With a peer linked, open this page (or Apply on a tbn tab) once — the peer is stored on flash and remains after unplug.
         Apply on a tbn tab also saves a <strong>peer plan</strong> (IP) for that remote host.
       </p>
     </div>
@@ -31,14 +31,14 @@ if (!$has_hw):
           <th class="tbn-peers-sel" title="Select row for toolbar actions">
             <span class="tbn-sr-only">Select</span>
           </th>
-          <th>Status</th>
-          <th title="Compares this host’s trained Thunderbolt rates with the peer Unraid plugin (not FRR).">Link check</th>
+          <th title="Online = this remote is on a live thunderboltN path right now">Status</th>
+          <th title="Unraid plugin rate compare (shared token). Not FRR. Dash when check is off.">Link check</th>
           <th>Peer</th>
           <th title="Live path slot right now — may renumber after cable order changes">Path</th>
-          <th title="Live address on the path right now">Live IPv4</th>
-          <th title="Desired address bound to this peer UUID — applied on reconnect even if path is tbn1 next time">Peer plan</th>
+          <th title="IPv4 currently on this Unraid thunderboltN for this peer (live)">Live IPv4</th>
+          <th title="Saved desired local IPv4 for this peer UUID — reapplied on reconnect even if path is tbn1 next time">Peer plan</th>
           <th>Unraid services</th>
-          <th>Link rate</th>
+          <th title="Trained rate · using N of M lanes">Link rate</th>
           <th>Last seen</th>
         </tr>
       </thead>
@@ -54,6 +54,10 @@ if (!$has_hw):
   });
   foreach ($peers_mem as $pkey => $p):
     $online = !empty($p['online']);
+    $cap_ml = 0;
+    if (function_exists('tbn_controller_capability')) {
+      $cap_ml = (int)(tbn_controller_capability()['max_lanes'] ?? 0);
+    }
     $rate = function_exists('tbn_format_link_rate')
       ? tbn_format_link_rate(
           $p['last_rx_speed'] ?? '',
@@ -61,6 +65,7 @@ if (!$has_hw):
           [
             'rx_lanes' => $p['last_rx_lanes'] ?? '',
             'tx_lanes' => $p['last_tx_lanes'] ?? '',
+            'max_lanes' => $cap_ml,
           ]
         )
       : trim(($p['last_rx_speed'] ?? '') . ' / ' . ($p['last_tx_speed'] ?? ''));
@@ -130,11 +135,20 @@ if (!$has_hw):
           </td>
           <td><code class="tbn-live" data-tbn-live-ip4="<?= htmlspecialchars($if) ?>"><?= htmlspecialchars($addrs !== '' ? $addrs : '—') ?></code></td>
           <td>
-            <code title="Bound to peer UUID; applied on hotplug/boot when this remote is on any thunderboltN"><?= htmlspecialchars($plan_lbl) ?></code>
-<?php if ($online && $has_plan): ?>
-            <span class="tbn-muted tbn-plan-hint"><br>Use toolbar to apply</span>
-<?php elseif ($online): ?>
-            <span class="tbn-muted tbn-plan-hint"><br>Use toolbar to save live path</span>
+<?php if ($has_plan): ?>
+            <code title="Saved plan for this peer UUID — applied on hotplug/boot to whichever thunderboltN they use"><?= htmlspecialchars($plan_lbl) ?></code>
+<?php if ($online): ?>
+            <span class="tbn-muted tbn-plan-hint"><br>Toolbar: Apply plan to live path</span>
+<?php else: ?>
+            <span class="tbn-muted tbn-plan-hint"><br>Saved — applies when peer is online</span>
+<?php endif; ?>
+<?php else: ?>
+            <span class="tbn-muted" title="No saved plan yet">—</span>
+<?php if ($online): ?>
+            <span class="tbn-muted tbn-plan-hint"><br>Toolbar: Save live path as plan</span>
+<?php else: ?>
+            <span class="tbn-muted tbn-plan-hint"><br>Apply tbn tab while linked, or toolbar when online</span>
+<?php endif; ?>
 <?php endif; ?>
           </td>
           <td>
@@ -191,12 +205,15 @@ if (!$has_hw):
           title="Apply stored peer plan to each selected online peer’s live path">
       </p>
       <p class="tbn-hint">
-        <strong>Select</strong> one or more rows, then use the toolbar.
-        <strong>Forget</strong> removes memory and peer L3 plan only — not <code>ifaces/thunderboltN.cfg</code> or eth Interface Rules.
-        <strong>Save / Apply plan</strong> need an online path for that peer.
+        <strong>Select</strong> rows, then toolbar:
+        <strong>Save live path as peer plan</strong> copies the current tbn IP onto that peer’s UUID;
+        <strong>Apply peer plan now</strong> pushes a saved plan onto the live path;
+        <strong>Forget</strong> drops memory + plan only (not <code>ifaces/*.cfg</code>).
       </p>
     </form>
 <?php endif; ?>
+
+    <div class="tbn-peers-toolbar-foot">
     <form method="POST" action="/update.php" target="progressFrame" class="tbn-harden-form"
       onsubmit="return confirm('Turn OFF Unraid host services on ALL Thunderbolt links and clear remembered Yes for every peer?');">
       <input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">
@@ -206,57 +223,58 @@ if (!$has_hw):
         <input type="submit" name="#apply" value="Harden: all peers services No" class="tbn-harden-btn">
       </p>
       <p class="tbn-hint">
-        Security override: all peers → services <strong>No</strong>; strip Thunderbolt interfaces from network-extra include list.
+        Security: all peers → services <strong>No</strong>; strip Thunderbolt ifaces from network-extra include list.
       </p>
     </form>
-    <dl>
-      <dt>Known peers:</dt>
-      <dd class="tbn-muted">UUID identity · peer plan · listen · forget</dd>
-    </dl>
-    <blockquote class="inline_help">
-      <strong>Identity</strong> — fabric UUID of the remote host, not the rear-panel port and not a stable MAC
-      (Thunderbolt host-net often gets a new MAC each link). We do <strong>not</strong> register names in
-      Unraid’s stock Interface Rules (that path is for eth PCI/MAC and is easy to break across OS updates).<br><br>
-      <strong>Peer plan</strong> — desired local IPv4 for <em>this remote</em>. Saved when you Apply a tbn tab
-      while they are linked, or select the row and use the toolbar <em>Save live path as peer plan</em>.
-      On hotplug/boot, the plan is applied to whichever <code>thunderboltN</code> that peer appears on
-      (so cable order / tbn0 vs tbn1 renumber is OK).<br><br>
-      <strong>Path (tbnN)</strong> — live kernel slot only; may change after unplug order. Use Peer plan for long-term L3.<br><br>
-      <strong>Toolbar</strong> — checkbox rows, then Forget / Save plan / Apply plan (no buttons inside the table).
-      <strong>Harden</strong> — all peers services No + strip TB from network-extra.
-      <?= tbn_help_docs_footer('docs/settings-reference.md', 'Settings reference') ?>
-    </blockquote>
+    </div>
+
+    <details class="tbn-details-help">
+      <summary>How Known peers works (identity · plan · link check)</summary>
+      <div class="tbn-details-body">
+        <p><strong>Identity</strong> — fabric UUID of the remote host (not rear-panel port, not a stable MAC).
+        We do not use stock Interface Rules for Thunderbolt host-net.</p>
+        <p><strong>Live IPv4 vs Peer plan</strong> — Live is whatever is on the path <em>right now</em> (may be empty until you Apply a tbn tab).
+        Plan is the saved address for <em>this remote</em>; on reconnect it is applied to whichever <code>thunderboltN</code> they appear on.</p>
+        <p><strong>Link check</strong> — optional plugin-to-plugin rate compare when both Unraid hosts share a token
+        (Settings → Peer link check). Stuck <em>Unverified</em> usually means the other host is not Unraid, token differs, or reports are off — not a cable fault. Not FRR.</p>
+        <p><strong>Toolbar</strong> — checkboxes + actions below the table (not inside cells).</p>
+        <?= tbn_help_docs_footer('docs/peers-and-plans.md', 'Peers & plans') ?>
+        · <?= tbn_help_docs_footer('docs/settings-reference.md', 'Settings reference') ?>
+      </div>
+    </details>
+
+<?php
+  if (function_exists('tbn_mesh_legend_html')) {
+    echo tbn_mesh_legend_html();
+  }
+  if (function_exists('tbn_mesh_reports_panel_html')) {
+    echo tbn_mesh_reports_panel_html($cfg);
+  }
+?>
   </div>
 
-  <div class="tbn-section">
+  <div class="tbn-section tbn-section-links">
     <h3>Links</h3>
     <p class="tbn-note">
-      <strong>LOCAL</strong> = this Unraid · each <strong>REMOTE</strong> = one live peer (tab <code>tbnN</code> / <code>thunderboltN</code>).
+      <strong>LOCAL</strong> = this Unraid (host class max).
+      Each <strong>REMOTE</strong> = one live peer path (tab <code>tbnN</code> / <code>thunderboltN</code>).
       Compare table appears when a peer is online.
     </p>
-    <dl>
-      <dt>How to read Links:</dt>
-      <dd class="tbn-muted">LOCAL · REMOTE · quality · IPs</dd>
-    </dl>
-    <blockquote class="inline_help">
-      Header under each REMOTE is the Settings tab and kernel iface — click the tab name to open it.<br><br>
-      <strong>Peer name</strong> — far host’s advertised name.
-      <strong>Stack</strong> — Thunderbolt vendor field (often <code>Linux</code> / software ID, not the chassis brand).<br><br>
-      <strong>Link RX/TX &amp; lanes</strong> — <em>LOCAL</em> is this host’s class ceiling (not a live hop rate).
-      Each <em>REMOTE</em> column is the <strong>trained</strong> path on that cable (end-to-end with that peer).
-      USB4/Thunderbolt <strong>lanes are simplex</strong> (TX or RX), not full duplex at the marketing port rate.
-      A marketing <strong>40&nbsp;Gb/s</strong> class path is typically <strong>~20&nbsp;Gb/s each direction at once</strong> (20+20), not 40 each way.
-      <code>rx_speed</code> is per lane; dual-lane often still shows ~20&nbsp;Gb/s with <strong>2-lane</strong>.
-      Single-lane (~20&nbsp;Gb/s · 1-lane) is common for Thunderbolt host-to-host under Linux.<br><br>
-      <strong>Link quality</strong> — trained rate first; yellow <em>Single-lane</em> means below controller class max,
-      not a failed install. ~10–15&nbsp;Gbit/s TCP is normal for 1-lane. Optional MTU&nbsp;9000 on <em>both</em> ends can cut retrans/CPU a bit — not negotiated, and not dual-lane.
-      <?= tbn_docs_more_html('docs/standards-and-speeds.md', 'Directionality & speeds ↗') ?><br><br>
-      <strong>Local IPv4 / MAC / state</strong> under REMOTE are <em>this Unraid end</em> of that link.
-      Set addresses on each <strong>tbnN</strong> tab (one tab per live peer path). Start simple: <strong>one cable per peer, static IP</strong>; multi-peer and OpenFabric when you need them.
-      Dual-cable to the same peer is limited today (often one netdev); bonding remains a roadmap when the kernel exposes two paths — see topology docs.
-      <?= tbn_help_docs_footer('docs/links-and-topology.md', 'Links & topology') ?>
-      · <?= tbn_docs_more_html('docs/peer-scenarios.md', 'Peer scenarios ↗') ?>
-    </blockquote>
+    <details class="tbn-details-help">
+      <summary>How to read Links (LOCAL · REMOTE · lanes · quality)</summary>
+      <div class="tbn-details-body">
+        <p>Click a REMOTE tab name to open that tbn settings page.</p>
+        <p><strong>Link rate / lanes</strong> — LOCAL is this host’s <em>capability</em> (not the live hop).
+        REMOTE is the <strong>trained</strong> path on that cable. “Using 1 of 2 lanes” means the link trained single-lane
+        even though the host class is dual-lane capable — common for Linux↔Linux host-net; both sides can show the same.</p>
+        <p>USB4/Thunderbolt lanes are simplex: marketing 40&nbsp;Gb/s class is often ~20&nbsp;Gb/s each direction at once.</p>
+        <p><strong>Link quality</strong> — trained rate first; yellow single-lane is below class max, not a failed install.
+        ~10–15&nbsp;Gbit/s TCP is normal for 1-lane.</p>
+        <?= tbn_docs_more_html('docs/standards-and-speeds.md', 'Directionality & speeds ↗') ?>
+        · <?= tbn_help_docs_footer('docs/links-and-topology.md', 'Links & topology') ?>
+        · <?= tbn_docs_more_html('docs/peer-scenarios.md', 'Peer scenarios ↗') ?>
+      </div>
+    </details>
 
 <?php if (!$links):
   $tbn_cap = function_exists('tbn_controller_capability')
@@ -368,7 +386,7 @@ if (!$has_hw):
     ? $tbn_cap['max_short']
     : '—';
   // LOCAL = host ceiling; live rates are only meaningful on each REMOTE hop
-  echo htmlspecialchars($max_rx !== '—' ? ('Max ' . $max_rx) : '—');
+  echo htmlspecialchars($max_rx !== '—' ? ('Host max ' . $max_rx . ' (class)') : '—');
 ?>
           </td>
 <?php foreach ($links as $L):
@@ -380,7 +398,8 @@ if (!$has_hw):
         [
           'rx_lanes' => $rem['rx_lanes'] ?? '',
           'tx_lanes' => $rem['tx_lanes'] ?? '',
-          'show_lanes' => false,
+          'show_lanes' => true,
+          'max_lanes' => (int)($tbn_cap['max_lanes'] ?? 0),
         ]
       )
     : '';
@@ -394,17 +413,20 @@ if (!$has_hw):
 <?php endforeach; ?>
         </tr>
         <tr>
-          <th scope="row">Lanes RX / TX</th>
-          <td class="tbn-col-local tbn-muted">
-            <?= !empty($tbn_cap['max_lanes'])
-              ? htmlspecialchars('Max ' . (int)$tbn_cap['max_lanes'] . '-lane')
-              : '—' ?>
+          <th scope="row">Lanes</th>
+          <td class="tbn-col-local tbn-muted" title="Host class capability — not this hop’s trained lanes">
+            <?= function_exists('tbn_format_lanes_cell')
+              ? htmlspecialchars(tbn_format_lanes_cell('', '', (int)($tbn_cap['max_lanes'] ?? 0), 'local'))
+              : (!empty($tbn_cap['max_lanes']) ? htmlspecialchars('Host capable of ' . (int)$tbn_cap['max_lanes'] . ' lanes') : '—') ?>
           </td>
 <?php foreach ($links as $L):
   $rem = $L['remote'];
+  $lane_txt = function_exists('tbn_format_lanes_cell')
+    ? tbn_format_lanes_cell($rem['rx_lanes'] ?? '', $rem['tx_lanes'] ?? '', (int)($tbn_cap['max_lanes'] ?? 0), 'remote')
+    : (($rem['rx_lanes'] !== '' ? $rem['rx_lanes'] : '—') . ' / ' . ($rem['tx_lanes'] !== '' ? $rem['tx_lanes'] : '—'));
 ?>
-          <td class="tbn-col-remote">
-            <?= htmlspecialchars(($rem['rx_lanes'] !== '' ? $rem['rx_lanes'] : '—') . ' / ' . ($rem['tx_lanes'] !== '' ? $rem['tx_lanes'] : '—')) ?>
+          <td class="tbn-col-remote" title="Trained on this cable. Both hosts can show 1 of 2 when Linux trains single-lane.">
+            <?= htmlspecialchars($lane_txt) ?>
           </td>
 <?php endforeach; ?>
         </tr>

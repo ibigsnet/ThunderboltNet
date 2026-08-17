@@ -1,13 +1,17 @@
-Menu="NetworkSettings:1100"
+Menu="NetworkSettings:1080"
 Title="Thunderbolt"
-Tag="sitemap"
-Icon="sitemap"
+Tag="fa-bolt"
+Icon="bolt"
 Markdown="false"
 ---
 <?php
 /**
  * Network Settings → Thunderbolt (Status / Peers / Hardware / Settings panels).
- * tbnN tabs: NetworkSettings:1110+ (top strip, not nested).
+ *
+ * Tab order (NetworkSettings sort keys — carefully kept away from nested xmenu):
+ *   eth* (~100+) · Wireless (1000) · tbnN (1010+N) · Thunderbolt (1080) · Interface Extra · Fabric Routing (:z)
+ * tbnN are eth-like siblings on the strip; this overview sits after them, before Interface Extra.
+ * Do not use Unraid nested xmenu under Thunderbolt (empty parent tab / broken Interface Extra).
  */
 require_once '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-page-boot.php';
 
@@ -21,13 +25,14 @@ if (!empty($_GET['tbn_tab'])) {
 ?>
 <link rel="stylesheet" href="/plugins/ThunderboltNet/thunderboltnet.css?v=<?= htmlspecialchars($ver) ?>">
 <style>
+/* Sit on the divider (Unraid-style) — avoid “floating tabs” gap */
 .tbn-subtabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem;
-  margin: 0 0 1rem;
-  padding: 0 0 0.5rem;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.35);
+  gap: 0.2rem 0.25rem;
+  margin: 0 0 1.1rem;
+  padding: 0;
+  border-bottom: 2px solid rgba(128, 128, 128, 0.45);
   list-style: none;
 }
 .tbn-subtabs button {
@@ -36,8 +41,10 @@ if (!empty($_GET['tbn_tab'])) {
   letter-spacing: 0.02em;
   cursor: pointer;
   border: 1px solid transparent;
+  border-bottom: none;
   border-radius: 4px 4px 0 0;
-  padding: 0.45em 0.85em;
+  padding: 0.5em 0.9em;
+  margin-bottom: -2px;
   background: transparent;
   color: inherit;
   opacity: 0.78;
@@ -45,8 +52,8 @@ if (!empty($_GET['tbn_tab'])) {
 .tbn-subtabs button:hover { opacity: 1; }
 .tbn-subtabs button.is-active {
   opacity: 1;
-  border-color: rgba(128, 128, 128, 0.4);
-  border-bottom-color: transparent;
+  border-color: rgba(128, 128, 128, 0.45);
+  border-bottom: 2px solid var(--background-color, #12151b);
   background: rgba(128, 128, 128, 0.12);
 }
 .tbn-tab-panel[hidden] { display: none !important; }

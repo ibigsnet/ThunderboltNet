@@ -251,11 +251,60 @@
     }
   }
 
+  /** Status companion cards: expand manual .plg URL + copy to clipboard */
+  function tbnInitInstallBoxes() {
+    document.querySelectorAll('[data-tbn-plg-panel]').forEach(function (btn) {
+      if (btn.getAttribute('data-tbn-bound') === '1') return;
+      btn.setAttribute('data-tbn-bound', '1');
+      btn.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        var box = btn.closest('.tbn-install-box');
+        if (!box) return;
+        var panel = box.querySelector('.tbn-plg-panel');
+        if (!panel) return;
+        var hide = !panel.hasAttribute('hidden') && !panel.classList.contains('tbn-hidden');
+        if (hide) {
+          panel.setAttribute('hidden', 'hidden');
+          panel.classList.add('tbn-hidden');
+        } else {
+          panel.removeAttribute('hidden');
+          panel.classList.remove('tbn-hidden');
+        }
+      });
+    });
+    document.querySelectorAll('[data-tbn-copy-plg]').forEach(function (btn) {
+      if (btn.getAttribute('data-tbn-bound') === '1') return;
+      btn.setAttribute('data-tbn-bound', '1');
+      btn.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        var box = btn.closest('.tbn-install-box') || btn.closest('.tbn-plg-panel');
+        var input = box ? box.querySelector('.tbn-plg-url') : null;
+        if (!input) return;
+        var text = input.value || '';
+        function ok() {
+          var prev = btn.textContent;
+          btn.textContent = 'Copied';
+          setTimeout(function () { btn.textContent = prev; }, 1600);
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(ok).catch(function () {
+            input.select();
+            try { document.execCommand('copy'); ok(); } catch (e) { /* ignore */ }
+          });
+        } else {
+          input.select();
+          try { document.execCommand('copy'); ok(); } catch (e2) { /* ignore */ }
+        }
+      });
+    });
+  }
+
   function tbnOnReady() {
     tbnInitEntryBanner();
     tbnApplyWantedTab();
     tbnInitAdvancedPanels();
     tbnInitCompanionJumps();
+    tbnInitInstallBoxes();
   }
 
   if (document.readyState === 'loading') {

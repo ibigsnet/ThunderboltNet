@@ -97,7 +97,7 @@ function tbn_of_fabricrouting_companion() {
   $out = [
     'plugin_dir' => $dir,
     'marker' => null,
-    'install_url' => 'https://raw.githubusercontent.com/ibigsnet/FabricRouting/main/fabricrouting.plg',
+    'install_url' => 'https://raw.githubusercontent.com/ibigsnet/FabricRouting/stable/fabricrouting.plg',
     'project' => 'https://github.com/ibigsnet/FabricRouting',
   ];
   foreach ([

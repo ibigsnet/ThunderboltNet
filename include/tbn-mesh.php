@@ -544,12 +544,13 @@ function tbn_mesh_ensure_token(array &$cfg) {
 
 function tbn_mesh_legend_html() {
   return '<div class="tbn-mesh-legend" role="note">'
-    . '<span class="tbn-mesh-pill tbn-mesh-green">Green</span> Validated — local and peer Unraid plugin reports agree '
-    . '(including valid asymmetric TX/RX). '
-    . '<span class="tbn-mesh-pill tbn-mesh-orange">Orange</span> Unverified — local only or peer silent/stale; '
-    . '<strong>not</strong> a degraded link. '
-    . '<span class="tbn-mesh-pill tbn-mesh-red">Red</span> Disagree — both plugins report different speeds; troubleshoot. '
-    . '<span class="tbn-mesh-pill tbn-mesh-info">Info</span> Speeds agree but path is below max port capability (slowest partner).'
+    . '<p class="tbn-mesh-legend-title"><strong>Link check</strong> (Unraid ↔ Unraid plugin rate compare — <em>not</em> FRR)</p>'
+    . '<span class="tbn-mesh-pill tbn-mesh-green">Match</span> Both plugins report the same trained rates. '
+    . '<span class="tbn-mesh-pill tbn-mesh-orange">Unverified</span> Peer plugin silent, token mismatch, or not Unraid — <strong>not</strong> a bad cable. '
+    . '<span class="tbn-mesh-pill tbn-mesh-orange">Waiting…</span> First poll still pending. '
+    . '<span class="tbn-mesh-pill tbn-mesh-red">Mismatch</span> Both sides report different speeds — troubleshoot. '
+    . '<span class="tbn-muted">Row tint:</span> soft <em>blue</em> = peer online on a live path; green/red accents = link-check result only. '
+    . 'Enable / shared token: Thunderbolt → Settings → Peer link check.'
     . '</div>';
 }
 
@@ -559,29 +560,36 @@ function tbn_mesh_badge_html(array $val = null, $enabled = null) {
   }
   if ($enabled === false) {
     // Do not show stale green/orange from an old poll when check is off or token missing
-    return '<span class="tbn-muted" title="Peer link check is off or shared token unset (Thunderbolt → Settings)">—</span>';
+    return '<span class="tbn-muted" title="Link check off or shared token unset (Thunderbolt → Settings → Peer link check). Not FRR.">—</span>';
   }
   if (!$val || empty($val['status'])) {
-    return '<span class="tbn-mesh-pill tbn-mesh-orange" title="Waiting for the other Unraid plugin to report rates">Checking…</span>';
+    return '<span class="tbn-mesh-pill tbn-mesh-orange" title="Waiting for first peer plugin report (same mesh token on both Unraid hosts)">Waiting…</span>';
   }
   // Stale self-match artifacts
   if (($val['reason'] ?? '') === 'self' || ($val['error'] ?? '') === 'self_host_id') {
     return '<span class="tbn-muted" title="Ignored self report">—</span>';
   }
   $st = $val['status'];
-  $label = tbn_mesh_status_label($st, $val['reason'] ?? '');
+  $reason = (string)($val['reason'] ?? '');
+  $label = tbn_mesh_status_label($st, $reason);
   // Shorter table labels
   if ($st === 'green') {
-    $label = ($val['reason'] ?? '') === 'agree_asymmetric' ? 'Match (asymmetric)' : 'Match';
+    $label = ($reason === 'agree_asymmetric') ? 'Match (asymmetric)' : 'Match';
   } elseif ($st === 'red') {
     $label = 'Mismatch';
   } elseif ($st === 'orange') {
-    $label = (($val['reason'] ?? '') === 'peer_stale') ? 'Stale' : 'Checking…';
+    if ($reason === 'peer_stale') {
+      $label = 'Stale';
+    } elseif ($reason === 'local_only') {
+      $label = 'Unverified';
+    } else {
+      $label = 'Unverified';
+    }
   }
   $cls = 'tbn-mesh-orange';
   if ($st === 'green') $cls = 'tbn-mesh-green';
   elseif ($st === 'red') $cls = 'tbn-mesh-red';
-  $title = htmlspecialchars(tbn_mesh_status_label($st, $val['reason'] ?? '') . (!empty($val['info']) ? ' — ' . $val['info'] : ''), ENT_QUOTES);
+  $title = htmlspecialchars(tbn_mesh_status_label($st, $reason) . (!empty($val['info']) ? ' — ' . $val['info'] : ''), ENT_QUOTES);
   $html = '<span class="tbn-mesh-pill ' . $cls . '" title="' . $title . '">' . htmlspecialchars($label) . '</span>';
   if (!empty($val['info'])) {
     $html .= '<div class="tbn-mesh-info-note">' . htmlspecialchars($val['info']) . '</div>';

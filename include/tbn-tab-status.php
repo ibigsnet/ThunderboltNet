@@ -131,10 +131,13 @@
 <?php else: ?>
         <p><span class="tbn-companion-status tbn-status-warn">Not installed</span>
           Optional for rings / multi-hop / Proxmox FRR peers. Skip for a single static cable.</p>
-        <p>
-          Install <strong>Fabric Routing</strong> from CA or
-          <a href="<?= htmlspecialchars($fabricrouting['install_url'] ?? 'https://raw.githubusercontent.com/ibigsnet/FabricRouting/main/fabricrouting.plg') ?>" target="_blank" rel="noopener">raw .plg</a>.
-        </p>
+        <?= function_exists('tbn_companion_install_html')
+          ? tbn_companion_install_html(
+              'Fabric Routing',
+              $fabricrouting['install_url'] ?? 'https://raw.githubusercontent.com/ibigsnet/FabricRouting/stable/fabricrouting.plg',
+              'Fabric Routing'
+            )
+          : '' ?>
 <?php endif; ?>
       </div>
       <div id="tbn-companion-nbd" class="tbn-companion-card<?= $nbd_present ? ' tbn-companion-ok' : '' ?>">
@@ -145,10 +148,13 @@
 <?php else: ?>
         <p><span class="tbn-companion-status tbn-status-warn">Not installed</span>
           Optional whole-disk export/image over a Thunderbolt or LAN IP. Skip if you only need host networking.</p>
-        <p>
-          Install <strong>NBD Export</strong> from CA or
-          <a href="https://raw.githubusercontent.com/ibigsnet/NBDExport/stable/nbd.plg" target="_blank" rel="noopener">raw .plg</a>.
-        </p>
+        <?= function_exists('tbn_companion_install_html')
+          ? tbn_companion_install_html(
+              'NBD Export',
+              'https://raw.githubusercontent.com/ibigsnet/NBDExport/stable/nbd.plg',
+              'NBD Export'
+            )
+          : '' ?>
 <?php endif; ?>
       </div>
       <div id="tbn-companion-usb4stream" class="tbn-companion-card tbn-companion-muted">

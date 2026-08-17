@@ -1158,12 +1158,12 @@ function tbn_parse_gbps($raw) {
  * Format trained link rates for Known peers / quality tables.
  *
  * Perspective is this host: RX = from peer, TX = to peer (sysfs on peer path).
- * Equal rates → "20 Gb/s full-duplex" (optional " · 1-lane").
- * Asymmetric → "TX 40 Gb/s (to peer) · RX 20 Gb/s (from peer)".
+ * Equal rates → "20 Gb/s full-duplex · using 1 of 2 lanes".
+ * Asymmetric → "TX 40 Gb/s (to peer) · RX 20 Gb/s (from peer) · …".
  *
  * @param mixed $rx   last_rx_speed / remote rx_speed
  * @param mixed $tx   last_tx_speed / remote tx_speed
- * @param array $opts keys: rx_lanes, tx_lanes, show_lanes (bool, default true)
+ * @param array $opts keys: rx_lanes, tx_lanes, show_lanes (bool, default true), max_lanes (int|null)
  * @return string empty if neither side known
  */
 function tbn_format_link_rate($rx, $tx, array $opts = []) {
@@ -1175,14 +1175,27 @@ function tbn_format_link_rate($rx, $tx, array $opts = []) {
   $show_lanes = !array_key_exists('show_lanes', $opts) || !empty($opts['show_lanes']);
   $rx_lanes = isset($opts['rx_lanes']) ? trim((string)$opts['rx_lanes']) : '';
   $tx_lanes = isset($opts['tx_lanes']) ? trim((string)$opts['tx_lanes']) : '';
+  $max_lanes = isset($opts['max_lanes']) ? (int)$opts['max_lanes'] : 0;
+  if ($max_lanes <= 0 && function_exists('tbn_controller_capability')) {
+    $cap = tbn_controller_capability();
+    $max_lanes = (int)($cap['max_lanes'] ?? 0);
+  }
   $lanes_suffix = '';
-  if ($show_lanes && $rx_lanes !== '' && $tx_lanes !== '' && $rx_lanes === $tx_lanes
-      && preg_match('/^\d+$/', $rx_lanes)) {
-    $lanes_suffix = ' · ' . $rx_lanes . '-lane';
-  } elseif ($show_lanes && $rx_lanes !== '' && $tx_lanes === '' && preg_match('/^\d+$/', $rx_lanes)) {
-    $lanes_suffix = ' · ' . $rx_lanes . '-lane';
-  } elseif ($show_lanes && $tx_lanes !== '' && $rx_lanes === '' && preg_match('/^\d+$/', $tx_lanes)) {
-    $lanes_suffix = ' · ' . $tx_lanes . '-lane';
+  if ($show_lanes) {
+    $used = 0;
+    if ($rx_lanes !== '' && $tx_lanes !== '' && preg_match('/^\d+$/', $rx_lanes) && preg_match('/^\d+$/', $tx_lanes)) {
+      // Trained path: report the active lane count (usually RX==TX); take max if unequal
+      $used = max((int)$rx_lanes, (int)$tx_lanes);
+    } elseif ($rx_lanes !== '' && preg_match('/^\d+$/', $rx_lanes)) {
+      $used = (int)$rx_lanes;
+    } elseif ($tx_lanes !== '' && preg_match('/^\d+$/', $tx_lanes)) {
+      $used = (int)$tx_lanes;
+    }
+    if ($used > 0 && $max_lanes > 0) {
+      $lanes_suffix = ' · using ' . $used . ' of ' . $max_lanes . ' lanes';
+    } elseif ($used > 0) {
+      $lanes_suffix = ' · using ' . $used . ' lane' . ($used === 1 ? '' : 's');
+    }
   }
 
   if ($rx_s === '' && $tx_s === '') {
@@ -1202,6 +1215,93 @@ function tbn_format_link_rate($rx, $tx, array $opts = []) {
 
   // Asymmetric (e.g. Thunderbolt 5 unequal modes): TX first (out to peer), then RX
   return 'TX ' . $tx_s . ' (to peer) · RX ' . $rx_s . ' (from peer)' . $lanes_suffix;
+}
+
+/**
+ * Compact lanes cell: trained "using 1 of 2" vs host max only.
+ *
+ * LOCAL compare column should say host capability; REMOTE says trained path.
+ *
+ * @param string|int $rx_lanes
+ * @param string|int $tx_lanes
+ * @param int        $max_lanes host class ceiling (0 = unknown)
+ * @param string     $side 'local' | 'remote'
+ */
+function tbn_format_lanes_cell($rx_lanes, $tx_lanes, $max_lanes = 0, $side = 'remote') {
+  $max_lanes = (int)$max_lanes;
+  $rx = trim((string)$rx_lanes);
+  $tx = trim((string)$tx_lanes);
+  if ($side === 'local') {
+    if ($max_lanes > 0) {
+      return 'Host capable of ' . $max_lanes . ' lane' . ($max_lanes === 1 ? '' : 's')
+        . ' (class max — not this hop’s train)';
+    }
+    return '—';
+  }
+  $used = 0;
+  if ($rx !== '' && $tx !== '' && ctype_digit($rx) && ctype_digit($tx)) {
+    $used = max((int)$rx, (int)$tx);
+  } elseif ($rx !== '' && ctype_digit($rx)) {
+    $used = (int)$rx;
+  } elseif ($tx !== '' && ctype_digit($tx)) {
+    $used = (int)$tx;
+  }
+  if ($used <= 0) {
+    return '—';
+  }
+  if ($max_lanes > 0) {
+    $s = 'Using ' . $used . ' of ' . $max_lanes . ' lanes (trained on this cable)';
+    if ($used < $max_lanes) {
+      $s .= ' — peer/cable/Linux often trains below host max';
+    }
+    return $s;
+  }
+  return 'Using ' . $used . ' lane' . ($used === 1 ? '' : 's') . ' (trained)';
+}
+
+/**
+ * Install helper for companion plugins (Fabric Routing / NBD Export) on Status.
+ *
+ * CA deep-search is not stable across AppFeed versions — link Apps home + exact search text.
+ * Manual path: copyable raw .plg + Plugins → Install Plugin.
+ *
+ * @param string $display_name e.g. Fabric Routing
+ * @param string $plg_url      raw GitHub .plg (stable preferred for CA users)
+ * @param string $ca_search    text to search in Apps
+ */
+function tbn_companion_install_html($display_name, $plg_url, $ca_search = '') {
+  $name = htmlspecialchars((string)$display_name);
+  $url = htmlspecialchars((string)$plg_url);
+  $q = trim((string)$ca_search);
+  if ($q === '') {
+    $q = (string)$display_name;
+  }
+  $q_h = htmlspecialchars($q);
+  $ca = is_dir('/usr/local/emhttp/plugins/community.applications')
+    || is_file('/boot/config/plugins/community.applications.plg');
+  $html = '<div class="tbn-install-box">';
+  $html .= '<span class="tbn-install-label">Install <strong>' . $name . '</strong>:</span> ';
+  if ($ca) {
+    $html .= '<a class="tbn-btn-link" href="/Apps" title="Community Applications — search for ' . $q_h . '">'
+      . '<strong>from CA</strong></a>';
+    $html .= ' <span class="tbn-muted">(Apps → search <code>' . $q_h . '</code>)</span>';
+  } else {
+    $html .= '<a class="tbn-btn-link" href="/Apps" title="Open Apps (prompts to install Community Applications if missing)">'
+      . '<strong>from CA</strong></a>';
+    $html .= ' <span class="tbn-muted">(enable Community Applications if Apps is empty)</span>';
+  }
+  $html .= ' <span class="tbn-muted">·</span> ';
+  $html .= '<button type="button" class="tbn-btn-link tbn-plg-toggle" data-tbn-plg-panel>'
+    . 'manual .plg</button>';
+  $html .= '<div class="tbn-plg-panel tbn-hidden" hidden>';
+  $html .= '<p class="tbn-muted" style="margin:0.4rem 0 0.25rem">Plugins → Install Plugin → paste URL:</p>';
+  $html .= '<div class="tbn-plg-row">';
+  $html .= '<input type="text" class="tbn-plg-url" readonly value="' . $url . '" '
+    . 'onclick="this.select()" title="Select and copy">';
+  $html .= '<button type="button" class="tbn-btn-small" data-tbn-copy-plg>Copy</button>';
+  $html .= '<a class="tbn-btn-link" href="/Plugins">Open Plugins</a>';
+  $html .= '</div></div></div>';
+  return $html;
 }
 
 /**
@@ -3136,9 +3236,10 @@ function tbn_list_pci_iommu() {
 /**
  * Generate top-level Network Settings tabs: tbn0, tbn1, … (NOT nested under Thunderbolt).
  *
- * Thunderbolt parent (NetworkSettings:1100) is an xmenu with Status / Peers / Hardware / Settings.
- * Per-link IPs stay eth-like siblings at :1110+ so they remain on the Network Settings strip
- * next to eth0 / Wireless / Thunderbolt / Fabric Routing.
+ * Sort keys (see ThunderboltNet.page header):
+ *   eth* ~100 · Wireless 1000 · tbnN 1010+N · Thunderbolt overview 1080 · Interface Extra · FRR :z
+ * Keep tbnN as strip siblings (eth-like) with Tag=sitemap; overview uses fa-bolt.
+ * Never nest Status/Peers as Unraid xmenu under Thunderbolt (breaks empty parent / Interface Extra).
  */
 function tbn_sync_iface_pages() {
   $root = tbn_plugin_root();
@@ -3153,7 +3254,8 @@ function tbn_sync_iface_pages() {
     }
     $n = (int)$m[1];
     $keep[$n] = true;
-    $menu = 1110 + $n;
+    // After stock Wireless (1000); before Thunderbolt overview (1080)
+    $menu = 1010 + $n;
     $label = 'tbn' . $n;
     $page = $root . '/Tbn' . $n . '.page';
     // Markdown=false: Unraid runs page text through Markdown by default, which breaks <?php.

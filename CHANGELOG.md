@@ -1,3 +1,10 @@
+## 2026.08.17ac
+
+- **Network Settings tab order:** tbnN tabs at `1010+N` (after stock Wireless `1000`); Thunderbolt overview at `1080` (after tbnN, before Interface Extra). Overview icon **bolt** / `fa-bolt`; tbnN keeps sitemap.
+- **Peers clarity:** Live IPv4 vs Peer plan wording; toolbar hints; link rate “using N of M lanes”; LOCAL lanes = host capability, REMOTE = trained path (both sides can show 1 of 2); Link check legend + reports on Peers (removed from Hardware); Unverified/Waiting labels (not stuck “Checking…”); online rows soft blue.
+- **Status companions:** Install Fabric Routing / NBD via **from CA** (Apps) + expandable manual .plg with Copy + Open Plugins.
+- tbnN lead line closer to eth-style status strip; defaults still `10.255.N.2/24` static, services No until opted in.
+
 ## 2026.08.17ab
 
 - Mesh: never poll self as peer; Link check — when token missing; softer online row tint.

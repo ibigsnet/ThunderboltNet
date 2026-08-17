@@ -95,10 +95,11 @@ if (strpos($nm, '.') === false) {
   </div>
 <?php else: ?>
 
-  <p class="tbn-note">
-    <code><?= htmlspecialchars($label) ?></code>
+  <div class="tbn-iface-lead" role="status">
+    <strong><?= htmlspecialchars($label) ?></strong>
     · <code><?= htmlspecialchars($if) ?></code>
-    · <?= htmlspecialchars($oper) ?> / carrier <?= htmlspecialchars($carrier === '' ? 'n/a' : $carrier) ?>
+    · <?= htmlspecialchars($oper) ?>
+    · carrier <?= htmlspecialchars($carrier === '' ? 'n/a' : $carrier) ?>
 <?php if ($peer !== ''): ?>
     · peer <strong><?= htmlspecialchars($peer) ?></strong>
 <?php endif; ?>
@@ -113,7 +114,8 @@ if (strpos($nm, '.') === false) {
 <?php if ($is_bond_slave): ?>
     · <strong>member of <?= htmlspecialchars($master) ?></strong>
 <?php endif; ?>
-  </p>
+    <span class="tbn-muted"><br>Same idea as eth0: static IP on this path, Apply. Defaults use <code>10.255.N.2/24</code> for thunderboltN.</span>
+  </div>
 
 <?php if ($is_bond_slave): ?>
   <div class="tbn-notice" role="status">
