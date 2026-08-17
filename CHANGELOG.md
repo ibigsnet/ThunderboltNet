@@ -6,6 +6,12 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+###2026.08.16ac
+- **Known peers:** unplug/replug no longer leaves a second Offline row (blank peer name) next
+  to the real peer. Root cause: hotplug can briefly omit fabric `unique_id`, which created an
+  `iface:thunderboltN` key; reconnect with UUID then showed two rows. Dedupe/merge into the
+  UUID peer and reuse remembered UUID when sysfs UUID is empty for that iface.
+
 ###2026.08.16ab
 - **Install/upgrade hygiene:** prepare always `removepkg`s every prior `ThunderboltNet-*`
   package and wipes emhttp plugin dirs (canonical + legacy casings) before the new `.txz`.

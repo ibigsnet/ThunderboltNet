@@ -557,13 +557,81 @@ function tbn_save_peers_memory(array $peers) {
  */
 /**
  * Stable key for peers.json (fabric UUID preferred).
+ *
+ * Hotplug race: unique_id can be empty for a moment after netdev recreate. Prefer an
+ * existing fabric-UUID peer already bound to this iface over inventing iface:thunderboltN
+ * (which left a permanent Offline “—” row next to the real peer after reconnect).
+ *
+ * @param array|null $existing_peers peers.json map (optional)
  */
-function tbn_peer_key_from_link(array $L) {
+function tbn_peer_key_from_link(array $L, ?array $existing_peers = null) {
   $uid = trim((string)($L['remote']['unique_id'] ?? ''));
   if ($uid !== '') {
     return $uid;
   }
-  return 'iface:' . ($L['iface'] ?? 'unknown');
+  $if = trim((string)($L['iface'] ?? ''));
+  if ($existing_peers !== null && $if !== '') {
+    $hits = [];
+    foreach ($existing_peers as $k => $p) {
+      if (!is_string($k) || strpos($k, 'iface:') === 0) {
+        continue;
+      }
+      if (($p['last_iface'] ?? '') === $if) {
+        $hits[] = $k;
+      }
+    }
+    if (count($hits) === 1) {
+      return $hits[0];
+    }
+  }
+  return 'iface:' . ($if !== '' ? $if : 'unknown');
+}
+
+/**
+ * Drop iface:* fallback rows that duplicate a fabric-UUID peer on the same iface.
+ * Merges listening Yes / empty name onto the UUID row before delete.
+ */
+function tbn_peers_dedupe_iface_fallbacks(array $peers) {
+  foreach (array_keys($peers) as $k) {
+    if (!is_string($k) || strpos($k, 'iface:') !== 0) {
+      continue;
+    }
+    $if = trim((string)($peers[$k]['last_iface'] ?? ''));
+    if ($if === '' && preg_match('/^iface:(thunderbolt\d+)$/', $k, $m)) {
+      $if = $m[1];
+    }
+    if ($if === '') {
+      continue;
+    }
+    $uuid_key = null;
+    foreach ($peers as $k2 => $p2) {
+      if (!is_string($k2) || $k2 === $k || strpos($k2, 'iface:') === 0) {
+        continue;
+      }
+      if (($p2['last_iface'] ?? '') === $if) {
+        $uuid_key = $k2;
+        break;
+      }
+    }
+    if ($uuid_key === null) {
+      continue;
+    }
+    $ghost = $peers[$k];
+    if (($peers[$uuid_key]['include_listening'] ?? 'no') !== 'yes'
+        && ($ghost['include_listening'] ?? 'no') === 'yes') {
+      $peers[$uuid_key]['include_listening'] = 'yes';
+    }
+    if (trim((string)($peers[$uuid_key]['peer_name'] ?? '')) === ''
+        && trim((string)($ghost['peer_name'] ?? '')) !== '') {
+      $peers[$uuid_key]['peer_name'] = $ghost['peer_name'];
+    }
+    if (trim((string)($peers[$uuid_key]['stack'] ?? '')) === ''
+        && trim((string)($ghost['stack'] ?? '')) !== '') {
+      $peers[$uuid_key]['stack'] = $ghost['stack'];
+    }
+    unset($peers[$k]);
+  }
+  return $peers;
 }
 
 /**
@@ -663,7 +731,7 @@ function tbn_reconcile_listening_from_memory(array $links) {
   $peers = tbn_load_peers_memory();
   $changed = false;
   foreach ($links as $L) {
-    $key = tbn_peer_key_from_link($L);
+    $key = tbn_peer_key_from_link($L, $peers);
     if (!isset($peers[$key]['include_listening'])) {
       continue;
     }
@@ -693,9 +761,25 @@ function tbn_remember_live_peers(array $links) {
   foreach ($links as $L) {
     $rem = $L['remote'] ?? [];
     $uid = trim((string)($rem['unique_id'] ?? ''));
-    $key = tbn_peer_key_from_link($L);
-    $prev = $peers[$key] ?? [];
     $if = $L['iface'] ?? '';
+    // Absorb iface: fallback for this netdev before key resolve / upsert
+    if ($uid !== '' && $if !== '' && preg_match('/^thunderbolt\d+$/', $if)) {
+      $fk = 'iface:' . $if;
+      if (isset($peers[$fk])) {
+        if (!isset($peers[$uid])) {
+          $peers[$uid] = $peers[$fk];
+          $peers[$uid]['unique_id'] = $uid;
+        } else {
+          if (($peers[$uid]['include_listening'] ?? 'no') !== 'yes'
+              && ($peers[$fk]['include_listening'] ?? 'no') === 'yes') {
+            $peers[$uid]['include_listening'] = 'yes';
+          }
+        }
+        unset($peers[$fk]);
+      }
+    }
+    $key = tbn_peer_key_from_link($L, $peers);
+    $prev = $peers[$key] ?? [];
     $iface_listen = 'no';
     if ($if !== '' && preg_match('/^thunderbolt\d+$/', $if)) {
       $ic = tbn_load_iface_cfg($if);
@@ -706,10 +790,18 @@ function tbn_remember_live_peers(array $links) {
     if ($listen !== 'yes') {
       $listen = 'no';
     }
+    $name = trim((string)($rem['peer_name'] ?? ''));
+    if ($name === '') {
+      $name = (string)($prev['peer_name'] ?? '');
+    }
+    $stack = trim((string)($rem['stack'] ?? ''));
+    if ($stack === '') {
+      $stack = (string)($prev['stack'] ?? '');
+    }
     $peers[$key] = array_merge($prev, [
-      'unique_id' => $uid,
-      'peer_name' => $rem['peer_name'] ?? ($prev['peer_name'] ?? ''),
-      'stack' => $rem['stack'] ?? ($prev['stack'] ?? ''),
+      'unique_id' => $uid !== '' ? $uid : (string)($prev['unique_id'] ?? ''),
+      'peer_name' => $name,
+      'stack' => $stack,
       'last_iface' => $if,
       'last_label' => $L['label'] ?? '',
       'last_rx_speed' => $rem['rx_speed'] ?? '',
@@ -723,10 +815,12 @@ function tbn_remember_live_peers(array $links) {
       'online' => true,
     ]);
   }
+  // Drop any remaining iface: ghosts that share an iface with a UUID peer
+  $peers = tbn_peers_dedupe_iface_fallbacks($peers);
   // Mark others offline (still remembered)
   $live_keys = [];
   foreach ($links as $L) {
-    $live_keys[] = tbn_peer_key_from_link($L);
+    $live_keys[] = tbn_peer_key_from_link($L, $peers);
   }
   foreach ($peers as $k => $p) {
     $peers[$k]['online'] = in_array($k, $live_keys, true);
