@@ -164,6 +164,8 @@ These are **supported directions**, not throwaway experiments. Defaults favor in
 
 **Not** stock Network Settings → Interface Rules (MAC→ethN). Thunderbolt host-net MACs often change each link; binding by MAC would thrash. Identity is fabric UUID inside this plugin.
 
+**Why this path (short):** Forum reports (notably **Vinney**) showed static addresses failing after reboot/unplug and 169.254 stacking with Static — fixed with path reapply, udev hotplug, and dhcpcd kill. Peer plans extend that so L3 follows the **remote host** when path names renumber. Full findings → solutions: [peers-and-plans.md — Why this design](docs/peers-and-plans.md#why-this-design-field-findings). Symptom index: [troubleshooting.md](docs/troubleshooting.md#static-ip-missing-after-reboot-or-unplugreplug).
+
 Goal: plug in a laptop or mini-PC, transfer, unplug when idle is safe — without redoing IP every time **and** without assuming tbn0 is always the same remote host. Multi-hop/rings = OpenFabric; dual-cable bonding = separate roadmap.
 
 Full write-up: [peers-and-plans.md](docs/peers-and-plans.md).
