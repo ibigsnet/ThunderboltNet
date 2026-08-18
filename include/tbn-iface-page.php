@@ -515,26 +515,28 @@ if (strpos($nm, '.') === false) {
             Default <strong>No</strong>. When <strong>Yes</strong>, Unraid MASQUERADEs this underlay toward a LAN/WAN
             interface so Thunderbolt peers can use Unraid as their gateway (peer sets default via this host’s tbn IP).
             Opposite of “Enable default route” above (that makes <em>Unraid</em> use TB as uplink).
-            Survives reboot via flash cfg + array-start / hotplug reapply.
+            Survives reboot via flash cfg + array-start / hotplug reapply. Setting back to No removes this link’s NAT rules on Apply.
             <?= tbn_help_docs_footer('docs/nat-share-uplink.md', 'NAT / share uplink') ?>
           </blockquote>
-          <dl>
-            <dt>NAT uplink interface:</dt>
-            <dd>
-              <select name="NAT_UPLINK">
+          <div class="tbn-nat-uplink-opts<?= $nat_en === 'yes' ? '' : ' tbn-hidden' ?>">
+            <dl>
+              <dt>NAT uplink interface:</dt>
+              <dd>
+                <select name="NAT_UPLINK">
 <?php
   foreach ($nat_choices as $ch) {
     $label = ($ch === 'auto') ? 'Auto (default route iface)' : $ch;
     echo mk_option($nat_up, $ch, $label);
   }
 ?>
-              </select>
-            </dd>
-          </dl>
-          <blockquote class="inline_help">
-            <strong>Auto</strong> follows Unraid’s current IPv4 default route (<code>br0</code>, <code>wlan0</code>, …).
-            Pick an explicit iface when you want NAT out that path only. Do not select a Thunderbolt underlay.
-          </blockquote>
+                </select>
+              </dd>
+            </dl>
+            <blockquote class="inline_help">
+              <strong>Auto</strong> follows Unraid’s current IPv4 default route (<code>br0</code>, <code>wlan0</code>, …).
+              Pick an explicit iface when you want NAT out that path only. Do not select a Thunderbolt underlay.
+            </blockquote>
+          </div>
         </div>
       </div>
 

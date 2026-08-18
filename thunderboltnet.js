@@ -639,6 +639,10 @@
     var vlan = form.VLAN_ENABLE ? form.VLAN_ENABLE.value : 'no';
     tbnShow(form.querySelector('.tbn-vlan-opts'), vlan === 'yes' && !slave);
 
+    // NAT uplink picker only when Share host uplink is Yes
+    var natEn = form.NAT_ENABLE ? form.NAT_ENABLE.value : 'no';
+    tbnShow(form.querySelector('.tbn-nat-uplink-opts'), natEn === 'yes' && !slave);
+
     // eth0-like: Desired MTU number + Enable jumbo frames checkbox
     var mtuInput = form.querySelector('input.tbn-mtu-input') || form.MTU;
     var jumboCb = form.querySelector('input.tbn-ctl-mtu[type="checkbox"]');

@@ -1,3 +1,9 @@
+## 2026.08.18ae
+
+- **UI:** Hide **NAT uplink interface** unless Share host uplink (NAT) is Yes.
+- **Info:** Drop Address schema from the eth0-style Info dialog (schema stays on the tbn form lead only).
+- NAT off on Apply still tears down marked iptables for that link.
+
 ## 2026.08.18ad
 
 - **Feature:** Per-link **Share host uplink (NAT)** — MASQUERADE the tbn underlay toward
