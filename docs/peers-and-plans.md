@@ -12,7 +12,7 @@ This page is both **how it works** and **why** we built it this way — includin
 
 - [Why this design (field findings)](#why-this-design-field-findings)
 - [Two identities](#two-identities)
-- [Peer plan (L3 follows the remote host)](#peer-plan-l3-follows-the-remote-host)
+- [Saved address (L3 follows the remote host)](#saved-address-l3-follows-the-remote-host)
 - [What Apply / hotplug do](#what-apply--hotplug-do)
 - [Forget peer](#forget-peer)
 - [Why not Interface Rules / MAC](#why-not-interface-rules--mac)
@@ -52,7 +52,7 @@ Thunderbolt host-net under Linux is **not** a stable eth0-style NIC. Several ind
 That layer answers: **“static should come back on this netdev name after drop/reboot.”**  
 (See CHANGELOG **2026.08.15ak** for the persistence release notes.)
 
-### 2. Same host, wrong or empty IP after path renumber (lab / multi-peer)
+### 2. Same host, wrong or empty IP after path renumber (multi-peer)
 
 **What users hit next**
 
@@ -65,15 +65,16 @@ That layer answers: **“static should come back on this netdev name after drop/
 | Mechanism | Role |
 |-----------|------|
 | Known peers keyed by **remote fabric UUID** | Stable “who is on the other end” |
-| **Peer plan** (desired local IPv4, etc.) on that UUID | L3 follows the **host**, not the slot name |
-| Capture plan on **tbn Apply** (or Peers → **Remember current**) | One Apply while linked is enough |
-| Reapply prefers **Saved** (peer plan) when the live path has a known UUID | Then falls back to path-slot `ifaces/*.cfg` |
+| **Saved** (desired local IPv4, etc.) on that UUID | L3 follows the **host**, not the slot name |
+| Capture on **tbn Apply** while linked | First good Apply **is** the save — no separate Remember step required |
+| Peers → **Remember current** | Manual Current → Saved when live drift needs to stick |
+| Reapply prefers **Saved** when the live path has a known UUID | Then falls back to path-slot `ifaces/*.cfg` |
 | **Forget peer** | Drop UUID memory/plan without touching eth Interface Rules |
 
 That layer answers: **“this laptop should get its Unraid-side address even if the kernel renames the path.”**  
 It is **not** a full replacement for path reapply — it **sits on top** of it.
 
-### 3. Two Known peers rows after unplug/replug (lab)
+### 3. Two Known peers rows after unplug/replug
 
 **What users saw**
 
@@ -90,7 +91,30 @@ It is **not** a full replacement for path reapply — it **sits on top** of it.
 - Prefer an existing UUID peer on the same iface when UUID is missing.  
 - Merge/delete `iface:` ghosts when a UUID peer shares that iface (**2026.08.16ac**).
 
-### 4. What peer plans deliberately do *not* claim
+### 4. Path looks healthy but no ping after reboot
+
+**What users saw**
+
+- Peer **Online**, Current IP present, trained rates look fine — UI does not scream.  
+- `ping` / ARP to the peer still fail.
+
+**Cause (generalized)**
+
+- Product default is **E2E = No** (`thunderbolt_net e2e=0`). Older builds only wrote that into RAM `/etc/modprobe.d/`.  
+- After reboot the kernel loaded the driver default (**e2e on**). Addresses still reapplied; the underlay stayed flaky.
+
+**What we do**
+
+| Mechanism | Role |
+|-----------|------|
+| Persist to `/boot/config/modprobe.d/thunderbolt_net.conf` | Survives reboot (Unraid flash) |
+| Also write `/etc/modprobe.d/` | Live root this boot |
+| `startup` / reapply: reload module if live bit ≠ cfg | Corrects a wrong first auto-load |
+| Peers **No carrier** / **No reply** under Current | Quiet cue when Online but underlay silent |
+
+Prefer plugin **≥ 2026.08.17ba**. Confirm `cat /sys/module/thunderbolt_net/parameters/e2e` is `N`/`0` when Settings → E2E is No. See [driver-options.md](driver-options.md) and [troubleshooting.md](troubleshooting.md#online-ip-and-rates-but-no-ping).
+
+### 5. What Saved / peer plans deliberately do *not* claim
 
 | Not claimed | Why |
 |-------------|-----|
@@ -99,7 +123,7 @@ It is **not** a full replacement for path reapply — it **sits on top** of it.
 | Stable local MAC → tbnN like Interface Rules | MAC churn on host-net — wrong tool |
 | Every OEM/peer edge case | Forum path was Unraid static + recreate; we generalize from that |
 
-Forum persistence reports drove **path reapply + dhcpcd kill**. Peer plans address the **next** class of issues once reapply works: **who owns the plan when names move**.
+Forum persistence reports drove **path reapply + dhcpcd kill**. Saved addresses address the **next** class of issues once reapply works: **who owns the plan when names move**. E2E flash persist closes the “looks configured, still can’t talk” reboot class.
 
 ## Two identities
 
@@ -112,9 +136,22 @@ Forum persistence reports drove **path reapply + dhcpcd kill**. Peer plans addre
 
 Known peers are keyed by **remote fabric UUID** (with a short-lived `iface:thunderboltN` fallback only when UUID is missing during hotplug).
 
-## Peer plan (L3 follows the remote host)
+## Saved address (L3 follows the remote host)
 
-A **peer plan** is the desired **local** IPv4 (and related L3 fields) for *this Unraid* when talking to that remote UUID.
+**Saved** (internally a peer plan) is the desired **local** IPv4 (and related L3 fields) for *this Unraid* when talking to that remote UUID.
+
+On the Peers table:
+
+| Column | Meaning |
+|--------|---------|
+| **Current** | Address on the path **right now** |
+| **Saved** | Remembered for that UUID; reapplied on reconnect / renumber |
+
+Matching Current and Saved after a normal Apply is expected — not duplicate settings.
+
+**First setup:** Apply on the tbn tab while the peer is linked. That writes path cfg **and** fills Saved. You do **not** need **Remember current** for the first established settings. Opening Peers can also **seed** Saved from last live addrs when a plan is still missing.
+
+**Remember current** / **Apply saved** are for later drift (live changed without Apply, or push memory back onto the path).
 
 | Stored with the peer | Not the long-term identity |
 |----------------------|----------------------------|
@@ -122,19 +159,19 @@ A **peer plan** is the desired **local** IPv4 (and related L3 fields) for *this 
 | Listening Yes/No (services on TB IP) | Panel port index |
 | Last path (`tbnN` / `thunderboltN`) for display | Unraid Interface Rules |
 
-**Path-slot files** still exist: `ifaces/thunderbolt0.cfg`, etc. They act like an eth-style **name cache**. When a live peer has a usable plan, **reapply prefers the peer plan** over the path-slot file alone.
+**Path-slot files** still exist: `ifaces/thunderbolt0.cfg`, etc. They act like an eth-style **name cache**. When a live peer has a usable plan, **reapply prefers Saved** over the path-slot file alone.
 
 ## What Apply / hotplug do
 
 | Event | Behavior |
 |-------|----------|
 | **tbn Apply** while peer is linked | Writes path cfg, applies live, **captures Saved** onto that UUID |
-| Peers → **Remember current** | Same capture without changing other tbn fields |
+| Peers → **Remember current** | Same capture without changing other tbn fields (optional after first Apply) |
 | Peers → **Apply saved** | Push Saved onto the path that peer currently uses |
 | **Hotplug** (udev) | Same reapply when a `thunderbolt*` netdev appears (any array state, if rule is present) |
-| **Plugin `startup`** | After plugins install at boot: restore udev + reapply (array may still be stopped) |
-| **Array `started`** | After array start (incl. Maintenance): reapply again; Dashboard ports; OpenFabric |
-| Open Peers/Status | Refresh online flags; dedupe ghost `iface:` rows; seed plan from last addrs if missing |
+| **Plugin `startup`** | After plugins install at boot: e2e modprobe persist/reload + udev + reapply (array may still be stopped) |
+| **Array `started`** | When array reaches Started (Normal **or Maintenance**) — second pass + OpenFabric/Dashboard |
+| Open Peers/Status | Refresh online flags; dedupe ghost `iface:` rows; seed Saved from last addrs if missing |
 
 **Maintenance mode:** array **Started** still runs `event/started` — L3 reapply and udev reinstall run. Do not assume “maintenance = no plugin events.”
 
@@ -175,9 +212,10 @@ Always use **unique subnets per peer path** (e.g. `10.255.0.0/24` vs `10.255.1.0
 
 ## Related
 
-- [troubleshooting.md](troubleshooting.md) — IP missing after unplug, 169.254 stack, ghost peers, wrong IP after renumber  
+- [troubleshooting.md](troubleshooting.md) — IP missing after unplug, 169.254 stack, ghost peers, wrong IP after renumber, Online but no ping  
+- [driver-options.md](driver-options.md) — E2E persist across reboot  
 - [addressing.md](addressing.md)  
-- [peer-scenarios.md](peer-scenarios.md)  
+- [peer-scenarios.md](peer-scenarios.md)
 - [links-and-topology.md](links-and-topology.md)  
 - [settings-reference.md](settings-reference.md)  
 - [CHANGELOG.md](../CHANGELOG.md) — **2026.08.15ak** (path reapply / static persistence), **16ac** (ghost rows), **16ad** (peer plans)  

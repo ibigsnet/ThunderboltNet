@@ -14,11 +14,12 @@ Compare link health across **your** Unraid hosts that run **Thunderbolt Net**, u
 | Color | Meaning |
 |-------|---------|
 | **Green** | Validated — this host and a peer Unraid plugin report **agree** (including valid asymmetric TX/RX, e.g. 20G/60G vs 60G/20G). |
-| **Orange** | **Unverified** — local only, peer silent, or stale. **Not** a degraded cable. |
-| **Red** | **Disagree** — both plugins report different speeds; troubleshoot cable/hosts. |
-| **Info note** | Speeds **agree** but path is below a port’s max capability (slowest partner) — normal, not red. |
+| **Orange** | **Unverified** — local only, peer silent, stale, or underlay poll failed. Often **not** a bad cable — but if Peers also shows **No reply** under Current, check ping/E2E. |
+| **Red** | **Mismatch** — both plugins report different speeds; troubleshoot cable/hosts. |
+| **Info note** (under Match) | Speeds **agree** but path is below a port’s max capability (slowest partner) — normal, not red. |
+| Soft **blue** peer row | Path **Online** (netdev present) — not a link-check result by itself. |
 
-Known peers keep the **last** validation color when offline.
+Known peers keep the **last** validation color when offline. Soft blue Online + Unverified can still mean “can’t talk” — confirm with ping.
 
 ---
 

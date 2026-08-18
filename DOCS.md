@@ -42,7 +42,7 @@ The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt l
 | Setting | Default | Why |
 |---------|---------|-----|
 | Load modules on Apply | **Yes** | Bring up `thunderbolt` + `thunderbolt_net` without hand-editing `go` |
-| E2E flow control | **No (`e2e=0`)** | More reliable for many cross-host Linux links (see [driver options](docs/driver-options.md)) |
+| E2E flow control | **No (`e2e=0`)** | Persisted on flash across reboot; more reliable for many cross-host Linux links (see [driver options](docs/driver-options.md)) |
 | Per-link Enable | **Yes** | Bring the netdev up when you Apply |
 | IPv4 assignment | **Static** | No DHCP on a pure host↔host cable |
 | Suggested IPv4 | `10.255.N.2` / **24** for `thunderboltN` | One subnet per link; room for a few addresses |
@@ -102,7 +102,7 @@ OpenFabric **policy** lives on Thunderbolt Net (Advanced). FRR **packages** live
 3. On **Thunderbolt → Driver options**, leave **E2E flow control = No** unless a peer scenario says otherwise.
 4. When `thunderbolt0` appears, open **tbn0**, set a **static** IPv4 (e.g. `10.255.0.2/24`), leave **MTU 1500** unless both ends will set jumbo, **Apply**. That also stores a **peer plan** for the remote host (fabric UUID) so unplug/replug can restore L3 even if the path renumbers.
 5. On the peer, matching address (e.g. `10.255.0.1/24`). MTU is not auto-negotiated — only raise to 9000 if you set **both** ends.
-6. Ping both ways. Check **Peers**: one Known peers row, **Saved** shows your Unraid-side address, listening Yes if you want SMB/NFS/web on the TB IP.
+6. Ping both ways. Check **Peers**: one Known peers row; **Saved** should already show your Unraid-side address (filled by that Apply — no extra Remember step). Set listening **Yes** if you want SMB/NFS/web on the TB IP.
 7. **Trained** rate can be less than the port sticker (e.g. **20 Gb/s · 1-lane**). Sticker **40 Gb/s** is typically **~20 G each direction** (simplex lanes) — expect roughly **~10–15 Gbit/s** TCP one way on a 1-lane train ([speeds](docs/standards-and-speeds.md)).
 8. If dual-cable experiments wedged the fabric: unplug **all** Thunderbolt cables on **both** machines, wait, plug **one** cable only ([troubleshooting](docs/troubleshooting.md)).
 
@@ -151,9 +151,9 @@ These are **supported directions**, not throwaway experiments. Defaults favor in
 | Supported now | Notes |
 |---------------|--------|
 | Peer stored in `peers.json` by **remote fabric UUID** (not MAC, not panel port) | Status/Peers load, Apply, hotplug reapply |
-| **Saved** address (peer plan) bound to that UUID | On **tbn Apply** while linked, or Peers → **Remember current** |
+| **Saved** address bound to that UUID | Filled automatically on **tbn Apply** while linked (Remember current optional later) |
 | Saved reapplied on **hotplug / array start** to whichever `thunderboltN` that peer is on | Survives tbn0↔tbn1 renumber when cable order changes |
-| **Known peers** table: online/offline, path, Current / Saved, listening, **Forget** | Does **not** use Unraid Interface Rules |
+| **Known peers** table: online/offline, path, Current / Saved, listening, **Forget** | Does **not** use Unraid Interface Rules; quiet No reply if underlay silent |
 | Ghost offline rows after unplug (blank name) | Deduped when UUID returns (**16ac+**) |
 | Path-slot cfg `ifaces/thunderboltN.cfg` | Still eth-like cache for the **name**; peer plan is preferred when a UUID plan exists |
 

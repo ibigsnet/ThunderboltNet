@@ -39,13 +39,15 @@ Full detail: [peers-and-plans.md](peers-and-plans.md).
 |----------------|---------|
 | Status | Online / offline for remembered fabric UUID |
 | Path | Live `tbnN` / `thunderboltN` (may renumber) |
-| Current | IPv4 on the path right now |
+| Current | IPv4 on the path right now; quiet **No carrier** / **No reply** if underlay silent |
 | Saved | Remembered IPv4 for this UUID; preferred on hotplug/boot |
-| Remember current | Copy Current (IP/MTU/services) into Saved |
-| Apply saved | Push Saved onto the path this peer currently uses |
+| Remember current | Copy Current (IP/MTU/services) into Saved — optional; first **tbn Apply** already captures |
+| Apply saved | Push Saved onto the path that peer currently uses |
 | Unraid services | Per-peer listening Yes/No (remembered) |
 | Forget selected | Drop from `peers.json` only — not eth Interface Rules |
 | Link check | Optional peer Unraid rate compare (shared token) |
+
+**First setup:** Apply on the tbn tab while linked — that fills **Saved**. Matching Current and Saved afterward is normal.
 
 Does **not** register Thunderbolt in stock **Interface Rules** (MAC→name). Host-net MACs are unstable.
 
@@ -58,7 +60,7 @@ Does **not** register Thunderbolt in stock **Interface Rules** (MAC→name). Hos
 | Interface description | empty | Cosmetic label in plugin config |
 | MAC address | (live) | Read-only (often changes each link) |
 | Enable interface | Yes | `ip link set up/down` on Apply |
-| Apply (side effect) | — | Also **captures peer plan** for the live remote UUID on this path |
+| Apply (side effect) | — | Also **captures Saved** for the live remote UUID on this path (no separate Remember step) |
 | Enable bonding | No (hidden unless ≥2 live Thunderbolt interfaces) | Thunderbolt-only bond when two+ `thunderbolt*`; same-peer dual-cable often one netdev — [roadmap](links-and-topology.md) |
 | Bonding mode | active-backup | Prefer active-backup; 802.3ad usually fails on Thunderbolt |
 | Bond name | bond-tb0 | Thunderbolt-only bond (`bond-tb0`, … — not Unraid `bond0`) |

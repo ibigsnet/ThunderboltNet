@@ -9,6 +9,7 @@
 - [No Thunderbolt hardware detected](#no-thunderbolt-hardware-detected)
 - [Interface never appears (`thunderbolt0` missing)](#interface-never-appears-thunderbolt0-missing)
 - [Link trains but no ping](#link-trains-but-no-ping)
+- [Online, IP and rates — but no ping](#online-ip-and-rates-but-no-ping)
 - [Static IP missing after reboot or unplug/replug](#static-ip-missing-after-reboot-or-unplugreplug)
 - [Static IP plus 169.254.x.x on the same iface](#static-ip-plus-169254xx-on-the-same-iface)
 - [Two Known peers rows (one blank Offline)](#two-known-peers-rows-one-blank-offline)
@@ -16,6 +17,7 @@
 - [Single-lane / 20 Gb/s · 1-lane on a dual-capable host](#single-lane-20-gbs-1-lane-on-a-dual-capable-host)
 - [Two cables, still one interface (or worse)](#two-cables-still-one-interface-or-worse)
 - [One-way traffic / flaky after reboot](#one-way-traffic-flaky-after-reboot)
+- [Controller probe fails / no Thunderbolt devices after reboot](#controller-probe-fails--no-thunderbolt-devices-after-reboot)
 - [Do not](#do-not)
 - [OpenFabric / FRR (multi-hop)](#openfabric-frr-multi-hop)
 - [Peer-specific notes](#peer-specific-notes)
@@ -127,7 +129,22 @@ Full write-up: [dashboard-ports-and-clock.md](dashboard-ports-and-clock.md).
 3. Peer firewall (Windows especially).  
 4. Unraid E2E **No**; **reseat** once; retest ([driver-options.md](driver-options.md)).  
 5. Keep default route **No** so you aren’t blackholing other traffic while testing.  
-6. If the iface is UP but has **no** IPv4, see [Static IP missing after reboot or unplug/replug](#static-ip-missing-after-reboot-or-unplugreplug).
+6. If the iface is UP but has **no** IPv4, see [Static IP missing after reboot or unplug/replug](#static-ip-missing-after-reboot-or-unplugreplug).  
+7. If Current IP is present and Peers still looks “fine,” see [Online, IP and rates — but no ping](#online-ip-and-rates-but-no-ping).
+
+## Online, IP and rates — but no ping
+
+UI can show **Online**, a **Current** address, and trained rates while `ping`/ARP still fail.
+
+| Check | What to do |
+|-------|------------|
+| Plugin | Prefer **≥ 2026.08.17ba** (E2E persisted to flash + startup reload) |
+| Live E2E | `cat /sys/module/thunderbolt_net/parameters/e2e` — expect `N`/`0` when Settings → E2E is **No** |
+| Flash conf | `/boot/config/modprobe.d/thunderbolt_net.conf` should contain `options thunderbolt_net e2e=0` |
+| Peers cue | **No carrier** / **No reply** under Current means underlay is silent — not “all clear” |
+| After fixing e2e | Soft reboot or reseat once so both ends re-train; retest ping both ways |
+
+Older builds only wrote E2E into RAM `/etc/modprobe.d/`; reboot reloaded the kernel default (**e2e on**). Addresses still came back; the path stayed flaky. Design notes: [peers-and-plans.md](peers-and-plans.md#4-path-looks-healthy-but-no-ping-after-reboot).
 
 ## Static IP missing after reboot or unplug/replug
 
@@ -135,14 +152,14 @@ Classic field report (Unraid forum): path trains, `thunderbolt0` exists, **no** 
 
 | Check | What to do |
 |-------|------------|
-| Plugin version | Prefer **≥ 2026.08.15ak** (reapply + dhcpcd kill), **≥ 2026.08.16ad** (peer plans), **≥ 2026.08.16ae** (startup + array started) |
+| Plugin version | Prefer **≥ 2026.08.15ak** (reapply + dhcpcd kill), **≥ 2026.08.16ad** (Saved / peer plans), **≥ 2026.08.16ae** (startup + array started), **≥ 2026.08.17ba** (E2E flash persist) |
 | Flash plan | `ifaces/thunderboltN.cfg` or Peers → **Saved** for that UUID |
 | udev | `/etc/udev/rules.d/99-thunderboltnet-net.rules` after **startup** or install (RAM root is refilled each boot) |
 | Array state | Reapply also runs at plugin **startup** (before array Online). Array **started** (Normal/Maintenance) runs a second pass |
 | Logs | `grep -E 'tbn-net-reapply|event/startup|ThunderboltNet' /var/log/syslog` after boot/plug |
-| Apply once while linked | tbn Apply (or **Remember current**) so both path cfg and Saved exist |
+| First setup | **tbn Apply** while linked fills path cfg **and** Saved automatically — **Remember current** is optional afterward |
 
-**Why:** host-net netdevs are recreated on link; Unraid eth `network.cfg` does not own them. The plugin re-applies flash plans on array start and netdev add. Peer plans fix the case where **name** reapply alone is wrong after renumber — [peers-and-plans.md](peers-and-plans.md#why-this-design-field-findings).
+**Why:** host-net netdevs are recreated on link; Unraid eth `network.cfg` does not own them. The plugin re-applies flash plans on array start and netdev add. Saved addresses fix the case where **name** reapply alone is wrong after renumber — [peers-and-plans.md](peers-and-plans.md#why-this-design-field-findings).
 
 ## Static IP plus 169.254.x.x on the same iface
 
@@ -158,15 +175,15 @@ Do not leave mixed static + link-local if you expect clean peer-local routing. D
 |---------|--------|-----|
 | Online named peer + Offline **—** same tbn/IP | Hotplug briefly had no fabric UUID → ghost key `iface:thunderboltN` | Update to **≥ 2026.08.16ac** (dedupe); open Peers once, or **Forget** the blank row |
 
-[peers-and-plans.md](peers-and-plans.md#3-two-known-peers-rows-after-unplugreplug-lab).
+[peers-and-plans.md](peers-and-plans.md#3-two-known-peers-rows-after-unplugreplug).
 
 ## Wrong peer got the old tbn0 address after cable swaps
 
 | Symptom | Cause | Fix |
 |---------|--------|-----|
-| After multi-peer or re-order, the “wrong” machine has the IP you saved for tbn0 | Path-slot cfg is by **name**; kernel renumbered who sits on `thunderbolt0` | Give each remote a **Saved** address (Apply while that peer is linked); confirm Peers → Saved; unplug/replug |
+| After multi-peer or re-order, the “wrong” machine has the IP you saved for tbn0 | Path-slot cfg is by **name**; kernel renumbered who sits on `thunderbolt0` | **tbn Apply** while that peer is linked (fills Saved); confirm Peers → Saved; unplug/replug |
 
-Peer plan is preferred over path-slot cfg when the live path has a known UUID. [peers-and-plans.md](peers-and-plans.md#2-same-host-wrong-or-empty-ip-after-path-renumber-lab--multi-peer).
+Saved is preferred over path-slot cfg when the live path has a known UUID. [peers-and-plans.md](peers-and-plans.md#2-same-host-wrong-or-empty-ip-after-path-renumber-multi-peer).
 
 ## Single-lane / 20 Gb/s · 1-lane on a dual-capable host
 
@@ -190,14 +207,23 @@ Software cleanup alone may not fix NO-CARRIER / missing peer:
 
 ## One-way traffic / flaky after reboot
 
-- Re-check E2E (`cat /sys/module/thunderbolt_net/parameters/e2e`) is still off if you want e2e=0.  
-- Ensure modprobe.d conf persisted under `/boot/config/modprobe.d/`.  
-- Reseat cable after confirming the parameter.  
+- Same checks as [Online, IP and rates — but no ping](#online-ip-and-rates-but-no-ping) (E2E live bit + flash `modprobe.d`).  
+- Reseat cable after the parameter is correct.  
 - Peer NetworkManager profiles “never default” / wrong metric.
+
+## Controller probe fails / no Thunderbolt devices after reboot
+
+| Symptom | What to do |
+|---------|------------|
+| `dmesg` shows Thunderbolt controller **probe failed** / timeout; no `/sys/bus/thunderbolt/devices/0-0` | Soft reboot may not clear a wedged host controller |
+| WMI `force_power` or PCI rescan did not help | **Full power-off** the machine (shutdown until fans/lights are out), wait ~30s, power on — not only “Restart” |
+| Still dead | BIOS Thunderbolt enabled; NHI not bound to vfio; try another cable/port; see [No Thunderbolt hardware detected](#no-thunderbolt-hardware-detected) |
+
+Do **not** unbind the Thunderbolt **NHI** as a reset (can make this worse). Prefer power-off cycle + cable reseat.
 
 ## Do not
 
-- Unbind Thunderbolt **NHI** to “reset” networking (can wedge until reboot).  
+- Unbind Thunderbolt **NHI** to “reset” networking (can wedge until a full power-off).  
 - Put two Thunderbolt links on the **same** IPv4 prefix.  
 - Expect a dock RJ45 to show up as `thunderbolt0`.  
 - Debug with three variables at once (E2E + new cable + dual plug) — change one thing, then reseat.

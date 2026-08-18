@@ -106,7 +106,7 @@ That is an empirical reliability choice for Unraid home-lab host networking — 
 | Unraid ↔ Linux desktop, laptop, or server | **No (`e2e=0`)** — start here |
 | Unraid ↔ second Unraid | **No** |
 | Multiple peers (tbn0 + tbn1) on Unraid | **No** (one host-wide value for every Thunderbolt netdev) |
-| Flaky bring-up, one-way ping, or “ThunderboltIP login” timeouts | **No** — then [reseat the cable](troubleshooting.md#reseating-the-cable-why-it-matters) and retest |
+| Flaky bring-up, one-way ping, Online-but-no-ping after reboot, or “ThunderboltIP login” timeouts | **No** — confirm flash persist ([troubleshooting](troubleshooting.md#online-ip-and-rates-but-no-ping)), then [reseat](troubleshooting.md#reseating-the-cable-why-it-matters) |
 
 Default **No** is the right starting point for almost every peer OS. You do not need a special “keep No forever” row — if it works, leave it.
 

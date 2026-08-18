@@ -1,3 +1,9 @@
+## 2026.08.17bb
+
+- **Docs:** Saved auto-fills on first **tbn Apply** (Remember current optional); troubleshooting for
+  Online/IP/rates but no ping (E2E flash persist); controller probe hang → full power-off recovery.
+  Settings reference + Peers help aligned. No lab hostnames.
+
 ## 2026.08.17ba
 
 - **Fix:** Post-reboot Thunderbolt path looked healthy (Online, IPs, trained rates) but ARP/ping

@@ -243,7 +243,7 @@ if (!$has_hw):
       <summary>How Known peers works</summary>
       <div class="tbn-details-body">
         <p><strong>Identity</strong> — remote fabric UUID (not a port, not Interface Rules / MAC).</p>
-        <p><strong>Current / Saved</strong> — Current is on the path now. Saved is remembered for that host and reapplied if the path renumbers. Highlight when they disagree; use the toolbar to sync.</p>
+        <p><strong>Current / Saved</strong> — Current is on the path now. Saved is remembered for that host and reapplied if the path renumbers. First <strong>tbn Apply</strong> while linked fills Saved automatically. Highlight when they disagree; toolbar syncs later drift.</p>
         <p><strong>Link check</strong> — optional Unraid↔Unraid rate compare (token under Settings). Not FRR.</p>
         <?= tbn_help_docs_footer('docs/peers-and-plans.md', 'Peers & plans') ?>
         · <?= tbn_help_docs_footer('docs/settings-reference.md', 'Settings reference') ?>

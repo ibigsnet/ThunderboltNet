@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.17ba">
+<!ENTITY version "2026.08.17bb">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,7 +27,10 @@
 
 <CHANGES>
 ###&version;
-- Persist thunderbolt_net e2e=0 to flash modprobe.d; reload on startup if kernel defaulted e2e=1 (fixes post-reboot ARP-dead paths).
+- Docs: Saved auto-capture on tbn Apply; Online-but-no-ping (E2E flash); controller power-off recovery.
+
+###2026.08.17ba
+- Persist thunderbolt_net e2e=0 to flash modprobe.d; reload on startup if kernel defaulted e2e=1.
 
 ###2026.08.17az
 - Peers: Current / Saved columns; Remember current / Apply saved; quiet mismatch highlight.
@@ -38,11 +41,8 @@
 ###2026.08.17au–at
 - CA/Plugins ~7-entry notes; DHCP underlay must not blank Unraid DNS.
 
-###2026.08.17as–aq
-- DHCP /24 from configured IPADDR; join existing Unraid bridges; DHCP notice once.
-
-###2026.08.17ap–ao
-- DHCP server mode (dnsmasq); ARP-only conflict banner; poll date format.
+###2026.08.17as–ao
+- DHCP server /24; join Unraid bridges; ARP conflict banner.
 
 ###2026.08.17an–ag
 - Dashboard TB ports; eth0-layout polish (MTU/jumbo, VLANs, Info CSRF).
