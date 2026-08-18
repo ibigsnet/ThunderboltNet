@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.18ab">
+<!ENTITY version "2026.08.18ac">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,10 +27,10 @@
 
 <CHANGES>
 ###&version;
-- Docs: shelve Steam/LAN discovery essay from public tree; bridging help stays on addressing / house LAN.
+- Docs/UI: MTU 1500 easy default; jumbo optional for packet/CPU cost (both ends).
 
-###2026.08.18aa
-- Network Settings lazy-load Thunderbolt / tbnN; Age column humanized.
+###2026.08.18ab–aa
+- Shelve Steam/LAN discovery docs; Network Settings lazy-load; Age humanized.
 
 ###2026.08.17bd–ba
 - Join br0 / house LAN; Current/Saved; E2E flash persist.

@@ -1,3 +1,9 @@
+## 2026.08.18ac
+
+- **Docs/UI:** Recommend **MTU 1500** as the easy default. Jumbo (often 9000 both ends) is
+  optional — useful to cut packet/CPU overhead on older or weaker hosts, not required for
+  Thunderbolt bulk. Rewrote [mtu-and-throughput.md](docs/mtu-and-throughput.md) and matching help.
+
 ## 2026.08.18ab
 
 - **Docs:** Remove public `steam-and-lan-discovery.md` and Steam-specific troubleshooting /

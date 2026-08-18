@@ -25,10 +25,9 @@
 
 ## Slow rsync / SMB despite high trained Gb/s
 
-1. Check overview **Local iface state** — if you still see `MTU 1500 (kernel default)`, you are paying full Ethernet-sized packet rates on a multi‑20&nbsp;G path.  
-2. Set **Desired MTU → 9000** on the tbn tab **and** the same MTU on the peer (Unraid cannot set the peer’s NIC).  
-3. See [mtu-and-throughput.md](mtu-and-throughput.md) for PPS tables and peer commands.  
-4. Also verify storage (array parity, single-disk limits) and CPU — MTU is not the only bottleneck.
+1. Confirm link, IPs, storage, and CPU — those often dominate before MTU.  
+2. **MTU 1500 is the easy default.** If an older or weaker CPU is busy during large copies, try **Enable jumbo frames** (often **9000**) on **both** ends — Unraid cannot set the peer’s NIC. Mismatch can drop or stall traffic.  
+3. See [mtu-and-throughput.md](mtu-and-throughput.md) for details and peer commands.
 
 ---
 
@@ -188,7 +187,7 @@ Saved is preferred over path-slot cfg when the live path has a known UUID. [peer
 ## Single-lane / 20 Gb/s · 1-lane on a dual-capable host
 
 - **Common** for Thunderbolt 4/USB4 **host-to-host under Linux** (firmware ICM). Not a failed install.  
-- Expect roughly **~10–15&nbsp;Gbit/s** TCP; jumbo MTU helps CPU, not dual-lane.  
+- Expect roughly **~10–15&nbsp;Gbit/s** TCP; optional jumbo MTU can ease CPU load, not unlock dual-lane.  
 - Cable/port can still matter for some pairs, but a short certified Thunderbolt 4 cable often stays 1-lane.  
 - Details: [standards-and-speeds.md](standards-and-speeds.md).
 

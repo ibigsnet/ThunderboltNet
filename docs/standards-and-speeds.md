@@ -302,9 +302,9 @@ Marketing stickers lie; **sysfs trained rate** is the ground truth for your pair
 
 - Trained line rate ≠ sustained TCP/SMB forever — protocol, CPU, storage, and **MTU** matter.  
 - On **1-lane · 20&nbsp;Gb/s** host-net, lab TCP/iperf often lands around **~13–14&nbsp;Gbit/s**; real multi-GiB rsync similar.  
-- **MTU 9000 both ends** cuts packets/s and retrans; it does **not** unlock dual-lane or double rate.  
+- **MTU 1500** is the easy default. Optional jumbo (often **9000 both ends**) can cut packets/s and CPU load on weaker hosts; it does **not** unlock dual-lane or double rate.  
 - Design around **measured** numbers; do not plan on sticker 40&nbsp;G host-net as 40&nbsp;Gbit/s TCP each way.  
-- Kernel default **MTU 1500** is Ethernet habit, not a Thunderbolt limit. Full tables: **[mtu-and-throughput.md](mtu-and-throughput.md)**.
+- Full MTU guidance: **[mtu-and-throughput.md](mtu-and-throughput.md)**.
 
 ---
 
