@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.17bd">
+<!ENTITY version "2026.08.18aa">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,16 +27,17 @@
 
 <CHANGES>
 ###&version;
-- Docs/UI: Steam LAN discovery vs Thunderbolt; join br0 for house LAN; fix bridging “reserved” drift.
+- Network Settings: lazy-load Thunderbolt / tbnN panels (eth0 no longer waits on TB diagnostics); Age column humanized.
 
-###2026.08.17bc–ba
-- Current/Saved docs; E2E flash persist; Online-but-no-ping troubleshooting.
+###2026.08.17bd–ba
+- Steam LAN vs TB docs; join br0; Current/Saved; E2E flash persist.
 
 ###2026.08.17az
 - Peers: Current / Saved columns; Remember current / Apply saved; quiet mismatch highlight.
 
 ###2026.08.17ay–av
 - Peer link-check: path pairing + auth-free mesh beacon (TCP 10807).
+
 
 ###2026.08.17au–at
 - CA/Plugins ~7-entry notes; DHCP underlay must not blank Unraid DNS.
@@ -95,7 +96,7 @@ if [ -f /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt ]; 
     /boot/config/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt
 fi
 # Hotplug + boot reapply for thunderbolt* L3 (forum persistence findings)
-php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; tbn_install_net_udev();' 2>/dev/null || true
+php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; tbn_install_net_udev(); if (function_exists("tbn_sync_iface_pages")) { tbn_sync_iface_pages(); }' 2>/dev/null || true
 /bin/bash /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-net-reapply >/dev/null 2>&1 || true
 udevadm trigger --subsystem-match=net --action=add 2>/dev/null || true
 # Dashboard Interface dropdown: include thunderboltN (re-apply after every upgrade;

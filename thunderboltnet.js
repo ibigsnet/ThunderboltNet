@@ -891,8 +891,155 @@
     return html;
   }
 
+  /** True if element is shown in the Network Settings tab strip (not display:none ancestors). */
+  function tbnIsShown(el) {
+    if (!el) {
+      return false;
+    }
+    var cur = el;
+    while (cur && cur.nodeType === 1) {
+      var st = window.getComputedStyle(cur);
+      if (st.display === 'none' || st.visibility === 'hidden') {
+        return false;
+      }
+      cur = cur.parentElement;
+    }
+    return true;
+  }
+
+  /** Thunderbolt overview or a tbnN lazy shell is the visible Network Settings tab. */
+  function tbnThunderboltUiVisible() {
+    var ov = document.getElementById('tbn-overview');
+    if (ov && tbnIsShown(ov)) {
+      return true;
+    }
+    var ifaces = document.querySelectorAll('.tbn-lazy-iface, .tbn-iface-form');
+    for (var i = 0; i < ifaces.length; i++) {
+      if (tbnIsShown(ifaces[i])) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function tbnLazyFetch(url, target, done) {
+    if (!target || target.getAttribute('data-tbn-lazy-loaded') === '1') {
+      if (done) {
+        done(false);
+      }
+      return;
+    }
+    if (target.getAttribute('data-tbn-lazy-loading') === '1') {
+      return;
+    }
+    target.setAttribute('data-tbn-lazy-loading', '1');
+    fetch(url, { credentials: 'same-origin', cache: 'no-store' })
+      .then(function (r) {
+        if (!r.ok) {
+          throw new Error('HTTP ' + r.status);
+        }
+        return r.text();
+      })
+      .then(function (html) {
+        target.innerHTML = html;
+        target.setAttribute('data-tbn-lazy-loaded', '1');
+        target.removeAttribute('data-tbn-lazy-loading');
+        // Drop nested chrome duplicates from iface render
+        var nestedCss = target.querySelectorAll('link[href*="thunderboltnet.css"]');
+        for (var c = 0; c < nestedCss.length; c++) {
+          nestedCss[c].remove();
+        }
+        var nestedJs = target.querySelectorAll('script[src*="thunderboltnet.js"]');
+        for (var s = 0; s < nestedJs.length; s++) {
+          nestedJs[s].remove();
+        }
+        // Unwrap extra .tbn-wrap from iface page if present
+        var innerWrap = target.querySelector(':scope > .tbn-wrap');
+        if (innerWrap && target.classList.contains('tbn-lazy-iface')) {
+          while (innerWrap.firstChild) {
+            target.insertBefore(innerWrap.firstChild, innerWrap);
+          }
+          innerWrap.remove();
+        }
+        tbnWireAllForms();
+        tbnBindInlineHelp();
+        tbnInitAdvancedPanels();
+        tbnInitCompanionJumps();
+        tbnInitInstallBoxes();
+        if (done) {
+          done(true);
+        }
+      })
+      .catch(function () {
+        target.removeAttribute('data-tbn-lazy-loading');
+        target.innerHTML =
+          '<p class="tbn-muted tbn-lazy-placeholder">Could not load this panel. Click the tab again or Refresh.</p>';
+        if (done) {
+          done(false);
+        }
+      });
+  }
+
+  window.tbnLazyEnsurePanel = function (name) {
+    var ov = document.getElementById('tbn-overview');
+    if (!ov || !tbnIsShown(ov)) {
+      return;
+    }
+    var panel = ov.querySelector('[data-tbn-lazy-panel="' + name + '"]');
+    if (!panel) {
+      return;
+    }
+    tbnLazyFetch(
+      '/plugins/ThunderboltNet/include/tbn-lazy-render.php?panel=' + encodeURIComponent(name),
+      panel,
+      function (ok) {
+        if (ok) {
+          tbnLivePoll();
+        }
+      }
+    );
+  };
+
+  function tbnLazyEnsureIfaces() {
+    var nodes = document.querySelectorAll('.tbn-lazy-iface[data-tbn-lazy-iface]');
+    for (var i = 0; i < nodes.length; i++) {
+      if (!tbnIsShown(nodes[i])) {
+        continue;
+      }
+      var ifc = nodes[i].getAttribute('data-tbn-lazy-iface');
+      if (!ifc) {
+        continue;
+      }
+      tbnLazyFetch(
+        '/plugins/ThunderboltNet/include/tbn-lazy-render.php?iface=' + encodeURIComponent(ifc),
+        nodes[i],
+        function (ok) {
+          if (ok) {
+            tbnLivePoll();
+          }
+        }
+      );
+    }
+  }
+
+  function tbnLazyTick() {
+    if (!tbnThunderboltUiVisible()) {
+      return;
+    }
+    var ov = document.getElementById('tbn-overview');
+    if (ov && tbnIsShown(ov)) {
+      var activeBtn = ov.querySelector('.tbn-subtabs button.is-active[data-tbn-tab]');
+      var name = activeBtn ? activeBtn.getAttribute('data-tbn-tab') : 'status';
+      window.tbnLazyEnsurePanel(name);
+    }
+    tbnLazyEnsureIfaces();
+  }
+
   /** Light live refresh: activity / IPs without full page reload. */
   function tbnLivePoll() {
+    if (!tbnThunderboltUiVisible()) {
+      return;
+    }
     if (!document.querySelector('.tbn-wrap')) {
       return;
     }
@@ -934,6 +1081,10 @@
   }
 
   function tbnBootUi() {
+    tbnLazyTick();
+    if (!tbnThunderboltUiVisible()) {
+      return;
+    }
     tbnWireAllForms();
     tbnBindInlineHelp();
     tbnLivePoll();
@@ -949,9 +1100,22 @@
     setTimeout(tbnBootUi, 50);
     setTimeout(tbnBootUi, 400);
   }
-  // Periodic: re-wire (tab paint) + light status poll for sampling/activity
+  // Re-check visibility (Unraid tab clicks) + poll only while Thunderbolt UI is shown
   setInterval(function () {
+    tbnLazyTick();
+    if (!tbnThunderboltUiVisible()) {
+      return;
+    }
     tbnWireAllForms();
     tbnLivePoll();
   }, 5000);
+  // Catch tab switches sooner than the interval
+  document.addEventListener(
+    'click',
+    function () {
+      setTimeout(tbnLazyTick, 30);
+      setTimeout(tbnLazyTick, 200);
+    },
+    true
+  );
 })();

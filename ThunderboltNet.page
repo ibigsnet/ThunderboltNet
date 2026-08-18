@@ -8,10 +8,12 @@ Markdown="false"
 /**
  * Network Settings → Thunderbolt (Status / Peers / Hardware / Settings panels).
  *
+ * Light shell only: Unraid embeds every NetworkSettings sibling in one request.
+ * Heavy PHP (tbn_status, PCI, diagnostics, tab bodies) loads via tbn-lazy-render.php
+ * when this tab (or an inner panel) is actually shown — so eth0 stays snappy.
+ *
  * Tab order (NetworkSettings sort keys — carefully kept away from nested xmenu):
  *   eth* (~100+) · Wireless (1000) · tbnN (1010+N) · Thunderbolt (1080) · Interface Extra · Fabric Routing (:z)
- * tbnN are eth-like siblings on the strip; this overview sits after them, before Interface Extra.
- * Do not use Unraid nested xmenu under Thunderbolt (empty parent tab / broken Interface Extra).
  */
 require_once '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-page-boot.php';
 
@@ -25,7 +27,6 @@ if (!empty($_GET['tbn_tab'])) {
 ?>
 <link rel="stylesheet" href="/plugins/ThunderboltNet/thunderboltnet.css?v=<?= htmlspecialchars($ver) ?>">
 <style>
-/* Sit on the divider (Unraid-style) — avoid “floating tabs” gap */
 .tbn-subtabs {
   display: flex;
   flex-wrap: wrap;
@@ -57,20 +58,16 @@ if (!empty($_GET['tbn_tab'])) {
   background: rgba(128, 128, 128, 0.12);
 }
 .tbn-tab-panel[hidden] { display: none !important; }
+.tbn-lazy-placeholder { opacity: 0.75; padding: 0.75em 0; }
 </style>
 
 <?php
 /* id=tbn-overview: Network Settings embeds every sibling page in one DOM.
- * tbnN tabs (Menu 1010+) also use .tbn-wrap and sort *before* this overview (1080).
  * Sub-tab JS must bind this wrap only — never document.querySelector('.tbn-wrap'). */
 ?>
-<div class="tbn-wrap" id="tbn-overview" data-tbn-overview="1">
+<div class="tbn-wrap" id="tbn-overview" data-tbn-overview="1" data-tbn-lazy-root="1">
 <?= tbn_docs_bar_html('overview') ?>
 
-<?php
-/* Standalone CA / Plugins launch (/Settings/ThunderboltNet): show on every
- * sub-tab. JS hides when already under Network Settings (eth0 · Thunderbolt · tbn…). */
-?>
   <div class="tbn-entry-banner" id="tbn-entry-banner" role="note" hidden>
     <div class="tbn-entry-banner-main">
       <strong>Network Settings · Thunderbolt</strong>
@@ -93,34 +90,30 @@ if (!empty($_GET['tbn_tab'])) {
       class="<?= $tab === 'settings' ? 'is-active' : '' ?>">Settings</button>
   </div>
 
-  <div id="tbn-panel-status" class="tbn-tab-panel" data-tbn-panel="status"
+  <div id="tbn-panel-status" class="tbn-tab-panel" data-tbn-panel="status" data-tbn-lazy-panel="status"
     <?= $tab === 'status' ? '' : 'hidden' ?>>
-<?php include '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-tab-status.php'; ?>
+    <p class="tbn-muted tbn-lazy-placeholder">Loading Status…</p>
   </div>
 
-  <div id="tbn-panel-peers" class="tbn-tab-panel" data-tbn-panel="peers"
+  <div id="tbn-panel-peers" class="tbn-tab-panel" data-tbn-panel="peers" data-tbn-lazy-panel="peers"
     <?= $tab === 'peers' ? '' : 'hidden' ?>>
-<?php include '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-tab-peers.php'; ?>
+    <p class="tbn-muted tbn-lazy-placeholder">Loading Peers…</p>
   </div>
 
-  <div id="tbn-panel-hardware" class="tbn-tab-panel" data-tbn-panel="hardware"
+  <div id="tbn-panel-hardware" class="tbn-tab-panel" data-tbn-panel="hardware" data-tbn-lazy-panel="hardware"
     <?= $tab === 'hardware' ? '' : 'hidden' ?>>
-<?php include '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-tab-hardware.php'; ?>
+    <p class="tbn-muted tbn-lazy-placeholder">Loading Hardware…</p>
   </div>
 
-  <div id="tbn-panel-settings" class="tbn-tab-panel" data-tbn-panel="settings"
+  <div id="tbn-panel-settings" class="tbn-tab-panel" data-tbn-panel="settings" data-tbn-lazy-panel="settings"
     <?= $tab === 'settings' ? '' : 'hidden' ?>>
-<?php include '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-tab-settings.php'; ?>
+    <p class="tbn-muted tbn-lazy-placeholder">Loading Settings…</p>
   </div>
 
 </div>
 <script src="/plugins/ThunderboltNet/thunderboltnet.js?v=<?= htmlspecialchars($ver) ?>"></script>
 <script>
 (function () {
-  // Network Settings embeds ALL sibling pages (eth0, tbn0, Thunderbolt, …) in one document.
-  // tbnN pages also use .tbn-wrap and now sort *before* this overview — so
-  // document.querySelector('.tbn-wrap') would bind the wrong tree and Status/Peers
-  // sub-tabs would never swap panels. Always prefer #tbn-overview.
   var root = document.getElementById('tbn-overview')
     || document.querySelector('.tbn-wrap[data-tbn-overview="1"]')
     || (function () {
@@ -130,7 +123,6 @@ if (!empty($_GET['tbn_tab'])) {
   if (!root) return;
 
   function activate(name) {
-    // Only buttons/panels inside THIS overview wrap
     var tabs = root.querySelectorAll('.tbn-subtabs [data-tbn-tab]');
     var panels = {
       status: root.querySelector('[data-tbn-panel="status"]'),
@@ -146,7 +138,6 @@ if (!empty($_GET['tbn_tab'])) {
       if (!panels[k]) return;
       if (k === name) {
         panels[k].removeAttribute('hidden');
-        // Unraid/jQuery may have set display:none — clear so panels reappear
         try { panels[k].style.removeProperty('display'); } catch (e0) {}
       } else {
         panels[k].setAttribute('hidden', 'hidden');
@@ -160,6 +151,9 @@ if (!empty($_GET['tbn_tab'])) {
       }
       sessionStorage.setItem('tbnInnerTab', name);
     } catch (e) {}
+    if (typeof window.tbnLazyEnsurePanel === 'function') {
+      window.tbnLazyEnsurePanel(name);
+    }
   }
 
   root.querySelectorAll('.tbn-subtabs [data-tbn-tab]').forEach(function (btn) {
@@ -170,13 +164,12 @@ if (!empty($_GET['tbn_tab'])) {
     });
   });
 
-  // Used by mesh panel / other panels already on Network Settings
   window.tbnActivateInnerTab = activate;
 
   try {
     var q = new URL(window.location.href).searchParams.get('tbn_tab');
     var saved = sessionStorage.getItem('tbnInnerTab');
-    var want = q || saved;
+    var want = q || saved || 'status';
     if (want) activate(want);
     var expand = sessionStorage.getItem('tbnWantExpand');
     if (expand) {

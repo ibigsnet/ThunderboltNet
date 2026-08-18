@@ -1,3 +1,11 @@
+## 2026.08.18aa
+
+- **Perf:** Network Settings first paint no longer runs full Thunderbolt diagnostics for every
+  sibling tab. Thunderbolt overview and each `tbnN` tab are light shells; Status / Peers /
+  Hardware / Settings / iface forms load when that tab is shown. Live `get-status` polling runs
+  only while a Thunderbolt UI tab is visible.
+- **UI:** Fabric report **Age** column formats durations (`53836s` → `14h 57m`; days round to `Nd`).
+
 ## 2026.08.17bd
 
 - **Docs / bridge help:** Steam Local Network transfers discover the **house LAN subnet**, not a

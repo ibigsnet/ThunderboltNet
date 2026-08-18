@@ -810,7 +810,12 @@ function tbn_mesh_reports_panel_html(array $cfg = null) {
   foreach ($hosts as $h) {
     $age = '';
     $ts = strtotime($h['_fetched_at'] ?? $h['generated_at'] ?? '') ?: 0;
-    if ($ts) $age = max(0, $now - $ts) . 's';
+    if ($ts) {
+      $age_secs = max(0, $now - $ts);
+      $age = function_exists('tbn_format_age_seconds')
+        ? tbn_format_age_seconds($age_secs)
+        : ($age_secs . 's');
+    }
     $rows = [];
     foreach ($h['links'] ?? [] as $L) {
       if (($L['media'] ?? '') === 'ethernet') {

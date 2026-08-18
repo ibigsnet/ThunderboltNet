@@ -3542,6 +3542,8 @@ function tbn_sync_iface_pages() {
     // Use require (not require_once): Network Settings evaluates every TbnN.page in one
     // request. require_once would run the shared template only for the first tab and leave
     // tbn1, tbn2, … completely blank.
+    // Light shell only — full iface form loads via tbn-lazy-render.php when this
+    // Network Settings tab is shown (keeps eth0 first paint free of TB work).
     $body = <<<PAGE
 Menu="NetworkSettings:{$menu}"
 Title="Thunderbolt {$label}"
@@ -3549,10 +3551,11 @@ Tag="sitemap"
 Markdown="false"
 Cond="file_exists('/sys/class/net/{$if}')"
 ---
-<?php
-\$tbn_if = '{$if}';
-\$tbn_label = '{$label}';
-require '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-iface-page.php';
+<link rel="stylesheet" href="/plugins/ThunderboltNet/thunderboltnet.css">
+<div class="tbn-wrap tbn-lazy-iface" data-tbn-lazy-iface="{$if}" data-tbn-label="{$label}">
+  <p class="tbn-muted tbn-lazy-placeholder">Loading {$label}…</p>
+</div>
+<script src="/plugins/ThunderboltNet/thunderboltnet.js"></script>
 
 PAGE;
     @file_put_contents($page, $body);
@@ -3981,6 +3984,40 @@ function tbn_format_when_html($when) {
   return '<span class="tbn-when" title="' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '">'
     . htmlspecialchars($pretty, ENT_QUOTES, 'UTF-8')
     . '</span>';
+}
+
+/**
+ * Format an age in seconds for compact UI (fabric Age column, etc.).
+ *
+ * Rules:
+ *  - ≥ 1 day → rounded days only ("15d")
+ *  - ≥ 1 hour → hours + minutes ("14h 57m")
+ *  - ≥ 1 minute → minutes + seconds ("5m 12s")
+ *  - else → seconds only ("42s")
+ *
+ * @param int|float $secs
+ * @return string
+ */
+function tbn_format_age_seconds($secs) {
+  $s = (int)max(0, round((float)$secs));
+  if ($s >= 86400) {
+    $days = (int)round($s / 86400);
+    if ($days < 1) {
+      $days = 1;
+    }
+    return $days . 'd';
+  }
+  if ($s >= 3600) {
+    $h = intdiv($s, 3600);
+    $m = intdiv($s % 3600, 60);
+    return $h . 'h ' . $m . 'm';
+  }
+  if ($s >= 60) {
+    $m = intdiv($s, 60);
+    $r = $s % 60;
+    return $m . 'm ' . $r . 's';
+  }
+  return $s . 's';
 }
 
 /** Parsed list of globally ignored warning keys. */
