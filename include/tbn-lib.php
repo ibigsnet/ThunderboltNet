@@ -972,18 +972,50 @@ function tbn_peer_plan_from_addrs($addrs) {
 
 /**
  * Merge peer plan + listening into an iface cfg for apply on $if.
+ *
+ * Peer Saved plans only carry L3/MTU identity. Host-policy knobs on the path
+ * slot (NAT, DHCP pool, bridging/bonding, OpenFabric participate, …) stay on
+ * ifaces/thunderboltN.cfg and must survive hotplug/reapply.
  */
 function tbn_iface_cfg_from_peer(array $peer, $if) {
   $cfg = tbn_iface_defaults($if);
+  $prior = [];
+  if (function_exists('tbn_iface_cfg_path') && is_file(tbn_iface_cfg_path($if))) {
+    $prior = tbn_load_iface_cfg($if);
+  }
+  // Preserve path-slot policy from existing flash cfg (not part of peer UUID plan).
+  foreach ([
+    'DESCRIPTION',
+    'BONDING', 'BONDING_MODE', 'BOND_NAME', 'BOND_MEMBERS',
+    'BRIDGING', 'BR_NAME',
+    'VLAN_ENABLE', 'VLAN_LIST',
+    'NAT_ENABLE', 'NAT_UPLINK',
+    'DHCP_POOL_START', 'DHCP_POOL_END',
+    'ADDRESS_PLAN',
+    'OPENFABRIC_PARTICIPATE', 'OPENFABRIC_METRIC_MODE', 'OPENFABRIC_METRIC',
+  ] as $k) {
+    if (array_key_exists($k, $prior)) {
+      $cfg[$k] = $prior[$k];
+    }
+  }
   $plan = is_array($peer['plan'] ?? null) ? $peer['plan'] : [];
   foreach (['USE_DHCP', 'IPADDR', 'NETMASK', 'GATEWAY', 'DEFAULT_ROUTE', 'MTU_MODE', 'MTU', 'PROTOCOL'] as $k) {
     if (isset($plan[$k]) && (string)$plan[$k] !== '') {
       $cfg[$k] = $plan[$k];
     }
   }
+  // Server mode pool: if prior had pool and plan did not clear server, keep pool
+  if (($cfg['USE_DHCP'] ?? '') === 'server') {
+    if (trim((string)($cfg['DHCP_POOL_START'] ?? '')) === '' && trim((string)($prior['DHCP_POOL_START'] ?? '')) !== '') {
+      $cfg['DHCP_POOL_START'] = $prior['DHCP_POOL_START'];
+    }
+    if (trim((string)($cfg['DHCP_POOL_END'] ?? '')) === '' && trim((string)($prior['DHCP_POOL_END'] ?? '')) !== '') {
+      $cfg['DHCP_POOL_END'] = $prior['DHCP_POOL_END'];
+    }
+  }
   $cfg['INCLUDE_LISTENING'] = (($peer['include_listening'] ?? 'no') === 'yes') ? 'yes' : 'no';
   $cfg['ENABLE'] = 'yes';
-  return $cfg;
+  return tbn_iface_reconcile_nat_bridge($cfg);
 }
 
 /**

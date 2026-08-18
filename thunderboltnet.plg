@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.18ai">
+<!ENTITY version "2026.08.18aj">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,19 +27,16 @@
 
 <CHANGES>
 ###&version;
-- DHCP server pool excludes host IP when Unraid address is not .1.
+- Fix: hotplug/reapply preserves NAT and DHCP pool (peer plan no longer wipes them).
 
-###2026.08.18ah–ad
-- DHCP mode labels + editable pool; NAT share uplink; path line; bridge mutex.
+###2026.08.18ai–ad
+- DHCP labels/pool editor; NAT share uplink; path line; bridge mutex; pool excludes host.
 
 ###2026.08.18ac–aa
 - MTU 1500 default; shelve Steam docs; Network Settings lazy-load; Age humanized.
 
 ###2026.08.17bd–ba
 - Join br0; Current/Saved; E2E flash persist.
-
-###2026.08.17az
-- Peers Current/Saved; Remember/Apply saved.
 
 ### Older releases
 - Full changelog: https://github.com/ibigsnet/ThunderboltNet/blob/main/CHANGELOG.md

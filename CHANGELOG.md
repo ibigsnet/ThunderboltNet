@@ -1,3 +1,8 @@
+## 2026.08.18aj
+
+- **Fix:** Peer-plan reapply no longer resets path-slot policy (NAT, DHCP pool,
+  bridging/bonding, OpenFabric participate). Hotplug/`tbn-net-reapply` keeps NAT on.
+
 ## 2026.08.18ai
 
 - **Fix:** DHCP server default pool excludes the Unraid host address even when the
