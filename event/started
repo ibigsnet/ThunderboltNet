@@ -26,4 +26,7 @@ fi
 
 udevadm trigger --subsystem-match=net --action=add 2>/dev/null || true
 
+# Peer link-check beacon (php -S :10807) — bypasses Unraid login 302 on /plugins export
+php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; $m="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh.php"; if (is_file($m)) { require_once $m; if (function_exists("tbn_mesh_beacon_ensure")) { tbn_mesh_beacon_ensure(); } }' 2>/dev/null || true
+
 exit 0

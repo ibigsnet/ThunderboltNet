@@ -44,7 +44,15 @@ if (function_exists('tbn_of_apply')) {
   tbn_of_apply();
 }
 
-// One mesh poll after settings save if enabled
-if (function_exists('tbn_mesh_maybe_poll') && function_exists('tbn_mesh_enabled') && tbn_mesh_enabled(tbn_load_cfg())) {
-  @tbn_mesh_maybe_poll(tbn_load_cfg(), true);
+// Mesh beacon (auth-free export) + one poll after settings save if enabled
+$mesh_cfg = tbn_load_cfg();
+if (function_exists('tbn_mesh_beacon_ensure')) {
+  if (function_exists('tbn_mesh_enabled') && tbn_mesh_enabled($mesh_cfg)) {
+    @tbn_mesh_beacon_ensure($mesh_cfg);
+  } else {
+    @tbn_mesh_beacon_stop();
+  }
+}
+if (function_exists('tbn_mesh_maybe_poll') && function_exists('tbn_mesh_enabled') && tbn_mesh_enabled($mesh_cfg)) {
+  @tbn_mesh_maybe_poll($mesh_cfg, true);
 }

@@ -1,3 +1,10 @@
+## 2026.08.17av
+
+- **Peer link-check:** mesh export via local **php -S beacon on TCP 10807** (token + private-IP gated).
+  Polls no longer use `/plugins/.../tbn-mesh-export.php` (Unraid `auth_request` → 302 without login).
+  Beacon starts when mesh report + token are enabled (Settings apply, array start/startup, poll).
+- Mesh snapshot schema 2: include `dhcp_servers[]` for future conflict awareness; `beacon_port`.
+
 ## 2026.08.17au
 
 - `.plg` `<CHANGES>`: trim back to ~**7** summarized entries (range-bundle micro-ships) before Older → CHANGELOG.

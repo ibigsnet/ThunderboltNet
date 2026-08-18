@@ -8,7 +8,112 @@ if (!function_exists('tbn_cfg_dir')) {
   require_once __DIR__ . '/tbn-lib.php';
 }
 
-function tbn_mesh_schema_version() { return 1; }
+function tbn_mesh_schema_version() { return 2; }
+
+/** TCP port for mesh JSON beacon (php -S; bypasses Unraid auth_request 302). NBD uses 10808. */
+function tbn_mesh_beacon_port() { return 10807; }
+
+function tbn_mesh_beacon_pidfile() {
+  return '/var/run/thunderboltnet-mesh-beacon.pid';
+}
+
+function tbn_mesh_beacon_logfile() {
+  return '/var/log/thunderboltnet-mesh-beacon.log';
+}
+
+/**
+ * List DHCP servers this host is running on Thunderbolt underlays (for peer conflict awareness).
+ *
+ * @return array<int,array{iface:string,network:string,host:string,pool_start:string,pool_end:string}>
+ */
+function tbn_mesh_dhcp_servers_snapshot(array $cfg = null) {
+  $out = [];
+  if (!function_exists('tbn_load_iface_cfg') || !function_exists('tbn_dhcp_server_plan')) {
+    return $out;
+  }
+  foreach (['thunderbolt0', 'thunderbolt1', 'thunderbolt2', 'thunderbolt3'] as $if) {
+    if (!is_dir('/sys/class/net/' . $if) && !is_file(tbn_iface_cfg_path($if))) {
+      continue;
+    }
+    $icfg = tbn_load_iface_cfg($if);
+    if (($icfg['USE_DHCP'] ?? '') !== 'server') {
+      continue;
+    }
+    $plan = tbn_dhcp_server_plan($if, $icfg);
+    $out[] = [
+      'iface' => $if,
+      'network' => $plan['network'] ?? '',
+      'host' => $plan['ip'] ?? '',
+      'pool_start' => $plan['pool_start'] ?? '',
+      'pool_end' => $plan['pool_end'] ?? '',
+    ];
+  }
+  return $out;
+}
+
+/** Start mesh beacon when link-check export is enabled; stop when off. */
+function tbn_mesh_beacon_ensure(array $cfg = null) {
+  if ($cfg === null) {
+    $cfg = tbn_load_cfg();
+  }
+  if (!tbn_mesh_enabled($cfg)) {
+    return tbn_mesh_beacon_stop();
+  }
+  $pidfile = tbn_mesh_beacon_pidfile();
+  $pid = is_file($pidfile) ? (int)@file_get_contents($pidfile) : 0;
+  if ($pid > 0 && @file_exists('/proc/' . $pid)) {
+    return ['ok' => true, 'running' => true, 'pid' => $pid, 'port' => tbn_mesh_beacon_port()];
+  }
+  $router = '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh-beacon-server.php';
+  if (!is_file($router)) {
+    $router = dirname(__FILE__) . '/tbn-mesh-beacon-server.php';
+  }
+  if (!is_file($router)) {
+    return ['ok' => false, 'error' => 'beacon server missing'];
+  }
+  $php = trim((string)@shell_exec('command -v php 2>/dev/null'));
+  if ($php === '' || !is_executable($php)) {
+    $php = '/usr/bin/php';
+  }
+  if (!is_executable($php)) {
+    return ['ok' => false, 'error' => 'php not found'];
+  }
+  @mkdir('/var/run', 0755, true);
+  $port = tbn_mesh_beacon_port();
+  $log = tbn_mesh_beacon_logfile();
+  $cmd = 'setsid nohup ' . escapeshellarg($php) . ' -S 0.0.0.0:' . (int)$port
+    . ' ' . escapeshellarg($router)
+    . ' >>' . escapeshellarg($log) . ' 2>&1 & echo $! >' . escapeshellarg($pidfile);
+  exec($cmd);
+  usleep(250000);
+  $pid = is_file($pidfile) ? (int)@file_get_contents($pidfile) : 0;
+  return [
+    'ok' => $pid > 0 && @file_exists('/proc/' . $pid),
+    'running' => $pid > 0 && @file_exists('/proc/' . $pid),
+    'pid' => $pid,
+    'port' => $port,
+  ];
+}
+
+function tbn_mesh_beacon_stop() {
+  $pidfile = tbn_mesh_beacon_pidfile();
+  $pid = is_file($pidfile) ? (int)@file_get_contents($pidfile) : 0;
+  if ($pid > 0 && @file_exists('/proc/' . $pid)) {
+    if (function_exists('posix_kill')) {
+      @posix_kill($pid, 15);
+      usleep(150000);
+      if (@file_exists('/proc/' . $pid)) {
+        @posix_kill($pid, 9);
+      }
+    } else {
+      @exec('kill -TERM ' . (int)$pid . ' 2>/dev/null');
+      usleep(150000);
+      @exec('kill -KILL ' . (int)$pid . ' 2>/dev/null');
+    }
+  }
+  @unlink($pidfile);
+  return ['ok' => true, 'running' => false];
+}
 
 function tbn_mesh_host_id_path() { return tbn_cfg_dir() . '/mesh_host_id'; }
 function tbn_mesh_cache_dir() { return tbn_cfg_dir() . '/mesh-cache'; }
@@ -179,8 +284,10 @@ function tbn_mesh_snapshot(array $links = null, array $cfg = null) {
     'host_id' => tbn_mesh_host_id(),
     'hostname' => gethostname() ?: '',
     'generated_at' => date('c'),
+    'beacon_port' => tbn_mesh_beacon_port(),
     'links' => $out_links,
     'openfabric' => $of,
+    'dhcp_servers' => tbn_mesh_dhcp_servers_snapshot($cfg),
   ];
 }
 
@@ -349,11 +456,13 @@ function tbn_mesh_peer_targets(array $cfg = null, array $links = null) {
       }
     }
   }
+  $port = tbn_mesh_beacon_port();
   $out = [];
   foreach ($ips as $ip => $src) {
+    // Prefer auth-free beacon (php -S). Legacy nginx /plugins path returns 302 without login.
     $out[] = [
       'ip' => $ip,
-      'url' => 'http://' . $ip . '/plugins/ThunderboltNet/include/tbn-mesh-export.php',
+      'url' => 'http://' . $ip . ':' . $port . '/',
       'source' => $src,
     ];
   }
@@ -390,8 +499,12 @@ function tbn_mesh_poll_all(array $cfg = null) {
   $result = ['enabled' => tbn_mesh_enabled($cfg), 'polled' => 0, 'ok' => 0, 'edges' => [], 'hosts' => [], 'error' => ''];
   if (!$result['enabled']) {
     $result['error'] = 'mesh_report off or token empty';
+    tbn_mesh_beacon_stop();
     return $result;
   }
+  // Ensure local beacon is up so peers can fetch us without Unraid login
+  $beacon = tbn_mesh_beacon_ensure($cfg);
+  $result['beacon'] = $beacon;
   $token = trim((string)$cfg['mesh_token']);
   $stale_secs = max(60, (int)($cfg['mesh_stale_secs'] ?? 300));
   $holdoff = max(30, (int)($cfg['mesh_holdoff_secs'] ?? 120));
@@ -624,8 +737,9 @@ function tbn_mesh_reports_panel_html(array $cfg = null) {
   $html .= '<p class="tbn-muted">Last poll: ' . $at_disp
     . ' · Peer reports cached: ' . count($hosts) . '</p>';
   if (!$hosts) {
-    $html .= '<p class="tbn-muted">No peer reports yet. On each other Unraid: same token, export on, and a reachable private IP '
-      . '(Thunderbolt tbn IP and/or listed Mesh peer IPs).</p>';
+    $html .= '<p class="tbn-muted">No peer reports yet. On each other Unraid: same token, Peer link check on, and a reachable '
+      . 'Thunderbolt IP (or Mesh peer IPs). Export uses a small local beacon on TCP '
+      . htmlspecialchars((string)tbn_mesh_beacon_port()) . ' (not the web UI login).</p>';
     $html .= '</div>';
     return $html;
   }
