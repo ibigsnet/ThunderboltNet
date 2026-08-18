@@ -70,30 +70,15 @@ Defaults stay **No** (do not silently enroll management LAN). Prefer **one** end
 
 ## Linux desktop ↔ Linux desktop
 
-Wi‑Fi **client** NICs generally cannot be bridged like Unraid `br0`. For two desktops (or a desktop and a handheld) on a direct Thunderbolt cable:
+Wi‑Fi **client** NICs generally cannot be bridged like Unraid `br0`. For two desktops on a direct Thunderbolt cable:
 
-1. Put IPv4 on both Thunderbolt ifaces (e.g. library `10.255.2.1/24`, peer `10.255.2.2/24`). Prefer **manual** static on both ends (or DHCP without pushing a default route). Keep **MTU 1500** unless you have verified jumbo end-to-end.  
-2. Prove `ping` both ways on the TB `/24` (expect sub‑millisecond RTT).  
-3. This is **not** a routing-advertisement / OSPF problem. Steam does not pick “cheapest outbound interface” for CDN downloads. Local Network Game Transfers **discover** a peer on the house LAN, then open TCP to that IP. Path selection is the **downloader’s** route to that IP (FLOWZ-side).
+1. Put static IPs on both Thunderbolt ifaces (e.g. `10.255.2.1` / `.2`).  
+2. Prove `ping` both ways.  
+3. For Steam: leave the **library** machine online; turn **Wi‑Fi off on the downloader** (or ensure Steam on the library is reachable on the TB address and is the only LAN source you care about).
 
-### Host route (path) + source address (Steam identity)
+Optional: NetworkManager **Shared** connection on the library’s Thunderbolt iface (DHCP toward the peer). Same idea as a TB-only island if the downloader is not using house Wi‑Fi for Steam discovery.
 
-Steam’s library host remembers the downloader as its Wi‑Fi IP (e.g. `192.168.1.133`). If the downloader connects **from** its Thunderbolt address (`10.255.2.2`), the library logs `Unexpected peer connection` and serves **0 chunks**. Steer the path via Thunderbolt but keep the **Wi‑Fi source address**:
-
-```bash
-# On the downloader (example): library advertises as 192.168.1.86 on Wi‑Fi
-nmcli con modify "$TB_CONNECTION" ipv4.routes "192.168.1.86/32 10.255.2.1 25 src=192.168.1.133"
-nmcli con modify "$TB_CONNECTION" ipv4.never-default yes
-nmcli con modify "$TB_CONNECTION" 802-3-ethernet.mtu 1500
-nmcli con up "$TB_CONNECTION"
-ip route get 192.168.1.86   # via 10.255.2.1 dev thunderboltN src 192.168.1.133
-```
-
-Use loose `rp_filter` on the TB iface if replies to the Wi‑Fi IP arrive on Thunderbolt (`rp_filter=2`). Mirror a `/32` on the library toward the downloader’s Wi‑Fi IP if either side can download.
-
-**Wi‑Fi off on the downloader** remains the simple TB-only island if you do not want host routes.
-
-Steam may still **prefer Valve CDN** when it is fast, or fail peer serve when the library is missing the same depot/build. Check `logs/content_log.txt` for `Unexpected peer connection`, `0 chunks`, and `SteamCache` vs `Peer`. The host route only steers traffic once Steam uses that peer — it does not hide CDN or other Wi‑Fi libraries.
+Do not expect Steam to auto-prefer Thunderbolt while both machines also see other PCs on Wi‑Fi.
 
 ## Related
 
