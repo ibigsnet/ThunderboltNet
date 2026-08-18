@@ -63,12 +63,15 @@ parm: e2e: USB4NET full end-to-end flow control (default: true) (bool)
 | **No (e2e=0)** (product default) | `e2e=0` | End-to-end Thunderbolt network flow control **off** |
 | **Yes (driver default)** | `e2e=1` | Driver default — full E2E flow control **on** |
 
-Persisted as:
+Persisted as (both paths — Unraid flash is required for reboot):
 
 ```text
-# typically /boot/config/modprobe.d/thunderbolt_net.conf
+/boot/config/modprobe.d/thunderbolt_net.conf
+/etc/modprobe.d/thunderbolt_net.conf
 options thunderbolt_net e2e=0
 ```
+
+Writing **only** `/etc/modprobe.d/` is lost on reboot (RAM root). The plugin writes flash + RAM on Apply and on `event/startup`. If the module was already loaded with the wrong bit, startup **reloads** `thunderbolt_net` (never unbinds the NHI).
 
 Live value (after load):
 

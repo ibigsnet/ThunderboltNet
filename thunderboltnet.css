@@ -488,6 +488,14 @@
   color: #b36b00;
   font-weight: 600;
 }
+/* Online path but underlay silent (carrier/ping) — do not look “all clear” */
+.tbn-peers-memory td.tbn-path-unreach code {
+  color: #b36b00;
+}
+.tbn-peers-memory .tbn-path-unreach-lbl {
+  color: #b36b00;
+  font-size: 0.82em;
+}
 .tbn-peers-toolbar {
   margin-top: 0.75rem;
   padding-top: 0.35rem;

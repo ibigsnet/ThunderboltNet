@@ -16,8 +16,8 @@ fi
 # OpenFabric: regenerate conf + best-effort FRR reload (no-op if FRR missing)
 php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; if (function_exists("tbn_of_apply")) { tbn_of_apply(); }' 2>/dev/null || true
 
-# Re-assert udev (RAM root) + L3 after array start
-php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; tbn_install_net_udev();' 2>/dev/null || true
+# Re-assert e2e + udev (RAM root) + L3 after array start
+php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; tbn_ensure_e2e_param(); tbn_install_net_udev();' 2>/dev/null || true
 
 REAPPLY=/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-net-reapply
 if [ -f "$REAPPLY" ]; then

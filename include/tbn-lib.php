@@ -993,6 +993,94 @@ function tbn_first_ipv4($s) {
 }
 
 /**
+ * Carrier present on a thunderbolt* netdev (1 = datapath trained at L2).
+ */
+function tbn_iface_carrier_up($if) {
+  $if = preg_replace('/[^A-Za-z0-9._-]/', '', (string)$if);
+  if ($if === '' || !is_dir('/sys/class/net/' . $if)) {
+    return false;
+  }
+  return tbn_sysfs_str('/sys/class/net/' . $if . '/carrier') === '1';
+}
+
+/**
+ * Best-effort peer IPv4 on the same /24 as local (lab convention .1 ↔ .2).
+ * Prefers an explicit candidate list when provided.
+ *
+ * @param string $local_cidr e.g. 10.255.0.1/24
+ * @param array<int,string> $candidates
+ */
+function tbn_guess_peer_ipv4($local_cidr, array $candidates = []) {
+  foreach ($candidates as $c) {
+    $ip = tbn_first_ipv4($c);
+    if ($ip !== '') {
+      return $ip;
+    }
+  }
+  $local = tbn_first_ipv4($local_cidr);
+  if ($local === '' || !preg_match('/^(\d+\.\d+\.\d+)\.(\d+)$/', $local, $m)) {
+    return '';
+  }
+  $base = $m[1];
+  $host = (int)$m[2];
+  if ($host === 1) {
+    return $base . '.2';
+  }
+  if ($host === 2) {
+    return $base . '.1';
+  }
+  return '';
+}
+
+/**
+ * Quick underlay reachability (1-probe ping bound to iface).
+ * Used to surface “Online but no reply” when sysfs looks healthy.
+ */
+function tbn_underlay_ping_ok($if, $peer_ip, $timeout_sec = 1) {
+  $if = preg_replace('/[^A-Za-z0-9._-]/', '', (string)$if);
+  $peer_ip = tbn_first_ipv4($peer_ip);
+  if ($if === '' || $peer_ip === '' || !is_dir('/sys/class/net/' . $if)) {
+    return false;
+  }
+  $t = max(1, min(3, (int)$timeout_sec));
+  $cmd = 'ping -c1 -W' . $t . ' -I ' . escapeshellarg($if) . ' ' . escapeshellarg($peer_ip) . ' >/dev/null 2>&1';
+  $rc = 1;
+  @exec($cmd, $o, $rc);
+  return $rc === 0;
+}
+
+/**
+ * Path health for Peers UI: carrier + optional ping.
+ *
+ * @return array{ok:bool,label:string,detail:string}
+ */
+function tbn_path_underlay_health($if, $local_addrs = '', array $peer = []) {
+  $if = (string)$if;
+  if ($if === '' || !is_dir('/sys/class/net/' . $if)) {
+    return ['ok' => false, 'label' => 'No iface', 'detail' => 'Path netdev missing'];
+  }
+  if (!tbn_iface_carrier_up($if)) {
+    return ['ok' => false, 'label' => 'No carrier', 'detail' => 'Link trained in TB topology but netdev has no carrier'];
+  }
+  $cands = [];
+  if (!empty($peer['last_remote_addrs']) && is_array($peer['last_remote_addrs'])) {
+    $cands = $peer['last_remote_addrs'];
+  }
+  $peer_ip = tbn_guess_peer_ipv4($local_addrs, $cands);
+  if ($peer_ip === '') {
+    return ['ok' => true, 'label' => '', 'detail' => 'Carrier up'];
+  }
+  if (tbn_underlay_ping_ok($if, $peer_ip, 1)) {
+    return ['ok' => true, 'label' => '', 'detail' => 'Ping ' . $peer_ip . ' ok'];
+  }
+  return [
+    'ok' => false,
+    'label' => 'No reply',
+    'detail' => 'Carrier up but no ping reply from ' . $peer_ip . ' — check peer e2e/cable',
+  ];
+}
+
+/**
  * Human one-liner for Saved column (Peers table). No jargon suffix —
  * the column header already says Saved.
  */
@@ -2504,19 +2592,102 @@ function tbn_apply_include_listening($enable) {
 }
 
 /**
+ * Desired thunderbolt_net e2e= bit from plugin cfg (product default: off).
+ */
+function tbn_desired_e2e_bit(array $cfg = null) {
+  if ($cfg === null) {
+    $cfg = tbn_load_cfg();
+  }
+  return (($cfg['e2e_flow_control'] ?? 'no') === 'yes') ? '1' : '0';
+}
+
+/**
+ * Persist e2e for next boot on Unraid flash AND live /etc.
+ * /etc alone is RAM — reboot lost options and kernel defaulted e2e=1 (flaky cross-host).
+ *
+ * @return string e2e bit written ('0'|'1')
+ */
+function tbn_persist_e2e_modprobe(array $cfg = null) {
+  $e2e = tbn_desired_e2e_bit($cfg);
+  $line = "options thunderbolt_net e2e={$e2e}\n";
+  foreach (['/boot/config/modprobe.d', '/etc/modprobe.d'] as $dir) {
+    if (!is_dir($dir)) {
+      @mkdir($dir, 0755, true);
+    }
+    @file_put_contents($dir . '/thunderbolt_net.conf', $line);
+  }
+  return $e2e;
+}
+
+/**
+ * Live e2e module parameter (Y/N/1/0) or '' if module not loaded.
+ */
+function tbn_live_e2e_bit() {
+  $p = '/sys/module/thunderbolt_net/parameters/e2e';
+  if (!is_readable($p)) {
+    return '';
+  }
+  $v = strtoupper(trim((string)@file_get_contents($p)));
+  if ($v === 'Y' || $v === '1') {
+    return '1';
+  }
+  if ($v === 'N' || $v === '0') {
+    return '0';
+  }
+  return '';
+}
+
+/**
+ * Ensure thunderbolt_net is loaded with the configured e2e bit.
+ * If already loaded with the wrong bit, reload the module (disrupts TB netdevs briefly).
+ *
+ * @return array{ok:bool,e2e:string,reloaded:bool,error?:string}
+ */
+function tbn_ensure_e2e_param(array $cfg = null) {
+  $want = tbn_persist_e2e_modprobe($cfg);
+  $have = tbn_live_e2e_bit();
+  if ($have === $want) {
+    return ['ok' => true, 'e2e' => $want, 'reloaded' => false];
+  }
+  // Not loaded yet — first modprobe picks up flash options + explicit arg
+  if ($have === '') {
+    @exec('modprobe thunderbolt 2>/dev/null');
+    @exec('modprobe thunderbolt_net e2e=' . escapeshellarg($want) . ' 2>/dev/null');
+    $have = tbn_live_e2e_bit();
+    return [
+      'ok' => ($have === $want || $have === ''),
+      'e2e' => $have !== '' ? $have : $want,
+      'reloaded' => false,
+    ];
+  }
+  // Wrong live bit — reload (only thunderbolt_net; never unbind NHI)
+  foreach (tbn_list_tb_iface_names() as $if) {
+    @exec('ip link set ' . escapeshellarg($if) . ' down 2>/dev/null');
+  }
+  @exec('rmmod thunderbolt_net 2>/dev/null', $o, $rc);
+  usleep(300000);
+  @exec('modprobe thunderbolt_net e2e=' . escapeshellarg($want) . ' 2>/dev/null', $o2, $rc2);
+  $have = tbn_live_e2e_bit();
+  if ($have !== $want) {
+    return [
+      'ok' => false,
+      'e2e' => $have !== '' ? $have : '?',
+      'reloaded' => true,
+      'error' => 'thunderbolt_net e2e still ' . ($have !== '' ? $have : 'unset') . ' after reload (want ' . $want . ')',
+    ];
+  }
+  return ['ok' => true, 'e2e' => $want, 'reloaded' => true];
+}
+
+/**
  * Load kernel modules (no NHI unbind — that can wedge Maple Ridge).
  */
 function tbn_load_modules() {
   $cfg = tbn_load_cfg();
-  $e2e = ($cfg['e2e_flow_control'] === 'yes') ? '1' : '0';
+  tbn_persist_e2e_modprobe($cfg);
   @exec('modprobe thunderbolt 2>/dev/null');
-  @exec('modprobe thunderbolt_net e2e=' . escapeshellarg($e2e) . ' 2>/dev/null');
-  // persist hint for next boot (best-effort)
-  @mkdir('/etc/modprobe.d', 0755, true);
-  @file_put_contents(
-    '/etc/modprobe.d/thunderbolt_net.conf',
-    "options thunderbolt_net e2e={$e2e}\n"
-  );
+  // Prefer ensure (reload if wrong) over a no-op second modprobe that cannot change e2e
+  tbn_ensure_e2e_param($cfg);
   // USB4STREAM — optional raw path; never fails the net stack if missing
   if (($cfg['enable_usb4stream'] ?? 'no') === 'yes' && tbn_usb4stream_module_available()) {
     @exec('modprobe thunderbolt_stream 2>/dev/null');

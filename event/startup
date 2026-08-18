@@ -7,9 +7,13 @@
 # array Online (management over Thunderbolt, early peer link, etc.).
 # Heavier work (Dashboard port patch, OpenFabric) waits for event/started.
 
-logger -t ThunderboltNet "event/startup: install udev + reapply L3"
+logger -t ThunderboltNet "event/startup: e2e modprobe + udev + reapply L3"
 
-php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; tbn_install_net_udev();' 2>/dev/null || true
+# Persist e2e to flash+ram and reload thunderbolt_net if kernel defaulted e2e=1
+php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php";
+$r = tbn_ensure_e2e_param();
+if (!empty($r["reloaded"])) { fwrite(STDERR, "ThunderboltNet: reloaded thunderbolt_net e2e=" . ($r["e2e"] ?? "?") . "\n"); }
+tbn_install_net_udev();' 2>/dev/null || true
 
 REAPPLY=/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-net-reapply
 if [ -f "$REAPPLY" ]; then

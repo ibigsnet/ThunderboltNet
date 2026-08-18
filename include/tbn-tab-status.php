@@ -64,6 +64,14 @@
         <td>
           <code>thunderbolt</code> <?= htmlspecialchars($mod_tb) ?> ·
           <code>thunderbolt_net</code> <?= htmlspecialchars($mod_net) ?>
+<?php
+  $e2e_live = function_exists('tbn_live_e2e_bit') ? tbn_live_e2e_bit() : '';
+  $e2e_want = function_exists('tbn_desired_e2e_bit') ? tbn_desired_e2e_bit($cfg) : '0';
+  if ($e2e_live !== ''):
+    $e2e_mismatch = ($e2e_live !== $e2e_want);
+?>
+          · e2e=<code><?= htmlspecialchars($e2e_live === '1' ? '1' : '0') ?></code><?= $e2e_mismatch ? ' <span class="tbn-muted">(cfg wants ' . htmlspecialchars($e2e_want) . ')</span>' : '' ?>
+<?php endif; ?>
         </td>
       </tr>
     </table>
@@ -72,6 +80,7 @@
       <code>thunderbolt_net</code> creates <code>thunderboltN</code> interfaces (configured on <strong>tbnN</strong> tabs).
       Both should be loaded for host-to-host IP. Separate from OpenFabric/FRR and USB4STREAM
       (<?= tbn_docs_more_html('docs/usb4stream.md', 'USB4STREAM') ?>).
+      E2E is persisted to <code>/boot/config/modprobe.d/</code> and corrected on startup if the kernel loaded the wrong bit.
       Load / E2E: Settings tab.
     </blockquote>
 

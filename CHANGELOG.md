@@ -1,3 +1,13 @@
+## 2026.08.17ba
+
+- **Fix:** Post-reboot Thunderbolt path looked healthy (Online, IPs, trained rates) but ARP/ping
+  failed. Root cause: `e2e_flow_control=no` was only written to RAM `/etc/modprobe.d/`, so reboot
+  loaded kernel default `thunderbolt_net e2e=1` (flaky cross-host). Now persist to
+  `/boot/config/modprobe.d/thunderbolt_net.conf` + `/etc`, and `event/startup` / reapply
+  **reload** the module when the live bit disagrees.
+- Peers: quiet **No carrier** / **No reply** under Current when Online but underlay is silent.
+- Status: show live `e2e=` next to modules.
+
 ## 2026.08.17az
 
 - **Peers wording:** columns **Current** / **Saved** (was Live IPv4 / Peer plan); toolbar

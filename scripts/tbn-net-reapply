@@ -30,6 +30,9 @@ if [ ! -f "$LIB" ]; then
   exit 0
 fi
 
+# Keep e2e in sync (flash conf + reload if kernel loaded e2e=1 first)
+"$PHP_BIN" -r 'require_once "'"$LIB"'"; tbn_ensure_e2e_param();' 2>/dev/null || true
+
 if [ -n "$IFACE" ]; then
   case "$IFACE" in
     thunderbolt*) ;;

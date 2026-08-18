@@ -94,6 +94,10 @@ if (!$has_hw):
     $live_ip = function_exists('tbn_first_ipv4') ? tbn_first_ipv4($addrs) : '';
     $saved_ip = function_exists('tbn_first_ipv4') ? tbn_first_ipv4($plan_lbl) : '';
     $addr_mismatch = ($online && $live_ip !== '' && $saved_ip !== '' && $live_ip !== $saved_ip);
+    $path_health = ['ok' => true, 'label' => '', 'detail' => ''];
+    if ($online && $if !== '' && function_exists('tbn_path_underlay_health')) {
+      $path_health = tbn_path_underlay_health($if, $addrs, is_array($p) ? $p : []);
+    }
     $mesh_val = $p['mesh_validation'] ?? null;
     $mesh_on = function_exists('tbn_mesh_enabled') ? tbn_mesh_enabled($cfg) : false;
     $mesh_row = '';
@@ -133,8 +137,11 @@ if (!$has_hw):
             —
 <?php endif; ?>
           </td>
-          <td class="<?= $addr_mismatch ? 'tbn-addr-mismatch' : '' ?>"<?= $addr_mismatch ? ' title="Current differs from Saved"' : '' ?>>
+          <td class="<?= $addr_mismatch ? 'tbn-addr-mismatch' : '' ?><?= empty($path_health['ok']) ? ' tbn-path-unreach' : '' ?>"<?= $addr_mismatch ? ' title="Current differs from Saved"' : (!empty($path_health['detail']) ? ' title="' . htmlspecialchars($path_health['detail'], ENT_QUOTES) . '"' : '') ?>>
             <code class="tbn-live" data-tbn-live-ip4="<?= htmlspecialchars($if) ?>"><?= htmlspecialchars($addrs !== '' ? $addrs : '—') ?></code>
+<?php if ($online && empty($path_health['ok']) && ($path_health['label'] ?? '') !== ''): ?>
+            <span class="tbn-muted tbn-path-unreach-lbl"><br><?= htmlspecialchars($path_health['label']) ?></span>
+<?php endif; ?>
           </td>
           <td class="<?= $addr_mismatch ? 'tbn-addr-mismatch' : '' ?>"<?= $addr_mismatch ? ' title="Saved differs from Current — use Apply saved, or Remember current"' : ($has_plan ? ' title="Reapplied on reconnect"' : ' title="None yet — Apply the tbn tab while linked, or Remember current"') ?>>
 <?php if ($has_plan): ?>
