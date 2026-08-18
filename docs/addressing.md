@@ -185,12 +185,16 @@ Underlay addressing above is still required when OpenFabric is on (link IPs + un
 
 ## Join an Unraid bridge (`br0`, `br0.10`, …)
 
+Use this when the Thunderbolt peer should sit on the **house LAN** for discovery (Steam Local Network Game Transfers, SMB browse, etc.). Direct Thunderbolt `/24` static links stay a separate island — see [steam-and-lan-discovery.md](steam-and-lan-discovery.md).
+
 On each tbn tab: **Enable bridging = Yes**, then pick an **existing** bridge from the list
 (Unraid Network Settings must already have created `br0` / VLAN bridges).
 
 - Thunderbolt becomes a **member** — no own IP on that tab; addressing stays on the bridge.
+- The **peer** configures a house-LAN address on its Thunderbolt iface (LAN DHCP or static in the LAN range).
 - The plugin does **not** create or delete Unraid bridges.
 - Hotplug / boot reapply re-enslaves when bridging stays Yes.
 - Prefer **one** side joining `br0` unless you understand L2 loops / STP.
 - Underlay DHCP server on that tab is not used while the iface is a bridge member.
+- Default **No** — management LAN is not enrolled unless you opt in.
 

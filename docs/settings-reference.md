@@ -67,7 +67,7 @@ Does **not** register Thunderbolt in stock **Interface Rules** (MAC→name). Hos
 | OpenFabric participate | **Yes** | yes / passive / no on this underlay |
 | OpenFabric metric mode | auto | auto from trained rate, or manual |
 | OpenFabric metric | empty | Manual integer when mode=manual |
-| Enable bridging | No | Reserved; not auto-applied yet |
+| Enable bridging | No | Join an **existing** Unraid bridge (`br0`, `br0.N`, …). Member has no own IP; peer uses house-LAN addressing on its TB iface. Default No — [steam-and-lan-discovery.md](steam-and-lan-discovery.md) |
 | Network protocol | IPv4 only | IPv6 limited |
 | IPv4 assignment | Static | Prefer static on host↔host |
 | IPv4 address / mask | 10.255.N.2 / 24 | Unique subnet per N |

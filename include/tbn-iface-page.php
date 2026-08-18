@@ -335,9 +335,12 @@ if (strpos($nm, '.') === false) {
       </dl>
       <blockquote class="inline_help">
         Join this Thunderbolt interface into an <strong>existing</strong> Unraid bridge
-        (<code>br0</code>, VLAN <code>br0.10</code>, …). Does not create or delete bridges —
-        those stay under Network Settings. One bridge only (kernel limit).
-        <?= tbn_help_docs_footer('docs/addressing.md', 'Addressing / bridging') ?>
+        (<code>br0</code>, VLAN <code>br0.10</code>, …) so the peer can sit on the
+        <strong>house LAN</strong> (Steam discovery, SMB browse, etc.).
+        Does not create or delete bridges — those stay under Network Settings.
+        Default <strong>No</strong>. One bridge only (kernel limit).
+        <?= tbn_help_docs_footer('docs/steam-and-lan-discovery.md', 'Steam / LAN discovery') ?>
+        · <?= tbn_help_docs_footer('docs/addressing.md', 'Addressing / bridging') ?>
       </blockquote>
       <div class="tbn-bridge-opts tbn-hidden">
         <dl>
@@ -365,6 +368,8 @@ if (strpos($nm, '.') === false) {
         </dl>
         <blockquote class="inline_help">
           Member has no own IP — addressing stays on the bridge.
+          On the <strong>peer</strong>, put a house-LAN address on its Thunderbolt iface
+          (LAN DHCP or static in the LAN range) — not a separate <code>10.255.x</code> island.
           Prefer <strong>one</strong> end joining <code>br0</code> unless you understand L2 loops.
           DHCP server on this tab is disabled while joined.
         </blockquote>

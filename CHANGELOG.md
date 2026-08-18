@@ -1,3 +1,11 @@
+## 2026.08.17bd
+
+- **Docs / bridge help:** Steam Local Network transfers discover the **house LAN subnet**, not a
+  separate Thunderbolt `10.255.x` island — turning Wi‑Fi off on the library PC can make Steam
+  fall back to another LAN PC. New [steam-and-lan-discovery.md](docs/steam-and-lan-discovery.md).
+- Unraid **join `br0`** is the supported way to put a TB peer on house LAN for Steam/SMB discovery;
+  settings-reference no longer calls bridging “reserved.” Peer should use LAN addressing on its TB iface.
+
 ## 2026.08.17bc
 
 - **Docs:** Align user-facing docs with Peers **Current** / **Saved** (and toolbar Remember current /

@@ -49,7 +49,8 @@ The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt l
 | Enable default route | **No** | Keep internet on eth0/br0; Thunderbolt stays peer-local |
 | Include listening | **No** | Don’t advertise Unraid services on Thunderbolt unless you opt in |
 | MTU | **1500** (kernel default) | Safe first plug; use **9000 both ends** for bulk at 20–80&nbsp;G class — [MTU & throughput](docs/mtu-and-throughput.md) |
-| Bonding / bridging | **Off** until ≥2 live Thunderbolt netdevs | Thunderbolt-only `bond-tb*`; dual-cable same-peer limited today — [roadmap](docs/links-and-topology.md) |
+| Bonding | **Off** until ≥2 live Thunderbolt netdevs | Thunderbolt-only `bond-tb*`; dual-cable same-peer limited — [roadmap](docs/links-and-topology.md) |
+| Bridging | **No** | Opt-in join existing Unraid `br0` / `br0.N` so peers sit on house LAN (Steam discovery, etc.) — [steam-and-lan-discovery.md](docs/steam-and-lan-discovery.md) |
 
 ---
 

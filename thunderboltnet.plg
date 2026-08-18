@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.17bc">
+<!ENTITY version "2026.08.17bd">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,10 +27,10 @@
 
 <CHANGES>
 ###&version;
-- Docs: Current/Saved wording across DOCS and docs/* (retire Live IPv4 / Peer plan in user docs).
+- Docs/UI: Steam LAN discovery vs Thunderbolt; join br0 for house LAN; fix bridging “reserved” drift.
 
-###2026.08.17bb–ba
-- Saved auto-capture docs; E2E flash persist; Online-but-no-ping troubleshooting.
+###2026.08.17bc–ba
+- Current/Saved docs; E2E flash persist; Online-but-no-ping troubleshooting.
 
 ###2026.08.17az
 - Peers: Current / Saved columns; Remember current / Apply saved; quiet mismatch highlight.
