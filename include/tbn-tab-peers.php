@@ -8,18 +8,15 @@ if (!$has_hw):
   <div class="tbn-section tbn-section-peers">
     <h3>Known peers</h3>
     <p class="tbn-note">
-      Each row is a <strong>remote host</strong> (fabric UUID), not a rear-panel port.
-      <strong>Status</strong> = path up right now ·
-      <strong>Live IPv4</strong> = address on this Unraid path <em>now</em> ·
-      <strong>Peer plan</strong> = saved IPv4 for this remote (survives tbn0↔tbn1 renumber) ·
-      <strong>Link check</strong> = optional Unraid↔Unraid rate compare (shared token) — not FRR.
+      One row per <strong>remote host</strong> (not a rear-panel port).
+      <strong>Current</strong> is on the path now;
+      <strong>Saved</strong> is remembered for that host and reapplied if the path renumbers.
     </p>
 <?php if (!$peers_mem): ?>
     <div class="tbn-empty-peers" role="status">
       <p class="tbn-muted" style="margin:0">
         <strong>No remembered peers yet.</strong>
-        With a peer linked, open this page (or Apply on a tbn tab) once — the peer is stored on flash and remains after unplug.
-        Apply on a tbn tab also saves a <strong>peer plan</strong> (IP) for that remote host.
+        Link a peer, then open this page or <strong>Apply</strong> on its tbn tab — the host is kept on flash after unplug, and Apply also fills <strong>Saved</strong>.
       </p>
     </div>
 <?php else: ?>
@@ -32,11 +29,11 @@ if (!$has_hw):
             <span class="tbn-sr-only">Select</span>
           </th>
           <th title="Online = this remote is on a live thunderboltN path right now">Status</th>
-          <th title="Unraid plugin rate compare (shared token). Not FRR. Dash when check is off.">Link check</th>
+          <th title="Unraid↔Unraid trained-rate compare (shared token under Settings). Not FRR.">Link check</th>
           <th>Peer</th>
-          <th title="Live path slot right now — may renumber after cable order changes">Path</th>
-          <th title="IPv4 currently on this Unraid thunderboltN for this peer (live)">Live IPv4</th>
-          <th title="Saved desired local IPv4 for this peer UUID — reapplied on reconnect even if path is tbn1 next time">Peer plan</th>
+          <th title="Path slot right now — may renumber after cable order changes">Path</th>
+          <th title="IPv4 on this Unraid path right now">Current</th>
+          <th title="Remembered IPv4 for this remote — reapplied on reconnect (even if tbn0 becomes tbn1)">Saved</th>
           <th>Unraid services</th>
           <th title="Trained rate · using N of M lanes">Link rate</th>
           <th>Last seen</th>
@@ -94,6 +91,9 @@ if (!$has_hw):
     $plan_lbl = function_exists('tbn_peer_plan_label') ? tbn_peer_plan_label($p) : '—';
     $plan = is_array($p['plan'] ?? null) ? $p['plan'] : [];
     $has_plan = function_exists('tbn_peer_plan_is_usable') && tbn_peer_plan_is_usable($plan);
+    $live_ip = function_exists('tbn_first_ipv4') ? tbn_first_ipv4($addrs) : '';
+    $saved_ip = function_exists('tbn_first_ipv4') ? tbn_first_ipv4($plan_lbl) : '';
+    $addr_mismatch = ($online && $live_ip !== '' && $saved_ip !== '' && $live_ip !== $saved_ip);
     $mesh_val = $p['mesh_validation'] ?? null;
     $mesh_on = function_exists('tbn_mesh_enabled') ? tbn_mesh_enabled($cfg) : false;
     $mesh_row = '';
@@ -133,22 +133,14 @@ if (!$has_hw):
             —
 <?php endif; ?>
           </td>
-          <td><code class="tbn-live" data-tbn-live-ip4="<?= htmlspecialchars($if) ?>"><?= htmlspecialchars($addrs !== '' ? $addrs : '—') ?></code></td>
-          <td>
+          <td class="<?= $addr_mismatch ? 'tbn-addr-mismatch' : '' ?>"<?= $addr_mismatch ? ' title="Current differs from Saved"' : '' ?>>
+            <code class="tbn-live" data-tbn-live-ip4="<?= htmlspecialchars($if) ?>"><?= htmlspecialchars($addrs !== '' ? $addrs : '—') ?></code>
+          </td>
+          <td class="<?= $addr_mismatch ? 'tbn-addr-mismatch' : '' ?>"<?= $addr_mismatch ? ' title="Saved differs from Current — use Apply saved, or Remember current"' : ($has_plan ? ' title="Reapplied on reconnect"' : ' title="None yet — Apply the tbn tab while linked, or Remember current"') ?>>
 <?php if ($has_plan): ?>
-            <code title="Saved plan for this peer UUID — applied on hotplug/boot to whichever thunderboltN they use"><?= htmlspecialchars($plan_lbl) ?></code>
-<?php if ($online): ?>
-            <span class="tbn-muted tbn-plan-hint"><br>Toolbar: Apply plan to live path</span>
+            <code><?= htmlspecialchars($plan_lbl) ?></code>
 <?php else: ?>
-            <span class="tbn-muted tbn-plan-hint"><br>Saved — applies when peer is online</span>
-<?php endif; ?>
-<?php else: ?>
-            <span class="tbn-muted" title="No saved plan yet">—</span>
-<?php if ($online): ?>
-            <span class="tbn-muted tbn-plan-hint"><br>Toolbar: Save live path as plan</span>
-<?php else: ?>
-            <span class="tbn-muted tbn-plan-hint"><br>Apply tbn tab while linked, or toolbar when online</span>
-<?php endif; ?>
+            <span class="tbn-muted">—</span>
 <?php endif; ?>
           </td>
           <td>
@@ -196,19 +188,17 @@ if (!$has_hw):
       <p class="tbn-actions tbn-peers-actions">
         <input type="submit" name="#apply" value="Forget selected" class="tbn-harden-btn"
           data-tbn-action="forget"
-          title="Remove selected peers from this list (memory + peer plan only)">
-        <input type="submit" name="#apply" value="Save live path as peer plan" class="tbn-btn-small"
+          title="Remove selected hosts from this list (Saved address included). Does not delete tbn tab configs.">
+        <input type="submit" name="#apply" value="Remember current" class="tbn-btn-small"
           data-tbn-action="capture_plan"
-          title="Copy current tbn IP/MTU/listening onto each selected online peer UUID">
-        <input type="submit" name="#apply" value="Apply peer plan now" class="tbn-btn-small"
+          title="Copy Current (IP/MTU/services) into Saved for each selected online peer">
+        <input type="submit" name="#apply" value="Apply saved" class="tbn-btn-small"
           data-tbn-action="apply_plan"
-          title="Apply stored peer plan to each selected online peer’s live path">
+          title="Push Saved onto the live path for each selected online peer">
       </p>
       <p class="tbn-hint">
-        <strong>Select</strong> rows, then toolbar:
-        <strong>Save live path as peer plan</strong> copies the current tbn IP onto that peer’s UUID;
-        <strong>Apply peer plan now</strong> pushes a saved plan onto the live path;
-        <strong>Forget</strong> drops memory + plan only (not <code>ifaces/*.cfg</code>).
+        Select rows, then <strong>Remember current</strong> (Current → Saved) or <strong>Apply saved</strong> (Saved → path).
+        <strong>Forget</strong> removes the row only — not <code>ifaces/*.cfg</code>.
       </p>
     </form>
 <?php endif; ?>
@@ -243,14 +233,11 @@ if (!$has_hw):
 <?php endif; ?>
 
     <details class="tbn-details-help">
-      <summary>How Known peers works (identity · plan · toolbar)</summary>
+      <summary>How Known peers works</summary>
       <div class="tbn-details-body">
-        <p><strong>Identity</strong> — fabric UUID of the remote host (not rear-panel port, not a stable MAC).
-        We do not use stock Interface Rules for Thunderbolt host-net.</p>
-        <p><strong>Live IPv4 vs Peer plan</strong> — Live is whatever is on the path <em>right now</em> (may be empty until you Apply a tbn tab).
-        Plan is the saved address for <em>this remote</em>; on reconnect it is applied to whichever <code>thunderboltN</code> they appear on.</p>
-        <p><strong>Link check</strong> column — optional Unraid↔Unraid rate compare (shared token under Settings). Key and poll status are in the section below. Not FRR.</p>
-        <p><strong>Toolbar</strong> — checkboxes + actions below the table (not inside cells). Harden is a separate security override.</p>
+        <p><strong>Identity</strong> — remote fabric UUID (not a port, not Interface Rules / MAC).</p>
+        <p><strong>Current / Saved</strong> — Current is on the path now. Saved is remembered for that host and reapplied if the path renumbers. Highlight when they disagree; use the toolbar to sync.</p>
+        <p><strong>Link check</strong> — optional Unraid↔Unraid rate compare (token under Settings). Not FRR.</p>
         <?= tbn_help_docs_footer('docs/peers-and-plans.md', 'Peers & plans') ?>
         · <?= tbn_help_docs_footer('docs/settings-reference.md', 'Settings reference') ?>
       </div>

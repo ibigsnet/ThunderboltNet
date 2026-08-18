@@ -102,7 +102,7 @@ OpenFabric **policy** lives on Thunderbolt Net (Advanced). FRR **packages** live
 3. On **Thunderbolt → Driver options**, leave **E2E flow control = No** unless a peer scenario says otherwise.
 4. When `thunderbolt0` appears, open **tbn0**, set a **static** IPv4 (e.g. `10.255.0.2/24`), leave **MTU 1500** unless both ends will set jumbo, **Apply**. That also stores a **peer plan** for the remote host (fabric UUID) so unplug/replug can restore L3 even if the path renumbers.
 5. On the peer, matching address (e.g. `10.255.0.1/24`). MTU is not auto-negotiated — only raise to 9000 if you set **both** ends.
-6. Ping both ways. Check **Peers**: one Known peers row, **Peer plan** shows your Unraid-side address, listening Yes if you want SMB/NFS/web on the TB IP.
+6. Ping both ways. Check **Peers**: one Known peers row, **Saved** shows your Unraid-side address, listening Yes if you want SMB/NFS/web on the TB IP.
 7. **Trained** rate can be less than the port sticker (e.g. **20 Gb/s · 1-lane**). Sticker **40 Gb/s** is typically **~20 G each direction** (simplex lanes) — expect roughly **~10–15 Gbit/s** TCP one way on a 1-lane train ([speeds](docs/standards-and-speeds.md)).
 8. If dual-cable experiments wedged the fabric: unplug **all** Thunderbolt cables on **both** machines, wait, plug **one** cable only ([troubleshooting](docs/troubleshooting.md)).
 
@@ -151,9 +151,9 @@ These are **supported directions**, not throwaway experiments. Defaults favor in
 | Supported now | Notes |
 |---------------|--------|
 | Peer stored in `peers.json` by **remote fabric UUID** (not MAC, not panel port) | Status/Peers load, Apply, hotplug reapply |
-| **Peer plan** (desired local IPv4) bound to that UUID | Saved on **tbn Apply** while linked, or Peers → **Save live path as peer plan** |
-| Plan reapplied on **hotplug / array start** to whichever `thunderboltN` that peer is on | Survives tbn0↔tbn1 renumber when cable order changes |
-| **Known peers** table: online/offline, path, live IP, peer plan, listening, **Forget** | Does **not** use Unraid Interface Rules |
+| **Saved** address (peer plan) bound to that UUID | On **tbn Apply** while linked, or Peers → **Remember current** |
+| Saved reapplied on **hotplug / array start** to whichever `thunderboltN` that peer is on | Survives tbn0↔tbn1 renumber when cable order changes |
+| **Known peers** table: online/offline, path, Current / Saved, listening, **Forget** | Does **not** use Unraid Interface Rules |
 | Ghost offline rows after unplug (blank name) | Deduped when UUID returns (**16ac+**) |
 | Path-slot cfg `ifaces/thunderboltN.cfg` | Still eth-like cache for the **name**; peer plan is preferred when a UUID plan exists |
 

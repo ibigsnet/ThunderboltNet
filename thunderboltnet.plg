@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.17ay">
+<!ENTITY version "2026.08.17az">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,10 +27,10 @@
 
 <CHANGES>
 ###&version;
-- Peer link-check: pair only the local path to the fetched host (don’t paint FLOWZ with Holo’s result).
+- Peers: Current / Saved columns (was Live IPv4 / Peer plan); Remember current / Apply saved toolbar.
 
-###2026.08.17av
-- Peer link-check: auth-free mesh beacon (TCP 10807) bypasses Unraid login 302.
+###2026.08.17ay–av
+- Peer link-check: path pairing + auth-free mesh beacon (TCP 10807).
 
 ###2026.08.17au–at
 - CA/Plugins ~7-entry notes; DHCP underlay must not blank Unraid DNS.

@@ -39,12 +39,12 @@ Full detail: [peers-and-plans.md](peers-and-plans.md).
 |----------------|---------|
 | Status | Online / offline for remembered fabric UUID |
 | Path | Live `tbnN` / `thunderboltN` (may renumber) |
-| Live IPv4 | Kernel address on the path right now |
-| Peer plan | Desired local IPv4 for this UUID; preferred on hotplug/boot |
-| Save live path as peer plan | Copy current tbn L3 onto this peer |
-| Apply peer plan now | Push plan to the path this peer currently uses |
+| Current | IPv4 on the path right now |
+| Saved | Remembered IPv4 for this UUID; preferred on hotplug/boot |
+| Remember current | Copy Current (IP/MTU/services) into Saved |
+| Apply saved | Push Saved onto the path this peer currently uses |
 | Unraid services | Per-peer listening Yes/No (remembered) |
-| Forget selected peers | Drop from `peers.json` only — not eth Interface Rules |
+| Forget selected | Drop from `peers.json` only — not eth Interface Rules |
 | Link check | Optional peer Unraid rate compare (shared token) |
 
 Does **not** register Thunderbolt in stock **Interface Rules** (MAC→name). Host-net MACs are unstable.

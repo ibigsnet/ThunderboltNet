@@ -136,11 +136,11 @@ Classic field report (Unraid forum): path trains, `thunderbolt0` exists, **no** 
 | Check | What to do |
 |-------|------------|
 | Plugin version | Prefer **≥ 2026.08.15ak** (reapply + dhcpcd kill), **≥ 2026.08.16ad** (peer plans), **≥ 2026.08.16ae** (startup + array started) |
-| Flash plan | `ifaces/thunderboltN.cfg` or Peers → **Peer plan** for that UUID |
+| Flash plan | `ifaces/thunderboltN.cfg` or Peers → **Saved** for that UUID |
 | udev | `/etc/udev/rules.d/99-thunderboltnet-net.rules` after **startup** or install (RAM root is refilled each boot) |
 | Array state | Reapply also runs at plugin **startup** (before array Online). Array **started** (Normal/Maintenance) runs a second pass |
 | Logs | `grep -E 'tbn-net-reapply|event/startup|ThunderboltNet' /var/log/syslog` after boot/plug |
-| Apply once while linked | tbn Apply (or **Save live path as peer plan**) so both path cfg and peer plan exist |
+| Apply once while linked | tbn Apply (or **Remember current**) so both path cfg and Saved exist |
 
 **Why:** host-net netdevs are recreated on link; Unraid eth `network.cfg` does not own them. The plugin re-applies flash plans on array start and netdev add. Peer plans fix the case where **name** reapply alone is wrong after renumber — [peers-and-plans.md](peers-and-plans.md#why-this-design-field-findings).
 
@@ -164,7 +164,7 @@ Do not leave mixed static + link-local if you expect clean peer-local routing. D
 
 | Symptom | Cause | Fix |
 |---------|--------|-----|
-| After multi-peer or re-order, the “wrong” machine has the IP you saved for tbn0 | Path-slot cfg is by **name**; kernel renumbered who sits on `thunderbolt0` | Give each remote a **peer plan** (Apply while that peer is linked); confirm Peers → Peer plan; unplug/replug |
+| After multi-peer or re-order, the “wrong” machine has the IP you saved for tbn0 | Path-slot cfg is by **name**; kernel renumbered who sits on `thunderbolt0` | Give each remote a **Saved** address (Apply while that peer is linked); confirm Peers → Saved; unplug/replug |
 
 Peer plan is preferred over path-slot cfg when the live path has a known UUID. [peers-and-plans.md](peers-and-plans.md#2-same-host-wrong-or-empty-ip-after-path-renumber-lab--multi-peer).
 

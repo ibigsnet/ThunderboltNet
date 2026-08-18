@@ -765,9 +765,9 @@
     }
     if (action === 'forget') {
       return confirm(
-        'Forget selected peers from this list?\n\n' +
-        'Removes Known peers memory and peer L3 plans only.\n' +
-        'Does not delete tbn tab configs or change eth Interface Rules.'
+        'Forget selected peers?\n\n' +
+        'Removes them from this list (including Saved addresses).\n' +
+        'Does not delete tbn tab configs or eth Interface Rules.'
       );
     }
     if (action === 'capture_plan') {
@@ -779,10 +779,10 @@
         }
       }
       if (!anyOnline) {
-        alert('Save live path needs at least one selected peer that is Online.');
+        alert('Remember current needs a selected Online peer.');
         return false;
       }
-      return confirm('Save the live tbn path (IP/MTU/listening) as peer plan for each selected online peer?');
+      return confirm('Copy Current (IP/MTU/services) into Saved for each selected online peer?');
     }
     if (action === 'apply_plan') {
       var anyPlan = false;
@@ -793,10 +793,10 @@
         }
       }
       if (!anyPlan) {
-        alert('Apply peer plan needs a selected Online peer that already has a peer plan.');
+        alert('Apply saved needs a selected Online peer that already has a Saved address.');
         return false;
       }
-      return confirm('Apply stored peer plan to each selected online peer’s live path?');
+      return confirm('Apply Saved onto the live path for each selected online peer?');
     }
     alert('Unknown action.');
     return false;

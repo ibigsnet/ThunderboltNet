@@ -66,8 +66,8 @@ That layer answers: **“static should come back on this netdev name after drop/
 |-----------|------|
 | Known peers keyed by **remote fabric UUID** | Stable “who is on the other end” |
 | **Peer plan** (desired local IPv4, etc.) on that UUID | L3 follows the **host**, not the slot name |
-| Capture plan on **tbn Apply** (or Peers → Save live path as peer plan) | One Apply while linked is enough |
-| Reapply prefers **peer plan** when the live path has a known UUID | Then falls back to path-slot `ifaces/*.cfg` |
+| Capture plan on **tbn Apply** (or Peers → **Remember current**) | One Apply while linked is enough |
+| Reapply prefers **Saved** (peer plan) when the live path has a known UUID | Then falls back to path-slot `ifaces/*.cfg` |
 | **Forget peer** | Drop UUID memory/plan without touching eth Interface Rules |
 
 That layer answers: **“this laptop should get its Unraid-side address even if the kernel renames the path.”**  
@@ -128,9 +128,9 @@ A **peer plan** is the desired **local** IPv4 (and related L3 fields) for *this 
 
 | Event | Behavior |
 |-------|----------|
-| **tbn Apply** while peer is linked | Writes path cfg, applies live, **captures peer plan** onto that UUID |
-| Peers → **Save live path as peer plan** | Same capture without changing other tbn fields |
-| Peers → **Apply peer plan now** | Push plan onto the path that peer currently uses |
+| **tbn Apply** while peer is linked | Writes path cfg, applies live, **captures Saved** onto that UUID |
+| Peers → **Remember current** | Same capture without changing other tbn fields |
+| Peers → **Apply saved** | Push Saved onto the path that peer currently uses |
 | **Hotplug** (udev) | Same reapply when a `thunderbolt*` netdev appears (any array state, if rule is present) |
 | **Plugin `startup`** | After plugins install at boot: restore udev + reapply (array may still be stopped) |
 | **Array `started`** | After array start (incl. Maintenance): reapply again; Dashboard ports; OpenFabric |

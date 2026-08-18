@@ -983,7 +983,18 @@ function tbn_iface_cfg_from_peer(array $peer, $if) {
 }
 
 /**
- * Human one-liner for peer plan (Peers table).
+ * First IPv4 found in a display string (live addrs or plan label).
+ */
+function tbn_first_ipv4($s) {
+  if (preg_match('/\b(\d{1,3}(?:\.\d{1,3}){3})\b/', (string)$s, $m)) {
+    return $m[1];
+  }
+  return '';
+}
+
+/**
+ * Human one-liner for Saved column (Peers table). No jargon suffix —
+ * the column header already says Saved.
  */
 function tbn_peer_plan_label(array $peer) {
   $plan = $peer['plan'] ?? null;
@@ -994,14 +1005,14 @@ function tbn_peer_plan_label(array $peer) {
     return 'auto off';
   }
   if (($plan['USE_DHCP'] ?? 'no') === 'yes') {
-    return 'DHCP (auto)';
+    return 'DHCP';
   }
   $ip = trim((string)($plan['IPADDR'] ?? ''));
   $mask = trim((string)($plan['NETMASK'] ?? '24'));
   if ($ip === '') {
     return '—';
   }
-  return $ip . '/' . $mask . ' (peer plan)';
+  return $ip . '/' . $mask;
 }
 
 /**

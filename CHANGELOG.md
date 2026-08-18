@@ -1,3 +1,9 @@
+## 2026.08.17az
+
+- **Peers wording:** columns **Current** / **Saved** (was Live IPv4 / Peer plan); toolbar
+  **Remember current** / **Apply saved**. Dropped per-cell tip lines; quiet highlight when
+  Current ≠ Saved. Docs/settings-reference aligned.
+
 ## 2026.08.17ay
 
 - **Peer link-check:** only validate the local Thunderbolt link that belongs to the fetched peer
