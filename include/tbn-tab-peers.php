@@ -228,6 +228,22 @@ if (!$has_hw):
     </form>
     </div>
 
+<?php
+  $tbn_coll = function_exists('tbn_underlay_collision_hints') ? tbn_underlay_collision_hints(null) : [];
+  if ($tbn_coll):
+?>
+    <div class="tbn-notice tbn-notice-warn" role="status">
+      <strong>Underlay addressing:</strong> <?= htmlspecialchars($tbn_coll[0]) ?>
+      <?php if (count($tbn_coll) > 1): ?>
+        <span class="tbn-muted"> (+<?= count($tbn_coll) - 1 ?> more)</span>
+      <?php endif; ?>
+      Peer link check needs a <em>reachable peer IP</em> — same <code>.2</code> seed on both Unraids will show Unverified.
+      <?php if (function_exists('tbn_dhcp_forum_help_html')) {
+        echo tbn_dhcp_forum_help_html();
+      } ?>
+    </div>
+<?php endif; ?>
+
     <details class="tbn-details-help">
       <summary>How Known peers works (identity · plan · toolbar)</summary>
       <div class="tbn-details-body">

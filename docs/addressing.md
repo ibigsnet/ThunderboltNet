@@ -53,8 +53,20 @@ Either `.1`/`.2` orientation is fine for peer-to-peer **without** a default rout
 | Mode | Today | Notes |
 |------|-------|--------|
 | **Static** | Yes (default) | Usual for Thunderbolt P2P |
-| **Automatic** | Yes | DHCP **client** only — often no server on the cable |
-| **DHCP server** (host scheme, serve far end) | **Not yet** | Sensible future option (seed from our `10.255.N.0/24` plan); tracked as product backlog, not in the UI yet |
+| **DHCP client** | Yes | Formerly “Automatic” — DHCP **client** only; often no server on the cable (may fall back to 169.254/16) |
+| **DHCP server** | Yes | Unraid = **`.1`**, pool **`.2–.254`** on `10.255.N.0/24` via **dnsmasq** on that underlay only |
+
+### DHCP server (come-and-go clients)
+
+For Macs / laptops that plug in for backups or syncs:
+
+1. On the Unraid tbnN tab set **IPv4 address assignment → DHCP server** (optionally **IPv6 → DHCP server (RA)**).
+2. Apply. Host moves to **`10.255.N.1/24`**; dnsmasq serves **`.2–.254`** on **that** `thunderboltN` / `bond-tb*` / `br-tb*` only — **never** eth0/br0.
+3. Clients use DHCP; they should reach Unraid at `.1` for SMB/NFS/rsync if **Include listening** / peer services allow it.
+
+**Safety:** before start we probe ARP/neigh and local addresses. If `.1` is already taken, server mode is **blocked** with a warning (post diagnostics on the [forum thread](https://forums.unraid.net/topic/200065-plugin-thunderbolt-net-host-to-host-networking-over-thunderbolt-345-and-usb44v2/)).
+
+**Dual Unraid:** do **not** leave both on the static seed `.2`. That causes duplicate addressing and Peer link check **Unverified** (`polled: 0` / unreachable export). Use `.1`+`.2`, or DHCP server on one side.
 
 ---
 
@@ -146,11 +158,9 @@ A filled **gateway** without default route still only matters for routes you add
 
 ## DHCP
 
-**Automatic** on tbnN is a DHCP **client** only (best-effort). Pure host↔host links usually have **no** DHCP server. Prefer **Static** both ends.
+**DHCP client** on tbnN is best-effort. Pure host↔host links usually have **no** DHCP server unless the peer (or this Unraid in **DHCP server** mode) provides one. Prefer **Static** for two managed Unraids; use **DHCP server** when transient clients should just plug in.
 
-### Future: DHCP server on Unraid (not in UI yet)
-
-A third assignment mode — Unraid hosts DHCP for the far end using our `10.255.N.0/24` (or `/30`) scheme — is a reasonable product idea (plug peer in, it gets an address). Not implemented; do not expect dnsmasq/kea from this plugin today. When added, it would stay opt-in and must not fight LAN DHCP on eth0/br0.
+Leases: `/var/lib/thunderboltnet/dhcp/<netdev>.leases`. Conf: `/boot/config/plugins/ThunderboltNet/dhcp/<netdev>.conf`.
 
 ---
 

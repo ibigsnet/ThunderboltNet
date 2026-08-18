@@ -617,7 +617,18 @@
     var dhcp4 = form.USE_DHCP ? form.USE_DHCP.value : 'no';
     var dhcp6 = form.USE_DHCP6 ? form.USE_DHCP6.value : 'no';
     tbnShow(form.querySelector('.tbn-static-ipv4'), show4 && dhcp4 === 'no' && !slave);
+    tbnShow(form.querySelector('.tbn-dhcp-server-v4'), show4 && dhcp4 === 'server' && !slave);
     tbnShow(form.querySelector('.tbn-static-ipv6'), show6 && dhcp6 === 'no' && !slave);
+    tbnShow(form.querySelector('.tbn-dhcp-server-v6'), show6 && dhcp6 === 'server' && !slave);
+    // Server mode forces .1 — disable static IP fields so they are not posted as stale .2
+    var ip4 = form.IPADDR;
+    var nm4 = form.NETMASK;
+    if (ip4 && ip4.tagName === 'INPUT') {
+      ip4.disabled = !!(show4 && dhcp4 === 'server' && !slave);
+    }
+    if (nm4 && (nm4.tagName === 'SELECT' || nm4.tagName === 'INPUT')) {
+      nm4.disabled = !!(show4 && dhcp4 === 'server' && !slave);
+    }
 
     var bond = form.BONDING ? form.BONDING.value : 'no';
     tbnShow(form.querySelector('.tbn-bond-opts'), bond === 'yes' && !slave);

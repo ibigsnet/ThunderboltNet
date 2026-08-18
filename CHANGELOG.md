@@ -1,3 +1,12 @@
+## 2026.08.17ao
+
+- **DHCP server** on Thunderbolt underlays (dnsmasq): assignment **Static / DHCP client / DHCP server**.
+  Unraid hosts **`.1`**, serves **`.2–.254`** on that tbn (or bond-tb/br-tb); never eth0/br0.
+  Optional IPv6 **DHCP server (RA)**. Safety probe blocks if `.1` is ARP-claimed.
+- **Collision hints** on tbn + Peers when both ends use the same static seed (`.2`) — explains Peer
+  link check Unverified with matching tokens.
+- Docs/addressing.md updated; forum CTA for DHCP diagnostics.
+
 ## 2026.08.17an
 
 - **Peer link check** panel: span full width of Peers tables again; slim horizontal band

@@ -350,21 +350,60 @@ if (strpos($nm, '.') === false) {
       </blockquote>
 
       <div class="tbn-proto-ipv4 tbn-hidden">
+<?php
+  $use_dhcp4 = $cfg['USE_DHCP'] ?? 'no';
+  if (!in_array($use_dhcp4, ['no', 'yes', 'server'], true)) {
+    $use_dhcp4 = 'no';
+  }
+  $dhcp_safe = (function_exists('tbn_dhcp_server_safe'))
+    ? tbn_dhcp_server_safe($if, $cfg)
+    : null;
+  $coll_hints = function_exists('tbn_underlay_collision_hints')
+    ? tbn_underlay_collision_hints($if)
+    : [];
+?>
+<?php if ($coll_hints): ?>
+        <div class="tbn-notice" role="status">
+          <strong>Addressing conflict?</strong>
+          <?= htmlspecialchars($coll_hints[0]) ?>
+          <?php if (function_exists('tbn_dhcp_forum_help_html')) {
+            echo tbn_dhcp_forum_help_html();
+          } ?>
+        </div>
+<?php endif; ?>
         <dl>
           <dt>IPv4 address assignment:</dt>
           <dd>
             <select name="USE_DHCP" class="tbn-ctl-dhcp4">
-              <?= mk_option($cfg['USE_DHCP'] ?? 'no', 'no', 'Static') ?>
-              <?= mk_option($cfg['USE_DHCP'] ?? 'no', 'yes', 'Automatic') ?>
+              <?= mk_option($use_dhcp4, 'no', 'Static') ?>
+              <?= mk_option($use_dhcp4, 'yes', 'DHCP client') ?>
+              <?= mk_option($use_dhcp4, 'server', 'DHCP server') ?>
             </select>
           </dd>
         </dl>
         <blockquote class="inline_help">
-          <strong>Static</strong> — usual for Thunderbolt P2P.
-          <strong>Automatic</strong> — DHCP <em>client</em> (often no server on the cable).
-          A future <strong>DHCP server</strong> mode (host our scheme, serve far-end clients) is under consideration — not offered yet.
+          <strong>Static</strong> — usual for Thunderbolt P2P (prefer Unraid <code>.1</code>, peer <code>.2</code>).
+          <strong>DHCP client</strong> — ask the far end for an address (often none on a bare cable → may land in 169.254/16).
+          <strong>DHCP server</strong> — Unraid hosts <code>.1</code> and serves <code>.2–.254</code> on this underlay only (Macs / come-and-go clients). Never on eth0/br0.
           <?= tbn_help_docs_footer('docs/addressing.md', 'Addressing') ?>
         </blockquote>
+        <div class="tbn-dhcp-server-v4 tbn-hidden">
+<?php if (is_array($dhcp_safe)):
+  $st = $dhcp_safe['status'] ?? 'ok';
+  $plan = $dhcp_safe['plan'] ?? [];
+?>
+          <div class="tbn-notice<?= $st === 'block' ? ' tbn-notice-warn' : '' ?>" role="status">
+            <strong>DHCP server<?= $st === 'block' ? ' — blocked' : ($st === 'warn' ? ' — caution' : '') ?>.</strong>
+            Host <code><?= htmlspecialchars($plan['ip'] ?? '') ?>/<?= htmlspecialchars((string)($plan['prefix'] ?? 24)) ?></code>
+            · pool <code><?= htmlspecialchars(($plan['pool_start'] ?? '') . '–' . ($plan['pool_end'] ?? '')) ?></code>
+            on <code><?= htmlspecialchars($dhcp_safe['netdev'] ?? $if) ?></code>.
+            <?= htmlspecialchars(implode(' ', $dhcp_safe['messages'] ?? [])) ?>
+            <?php if ($st === 'block' && function_exists('tbn_dhcp_forum_help_html')) {
+              echo tbn_dhcp_forum_help_html();
+            } ?>
+          </div>
+<?php endif; ?>
+        </div>
         <div class="tbn-static-ipv4 tbn-hidden">
           <dl>
             <dt>IPv4 address:</dt>
@@ -375,7 +414,8 @@ if (strpos($nm, '.') === false) {
             </dd>
           </dl>
           <blockquote class="inline_help">
-            Unique subnet per tbnN (e.g. tbn0 <code>10.255.0.2/24</code>, tbn1 <code>10.255.1.2/24</code>).
+            Unique subnet per tbnN. Recommended: Unraid <code>.1</code>, peer <code>.2</code>
+            (e.g. tbn0 <code>10.255.0.1/24</code>). Same <code>.2</code> on both Unraids breaks Peer link check.
             <?= tbn_help_docs_footer('docs/addressing.md', 'Addressing') ?>
           </blockquote>
           <dl>
@@ -409,18 +449,31 @@ if (strpos($nm, '.') === false) {
       </div>
 
       <div class="tbn-proto-ipv6 tbn-hidden">
+<?php
+  $use_dhcp6 = $cfg['USE_DHCP6'] ?? 'no';
+  if (!in_array($use_dhcp6, ['no', 'yes', 'server'], true)) {
+    $use_dhcp6 = 'no';
+  }
+?>
         <dl>
           <dt>IPv6 address assignment:</dt>
           <dd>
             <select name="USE_DHCP6" class="tbn-ctl-dhcp6">
-              <?= mk_option($cfg['USE_DHCP6'] ?? 'no', 'no', 'Static') ?>
-              <?= mk_option($cfg['USE_DHCP6'] ?? 'no', 'yes', 'Automatic') ?>
+              <?= mk_option($use_dhcp6, 'no', 'Static') ?>
+              <?= mk_option($use_dhcp6, 'yes', 'DHCP client') ?>
+              <?= mk_option($use_dhcp6, 'server', 'DHCP server (RA)') ?>
             </select>
           </dd>
         </dl>
         <blockquote class="inline_help">
-          Thunderbolt is Ethernet-like: IPv6 works when both ends configure it. Static is typical for P2P.
+          <strong>Static</strong> / <strong>DHCP client</strong> as usual.
+          <strong>DHCP server (RA)</strong> — same dnsmasq instance as IPv4 server: router advertisements + stateless DHCPv6 on this underlay only.
         </blockquote>
+        <div class="tbn-dhcp-server-v6 tbn-hidden">
+          <div class="tbn-notice" role="status">
+            Uses the IPv4 DHCP server engine (dnsmasq) on this underlay. Prefer enabling <strong>IPv4 DHCP server</strong> together, or IPv6-only server if you know you need RA without v4.
+          </div>
+        </div>
         <div class="tbn-static-ipv6 tbn-hidden">
           <dl>
             <dt>IPv6 address:</dt>

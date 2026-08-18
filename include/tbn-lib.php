@@ -10,6 +10,11 @@ if (!function_exists('tbn_plugin_name')) {
   }
 }
 
+// DHCP server helpers (dnsmasq on tbn underlays)
+if (is_file(__DIR__ . '/tbn-dhcp.php')) {
+  require_once __DIR__ . '/tbn-dhcp.php';
+}
+
 function tbn_cfg_dir() {
   return '/boot/config/plugins/ThunderboltNet';
 }
@@ -3070,10 +3075,28 @@ function tbn_apply_ip_block($dev, array $cfg, $prefix = '') {
     $use = $cfg[$prefix . 'USE_DHCP'] ?? ($prefix === '' ? ($cfg['USE_DHCP'] ?? 'no') : 'no');
     if ($use === 'yes') {
       // DHCP client will install its own addresses/routes — clear static leftovers first
+      if ($prefix === '' && function_exists('tbn_dhcp_server_stop')) {
+        tbn_dhcp_server_stop($dev);
+      }
       tbn_iface_stop_dhcp_clients($dev, 4);
       tbn_iface_flush_l3($dev, 4);
       @exec("dhcpcd -n {$ife} 2>/dev/null || dhclient -1 {$ife} 2>/dev/null || true");
+    } elseif ($use === 'server' && $prefix === '') {
+      // DHCP server: host = .1, dnsmasq serves .2–.254 (see tbn-dhcp.php)
+      tbn_iface_stop_dhcp_clients($dev, 4);
+      $plan = function_exists('tbn_dhcp_server_plan') ? tbn_dhcp_server_plan($dev) : null;
+      $ip = $plan ? $plan['ip'] : trim((string)($cfg['IPADDR'] ?? ''));
+      $cidr = $plan ? (string)$plan['prefix'] : '24';
+      tbn_iface_flush_l3($dev, 4);
+      if ($ip !== '' && filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+        @exec('ip -4 addr add ' . escapeshellarg($ip . '/' . $cidr) . " dev {$ife} 2>/dev/null");
+      }
+      tbn_iface_drop_default_routes($dev, 4);
+      // dnsmasq start deferred to tbn_apply_iface after VLAN/bond settle
     } else {
+      if ($prefix === '' && function_exists('tbn_dhcp_server_stop')) {
+        tbn_dhcp_server_stop($dev);
+      }
       $ip = trim((string)($cfg[$prefix . 'IPADDR'] ?? ''));
       $nm = $cfg[$prefix . 'NETMASK'] ?? ($prefix === '' ? ($cfg['NETMASK'] ?? '24') : '24');
       $cidr = preg_replace('/\D/', '', (string)$nm);
@@ -3108,6 +3131,15 @@ function tbn_apply_ip_block($dev, array $cfg, $prefix = '') {
       tbn_iface_stop_dhcp_clients($dev, 6);
       tbn_iface_flush_l3($dev, 6);
       @exec("dhcpcd -6 -n {$ife} 2>/dev/null || dhclient -6 -1 {$ife} 2>/dev/null || true");
+    } elseif ($use6 === 'server' && $prefix === '') {
+      tbn_iface_stop_dhcp_clients($dev, 6);
+      $plan = function_exists('tbn_dhcp_server_plan') ? tbn_dhcp_server_plan($dev) : null;
+      if ($plan && !empty($plan['ula_prefix'])) {
+        $ula_ip = rtrim($plan['ula_prefix'], ':') . ':1';
+        tbn_iface_flush_l3($dev, 6);
+        @exec('ip -6 addr add ' . escapeshellarg($ula_ip . '/64') . " dev {$ife} 2>/dev/null");
+      }
+      tbn_iface_drop_default_routes($dev, 6);
     } else {
       $ip6 = trim((string)($cfg[$prefix . 'IPADDR6'] ?? ''));
       $p6 = (int)preg_replace('/\D/', '', (string)($cfg[$prefix . 'NETMASK6'] ?? '64'));
@@ -3392,6 +3424,13 @@ function tbn_apply_iface($if, array $opts = []) {
     @exec("ip link set {$ife} up 2>/dev/null");
   } else {
     // Disable: drop addresses + routes so nothing lingers in the main table
+    if (function_exists('tbn_dhcp_server_stop')) {
+      tbn_dhcp_server_stop($if);
+      $netdev = function_exists('tbn_dhcp_netdev_for_cfg') ? tbn_dhcp_netdev_for_cfg($if, $cfg) : '';
+      if ($netdev !== '' && $netdev !== $if) {
+        tbn_dhcp_server_stop($netdev);
+      }
+    }
     tbn_iface_flush_l3($if, 0);
     @exec("ip link set {$ife} down 2>/dev/null");
     return ['ok' => true, 'iface' => $if, 'enabled' => false];
@@ -3436,6 +3475,25 @@ function tbn_apply_iface($if, array $opts = []) {
     }
     // else: leave bonding=yes in cfg but do not create a useless 1-slave bond
   }
+  // DHCP server (after L3 / bond / bridge netdev exists)
+  $dhcp_res = null;
+  if (!$is_bond_slave && function_exists('tbn_dhcp_server_apply')
+      && ((($cfg['USE_DHCP'] ?? '') === 'server') || (($cfg['USE_DHCP6'] ?? '') === 'server'))) {
+    // Persist host .1 into cfg when serving so flash matches live
+    if (($cfg['USE_DHCP'] ?? '') === 'server' && function_exists('tbn_dhcp_server_plan')) {
+      $p = tbn_dhcp_server_plan($if);
+      $cfg['IPADDR'] = $p['ip'];
+      $cfg['NETMASK'] = (string)$p['prefix'];
+      tbn_write_iface_cfg($if, $cfg);
+    }
+    $dhcp_res = tbn_dhcp_server_apply($if, $cfg);
+  } elseif (!$is_bond_slave && function_exists('tbn_dhcp_server_stop')) {
+    $netdev = function_exists('tbn_dhcp_netdev_for_cfg') ? tbn_dhcp_netdev_for_cfg($if, $cfg) : $if;
+    if ($netdev !== '') {
+      tbn_dhcp_server_stop($netdev);
+    }
+  }
+
   // Remember peers on Apply so Peers list fills without requiring a separate UI load.
   try {
     tbn_remember_live_peers(tbn_link_summaries());
@@ -3450,7 +3508,15 @@ function tbn_apply_iface($if, array $opts = []) {
       // non-fatal — no peer on path is normal
     }
   }
-  return ['ok' => true, 'iface' => $if, 'cfg' => $cfg, 'netdevs' => tbn_list_netdevs()];
+  $out = ['ok' => true, 'iface' => $if, 'cfg' => $cfg, 'netdevs' => tbn_list_netdevs()];
+  if (is_array($dhcp_res) && empty($dhcp_res['ok'])) {
+    $out['ok'] = false;
+    $out['error'] = $dhcp_res['error'] ?? 'DHCP server failed';
+    $out['dhcp'] = $dhcp_res;
+  } elseif (is_array($dhcp_res)) {
+    $out['dhcp'] = $dhcp_res;
+  }
+  return $out;
 }
 
 function tbn_mask_to_prefix($mask) {
