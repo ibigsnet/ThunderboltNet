@@ -10,6 +10,8 @@ Each live kernel interface `thunderboltN` (Settings tab **tbnN**) is its own L2 
 
 - [Product defaults](#product-defaults)
 - [Path-slot cfg vs Saved](#path-slot-cfg-vs-saved)
+- [Address assignment modes](#address-assignment-modes)
+- [Autofill by assignment mode](#autofill-by-assignment-mode)
 - [Small LAN (/24) vs point-to-point (/30)](#small-lan-24-vs-point-to-point-30)
 - [Hard rule: unique subnet per Thunderbolt link](#hard-rule-unique-subnet-per-thunderbolt-link)
 - [Examples](#examples)
@@ -55,6 +57,28 @@ Either `.1`/`.2` orientation is fine for peer-to-peer **without** a default rout
 | **Static (Manual User Config)** | Yes (default) | You set the IPv4 on this path — usual for two known hosts |
 | **DHCP Client (Automatic Assignment)** | Yes | This Unraid asks the peer for an address (may get 169.254/16 if nothing serves) |
 | **DHCP Server (Unraid-Managed)** | Yes | Unraid runs **dnsmasq** on this underlay only; default host **`.1`**, pool **`.2–.254`** (editable) |
+
+### Autofill by assignment mode
+
+What the tbnN form does when you change **IPv4 address assignment** (and on **Reset**):
+
+| Mode | Fields shown | Autofill / seed | Apply does |
+|------|--------------|-----------------|------------|
+| **Static** (default) | IPv4 address + mask, gateway, default route, NAT | **Reset / new iface:** `10.255.N.2/24`. Switching *into* Static does **not** rewrite a filled address. | Sets that static on the netdev; captures Saved for the live peer |
+| **DHCP Client** | (address row hidden) | No IP autofill — kernel/dhcpcd gets the lease (or 169.254 if nothing serves) | Starts DHCP client on the underlay; stops on leave |
+| **DHCP Server** | Unraid IPv4 + mask, DHCP pool start–end, (NAT still under static-only block — use Static or set before switch) | On switch into Server: if address empty **or** still ends in `.2`, fill **`10.255.N.1`** + `/24`; empty pool → **`.2`–`.254`** (largest usable range that excludes host). Keeps non-seed edits. | Host L3 = Unraid address; dnsmasq serves the pool on **this** `thunderboltN` only (never eth0/br0) |
+
+| Related default | Value |
+|-----------------|-------|
+| Gateway | empty |
+| Enable default route | **No** |
+| Share host uplink (NAT) | **No** (stamped into Saved on Apply while linked) |
+| NAT uplink | **Auto** |
+| IPv6 assignment | Static; address empty until you set one |
+| IPv6 DHCP server | Shares IPv4 dnsmasq / RA on the underlay |
+
+**NAT** and **gateway / default route** only appear in the static IPv4 block (assignment = Static). For “peer needs internet via Unraid,” prefer Static + NAT rather than DHCP server + default route.
+
 ### DHCP Server (Unraid-Managed)
 
 On the tbn tab, pick **DHCP Server (Unraid-Managed)** then set (or accept defaults):
@@ -205,7 +229,7 @@ On each tbn tab: **Enable bridging = Yes**, then pick an **existing** bridge fro
 (Unraid Network Settings must already have created `br0` / VLAN bridges).
 
 - Thunderbolt becomes a **member** — no own IP on that tab; addressing stays on the bridge.
-- The **peer** configures a house-LAN address on its Thunderbolt iface (LAN DHCP or static in the LAN range).
+- The **peer** puts a LAN-range address on its Thunderbolt iface (LAN DHCP or static in that bridge’s subnet).
 - The plugin does **not** create or delete Unraid bridges.
 - Hotplug / boot reapply re-enslaves when bridging stays Yes.
 - Prefer **one** side joining `br0` unless you understand L2 loops / STP.

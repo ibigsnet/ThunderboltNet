@@ -379,8 +379,8 @@ if (strpos($nm, '.') === false) {
         </dl>
         <blockquote class="inline_help">
           Member has no own IP — addressing stays on the bridge.
-          On the <strong>peer</strong>, put a house-LAN address on its Thunderbolt iface
-          (LAN DHCP or static in the LAN range) — not a separate <code>10.255.x</code> island.
+          On the <strong>peer</strong>, put a LAN-range address on its Thunderbolt iface
+          (LAN DHCP or static in that bridge’s subnet) — not a separate <code>10.255.x</code> island.
           Prefer <strong>one</strong> end joining <code>br0</code> unless you understand L2 loops.
           DHCP server on this tab is disabled while joined.
         </blockquote>

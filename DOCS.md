@@ -31,11 +31,12 @@ That includes **Thunderbolt 3, 4, and 5**, and **USB4 / USB4 v2** host controlle
 
 | Area | Where in Unraid | What you control |
 |------|-----------------|------------------|
-| Fabric overview | **Settings → Network Settings → Thunderbolt** | Local controller, remote peers table, PCI/IOMMU, driver options |
-| Per-link network | **Thunderbolt tbn0 / tbn1 / …** tabs | Enable, IP, mask, default route, MTU, listening include, Thunderbolt bond |
+| Fabric overview | **Settings → Network Settings → Thunderbolt** | Status, Known peers (Current/Saved), hardware, driver options |
+| Per-link network | **Thunderbolt tbn0 / tbn1 / …** tabs | Enable, static / DHCP client / DHCP server, NAT, bridge join, MTU, listening, bond |
+| Saved peers | Peers tab + flash `peers.json` | L3/MTU/NAT follow remote **fabric UUID** across unplug / tbn renumber |
 | Live kernel ifaces | `thunderbolt0`, `thunderbolt1`, … | Created by `thunderbolt_net` when a peer path trains |
 
-The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt links are usually **peer-to-peer** pipes used alongside your main LAN.
+The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt links are usually **peer-to-peer** pipes used alongside your main LAN. Optional **NAT** lets a TB peer (e.g. Proxmox) reach the internet *through* Unraid without joining `br0`.
 
 ### Product defaults
 
@@ -44,14 +45,18 @@ The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt l
 | Load modules on Apply | **Yes** | Bring up `thunderbolt` + `thunderbolt_net` without hand-editing `go` |
 | E2E flow control | **No (`e2e=0`)** | Persisted on flash across reboot; more reliable for many cross-host Linux links (see [driver options](docs/driver-options.md)) |
 | Per-link Enable | **Yes** | Bring the netdev up when you Apply |
-| IPv4 assignment | **Static** | No DHCP on a pure host↔host cable |
-| Suggested IPv4 | `10.255.N.2` / **24** for `thunderboltN` | One subnet per link; room for a few addresses |
+| IPv4 assignment | **Static** | Usual for two known hosts; DHCP client/server available when needed |
+| Static seed IPv4 | `10.255.N.2` / **24** for `thunderboltN` | Unique subnet per link; historical Reset seed (new labs often prefer Unraid `.1`) |
+| DHCP server autofill | Unraid `10.255.N.1/24`, pool `.2`–`.254` | When you switch into server mode (empty or still-on-seed `.2`) |
 | Enable default route | **No** | Keep internet on eth0/br0; Thunderbolt stays peer-local |
-| Share host uplink (NAT) | **No** | Optional. Peer reaches internet through Unraid (e.g. Proxmox on TB needing updates). Usual P2P: leave No — [nat-share-uplink.md](docs/nat-share-uplink.md) |
+| Share host uplink (NAT) | **No** | Optional. Peer reaches internet through Unraid — [nat-share-uplink.md](docs/nat-share-uplink.md) |
+| NAT uplink | **Auto** | Unraid’s current default-route iface (`br0` / `wlan0` / …) |
 | Include listening | **No** | Don’t advertise Unraid services on Thunderbolt unless you opt in |
-| MTU | **1500** (kernel default) | Easy default. Optional jumbo (often **9000 both ends**) can cut packet/CPU overhead on weaker hosts — [MTU & throughput](docs/mtu-and-throughput.md) |
+| MTU | **1500** (kernel default) | Easy default. Optional jumbo (often **9000 both ends**) — [MTU & throughput](docs/mtu-and-throughput.md) |
 | Bonding | **Off** until ≥2 live Thunderbolt netdevs | Thunderbolt-only `bond-tb*`; dual-cable same-peer limited — [roadmap](docs/links-and-topology.md) |
-| Bridging | **No** | Optional. Join an existing Unraid `br0` / `br0.N` (same idea as eth0 bridged). Mutually exclusive with NAT — [addressing.md](docs/addressing.md#join-an-unraid-bridge-br0-br010-) |
+| Bridging | **No** | Optional join of an existing Unraid `br0` / `br0.N`. Mutually exclusive with NAT — [addressing.md](docs/addressing.md#join-an-unraid-bridge-br0-br010-) |
+
+Assignment-mode autofill detail: [addressing.md — Autofill by assignment mode](docs/addressing.md#autofill-by-assignment-mode).
 
 ---
 
@@ -61,7 +66,7 @@ The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt l
 |-------|-----|
 | Driver options (`e2e`, modules) — **host-wide** | [docs/driver-options.md](docs/driver-options.md) |
 | Unraid ↔ Mac / Linux / Windows / docks & hubs | [docs/peer-scenarios.md](docs/peer-scenarios.md) |
-| `/24` vs `/30`, unique subnets per link | [docs/addressing.md](docs/addressing.md) |
+| `/24` vs `/30`, assignment autofill, unique subnets | [docs/addressing.md](docs/addressing.md) |
 | Share Unraid uplink with TB peers (NAT) | [docs/nat-share-uplink.md](docs/nat-share-uplink.md) |
 | Thunderbolt 3–5 / USB4: **directionality**, bandwidth table, **mixing** gens/cables/lanes, FAQ | [docs/standards-and-speeds.md](docs/standards-and-speeds.md) |
 | MTU 1500 vs 9000, PPS overhead, both-ends setup | [docs/mtu-and-throughput.md](docs/mtu-and-throughput.md) |

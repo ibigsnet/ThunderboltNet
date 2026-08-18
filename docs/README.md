@@ -34,7 +34,7 @@ Physical Thunderbolt/USB4 path
 | [driver-options.md](driver-options.md) | Load modules, E2E flow control (host-wide), when to change |
 | [peer-scenarios.md](peer-scenarios.md) | Unraid ↔ Linux, Proxmox, macOS, Windows, docks/hubs |
 | [peers-and-plans.md](peers-and-plans.md) | UUID peers, Current/Saved, Forget, vs Interface Rules |
-| [addressing.md](addressing.md) | `/24` vs `/30`, unique subnets, path cfg vs Saved, join `br0` |
+| [addressing.md](addressing.md) | `/24` vs `/30`, assignment autofill (static/DHCP), path cfg vs Saved, join `br0` |
 | [nat-share-uplink.md](nat-share-uplink.md) | Share Unraid uplink (NAT) with TB peers; vs default route |
 | [standards-and-speeds.md](standards-and-speeds.md) | Directionality, bandwidth table, mixing gens/cables/lanes, FAQ |
 | [port-icons.md](port-icons.md) | Rear-panel silkscreen: lightning/40 vs SS — do I have Thunderbolt? |
