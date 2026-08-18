@@ -70,13 +70,29 @@ function tbn_dhcp_netdev_for_cfg($if, array $cfg) {
 /**
  * Server plan for iface: Unraid .1, pool .2–.254, /24.
  *
+ * Default network is 10.255.<iface_index>.0/24. If $cfg['IPADDR'] is set to a
+ * 10.255.X.Y address, that X is used instead — so two Unraids can serve
+ * different /24s on their thunderbolt1 links without clashing on a dual-homed client.
+ *
  * @return array{ip:string,prefix:int,network:string,pool_start:string,pool_end:string,mask:string,ula_prefix?:string}
  */
-function tbn_dhcp_server_plan($if) {
+function tbn_dhcp_server_plan($if, array $cfg = null) {
+  if ($cfg === null && function_exists('tbn_load_iface_cfg')) {
+    $cfg = tbn_load_iface_cfg($if);
+  }
+  if (!is_array($cfg)) {
+    $cfg = [];
+  }
   $n = function_exists('tbn_iface_index') ? tbn_iface_index($if) : 0;
-  $base = '10.255.' . (int)$n;
+  $octet = (int)$n;
+  // Honor configured address network (e.g. 10.255.2.1 → serve 10.255.2.0/24)
+  $hint = trim((string)($cfg['IPADDR'] ?? ''));
+  if (preg_match('/^10\.255\.(\d+)\.\d+$/', $hint, $m)) {
+    $octet = (int)$m[1];
+  }
+  $base = '10.255.' . $octet;
   // Unique ULA-ish /64 per link for RA (fd70:7462:6eXX::/64 — "tbn" nibbles-ish)
-  $ula = sprintf('fd70:7462:6e%02x::', (int)$n & 0xff);
+  $ula = sprintf('fd70:7462:6e%02x::', $octet & 0xff);
   return [
     'ip' => $base . '.1',
     'prefix' => 24,
@@ -109,7 +125,7 @@ function tbn_dhcp_lease_path($netdev) {
 function tbn_dhcp_server_safe($if, array $cfg = []) {
   $messages = [];
   $status = 'ok';
-  $plan = tbn_dhcp_server_plan($if);
+  $plan = tbn_dhcp_server_plan($if, $cfg);
   $netdev = tbn_dhcp_netdev_for_cfg($if, $cfg);
   if ($netdev === '') {
     return ['status' => 'block', 'messages' => ['Invalid underlay interface.'], 'plan' => $plan, 'netdev' => ''];

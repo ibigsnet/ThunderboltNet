@@ -1,3 +1,9 @@
+## 2026.08.17as
+
+- DHCP server: if iface `IPADDR` is `10.255.X.Y`, serve **`10.255.X.0/24`** (host `.1`, pool `.2–.254`)
+  instead of always using the thunderboltN index — so two Unraids can DHCP toward one dual-homed
+  client on different /24s (e.g. NIROG `10.255.1.0/24`, Holo `10.255.2.0/24`).
+
 ## 2026.08.17ar
 
 - **Bridging:** join an **existing** Unraid bridge (`br0`, `br0.10`, …) from the tbn tab.

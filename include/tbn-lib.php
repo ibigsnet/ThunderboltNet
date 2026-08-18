@@ -3139,7 +3139,7 @@ function tbn_apply_ip_block($dev, array $cfg, $prefix = '') {
     } elseif ($use === 'server' && $prefix === '') {
       // DHCP server: host = .1, dnsmasq serves .2–.254 (see tbn-dhcp.php)
       tbn_iface_stop_dhcp_clients($dev, 4);
-      $plan = function_exists('tbn_dhcp_server_plan') ? tbn_dhcp_server_plan($dev) : null;
+      $plan = function_exists('tbn_dhcp_server_plan') ? tbn_dhcp_server_plan($dev, $cfg) : null;
       $ip = $plan ? $plan['ip'] : trim((string)($cfg['IPADDR'] ?? ''));
       $cidr = $plan ? (string)$plan['prefix'] : '24';
       tbn_iface_flush_l3($dev, 4);
@@ -3188,7 +3188,7 @@ function tbn_apply_ip_block($dev, array $cfg, $prefix = '') {
       @exec("dhcpcd -6 -n {$ife} 2>/dev/null || dhclient -6 -1 {$ife} 2>/dev/null || true");
     } elseif ($use6 === 'server' && $prefix === '') {
       tbn_iface_stop_dhcp_clients($dev, 6);
-      $plan = function_exists('tbn_dhcp_server_plan') ? tbn_dhcp_server_plan($dev) : null;
+      $plan = function_exists('tbn_dhcp_server_plan') ? tbn_dhcp_server_plan($dev, $cfg) : null;
       if ($plan && !empty($plan['ula_prefix'])) {
         $ula_ip = rtrim($plan['ula_prefix'], ':') . ':1';
         tbn_iface_flush_l3($dev, 6);
@@ -3557,7 +3557,7 @@ function tbn_apply_iface($if, array $opts = []) {
       && ((($cfg['USE_DHCP'] ?? '') === 'server') || (($cfg['USE_DHCP6'] ?? '') === 'server'))) {
     // Persist host .1 into cfg when serving so flash matches live
     if (($cfg['USE_DHCP'] ?? '') === 'server' && function_exists('tbn_dhcp_server_plan')) {
-      $p = tbn_dhcp_server_plan($if);
+      $p = tbn_dhcp_server_plan($if, $cfg);
       $cfg['IPADDR'] = $p['ip'];
       $cfg['NETMASK'] = (string)$p['prefix'];
       tbn_write_iface_cfg($if, $cfg);
