@@ -1,3 +1,10 @@
+## 2026.08.17at
+
+- **DHCP server:** stop emitting empty `option:router` / `option:dns-server` in dnsmasq conf.
+  Those empty options made Unraid **dhcpcd** clear `/etc/resolv.conf` on underlay clients
+  (Plugins/CA “no connectivity” / DNS failure) while eth0/wlan default route stayed fine.
+- **DHCP client:** start `dhcpcd` with `-G` and `--nohook resolv.conf` on Thunderbolt underlays.
+
 ## 2026.08.17as
 
 - DHCP server: if iface `IPADDR` is `10.255.X.Y`, serve **`10.255.X.0/24`** (host `.1`, pool `.2–.254`)

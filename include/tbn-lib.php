@@ -3135,7 +3135,9 @@ function tbn_apply_ip_block($dev, array $cfg, $prefix = '') {
       }
       tbn_iface_stop_dhcp_clients($dev, 4);
       tbn_iface_flush_l3($dev, 4);
-      @exec("dhcpcd -n {$ife} 2>/dev/null || dhclient -1 {$ife} 2>/dev/null || true");
+      // -G: no default route from underlay. --nohook resolv.conf: never wipe LAN DNS
+      // (empty dhcp dns-server options from a misconfigured server used to blank /etc/resolv.conf).
+      @exec("dhcpcd -n -G --nohook resolv.conf {$ife} 2>/dev/null || dhcpcd -n -G {$ife} 2>/dev/null || dhclient -1 {$ife} 2>/dev/null || true");
     } elseif ($use === 'server' && $prefix === '') {
       // DHCP server: host = .1, dnsmasq serves .2–.254 (see tbn-dhcp.php)
       tbn_iface_stop_dhcp_clients($dev, 4);

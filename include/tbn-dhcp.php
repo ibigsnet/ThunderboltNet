@@ -264,9 +264,11 @@ function tbn_dhcp_write_conf($netdev, array $plan, $v4 = true, $v6 = false) {
   }
   if ($v4) {
     $lines[] = 'dhcp-range=' . $plan['pool_start'] . ',' . $plan['pool_end'] . ',' . $plan['mask'] . ',12h';
-    // No router/DNS by default — P2P file share, not a WAN
-    $lines[] = 'dhcp-option=option:router';
-    $lines[] = 'dhcp-option=option:dns-server';
+    // Do NOT emit empty option:router / option:dns-server.
+    // dnsmasq "dhcp-option=option:dns-server" with no address sends an empty DNS
+    // option; Unraid dhcpcd then rewrites /etc/resolv.conf to zero nameservers
+    // (breaks Plugins/CA) even though this underlay is not the WAN path.
+    // Omitting router/DNS options = address+mask only; client keeps LAN DNS/default.
   }
   if ($v6) {
     $ula = rtrim($plan['ula_prefix'], ':') . ':';
