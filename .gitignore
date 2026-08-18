@@ -6,13 +6,16 @@
 .vscode/
 .cursor/
 
-# Local scratch files
+# Local scratch
 *.local.md
 NOTES.local.md
 .private/
-patches/
 
-# Local/lab only — not Unraid runtime (never ship in .txz)
+# Lab / workstation only — NOT Unraid runtime (never ship in .txz, never push)
+AGENTS.md
+scripts/pack-txz.sh
 scripts/promote-stable.sh
+tests/
+patches/
 patches/*.ko
 patches/load-*.sh
