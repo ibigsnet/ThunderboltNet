@@ -227,6 +227,7 @@ Do **not** unbind the Thunderbolt **NHI** as a reset (can make this worse). Pref
 | Symptom | Cause | Fix |
 |---------|--------|-----|
 | Steam Local Network Game Transfer uses another PC on Wi‑Fi even though a Thunderbolt peer has the game | Steam discovers peers on the **house LAN subnet**; TB `/24` is a separate island | See [steam-and-lan-discovery.md](steam-and-lan-discovery.md) |
+| Steam picked the Thunderbolt peer but transfer is still slow (Wi‑Fi-class) | Discovery IP is the Wi‑Fi address; kernel still routes it on-link via WLAN | On the downloader, `/32` host route for the library’s LAN IP via the TB next-hop ([steam-and-lan-discovery.md](steam-and-lan-discovery.md#linux-desktop--linux-desktop)); confirm with `ip route get` and sub‑ms `ping` |
 | Turning Wi‑Fi off on the library PC makes Steam fall back to a different LAN PC | Library left the discovery subnet | Keep library on that subnet, **or** join Unraid TB into `br0`, **or** use a TB-only island (TB IPs + downloader Wi‑Fi off) |
 | Route metric / “prefer Thunderbolt” does nothing | Steam’s destination IP is still the Wi‑Fi address | Bridge into house LAN, or transfer to a TB address (not Steam’s auto picker alone) |
 
