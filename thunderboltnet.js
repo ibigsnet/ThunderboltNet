@@ -608,6 +608,7 @@
       return;
     }
     var slave = form.getAttribute('data-tbn-slave') === '1';
+    var src = ev && ev.target ? ev.target.name : '';
     var proto = (form.PROTOCOL && form.PROTOCOL.value) || 'ipv4';
     var show4 = proto === 'ipv4' || proto === 'ipv4+ipv6';
     var show6 = proto === 'ipv6' || proto === 'ipv4+ipv6';
@@ -616,18 +617,47 @@
 
     var dhcp4 = form.USE_DHCP ? form.USE_DHCP.value : 'no';
     var dhcp6 = form.USE_DHCP6 ? form.USE_DHCP6.value : 'no';
+    var showAddr4 = show4 && (dhcp4 === 'no' || dhcp4 === 'server') && !slave;
+    tbnShow(form.querySelector('.tbn-ipv4-addr'), showAddr4);
     tbnShow(form.querySelector('.tbn-static-ipv4'), show4 && dhcp4 === 'no' && !slave);
     tbnShow(form.querySelector('.tbn-dhcp-server-v4'), show4 && dhcp4 === 'server' && !slave);
     tbnShow(form.querySelector('.tbn-static-ipv6'), show6 && dhcp6 === 'no' && !slave);
     tbnShow(form.querySelector('.tbn-dhcp-server-v6'), show6 && dhcp6 === 'server' && !slave);
-    // Server mode forces .1 — disable static IP fields so they are not posted as stale .2
+
+    // Toggle static vs server labels/help on the shared address row
+    var isServer = dhcp4 === 'server';
+    tbnShow(form.querySelector('.tbn-ipv4-addr-label-static'), showAddr4 && !isServer);
+    tbnShow(form.querySelector('.tbn-ipv4-addr-label-server'), showAddr4 && isServer);
+    tbnShow(form.querySelector('.tbn-ipv4-addr-help-static'), showAddr4 && !isServer);
+    tbnShow(form.querySelector('.tbn-ipv4-addr-help-server'), showAddr4 && isServer);
+
+    // Autofill Unraid/pool defaults when switching into DHCP server (keep user edits)
+    var addrBox = form.querySelector('.tbn-ipv4-addr');
     var ip4 = form.IPADDR;
     var nm4 = form.NETMASK;
     if (ip4 && ip4.tagName === 'INPUT') {
-      ip4.disabled = !!(show4 && dhcp4 === 'server' && !slave);
+      ip4.disabled = false;
     }
     if (nm4 && (nm4.tagName === 'SELECT' || nm4.tagName === 'INPUT')) {
-      nm4.disabled = !!(show4 && dhcp4 === 'server' && !slave);
+      nm4.disabled = false;
+    }
+    if (isServer && addrBox && src === 'USE_DHCP') {
+      var dip = addrBox.getAttribute('data-dhcp-default-ip') || '';
+      var dps = addrBox.getAttribute('data-dhcp-default-pool-start') || '';
+      var dpe = addrBox.getAttribute('data-dhcp-default-pool-end') || '';
+      var dpfx = addrBox.getAttribute('data-dhcp-default-prefix') || '24';
+      if (ip4 && dip && (!ip4.value || /\.2$/.test(ip4.value))) {
+        ip4.value = dip;
+      }
+      if (nm4 && dpfx) {
+        nm4.value = dpfx;
+      }
+      if (form.DHCP_POOL_START && dps && !form.DHCP_POOL_START.value) {
+        form.DHCP_POOL_START.value = dps;
+      }
+      if (form.DHCP_POOL_END && dpe && !form.DHCP_POOL_END.value) {
+        form.DHCP_POOL_END.value = dpe;
+      }
     }
 
     var bond = form.BONDING ? form.BONDING.value : 'no';
@@ -636,7 +666,6 @@
     // NAT vs bridging: mutually exclusive. Last control the user changed wins.
     var natEn = form.NAT_ENABLE ? form.NAT_ENABLE.value : 'no';
     var bridge = form.BRIDGING ? form.BRIDGING.value : 'no';
-    var src = ev && ev.target ? ev.target.name : '';
     if (src === 'NAT_ENABLE' && natEn === 'yes' && form.BRIDGING) {
       form.BRIDGING.value = 'no';
       bridge = 'no';

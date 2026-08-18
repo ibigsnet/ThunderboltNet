@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.18ag">
+<!ENTITY version "2026.08.18ah">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,10 +27,10 @@
 
 <CHANGES>
 ###&version;
-- NAT vs bridging mutual exclusion; clearer optional/default-No NAT and bridge help.
+- DHCP mode labels + editable server pool; compact NAT path line on tbn lead.
 
-###2026.08.18af–ad
-- Share host uplink (NAT); hide uplink unless Yes; short “peer through Unraid” hints.
+###2026.08.18ag–ad
+- Share host uplink (NAT); hide uplink unless Yes; NAT vs bridging mutex.
 
 ###2026.08.18ac–aa
 - MTU 1500 default; shelve Steam docs; Network Settings lazy-load; Age humanized.
@@ -40,9 +40,6 @@
 
 ###2026.08.17az
 - Peers: Current / Saved columns; Remember current / Apply saved.
-
-###2026.08.17ay–av
-- Peer link-check / mesh beacon (TCP 10807).
 
 ### Older releases
 - Full changelog: https://github.com/ibigsnet/ThunderboltNet/blob/main/CHANGELOG.md

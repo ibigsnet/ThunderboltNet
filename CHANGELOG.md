@@ -1,3 +1,12 @@
+## 2026.08.18ah
+
+- **UI:** IPv4 assignment labels — Static (Manual User Config), DHCP Client
+  (Automatic Assignment), DHCP Server (Unraid-Managed); bullet help + docs footer.
+- **DHCP server:** editable Unraid address/mask and DHCP pool start–end (defaults
+  still `.1` / `.2–.254`); shown only in server mode.
+- **Lead path line:** compact same-row path — `NAT off` or
+  `underlay → uplink (ip) → internet` (uplink iface address; no public-IP lookup).
+
 ## 2026.08.18ag
 
 - **UI:** NAT and Enable bridging are mutually exclusive (last change wins; Apply

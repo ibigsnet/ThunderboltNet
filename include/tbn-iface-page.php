@@ -124,13 +124,14 @@ if (strpos($nm, '.') === false) {
 <?php if ($is_slave): ?>
     · <strong>member of <?= htmlspecialchars($master) ?></strong>
 <?php endif; ?>
-    <span class="tbn-muted"><br>Same idea as eth0: static IP on this path, Apply. Defaults use <code>10.255.N.2/24</code> for thunderboltN.</span>
-<?php
+    <span class="tbn-muted"><br>Same idea as eth0: static IP on this path, Apply. Defaults use <code>10.255.N.2/24</code> for thunderboltN.<?php
   if (function_exists('tbn_nat_schema_line')) {
     $schema = tbn_nat_schema_line($if, $cfg);
-?>
-    <span class="tbn-muted"><br><strong>Address schema:</strong> <?= htmlspecialchars($schema) ?></span>
-<?php } ?>
+    if ($schema !== '') {
+      echo ' · <code class="tbn-schema-path">' . htmlspecialchars($schema) . '</code>';
+    }
+  }
+?></span>
   </div>
 
 <?php if ($is_bond_slave): ?>
@@ -414,23 +415,88 @@ if (strpos($nm, '.') === false) {
           <?= tbn_help_docs_footer('docs/addressing.md', 'Unraid↔Unraid addressing') ?>
         </div>
 <?php endif; ?>
+<?php
+  // Defaults for DHCP server autofill (same plan used by dnsmasq)
+  $dhcp_plan_ui = (is_array($dhcp_safe) && !empty($dhcp_safe['plan']))
+    ? $dhcp_safe['plan']
+    : (function_exists('tbn_dhcp_server_plan') ? tbn_dhcp_server_plan($if, $cfg) : []);
+  $dhcp_def_ip = (string)($dhcp_plan_ui['ip'] ?? '10.255.0.1');
+  $dhcp_def_pfx = (string)($dhcp_plan_ui['prefix'] ?? '24');
+  $dhcp_def_ps = (string)($dhcp_plan_ui['pool_start'] ?? '');
+  $dhcp_def_pe = (string)($dhcp_plan_ui['pool_end'] ?? '');
+  $pool_start_val = trim((string)($cfg['DHCP_POOL_START'] ?? ''));
+  $pool_end_val = trim((string)($cfg['DHCP_POOL_END'] ?? ''));
+  if ($pool_start_val === '') {
+    $pool_start_val = $dhcp_def_ps;
+  }
+  if ($pool_end_val === '') {
+    $pool_end_val = $dhcp_def_pe;
+  }
+  // When already in server mode, show host IP from plan if cfg still has seed .2
+  $server_ip_val = (string)($cfg['IPADDR'] ?? '');
+  if ($use_dhcp4 === 'server' && $server_ip_val === '') {
+    $server_ip_val = $dhcp_def_ip;
+  }
+?>
         <dl>
           <dt>IPv4 address assignment:</dt>
           <dd>
             <select name="USE_DHCP" class="tbn-ctl-dhcp4">
-              <?= mk_option($use_dhcp4, 'no', 'Static') ?>
-              <?= mk_option($use_dhcp4, 'yes', 'DHCP client') ?>
-              <?= mk_option($use_dhcp4, 'server', 'DHCP server') ?>
+              <?= mk_option($use_dhcp4, 'no', 'Static (Manual User Config)') ?>
+              <?= mk_option($use_dhcp4, 'yes', 'DHCP Client (Automatic Assignment)') ?>
+              <?= mk_option($use_dhcp4, 'server', 'DHCP Server (Unraid-Managed)') ?>
             </select>
           </dd>
         </dl>
         <blockquote class="inline_help">
-          <strong>Static</strong> — usual for Thunderbolt P2P.
-          <strong>DHCP client</strong> — ask the far end (may land in 169.254/16 if no server).
-          <strong>DHCP server</strong> — this host <code>.1</code>, pool <code>.2–.254</code> on this underlay only (not eth0/br0).
-          Two Unraids: see <?= tbn_help_docs_footer('docs/addressing.md', 'Unraid↔Unraid addressing') ?>.
+          <ul style="margin:0.25em 0 0 1.2em;padding:0">
+            <li><strong>Static (Manual User Config)</strong> — you set the IPv4 on this Thunderbolt path. Usual for two known hosts.</li>
+            <li><strong>DHCP Client (Automatic Assignment)</strong> — this Unraid asks the far end for an address (may get 169.254/16 if nothing is serving).</li>
+            <li><strong>DHCP Server (Unraid-Managed)</strong> — this Unraid hosts DHCP on this Thunderbolt underlay only (not eth0/br0). Clients get addresses from the pool below.</li>
+          </ul>
+          <?= tbn_help_docs_footer('docs/addressing.md', 'Addressing') ?>
         </blockquote>
+
+        <div class="tbn-ipv4-addr tbn-hidden"
+          data-dhcp-default-ip="<?= htmlspecialchars($dhcp_def_ip) ?>"
+          data-dhcp-default-prefix="<?= htmlspecialchars($dhcp_def_pfx) ?>"
+          data-dhcp-default-pool-start="<?= htmlspecialchars($dhcp_def_ps) ?>"
+          data-dhcp-default-pool-end="<?= htmlspecialchars($dhcp_def_pe) ?>">
+          <dl>
+            <dt class="tbn-ipv4-addr-label-static">IPv4 address:</dt>
+            <dt class="tbn-ipv4-addr-label-server tbn-hidden">Unraid IPv4 address:</dt>
+            <dd class="tbn-cidr-row">
+              <input type="text" name="IPADDR" class="tbn-ip" maxlength="15" value="<?= htmlspecialchars($use_dhcp4 === 'server' ? ($server_ip_val !== '' ? $server_ip_val : $dhcp_def_ip) : ($cfg['IPADDR'] ?? '')) ?>">
+              <span class="tbn-cidr-slash">/</span>
+              <?php tbn_render_netmask_select('NETMASK', $use_dhcp4 === 'server' ? ($dhcp_def_pfx === '24' && strpos((string)($cfg['NETMASK'] ?? ''), '.') === false ? ($cfg['NETMASK'] ?? '24') : ($cfg['NETMASK'] ?? $dhcp_def_pfx)) : $nm_dotted, $masks); ?>
+            </dd>
+          </dl>
+          <blockquote class="inline_help tbn-ipv4-addr-help-static">
+            Unique subnet per tbnN. Recommended: Unraid <code>.1</code>, peer <code>.2</code>
+            (e.g. tbn0 <code>10.255.0.1/24</code>). Same <code>.2</code> on both Unraids breaks Peer link check.
+            <?= tbn_help_docs_footer('docs/addressing.md', 'Addressing') ?>
+          </blockquote>
+          <blockquote class="inline_help tbn-ipv4-addr-help-server tbn-hidden">
+            Address Unraid uses on this Thunderbolt underlay while serving DHCP (default <code>.1</code> on the link subnet).
+            Clients do not use this address; they get leases from the pool.
+          </blockquote>
+        </div>
+
         <div class="tbn-dhcp-server-v4 tbn-hidden">
+          <dl>
+            <dt>DHCP pool:</dt>
+            <dd class="tbn-cidr-row">
+              <input type="text" name="DHCP_POOL_START" class="tbn-ip" maxlength="15"
+                value="<?= htmlspecialchars($pool_start_val) ?>" placeholder="<?= htmlspecialchars($dhcp_def_ps) ?>">
+              <span class="tbn-cidr-slash">—</span>
+              <input type="text" name="DHCP_POOL_END" class="tbn-ip" maxlength="15"
+                value="<?= htmlspecialchars($pool_end_val) ?>" placeholder="<?= htmlspecialchars($dhcp_def_pe) ?>">
+            </dd>
+          </dl>
+          <blockquote class="inline_help">
+            First and last address handed out on this underlay (same subnet as Unraid’s address above).
+            Default fills <code>.2</code>–<code>.254</code> when Unraid is <code>.1</code>. Must not include Unraid’s own address.
+          </blockquote>
 <?php if (is_array($dhcp_safe)):
   $st = $dhcp_safe['status'] ?? 'ok';
   $plan = $dhcp_safe['plan'] ?? [];
@@ -452,20 +518,8 @@ if (strpos($nm, '.') === false) {
           </div>
 <?php endif; ?>
         </div>
+
         <div class="tbn-static-ipv4 tbn-hidden">
-          <dl>
-            <dt>IPv4 address:</dt>
-            <dd class="tbn-cidr-row">
-              <input type="text" name="IPADDR" class="tbn-ip" maxlength="15" value="<?= htmlspecialchars($cfg['IPADDR'] ?? '') ?>">
-              <span class="tbn-cidr-slash">/</span>
-              <?php tbn_render_netmask_select('NETMASK', $nm_dotted, $masks); ?>
-            </dd>
-          </dl>
-          <blockquote class="inline_help">
-            Unique subnet per tbnN. Recommended: Unraid <code>.1</code>, peer <code>.2</code>
-            (e.g. tbn0 <code>10.255.0.1/24</code>). Same <code>.2</code> on both Unraids breaks Peer link check.
-            <?= tbn_help_docs_footer('docs/addressing.md', 'Addressing') ?>
-          </blockquote>
           <dl>
             <dt>IPv4 default gateway:</dt>
             <dd>
@@ -557,19 +611,23 @@ if (strpos($nm, '.') === false) {
           <dt>IPv6 address assignment:</dt>
           <dd>
             <select name="USE_DHCP6" class="tbn-ctl-dhcp6">
-              <?= mk_option($use_dhcp6, 'no', 'Static') ?>
-              <?= mk_option($use_dhcp6, 'yes', 'DHCP client') ?>
-              <?= mk_option($use_dhcp6, 'server', 'DHCP server (RA)') ?>
+              <?= mk_option($use_dhcp6, 'no', 'Static (Manual User Config)') ?>
+              <?= mk_option($use_dhcp6, 'yes', 'DHCP Client (Automatic Assignment)') ?>
+              <?= mk_option($use_dhcp6, 'server', 'DHCP Server (Unraid-Managed RA)') ?>
             </select>
           </dd>
         </dl>
         <blockquote class="inline_help">
-          <strong>Static</strong> / <strong>DHCP client</strong> as usual.
-          <strong>DHCP server (RA)</strong> — same dnsmasq instance as IPv4 server: router advertisements + stateless DHCPv6 on this underlay only.
+          <ul style="margin:0.25em 0 0 1.2em;padding:0">
+            <li><strong>Static (Manual User Config)</strong> — you set the IPv6 on this path.</li>
+            <li><strong>DHCP Client (Automatic Assignment)</strong> — ask the far end for an address.</li>
+            <li><strong>DHCP Server (Unraid-Managed RA)</strong> — same dnsmasq as IPv4 server: router advertisements on this underlay only.</li>
+          </ul>
+          <?= tbn_help_docs_footer('docs/addressing.md', 'Addressing') ?>
         </blockquote>
         <div class="tbn-dhcp-server-v6 tbn-hidden">
           <div class="tbn-notice" role="status">
-            Uses the IPv4 DHCP server engine (dnsmasq) on this underlay. Prefer enabling <strong>IPv4 DHCP server</strong> together, or IPv6-only server if you know you need RA without v4.
+            Uses the IPv4 DHCP server engine (dnsmasq) on this underlay. Prefer enabling <strong>IPv4 DHCP Server (Unraid-Managed)</strong> together, or IPv6-only RA if you know you need it without v4.
           </div>
         </div>
         <div class="tbn-static-ipv6 tbn-hidden">

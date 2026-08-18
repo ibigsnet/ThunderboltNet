@@ -52,9 +52,19 @@ Either `.1`/`.2` orientation is fine for peer-to-peer **without** a default rout
 
 | Mode | Today | Notes |
 |------|-------|--------|
-| **Static** | Yes (default) | Usual for Thunderbolt P2P |
-| **DHCP client** | Yes | Formerly “Automatic” — DHCP **client** only; often no server on the cable (may fall back to 169.254/16) |
-| **DHCP server** | Yes | Unraid = **`.1`**, pool **`.2–.254`** on `10.255.N.0/24` via **dnsmasq** on that underlay only |
+| **Static (Manual User Config)** | Yes (default) | You set the IPv4 on this path — usual for two known hosts |
+| **DHCP Client (Automatic Assignment)** | Yes | This Unraid asks the peer for an address (may get 169.254/16 if nothing serves) |
+| **DHCP Server (Unraid-Managed)** | Yes | Unraid runs **dnsmasq** on this underlay only; default host **`.1`**, pool **`.2–.254`** (editable) |
+### DHCP Server (Unraid-Managed)
+
+On the tbn tab, pick **DHCP Server (Unraid-Managed)** then set (or accept defaults):
+
+| Field | Default |
+|-------|---------|
+| Unraid IPv4 address | `10.255.N.1/24` |
+| DHCP pool | `10.255.N.2` – `10.255.N.254` |
+
+Pool must stay on the same subnet and must not include Unraid’s own address.
 
 ### DHCP server (come-and-go clients)
 

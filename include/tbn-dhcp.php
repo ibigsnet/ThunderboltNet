@@ -68,11 +68,48 @@ function tbn_dhcp_netdev_for_cfg($if, array $cfg) {
 }
 
 /**
- * Server plan for iface: Unraid .1, pool .2–.254, /24.
+ * Dotted netmask from prefix length.
+ */
+function tbn_dhcp_prefix_to_mask($prefix) {
+  $prefix = max(0, min(32, (int)$prefix));
+  if ($prefix === 0) {
+    return '0.0.0.0';
+  }
+  return long2ip(-1 << (32 - $prefix));
+}
+
+/**
+ * Network address for IPv4 + prefix.
+ */
+function tbn_dhcp_network_addr($ip, $prefix) {
+  $long = ip2long($ip);
+  if ($long === false) {
+    return '';
+  }
+  $prefix = max(0, min(32, (int)$prefix));
+  $mask = $prefix === 0 ? 0 : (-1 << (32 - $prefix));
+  return long2ip($long & $mask);
+}
+
+/**
+ * True if $ip is inside network/prefix (inclusive of network/broadcast).
+ */
+function tbn_dhcp_ip_in_subnet($ip, $network, $prefix) {
+  $il = ip2long($ip);
+  $nl = ip2long($network);
+  if ($il === false || $nl === false) {
+    return false;
+  }
+  $prefix = max(0, min(32, (int)$prefix));
+  $mask = $prefix === 0 ? 0 : (-1 << (32 - $prefix));
+  return ($il & $mask) === ($nl & $mask);
+}
+
+/**
+ * Server plan for iface.
  *
- * Default network is 10.255.<iface_index>.0/24. If $cfg['IPADDR'] is set to a
- * 10.255.X.Y address, that X is used instead — so two Unraids can serve
- * different /24s on their thunderbolt1 links without clashing on a dual-homed client.
+ * Defaults: 10.255.<N>.1 host, pool .2–.254, /24 (N = iface index, or from IPADDR).
+ * Honors cfg IPADDR / NETMASK / DHCP_POOL_START / DHCP_POOL_END when valid.
  *
  * @return array{ip:string,prefix:int,network:string,pool_start:string,pool_end:string,mask:string,ula_prefix?:string}
  */
@@ -85,21 +122,80 @@ function tbn_dhcp_server_plan($if, array $cfg = null) {
   }
   $n = function_exists('tbn_iface_index') ? tbn_iface_index($if) : 0;
   $octet = (int)$n;
-  // Honor configured address network (e.g. 10.255.2.1 → serve 10.255.2.0/24)
   $hint = trim((string)($cfg['IPADDR'] ?? ''));
   if (preg_match('/^10\.255\.(\d+)\.\d+$/', $hint, $m)) {
     $octet = (int)$m[1];
   }
   $base = '10.255.' . $octet;
-  // Unique ULA-ish /64 per link for RA (fd70:7462:6eXX::/64 — "tbn" nibbles-ish)
+
+  // Prefix from NETMASK (dotted or int)
+  $nm = trim((string)($cfg['NETMASK'] ?? '24'));
+  if ($nm !== '' && strpos($nm, '.') !== false && function_exists('tbn_mask_to_prefix')) {
+    $prefix = (int)tbn_mask_to_prefix($nm);
+  } else {
+    $prefix = (int)preg_replace('/\D/', '', $nm);
+  }
+  if ($prefix < 8 || $prefix > 30) {
+    $prefix = 24;
+  }
+
+  // Host IP: configured when valid, else default .1
+  $ip = $base . '.1';
+  if ($hint !== '' && filter_var($hint, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+    $ip = $hint;
+  }
+  $network = tbn_dhcp_network_addr($ip, $prefix);
+  if ($network === '') {
+    $network = $base . '.0';
+    $ip = $base . '.1';
+    $prefix = 24;
+  }
+
+  // Default pool: first usable after network through last usable, excluding host
+  $net_l = ip2long($network);
+  $bcast_l = $net_l | ((1 << (32 - $prefix)) - 1);
+  $def_start_l = $net_l + 1;
+  $def_end_l = $bcast_l - 1;
+  $host_l = ip2long($ip);
+  if ($def_start_l === $host_l) {
+    $def_start_l++;
+  }
+  if ($def_end_l === $host_l) {
+    $def_end_l--;
+  }
+  if ($def_start_l > $def_end_l) {
+    $def_start_l = $net_l + 1;
+    $def_end_l = $bcast_l - 1;
+  }
+  $pool_start = long2ip($def_start_l);
+  $pool_end = long2ip($def_end_l);
+
+  $ps = trim((string)($cfg['DHCP_POOL_START'] ?? ''));
+  $pe = trim((string)($cfg['DHCP_POOL_END'] ?? ''));
+  if ($ps !== '' && $pe !== ''
+      && filter_var($ps, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)
+      && filter_var($pe, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)
+      && tbn_dhcp_ip_in_subnet($ps, $network, $prefix)
+      && tbn_dhcp_ip_in_subnet($pe, $network, $prefix)
+      && ip2long($ps) <= ip2long($pe)
+      && $ps !== $ip && $pe !== $ip) {
+    // Allow pool that doesn't include host; still reject if host sits inside range
+    $ps_l = ip2long($ps);
+    $pe_l = ip2long($pe);
+    if ($host_l < $ps_l || $host_l > $pe_l) {
+      $pool_start = $ps;
+      $pool_end = $pe;
+    }
+  }
+
   $ula = sprintf('fd70:7462:6e%02x::', $octet & 0xff);
   return [
-    'ip' => $base . '.1',
-    'prefix' => 24,
-    'network' => $base . '.0/24',
-    'pool_start' => $base . '.2',
-    'pool_end' => $base . '.254',
-    'mask' => '255.255.255.0',
+    'ip' => $ip,
+    'prefix' => $prefix,
+    'network' => $network . '/' . $prefix,
+    'pool_start' => $pool_start,
+    'pool_end' => $pool_end,
+    'mask' => tbn_dhcp_prefix_to_mask($prefix),
     'ula_prefix' => $ula,
   ];
 }

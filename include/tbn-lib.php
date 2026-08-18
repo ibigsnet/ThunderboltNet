@@ -2903,6 +2903,9 @@ function tbn_iface_defaults($if = 'thunderbolt0') {
     'GATEWAY' => '',
     // Install a system default route via this iface? Default no (peer-local only).
     'DEFAULT_ROUTE' => 'no',
+    // DHCP server pool (used when USE_DHCP=server); empty = derive from IPADDR/NETMASK
+    'DHCP_POOL_START' => '',
+    'DHCP_POOL_END' => '',
     // Share Unraid uplink (br0/eth0/wlan0/…) with peers on this underlay — opposite of DEFAULT_ROUTE.
     'NAT_ENABLE' => 'no',
     'NAT_UPLINK' => 'auto',
@@ -3774,11 +3777,13 @@ function tbn_apply_iface($if, array $opts = []) {
   $dhcp_res = null;
   if (!$is_slave && function_exists('tbn_dhcp_server_apply')
       && ((($cfg['USE_DHCP'] ?? '') === 'server') || (($cfg['USE_DHCP6'] ?? '') === 'server'))) {
-    // Persist host .1 into cfg when serving so flash matches live
+    // Persist resolved server host/pool into cfg so flash matches live dnsmasq plan
     if (($cfg['USE_DHCP'] ?? '') === 'server' && function_exists('tbn_dhcp_server_plan')) {
       $p = tbn_dhcp_server_plan($if, $cfg);
       $cfg['IPADDR'] = $p['ip'];
       $cfg['NETMASK'] = (string)$p['prefix'];
+      $cfg['DHCP_POOL_START'] = $p['pool_start'];
+      $cfg['DHCP_POOL_END'] = $p['pool_end'];
       tbn_write_iface_cfg($if, $cfg);
     }
     $dhcp_res = tbn_dhcp_server_apply($if, $cfg);

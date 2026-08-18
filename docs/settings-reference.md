@@ -69,13 +69,14 @@ Does **not** register Thunderbolt in stock **Interface Rules** (MAC→name). Hos
 | OpenFabric metric | empty | Manual integer when mode=manual |
 | Enable bridging | No | Optional. Join an **existing** Unraid bridge (`br0`, `br0.N`, …). Mutually exclusive with NAT — [addressing.md](addressing.md#join-an-unraid-bridge-br0-br010-) |
 | Network protocol | IPv4 only | IPv6 limited |
-| IPv4 assignment | Static | Prefer static on host↔host |
-| IPv4 address / mask | 10.255.N.2 / 24 | Unique subnet per N |
-| IPv4 default gateway | empty | Optional next hop on this link |
+| IPv4 assignment | Static (Manual User Config) | Also: DHCP Client (Automatic); DHCP Server (Unraid-Managed) — [addressing.md](addressing.md) |
+| IPv4 address / mask | 10.255.N.2 / 24 | Unique subnet per N; in server mode = Unraid’s underlay address (default `.1`) |
+| DHCP pool start / end | (derived) | Shown for DHCP Server; default `.2`–`.254` when host is `.1` |
+| IPv4 default gateway | empty | Optional next hop on this link (static mode) |
 | Enable default route | No | Don’t steal system default from eth0 |
 | Share host uplink (NAT) | **No** | Optional. Peer reaches internet through Unraid (e.g. Proxmox on TB needing updates). Usual P2P: leave No. Mutually exclusive with bridging — [nat-share-uplink.md](nat-share-uplink.md) |
 | NAT uplink interface | **Auto** | Shown when NAT is Yes. Auto = Unraid’s default-route iface (`br0`/`wlan0`/…) |
-| Address schema (read-only) | (derived) | Underlay CIDR · plan · host IP · peer hint · NAT on/off |
+| Path line (read-only) | (derived) | Compact underlay · peer · `NAT off` or `underlay → uplink (ip) → internet` |
 | Desired MTU | **1500** (default) | Leave 1500 unless you opt into jumbo. **Enable jumbo frames** + 9000 (typical) can reduce packet/CPU cost on older or weaker hosts; **both ends must match**. See [mtu-and-throughput.md](mtu-and-throughput.md) |
 | Unraid services on this link (listening) | No (recommend Yes for SMB/NFS/web) | Per peer; remembered; overview table + Harden all. Does **not** start NBD — use **NBD Export** (Network Services → NBD) and bind to the Thunderbolt IP. |
 | Link rate (Known peers / quality) | (live / last) | Equal RX≈TX → **N Gb/s full-duplex** (optional · N-lane). Asymmetric → **TX … (to peer) · RX … (from peer)**. |

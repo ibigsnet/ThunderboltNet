@@ -107,37 +107,70 @@ function tbn_nat_peer_hint(array $cfg) {
 }
 
 /**
- * One-line address schema for UI (facts only).
+ * First global IPv4 on a netdev (lightweight — no external WAN lookup).
+ */
+function tbn_nat_iface_ipv4($if) {
+  $if = preg_replace('/[^A-Za-z0-9_.-]/', '', (string)$if);
+  if ($if === '' || !is_dir('/sys/class/net/' . $if)) {
+    return '';
+  }
+  $lines = [];
+  @exec('ip -4 -o addr show dev ' . escapeshellarg($if) . ' scope global 2>/dev/null', $lines);
+  foreach ($lines as $line) {
+    if (preg_match('/\binet\s+(\d{1,3}(?:\.\d{1,3}){3})/', $line, $m)) {
+      return $m[1];
+    }
+  }
+  return '';
+}
+
+/**
+ * Compact path line for the tbn form lead (same row as the muted hint).
+ *
+ * NAT off:  tbn1 · 10.255.0.1/24 · peer ~10.255.0.2 · NAT off
+ * NAT on:   tbn1 · 10.255.0.0/24 → wlan0 (192.168.1.3) → internet
  */
 function tbn_nat_schema_line($if, array $cfg) {
-  $cidr = tbn_nat_underlay_cidr($cfg);
-  $plan = function_exists('tbn_normalize_address_plan')
-    ? tbn_normalize_address_plan($cfg['ADDRESS_PLAN'] ?? 'small-lan')
-    : (string)($cfg['ADDRESS_PLAN'] ?? 'small-lan');
+  $label = preg_match('/^thunderbolt(\d+)$/', (string)$if, $m) ? ('tbn' . $m[1]) : (string)$if;
   $host = trim((string)($cfg['IPADDR'] ?? ''));
+  $pfx = function_exists('tbn_nat_prefix_len') ? tbn_nat_prefix_len($cfg) : 24;
+  $cidr = tbn_nat_underlay_cidr($cfg);
   $peer = tbn_nat_peer_hint($cfg);
-  $bits = [];
-  if ($cidr !== '') {
-    $bits[] = $cidr;
+  $host_cidr = '';
+  if ($host !== '' && filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+    $host_cidr = $host . '/' . $pfx;
+  } elseif ($cidr !== '') {
+    $host_cidr = $cidr;
   }
-  if ($plan !== '') {
-    $bits[] = 'plan ' . $plan;
+
+  if (tbn_nat_enabled($cfg)) {
+    $up = tbn_nat_resolve_uplink($cfg['NAT_UPLINK'] ?? 'auto');
+    $up_ip = $up !== '' ? tbn_nat_iface_ipv4($up) : '';
+    $under = $cidr !== '' ? $cidr : ($host_cidr !== '' ? $host_cidr : 'underlay');
+    $mid = $up !== ''
+      ? ($up . ($up_ip !== '' ? ' (' . $up_ip . ')' : ''))
+      : 'uplink?';
+    return $label . ' · ' . $under . ' → ' . $mid . ' → internet';
   }
-  if ($host !== '') {
-    $bits[] = 'this host ' . $host;
+
+  $bits = [$label];
+  if ($host_cidr !== '') {
+    $bits[] = $host_cidr;
   }
   if ($peer !== '') {
-    $bits[] = 'peer ~' . $peer;
+    // Short peer hint: ~.2 when same /24 prefix as host
+    $short = $peer;
+    if ($host !== '' && preg_match('/^(\d+\.\d+\.\d+)\.(\d+)$/', $host, $hm)
+        && preg_match('/^(\d+\.\d+\.\d+)\.(\d+)$/', $peer, $pm)
+        && $hm[1] === $pm[1]) {
+      $short = '~.' . $pm[2];
+    } else {
+      $short = '~' . $peer;
+    }
+    $bits[] = 'peer ' . $short;
   }
-  if (tbn_nat_enabled($cfg)) {
-    $up = tbn_nat_normalize_uplink($cfg['NAT_UPLINK'] ?? 'auto');
-    $resolved = tbn_nat_resolve_uplink($up);
-    $bits[] = 'NAT → ' . ($resolved !== '' ? $resolved : $up);
-  } else {
-    $bits[] = 'NAT off';
-  }
-  $label = preg_match('/^thunderbolt(\d+)$/', (string)$if, $m) ? ('tbn' . $m[1]) : (string)$if;
-  return $label . ': ' . implode(' · ', $bits);
+  $bits[] = 'NAT off';
+  return implode(' · ', $bits);
 }
 
 /**
