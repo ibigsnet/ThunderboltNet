@@ -390,11 +390,16 @@ if (strpos($nm, '.') === false) {
   $plan = $dhcp_safe['plan'] ?? [];
 ?>
           <div class="tbn-notice<?= $st === 'block' ? ' tbn-notice-warn' : '' ?>" role="status">
-            <strong>DHCP server<?= $st === 'block' ? ' — blocked' : ($st === 'warn' ? ' — caution' : '') ?>.</strong>
-            Host <code><?= htmlspecialchars($plan['ip'] ?? '') ?>/<?= htmlspecialchars((string)($plan['prefix'] ?? 24)) ?></code>
+            <strong>DHCP server<?= $st === 'block' ? ' — blocked' : ($st === 'warn' ? ' — caution' : '') ?></strong>
+            — host <code><?= htmlspecialchars($plan['ip'] ?? '') ?>/<?= htmlspecialchars((string)($plan['prefix'] ?? 24)) ?></code>
             · pool <code><?= htmlspecialchars(($plan['pool_start'] ?? '') . '–' . ($plan['pool_end'] ?? '')) ?></code>
             on <code><?= htmlspecialchars($dhcp_safe['netdev'] ?? $if) ?></code>.
-            <?= htmlspecialchars(implode(' ', $dhcp_safe['messages'] ?? [])) ?>
+<?php
+  $dhcp_msgs = array_values(array_filter(array_map('strval', $dhcp_safe['messages'] ?? [])));
+  if ($dhcp_msgs):
+?>
+            <br><?= htmlspecialchars(implode(' ', $dhcp_msgs)) ?>
+<?php endif; ?>
             <?php if ($st === 'block' && function_exists('tbn_dhcp_forum_help_html')) {
               echo tbn_dhcp_forum_help_html();
             } ?>

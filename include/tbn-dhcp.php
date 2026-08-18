@@ -174,9 +174,7 @@ function tbn_dhcp_server_safe($if, array $cfg = []) {
     }
   }
 
-  if (!$messages) {
-    $messages[] = "Ready: host {$plan['ip']}/{$plan['prefix']} · pool {$plan['pool_start']}–{$plan['pool_end']} on {$netdev}.";
-  }
+  // Ok with no warnings: leave messages empty — the Settings notice already shows host/pool/netdev once.
   return ['status' => $status, 'messages' => $messages, 'plan' => $plan, 'netdev' => $netdev];
 }
 

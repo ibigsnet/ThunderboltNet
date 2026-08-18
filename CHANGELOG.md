@@ -1,3 +1,7 @@
+## 2026.08.17aq
+
+- DHCP server Settings notice: print host / pool / netdev **once** (removed duplicate “Ready: …” line).
+
 ## 2026.08.17ap
 
 - Addressing orange banner: **only** confirmed ARP duplicate (same IP + foreign MAC) — not “still on seed .2”.
