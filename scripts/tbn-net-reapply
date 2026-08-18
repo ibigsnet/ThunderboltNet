@@ -1,16 +1,23 @@
 #!/bin/bash
-# Re-apply Thunderbolt Net per-link flash config to live thunderbolt* netdevs.
+# Re-apply Thunderbolt Net per-link flash config to live thunderbolt* netdevs,
+# or tear down NAT when a netdev is removed.
 # Usage:
-#   tbn-net-reapply              # all live ifaces with saved ifaces/*.cfg
-#   tbn-net-reapply thunderbolt0 # one iface (udev %k)
+#   tbn-net-reapply                    # all live ifaces with saved ifaces/*.cfg
+#   tbn-net-reapply thunderbolt0       # one iface (udev add %k)
+#   tbn-net-reapply --remove thunderbolt0   # udev remove %k — clear NAT tags
 # Called from event/started and udev (hotplug). Quiet by default; logs to syslog.
 
 set -u
-IFACE="${1:-}"
-export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:${PATH:-}"
+MODE="apply"
+IFACE=""
+if [ "${1:-}" = "--remove" ] || [ "${1:-}" = "remove" ]; then
+  MODE="remove"
+  IFACE="${2:-}"
+else
+  IFACE="${1:-}"
+fi
 
-# Brief settle — netdev may not be fully ready at the first udev moment
-sleep 0.4
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:${PATH:-}"
 
 PHP_BIN=""
 for c in /usr/bin/php /usr/local/bin/php php; do
@@ -29,6 +36,31 @@ if [ ! -f "$LIB" ]; then
   logger -t ThunderboltNet "tbn-net-reapply: plugin lib missing"
   exit 0
 fi
+
+if [ "$MODE" = "remove" ]; then
+  case "$IFACE" in
+    thunderbolt*) ;;
+    *) exit 0 ;;
+  esac
+  # Netdev may already be gone — NAT clear only needs the iface name for the tag.
+  OUT=$("$PHP_BIN" -r '
+    require_once "'"$LIB"'";
+    $if = $argv[1];
+    if (function_exists("tbn_nat_clear")) {
+      tbn_nat_clear($if);
+      echo json_encode(["ok" => true, "removed_nat" => $if]);
+    } else {
+      echo json_encode(["ok" => false, "error" => "nat_clear missing"]);
+    }
+  ' "$IFACE" 2>/dev/null) || true
+  if [ -n "${OUT:-}" ]; then
+    logger -t ThunderboltNet "tbn-net-reapply remove $IFACE: $OUT"
+  fi
+  exit 0
+fi
+
+# Brief settle — netdev may not be fully ready at the first udev add moment
+sleep 0.4
 
 # Keep e2e in sync (flash conf + reload if kernel loaded e2e=1 first)
 "$PHP_BIN" -r 'require_once "'"$LIB"'"; tbn_ensure_e2e_param();' 2>/dev/null || true

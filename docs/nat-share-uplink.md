@@ -6,6 +6,8 @@
 
 **Not the same as Enable bridging** (join an existing Unraid `br0`). Bridging puts the peer on that bridge’s network; NAT keeps a separate TB subnet and forwards via Unraid. The UI will not allow both Yes at once.
 
+After enabling NAT, click **Apply** while the peer is linked so Saved remembers it for that peer UUID (survives cable moves / tbn renumber).
+
 ---
 
 ## Contents
@@ -96,11 +98,15 @@ If `br0` is down and Wi‑Fi carries default, Auto correctly picks `wlan0`. When
 
 | Piece | Where |
 |-------|--------|
-| Enable / uplink choice | Flash `ifaces/thunderboltN.cfg` (`NAT_ENABLE`, `NAT_UPLINK`) |
-| Live iptables rules | Reinstalled on **Apply**, **array start**, and **Thunderbolt hotplug** (`tbn-net-reapply` → `tbn_apply_iface`) |
+| Enable / uplink choice | Flash `ifaces/thunderboltN.cfg` **and** Saved peer plan (UUID) on **Apply** while linked |
+| Live iptables rules | Installed on Apply / array start / **netdev add**; **removed on netdev remove** |
 | `ip_forward` | Set on Apply; hint file under plugin flash / `sysctl.d` when possible |
 
-Disabling NAT (or disabling the interface) **removes** this plugin’s marked rules for that tbnN only.
+**Unplug:** udev `remove` clears this link’s tagged NAT rules immediately.  
+**Replug same peer:** udev `add` reapply loads that peer’s Saved plan (including NAT) onto whichever `thunderboltN` they land on.  
+**Different peer on the same tbnN:** does **not** inherit the previous peer’s NAT — only what is in *that* peer’s Saved plan (legacy plans without NAT keys → NAT off until you Apply once while linked).
+
+Disabling NAT in the UI (or disabling the interface) also removes this plugin’s marked rules for that tbnN.
 
 ## vs Enable default route
 

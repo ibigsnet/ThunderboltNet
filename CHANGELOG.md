@@ -1,3 +1,11 @@
+## 2026.08.18ak
+
+- **NAT lifecycle:** udev **remove** clears tagged NAT for that `thunderboltN`; **add**
+  reapply stands it back up from the peer’s Saved plan.
+- **NAT follows peer UUID:** Saved plan stores `NAT_ENABLE` / `NAT_UPLINK`. A different
+  device on the same tbnN does not inherit the previous peer’s NAT (legacy plans → NAT off
+  until Apply while linked).
+
 ## 2026.08.18aj
 
 - **Fix:** Peer-plan reapply no longer resets path-slot policy (NAT, DHCP pool,

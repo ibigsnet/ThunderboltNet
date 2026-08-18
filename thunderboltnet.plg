@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.18aj">
+<!ENTITY version "2026.08.18ak">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,10 +27,10 @@
 
 <CHANGES>
 ###&version;
-- Fix: hotplug/reapply preserves NAT and DHCP pool (peer plan no longer wipes them).
+- NAT clears on unplug, restores on replug; NAT follows Saved peer (not leftover tbn slot).
 
-###2026.08.18ai–ad
-- DHCP labels/pool editor; NAT share uplink; path line; bridge mutex; pool excludes host.
+###2026.08.18aj–ad
+- DHCP labels/pool; NAT share uplink; path line; bridge mutex; reapply/pool fixes.
 
 ###2026.08.18ac–aa
 - MTU 1500 default; shelve Steam docs; Network Settings lazy-load; Age humanized.

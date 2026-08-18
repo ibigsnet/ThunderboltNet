@@ -922,6 +922,7 @@ function tbn_peer_plan_is_usable($plan) {
 
 /**
  * Build a peer plan from iface cfg (tbn Apply capture).
+ * Includes NAT so “share uplink” follows this peer UUID across tbn renumber.
  */
 function tbn_peer_plan_from_iface_cfg(array $cfg) {
   return [
@@ -934,6 +935,10 @@ function tbn_peer_plan_from_iface_cfg(array $cfg) {
     'MTU_MODE' => (string)($cfg['MTU_MODE'] ?? 'default'),
     'MTU' => (string)($cfg['MTU'] ?? '1500'),
     'PROTOCOL' => (string)($cfg['PROTOCOL'] ?? 'ipv4'),
+    'NAT_ENABLE' => (($cfg['NAT_ENABLE'] ?? 'no') === 'yes') ? 'yes' : 'no',
+    'NAT_UPLINK' => function_exists('tbn_nat_normalize_uplink')
+      ? tbn_nat_normalize_uplink($cfg['NAT_UPLINK'] ?? 'auto')
+      : (string)($cfg['NAT_UPLINK'] ?? 'auto'),
   ];
 }
 
@@ -973,9 +978,10 @@ function tbn_peer_plan_from_addrs($addrs) {
 /**
  * Merge peer plan + listening into an iface cfg for apply on $if.
  *
- * Peer Saved plans only carry L3/MTU identity. Host-policy knobs on the path
- * slot (NAT, DHCP pool, bridging/bonding, OpenFabric participate, …) stay on
- * ifaces/thunderboltN.cfg and must survive hotplug/reapply.
+ * L3/MTU/NAT come from the Saved peer UUID plan when present so a different
+ * device landing on the same thunderboltN does not inherit the previous peer’s
+ * NAT. Path-slot cfg still holds bonding/bridging/DHCP-pool/OpenFabric editor
+ * state for that tab.
  */
 function tbn_iface_cfg_from_peer(array $peer, $if) {
   $cfg = tbn_iface_defaults($if);
@@ -983,13 +989,12 @@ function tbn_iface_cfg_from_peer(array $peer, $if) {
   if (function_exists('tbn_iface_cfg_path') && is_file(tbn_iface_cfg_path($if))) {
     $prior = tbn_load_iface_cfg($if);
   }
-  // Preserve path-slot policy from existing flash cfg (not part of peer UUID plan).
+  // Path-slot UI policy (not peer identity)
   foreach ([
     'DESCRIPTION',
     'BONDING', 'BONDING_MODE', 'BOND_NAME', 'BOND_MEMBERS',
     'BRIDGING', 'BR_NAME',
     'VLAN_ENABLE', 'VLAN_LIST',
-    'NAT_ENABLE', 'NAT_UPLINK',
     'DHCP_POOL_START', 'DHCP_POOL_END',
     'ADDRESS_PLAN',
     'OPENFABRIC_PARTICIPATE', 'OPENFABRIC_METRIC_MODE', 'OPENFABRIC_METRIC',
@@ -1004,7 +1009,17 @@ function tbn_iface_cfg_from_peer(array $peer, $if) {
       $cfg[$k] = $plan[$k];
     }
   }
-  // Server mode pool: if prior had pool and plan did not clear server, keep pool
+  // NAT follows the peer plan when stamped (Apply while linked). Legacy plans
+  // without NAT keys default to No so another device on this tbnN is safe.
+  if (array_key_exists('NAT_ENABLE', $plan)) {
+    $cfg['NAT_ENABLE'] = (($plan['NAT_ENABLE'] ?? 'no') === 'yes') ? 'yes' : 'no';
+    $cfg['NAT_UPLINK'] = function_exists('tbn_nat_normalize_uplink')
+      ? tbn_nat_normalize_uplink($plan['NAT_UPLINK'] ?? 'auto')
+      : (string)($plan['NAT_UPLINK'] ?? 'auto');
+  } else {
+    $cfg['NAT_ENABLE'] = 'no';
+    $cfg['NAT_UPLINK'] = 'auto';
+  }
   if (($cfg['USE_DHCP'] ?? '') === 'server') {
     if (trim((string)($cfg['DHCP_POOL_START'] ?? '')) === '' && trim((string)($prior['DHCP_POOL_START'] ?? '')) !== '') {
       $cfg['DHCP_POOL_START'] = $prior['DHCP_POOL_START'];
