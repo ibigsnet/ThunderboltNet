@@ -925,9 +925,13 @@ function tbn_peer_plan_is_usable($plan) {
  * Includes NAT so “share uplink” follows this peer UUID across tbn renumber.
  */
 function tbn_peer_plan_from_iface_cfg(array $cfg) {
+  $dhcp = (string)($cfg['USE_DHCP'] ?? 'no');
+  if (!in_array($dhcp, ['no', 'yes', 'server'], true)) {
+    $dhcp = 'no';
+  }
   return [
     'auto' => 'yes',
-    'USE_DHCP' => (($cfg['USE_DHCP'] ?? 'no') === 'yes') ? 'yes' : 'no',
+    'USE_DHCP' => $dhcp,
     'IPADDR' => (string)($cfg['IPADDR'] ?? ''),
     'NETMASK' => (string)($cfg['NETMASK'] ?? '24'),
     'GATEWAY' => (string)($cfg['GATEWAY'] ?? ''),

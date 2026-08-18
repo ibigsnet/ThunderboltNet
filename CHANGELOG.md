@@ -1,3 +1,9 @@
+## 2026.08.18am
+
+- **Fix:** NAT uplink choice loop no longer overwrites the tbn tab `$label` (broke
+  `tbnInitIfaceForm` → looked up `tbn-form-tailscale1`).
+- **Fix:** Peer plan capture preserves `USE_DHCP=server` (was collapsed to `no`).
+
 ## 2026.08.18al
 
 - **UI:** After cable changes, the open tbnN config form **reloads from the Saved peer**

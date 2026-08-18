@@ -590,8 +590,8 @@ if (strpos($nm, '.') === false) {
                 <select name="NAT_UPLINK">
 <?php
   foreach ($nat_choices as $ch) {
-    $label = ($ch === 'auto') ? 'Auto (default route iface)' : $ch;
-    echo mk_option($nat_up, $ch, $label);
+    $nat_opt_label = ($ch === 'auto') ? 'Auto (default route iface)' : $ch;
+    echo mk_option($nat_up, $ch, $nat_opt_label);
   }
 ?>
                 </select>
