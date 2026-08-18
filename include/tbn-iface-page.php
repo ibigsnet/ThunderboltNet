@@ -635,9 +635,15 @@ if (strpos($nm, '.') === false) {
           <?= tbn_help_docs_footer('docs/addressing.md', 'Addressing') ?>
         </blockquote>
         <div class="tbn-dhcp-server-v6 tbn-hidden">
-          <div class="tbn-notice" role="status">
-            Uses the IPv4 DHCP server engine (dnsmasq) on this underlay. Prefer enabling <strong>IPv4 DHCP Server (Unraid-Managed)</strong> together, or IPv6-only RA if you know you need it without v4.
-          </div>
+          <dl>
+            <dt>IPv6 DHCP server:</dt>
+            <dd>Uses dnsmasq on this underlay (same engine as IPv4 DHCP server).</dd>
+          </dl>
+          <blockquote class="inline_help">
+            Prefer enabling <strong>IPv4 DHCP Server (Unraid-Managed)</strong> together,
+            or IPv6-only RA if you know you need it without v4.
+            <?= tbn_help_docs_footer('docs/addressing.md', 'Addressing') ?>
+          </blockquote>
         </div>
         <div class="tbn-static-ipv6 tbn-hidden">
           <dl>

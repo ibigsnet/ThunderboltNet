@@ -1,3 +1,8 @@
+## 2026.08.18ao
+
+- **UI:** IPv6 DHCP server orange notice → field + blue helper note (same idea as
+  IPv4 DHCP pool).
+
 ## 2026.08.18an
 
 - **UI:** IPv4 address / Unraid IPv4 address `inline_help` no longer forced open by
