@@ -1,8 +1,10 @@
 # Share host uplink (NAT)
 
-Give Thunderbolt peers a path to the **house LAN / internet** by MASQUERADEing this underlay toward Unraid’s normal uplink (`br0`, `eth0`, `wlan0`, …).
+**Default: No.** Most Thunderbolt users only need a private pipe between two machines (copy / SMB on `10.255.x`). Leave NAT off.
 
-This is **optional** and **off** by default. Peer-to-peer file copy / SMB on the TB IP alone does **not** need it.
+**Yes** means the Thunderbolt peer lives on its own private subnet *behind* Unraid’s normal LAN (`br0` / `eth0` / `wlan0`). Unraid forwards and MASQUERADEs so that peer can reach the house network / internet **through Unraid** — for example a Proxmox or Debian box on TB that has no Wi‑Fi and needs `apt update`. The peer’s default gateway is Unraid’s tbn IP.
+
+This is not “join house LAN” (that’s [bridging to br0](addressing.md#join-an-unraid-bridge-br0-br010-)). Bridging puts the peer *on* the LAN; NAT keeps it on a separate TB subnet behind Unraid.
 
 ---
 

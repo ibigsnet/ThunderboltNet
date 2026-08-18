@@ -73,8 +73,8 @@ Does **not** register Thunderbolt in stock **Interface Rules** (MAC→name). Hos
 | IPv4 address / mask | 10.255.N.2 / 24 | Unique subnet per N |
 | IPv4 default gateway | empty | Optional next hop on this link |
 | Enable default route | No | Don’t steal system default from eth0 |
-| Share host uplink (NAT) | **No** | MASQUERADE this underlay toward Unraid’s LAN/WAN so peers can use Unraid as gateway — [nat-share-uplink.md](nat-share-uplink.md) |
-| NAT uplink interface | **Auto** | Auto = current default-route iface (`br0`/`wlan0`/…); or pick explicitly |
+| Share host uplink (NAT) | **No** | Rare. Peer sits on private TB subnet *behind* Unraid’s LAN and can use Unraid for internet (e.g. Proxmox on TB needing updates). Usual P2P copy/SMB: leave No — [nat-share-uplink.md](nat-share-uplink.md) |
+| NAT uplink interface | **Auto** | Shown when NAT is Yes. Auto = Unraid’s default-route iface (`br0`/`wlan0`/…) |
 | Address schema (read-only) | (derived) | Underlay CIDR · plan · host IP · peer hint · NAT on/off |
 | Desired MTU | **1500** (default) | Leave 1500 unless you opt into jumbo. **Enable jumbo frames** + 9000 (typical) can reduce packet/CPU cost on older or weaker hosts; **both ends must match**. See [mtu-and-throughput.md](mtu-and-throughput.md) |
 | Unraid services on this link (listening) | No (recommend Yes for SMB/NFS/web) | Per peer; remembered; overview table + Harden all. Does **not** start NBD — use **NBD Export** (Network Services → NBD) and bind to the Thunderbolt IP. |

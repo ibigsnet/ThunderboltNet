@@ -1,3 +1,8 @@
+## 2026.08.18af
+
+- **Help:** Shorter NAT hints — default No; usual P2P does not need it; Yes = peer on private TB
+  subnet behind Unraid’s LAN (e.g. Proxmox needing updates via Unraid).
+
 ## 2026.08.18ae
 
 - **UI:** Hide **NAT uplink interface** unless Share host uplink (NAT) is Yes.

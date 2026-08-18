@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.18ae">
+<!ENTITY version "2026.08.18af">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,10 +27,10 @@
 
 <CHANGES>
 ###&version;
-- Hide NAT uplink unless NAT is Yes; Info dialog keeps NAT status only (no schema bleed).
+- NAT help: default No; rare “peer behind Unraid LAN” use (e.g. Proxmox updates).
 
-###2026.08.18ad
-- Share host uplink (NAT) per tbnN; address schema line; docs.
+###2026.08.18ae–ad
+- Share host uplink (NAT); hide uplink unless Yes; Info without schema bleed.
 
 ###2026.08.18ac–aa
 - MTU 1500 default; shelve Steam docs; Network Settings lazy-load; Age humanized.
@@ -43,9 +43,6 @@
 
 ###2026.08.17ay–av
 - Peer link-check: path pairing + auth-free mesh beacon (TCP 10807).
-
-###2026.08.17au–at
-- CA/Plugins ~7-entry notes; DHCP underlay must not blank Unraid DNS.
 
 ### Older releases
 - Full changelog: https://github.com/ibigsnet/ThunderboltNet/blob/main/CHANGELOG.md

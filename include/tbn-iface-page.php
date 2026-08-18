@@ -512,10 +512,11 @@ if (strpos($nm, '.') === false) {
             </dd>
           </dl>
           <blockquote class="inline_help">
-            Default <strong>No</strong>. When <strong>Yes</strong>, Unraid MASQUERADEs this underlay toward a LAN/WAN
-            interface so Thunderbolt peers can use Unraid as their gateway (peer sets default via this host’s tbn IP).
-            Opposite of “Enable default route” above (that makes <em>Unraid</em> use TB as uplink).
-            Survives reboot via flash cfg + array-start / hotplug reapply. Setting back to No removes this link’s NAT rules on Apply.
+            Default <strong>No</strong> — most Thunderbolt setups (copy files / SMB between two machines) do not need this.
+            <strong>Yes</strong> puts the Thunderbolt peer on its own private subnet <em>behind</em> Unraid’s normal LAN
+            (br0/eth0/wlan0), so the peer can reach the internet through Unraid — e.g. a Proxmox box on TB that needs
+            <code>apt update</code> but has no Wi‑Fi of its own. Peer gateway = this Unraid’s tbn IP. Not the same as
+            “Enable default route” above. Apply with No removes the NAT rules for this link.
             <?= tbn_help_docs_footer('docs/nat-share-uplink.md', 'NAT / share uplink') ?>
           </blockquote>
           <div class="tbn-nat-uplink-opts<?= $nat_en === 'yes' ? '' : ' tbn-hidden' ?>">
@@ -533,8 +534,8 @@ if (strpos($nm, '.') === false) {
               </dd>
             </dl>
             <blockquote class="inline_help">
-              <strong>Auto</strong> follows Unraid’s current IPv4 default route (<code>br0</code>, <code>wlan0</code>, …).
-              Pick an explicit iface when you want NAT out that path only. Do not select a Thunderbolt underlay.
+              Which Unraid interface faces the house LAN / internet.
+              <strong>Auto</strong> uses whatever carries Unraid’s default route (<code>br0</code>, <code>wlan0</code>, …).
             </blockquote>
           </div>
         </div>
