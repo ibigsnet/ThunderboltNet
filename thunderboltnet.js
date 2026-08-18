@@ -583,6 +583,29 @@
     }
   }
 
+  /**
+   * Mode-switch for blockquote.inline_help without forcing it open.
+   * Unraid Help / dt click own visibility; tbnShow()'s .show() was leaving
+   * IPv4 address hints permanently expanded.
+   */
+  function tbnSetHelpMode(el, on) {
+    if (!el) {
+      return;
+    }
+    var $ = window.jQuery || window.$;
+    if (on) {
+      el.classList.remove('tbn-hidden');
+      if ($ && $('.nav-item.HelpButton').hasClass('active')) {
+        $(el).show();
+      } else {
+        el.style.display = '';
+      }
+    } else {
+      el.classList.add('tbn-hidden');
+      el.style.display = '';
+    }
+  }
+
   function tbnSyncBondMembers(form) {
     if (!form) {
       return;
@@ -626,10 +649,11 @@
 
     // Toggle static vs server labels/help on the shared address row
     var isServer = dhcp4 === 'server';
-    tbnShow(form.querySelector('.tbn-ipv4-addr-label-static'), showAddr4 && !isServer);
-    tbnShow(form.querySelector('.tbn-ipv4-addr-label-server'), showAddr4 && isServer);
-    tbnShow(form.querySelector('.tbn-ipv4-addr-help-static'), showAddr4 && !isServer);
-    tbnShow(form.querySelector('.tbn-ipv4-addr-help-server'), showAddr4 && isServer);
+    tbnShow(form.querySelector('.tbn-ipv4-addr-label-static'), showAddr4 && !isServer, false);
+    tbnShow(form.querySelector('.tbn-ipv4-addr-label-server'), showAddr4 && isServer, false);
+    // Help text: class-only — do not force open (Unraid Help / dt click)
+    tbnSetHelpMode(form.querySelector('.tbn-ipv4-addr-help-static'), showAddr4 && !isServer);
+    tbnSetHelpMode(form.querySelector('.tbn-ipv4-addr-help-server'), showAddr4 && isServer);
 
     // Autofill Unraid/pool defaults when switching into DHCP server (keep user edits)
     var addrBox = form.querySelector('.tbn-ipv4-addr');

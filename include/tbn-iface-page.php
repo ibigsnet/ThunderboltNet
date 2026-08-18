@@ -499,30 +499,33 @@ if (strpos($nm, '.') === false) {
                 value="<?= htmlspecialchars($pool_end_val) ?>" placeholder="<?= htmlspecialchars($dhcp_def_pe) ?>">
             </dd>
           </dl>
-          <blockquote class="inline_help">
-            First and last address handed out on this underlay (same subnet as Unraid’s address above).
-            Default fills <code>.2</code>–<code>.254</code> when Unraid is <code>.1</code>. Must not include Unraid’s own address.
-          </blockquote>
-<?php if (is_array($dhcp_safe)):
-  $st = $dhcp_safe['status'] ?? 'ok';
-  $plan = $dhcp_safe['plan'] ?? [];
-?>
-          <div class="tbn-notice<?= $st === 'block' ? ' tbn-notice-warn' : '' ?>" role="status">
-            <strong>DHCP server<?= $st === 'block' ? ' — blocked' : ($st === 'warn' ? ' — caution' : '') ?></strong>
-            — host <code><?= htmlspecialchars($plan['ip'] ?? '') ?>/<?= htmlspecialchars((string)($plan['prefix'] ?? 24)) ?></code>
-            · pool <code><?= htmlspecialchars(($plan['pool_start'] ?? '') . '–' . ($plan['pool_end'] ?? '')) ?></code>
-            on <code><?= htmlspecialchars($dhcp_safe['netdev'] ?? $if) ?></code>.
 <?php
-  $dhcp_msgs = array_values(array_filter(array_map('strval', $dhcp_safe['messages'] ?? [])));
-  if ($dhcp_msgs):
+  $dhcp_help_bits = [
+    'First and last address handed out on this underlay (same subnet as Unraid’s address above).',
+    'Default fills <code>.2</code>–<code>.254</code> when Unraid is <code>.1</code>. Must not include Unraid’s own address.',
+  ];
+  if (is_array($dhcp_safe)) {
+    $st = $dhcp_safe['status'] ?? 'ok';
+    $plan = $dhcp_safe['plan'] ?? [];
+    $status_lbl = $st === 'block' ? ' — blocked' : ($st === 'warn' ? ' — caution' : '');
+    $dhcp_help_bits[] =
+      '<strong>DHCP server' . $status_lbl . '</strong>'
+      . ' — host <code>' . htmlspecialchars($plan['ip'] ?? '') . '/'
+      . htmlspecialchars((string)($plan['prefix'] ?? 24)) . '</code>'
+      . ' · pool <code>' . htmlspecialchars(($plan['pool_start'] ?? '') . '–' . ($plan['pool_end'] ?? '')) . '</code>'
+      . ' on <code>' . htmlspecialchars($dhcp_safe['netdev'] ?? $if) . '</code>.';
+    $dhcp_msgs = array_values(array_filter(array_map('strval', $dhcp_safe['messages'] ?? [])));
+    if ($dhcp_msgs) {
+      $dhcp_help_bits[] = htmlspecialchars(implode(' ', $dhcp_msgs));
+    }
+    if ($st === 'block' && function_exists('tbn_dhcp_forum_help_html')) {
+      $dhcp_help_bits[] = tbn_dhcp_forum_help_html();
+    }
+  }
 ?>
-            <br><?= htmlspecialchars(implode(' ', $dhcp_msgs)) ?>
-<?php endif; ?>
-            <?php if ($st === 'block' && function_exists('tbn_dhcp_forum_help_html')) {
-              echo tbn_dhcp_forum_help_html();
-            } ?>
-          </div>
-<?php endif; ?>
+          <blockquote class="inline_help">
+            <?= implode(' ', $dhcp_help_bits) ?>
+          </blockquote>
         </div>
 
         <div class="tbn-static-ipv4 tbn-hidden">

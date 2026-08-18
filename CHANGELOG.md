@@ -1,3 +1,10 @@
+## 2026.08.18an
+
+- **UI:** IPv4 address / Unraid IPv4 address `inline_help` no longer forced open by
+  form sync (static or DHCP server). Hints follow Unraid Help / label click only.
+- **UI:** DHCP pool orange status box converted to the same blue helper note
+  (host / pool / iface plan text).
+
 ## 2026.08.18am
 
 - **Fix:** NAT uplink choice loop no longer overwrites the tbn tab `$label` (broke
