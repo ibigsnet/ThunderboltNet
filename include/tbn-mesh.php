@@ -544,13 +544,11 @@ function tbn_mesh_ensure_token(array &$cfg) {
 
 function tbn_mesh_legend_html() {
   return '<div class="tbn-mesh-legend" role="note">'
-    . '<p class="tbn-mesh-legend-title"><strong>Link check</strong> (Unraid ↔ Unraid plugin rate compare — <em>not</em> FRR)</p>'
-    . '<span class="tbn-mesh-pill tbn-mesh-green">Match</span> Both plugins report the same trained rates. '
-    . '<span class="tbn-mesh-pill tbn-mesh-orange">Unverified</span> Peer plugin silent, token mismatch, or not Unraid — <strong>not</strong> a bad cable. '
-    . '<span class="tbn-mesh-pill tbn-mesh-orange">Waiting…</span> First poll still pending. '
-    . '<span class="tbn-mesh-pill tbn-mesh-red">Mismatch</span> Both sides report different speeds — troubleshoot. '
-    . '<span class="tbn-muted">Row tint:</span> soft <em>blue</em> = peer online on a live path; green/red accents = link-check result only. '
-    . 'Enable / shared token: Thunderbolt → Settings → Peer link check.'
+    . '<span class="tbn-mesh-pill tbn-mesh-green">Match</span> Same trained rates. '
+    . '<span class="tbn-mesh-pill tbn-mesh-orange">Unverified</span> Peer silent / token mismatch / not Unraid — not a bad cable. '
+    . '<span class="tbn-mesh-pill tbn-mesh-orange">Waiting…</span> First poll pending. '
+    . '<span class="tbn-mesh-pill tbn-mesh-red">Mismatch</span> Different speeds. '
+    . '<span class="tbn-muted">Blue row = online path; green/red = check result. Token: Settings → Peer link check.</span>'
     . '</div>';
 }
 
@@ -608,9 +606,8 @@ function tbn_mesh_reports_panel_html(array $cfg = null) {
   }
   $html = '<div class="tbn-section tbn-mesh-panel">';
   $html .= '<h3>Peer link check</h3>';
-  $html .= '<p class="tbn-note">Optional Unraid↔Unraid trained-rate compare via a shared token '
-    . '(Thunderbolt → Settings → Peer link check). <strong>Not FRR.</strong> '
-    . 'Orange / Unverified is not a bad cable.</p>';
+  $html .= '<p class="tbn-note">Unraid↔Unraid trained-rate compare (shared token under Settings). '
+    . '<strong>Not FRR.</strong> Orange / Unverified is not a bad cable.</p>';
   // Single legend for the Peers tab (callers must not also print tbn_mesh_legend_html).
   $html .= tbn_mesh_legend_html();
   if (!$enabled) {

@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.17am">
+<!ENTITY version "2026.08.17an">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,9 +27,10 @@
 
 <CHANGES>
 ###&version;
-- Dashboard: re-apply thunderboltN ports patch on every install/upgrade (dropdown fix).
-- Help/docs: default-route advanced wording; DHCP server backlog note; .1/.2 stance; lanes math docs;
-  Peers link-check panel layout; Known peers details marker inset.
+- Peer link check panel: full table width, slim (not tall centered card).
+
+###2026.08.17am
+- Dashboard TB ports on install; help/docs; Peers details marker.
 
 ###2026.08.17ag–al
 - Blue help and eth0-layout polish: MTU number + jumbo checkbox and facts (1500 / 9000 / driver max),

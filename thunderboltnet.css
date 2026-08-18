@@ -1104,47 +1104,43 @@
 .tbn-details-help .tbn-details-body p {
   margin: 0.4rem 0;
 }
+/* Full width of Peers/Links tables — slim horizontal band, not a tall centered card */
 .tbn-mesh-panel {
-  margin: 1.25rem 0 1.5rem;
-  padding: 1rem 1.15rem 1.15rem;
+  margin: 0.75rem 0 1rem;
+  padding: 0;
   width: 100%;
-  max-width: none;
+  max-width: 100%;
   box-sizing: border-box;
-  border: 1px solid rgba(128, 128, 128, 0.28);
-  border-radius: 8px;
-  background: rgba(128, 128, 128, 0.04);
-  text-align: center;
+  text-align: left;
 }
 .tbn-mesh-panel > h3 {
-  margin: 0 0 0.5rem;
-  text-align: center;
+  margin: 0 0 0.25rem;
 }
-.tbn-mesh-panel > .tbn-note,
+.tbn-mesh-panel > .tbn-note {
+  margin: 0 0 0.45rem;
+}
 .tbn-mesh-panel > .tbn-muted {
-  max-width: 52rem;
-  margin-left: auto;
-  margin-right: auto;
-  text-align: center;
+  margin: 0.35rem 0;
 }
 .tbn-mesh-legend {
-  margin: 0.85rem auto 1rem;
-  padding: 0.75rem 1rem;
+  margin: 0.35rem 0 0.5rem;
+  padding: 0.45rem 0.65rem;
   border-radius: 6px;
   border: 1px solid rgba(128, 128, 128, 0.3);
-  background: rgba(128, 128, 128, 0.06);
-  font-size: 0.9em;
-  line-height: 1.55;
-  max-width: 52rem;
+  background: rgba(80, 140, 200, 0.05);
+  font-size: 0.88em;
+  line-height: 1.4;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   text-align: left;
 }
 .tbn-mesh-legend-title {
-  margin: 0 0 0.45rem;
-  text-align: center;
+  margin: 0 0 0.25rem;
 }
 .tbn-mesh-panel .tbn-table {
-  margin-left: auto;
-  margin-right: auto;
-  text-align: left;
+  width: 100%;
+  max-width: 100%;
 }
 /* Online = soft blue (path up). Mesh green/red only on first cell accents. */
 .tbn-peers-memory .tbn-peer-online td {

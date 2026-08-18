@@ -1,3 +1,8 @@
+## 2026.08.17an
+
+- **Peer link check** panel: span full width of Peers tables again; slim horizontal band
+  (drop tall centered card / 52rem caps); tighten legend copy.
+
 ## 2026.08.17am
 
 - **Dashboard:** call `tbn-dashboard-ports ensure` on plugin install/upgrade so thunderboltN
