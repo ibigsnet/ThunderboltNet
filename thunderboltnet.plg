@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.17aw">
+<!ENTITY version "2026.08.17ax">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,7 +27,7 @@
 
 <CHANGES>
 ###&version;
-- Peer link-check: unique host_id from machine-id+hostname (cloned USB / shared id).
+- Peer link-check: match peers by fabric UUID (board name ≠ hostname); host_id from machine-id+NAME.
 
 ###2026.08.17av
 - Peer link-check: auth-free mesh beacon (TCP 10807) bypasses Unraid login 302.

@@ -1,3 +1,9 @@
+## 2026.08.17ax
+
+- **Peer link-check matching:** pair links when the peer’s export has `peer_unique_id` equal to
+  a local controller UUID (sysfs `*-0`). Fixes Unverified when sysfs `device_name` is a board
+  product string instead of the Unraid hostname.
+
 ## 2026.08.17aw
 
 - **Peer link-check host_id:** derive from `/etc/machine-id` **plus** Unraid `NAME`/hostname.
