@@ -32,3 +32,16 @@ When bumping `&version;`: always `pack-txz.sh` **and commit** `archive/Thunderbo
 
 Use eth0’s pattern only: `$.post('/plugins/ThunderboltNet/include/tbn-network-info.php', {port}, …)` + `swal`.
 Unraid `$(document).ajaxSend` appends `csrf_token`. Raw `fetch` POST without CSRF exits empty and looks “stuck loading.”
+
+## Promoting main → stable (CA)
+
+**Required every time** (do not skip):
+
+1. Merge the intended main commit onto `stable`.
+2. **Pin** `pluginURL` / `raw` / `readme` to `…/stable/…` (never leave `main` in those entities).
+3. Verify `archive/ThunderboltNet-<ver>-x86_64-1.txz` exists on the branch.
+4. Push `stable`. Confirm with curl that stable `.plg` entities say `stable`.
+
+Use `scripts/promote-stable.sh` — it fails closed if pin is wrong.
+
+**Why:** Unraid stores the downloaded `.plg` on flash. **Update** always follows that file’s `pluginURL`, not the CA XML. If stable’s `.plg` content still says `main`, a CA install permanently joins the main update loop (Holo got `ap` this way after an earlier main-channel install / unpinned promote).
