@@ -181,7 +181,8 @@ function tbn_dhcp_server_safe($if, array $cfg = []) {
 }
 
 /**
- * Underlay addressing collision hints (Static or server) for UI banners.
+ * True underlay IP conflicts only (same IPv4 + foreign MAC in neigh).
+ * Seed /.2 dual-Unraid advice lives in docs + short inline_help — not orange banners.
  *
  * @return string[] human messages
  */
@@ -212,22 +213,9 @@ function tbn_underlay_collision_hints($if = null) {
     $neigh = [];
     @exec('ip neigh show dev ' . escapeshellarg($dev) . ' 2>/dev/null', $neigh);
     foreach ($neigh as $line) {
-      // Same IP, foreign MAC
+      // Same IP, foreign MAC — real duplicate
       if (preg_match('/^' . preg_quote($local, '/') . '\s+lladdr\s+([0-9a-f:]+)/i', $line, $m)) {
-        $hints[] = "{$dev}: address {$local} also seen with MAC {$m[1]} (duplicate IP / both ends using the same seed). Set one host to .1 or enable DHCP server.";
-      }
-    }
-    // Both-plugin-seed heuristic: we are .2 and .1 is FAILED (nothing there) while link is up
-    if (preg_match('/^10\.255\.\d+\.2$/', $local)) {
-      $carrier = @file_get_contents('/sys/class/net/' . $dev . '/carrier');
-      $failed1 = false;
-      foreach ($neigh as $line) {
-        if (preg_match('/^10\.255\.\d+\.1\s+.*FAILED/', $line)) {
-          $failed1 = true;
-        }
-      }
-      if (trim((string)$carrier) === '1') {
-        $hints[] = "{$dev}: live link while using seed {$local}. If the peer Unraid also uses .2, Peer link check cannot reach their export — use Unraid .1 / peer .2, or DHCP server on one side.";
+        $hints[] = "{$dev}: {$local} also has MAC {$m[1]} (duplicate IP).";
       }
     }
   }

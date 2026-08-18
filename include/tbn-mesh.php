@@ -618,7 +618,10 @@ function tbn_mesh_reports_panel_html(array $cfg = null) {
     return $html;
   }
   $at = $poll['at'] ?? '';
-  $html .= '<p class="tbn-muted">Last poll: ' . htmlspecialchars($at !== '' ? $at : 'never')
+  $at_disp = ($at !== '' && function_exists('tbn_format_when_html'))
+    ? tbn_format_when_html($at)
+    : htmlspecialchars($at !== '' ? $at : 'never');
+  $html .= '<p class="tbn-muted">Last poll: ' . $at_disp
     . ' · Peer reports cached: ' . count($hosts) . '</p>';
   if (!$hosts) {
     $html .= '<p class="tbn-muted">No peer reports yet. On each other Unraid: same token, export on, and a reachable private IP '

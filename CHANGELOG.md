@@ -1,3 +1,9 @@
+## 2026.08.17ap
+
+- Addressing orange banner: **only** confirmed ARP duplicate (same IP + foreign MAC) — not “still on seed .2”.
+- Peer link check **Last poll** uses same date display as Known peers **Last seen**.
+- Docs: short **Unraid↔Unraid addressing** note (`.1`/`.2` or DHCP server).
+
 ## 2026.08.17ao
 
 - **DHCP server** on Thunderbolt underlays (dnsmasq): assignment **Static / DHCP client / DHCP server**.

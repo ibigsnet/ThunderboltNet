@@ -363,12 +363,9 @@ if (strpos($nm, '.') === false) {
     : [];
 ?>
 <?php if ($coll_hints): ?>
-        <div class="tbn-notice" role="status">
-          <strong>Addressing conflict?</strong>
-          <?= htmlspecialchars($coll_hints[0]) ?>
-          <?php if (function_exists('tbn_dhcp_forum_help_html')) {
-            echo tbn_dhcp_forum_help_html();
-          } ?>
+        <div class="tbn-notice tbn-notice-warn" role="status">
+          <strong>Duplicate IP:</strong> <?= htmlspecialchars($coll_hints[0]) ?>
+          <?= tbn_help_docs_footer('docs/addressing.md', 'Unraid↔Unraid addressing') ?>
         </div>
 <?php endif; ?>
         <dl>
@@ -382,10 +379,10 @@ if (strpos($nm, '.') === false) {
           </dd>
         </dl>
         <blockquote class="inline_help">
-          <strong>Static</strong> — usual for Thunderbolt P2P (prefer Unraid <code>.1</code>, peer <code>.2</code>).
-          <strong>DHCP client</strong> — ask the far end for an address (often none on a bare cable → may land in 169.254/16).
-          <strong>DHCP server</strong> — Unraid hosts <code>.1</code> and serves <code>.2–.254</code> on this underlay only (Macs / come-and-go clients). Never on eth0/br0.
-          <?= tbn_help_docs_footer('docs/addressing.md', 'Addressing') ?>
+          <strong>Static</strong> — usual for Thunderbolt P2P.
+          <strong>DHCP client</strong> — ask the far end (may land in 169.254/16 if no server).
+          <strong>DHCP server</strong> — this host <code>.1</code>, pool <code>.2–.254</code> on this underlay only (not eth0/br0).
+          Two Unraids: see <?= tbn_help_docs_footer('docs/addressing.md', 'Unraid↔Unraid addressing') ?>.
         </blockquote>
         <div class="tbn-dhcp-server-v4 tbn-hidden">
 <?php if (is_array($dhcp_safe)):

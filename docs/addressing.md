@@ -66,7 +66,14 @@ For Macs / laptops that plug in for backups or syncs:
 
 **Safety:** before start we probe ARP/neigh and local addresses. If `.1` is already taken, server mode is **blocked** with a warning (post diagnostics on the [forum thread](https://forums.unraid.net/topic/200065-plugin-thunderbolt-net-host-to-host-networking-over-thunderbolt-345-and-usb44v2/)).
 
-**Dual Unraid:** do **not** leave both on the static seed `.2`. That causes duplicate addressing and Peer link check **Unverified** (`polled: 0` / unreachable export). Use `.1`+`.2`, or DHCP server on one side.
+### Unraid ↔ Unraid addressing
+
+Most users are Unraid↔Mac/PC, not two Unraids. If you **do** run two Unraid plugins on one cable:
+
+- Prefer **Static** with complementary hosts: one **`.1`**, one **`.2`** on the same `10.255.N.0/24`, **or**
+- **DHCP server** on one side only (that box becomes `.1` and serves the peer).
+
+Leaving **both** on the historical seed **`.2`** means neither can reach the other’s link-check export → Peer link check stays **Unverified** even with a matching token. The UI only orange-flags a **confirmed** duplicate (same IP + two MACs in ARP), not the mere use of `.2`.
 
 ---
 
