@@ -42,6 +42,6 @@ Unraid `$(document).ajaxSend` appends `csrf_token`. Raw `fetch` POST without CSR
 3. Verify `archive/ThunderboltNet-<ver>-x86_64-1.txz` exists on the branch.
 4. Push `stable`. Confirm with curl that stable `.plg` entities say `stable`.
 
-Use `scripts/promote-stable.sh` — it fails closed if pin is wrong.
+Use local `~/.local/share/ibigsnet-notes/plugin-ops/promote-thunderboltnet-stable.sh` (not in GitHub) — fails closed if pin is wrong.
 
 **Why:** Unraid stores the downloaded `.plg` on flash. **Update** always follows that file’s `pluginURL`, not the CA XML. If stable’s `.plg` content still says `main`, a CA install permanently joins the main update loop (Holo got `ap` this way after an earlier main-channel install / unpinned promote).

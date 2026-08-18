@@ -11,3 +11,8 @@
 NOTES.local.md
 .private/
 patches/
+
+# Local/lab only — not Unraid runtime (never ship in .txz)
+scripts/promote-stable.sh
+patches/*.ko
+patches/load-*.sh
