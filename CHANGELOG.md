@@ -1,3 +1,8 @@
+## 2026.08.17ay
+
+- **Peer link-check:** only validate the local Thunderbolt link that belongs to the fetched peer
+  (match remote `fabric_uuids` / hostname). Prevents painting FLOWZ orange/green from a Holo poll.
+
 ## 2026.08.17ax
 
 - **Peer link-check matching:** pair links when the peer’s export has `peer_unique_id` equal to

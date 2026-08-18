@@ -326,6 +326,7 @@ function tbn_mesh_snapshot(array $links = null, array $cfg = null) {
     'hostname' => gethostname() ?: '',
     'generated_at' => date('c'),
     'beacon_port' => tbn_mesh_beacon_port(),
+    'fabric_uuids' => tbn_mesh_local_fabric_uuids(),
     'links' => $out_links,
     'openfabric' => $of,
     'dhcp_servers' => tbn_mesh_dhcp_servers_snapshot($cfg),
@@ -588,24 +589,40 @@ function tbn_mesh_poll_all(array $cfg = null) {
     @file_put_contents(tbn_mesh_cache_dir() . '/' . $safe . '.json', json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
     $result['hosts'][] = ['host_id' => $hid, 'hostname' => $data['hostname'] ?? '', 'ip' => $t['ip'], 'links' => count($data['links'] ?? [])];
 
-    $our_fabrics = tbn_mesh_local_fabric_uuids();
-    $our_fabrics_lc = array_map('strtolower', $our_fabrics);
+    $our_fabrics_lc = array_map('strtolower', tbn_mesh_local_fabric_uuids());
+    $remote_fabrics_lc = array_map('strtolower', $data['fabric_uuids'] ?? []);
+    // Their link(s) that point at our controller(s)
+    $back_links = [];
+    foreach ($data['links'] ?? [] as $pl) {
+      if (($pl['media'] ?? '') !== 'thunderbolt') {
+        continue;
+      }
+      $pl_uid = strtolower(trim((string)($pl['peer_unique_id'] ?? '')));
+      if ($pl_uid !== '' && in_array($pl_uid, $our_fabrics_lc, true)) {
+        $back_links[] = $pl;
+      }
+    }
     foreach ($local_snap['links'] as $ll) {
       if (($ll['media'] ?? '') !== 'thunderbolt') continue;
       $pname = trim((string)($ll['peer_name'] ?? ''));
-      $puid = trim((string)($ll['peer_unique_id'] ?? ''));
+      $puid = strtolower(trim((string)($ll['peer_unique_id'] ?? '')));
       $match = null;
-      foreach ($data['links'] ?? [] as $pl) {
-        if (($pl['media'] ?? '') !== 'thunderbolt') continue;
-        $pl_uid = strtolower(trim((string)($pl['peer_unique_id'] ?? '')));
-        $pl_name = trim((string)($pl['peer_name'] ?? ''));
-        // Best: their link's peer UUID is one of our controllers (they see us)
-        if ($pl_uid !== '' && in_array($pl_uid, $our_fabrics_lc, true)) {
-          $match = $pl;
-          break;
-        }
-        // Name cross-check (peer_name may be board product, not Unraid hostname)
-        if ($pname !== '' && $remote_host !== '' && strcasecmp($pname, $remote_host) === 0) {
+      // Pair only if this local link is the path to the host we just fetched
+      $ll_is_remote = false;
+      if ($pname !== '' && $remote_host !== '' && strcasecmp($pname, $remote_host) === 0) {
+        $ll_is_remote = true;
+      }
+      if ($puid !== '' && $remote_fabrics_lc && in_array($puid, $remote_fabrics_lc, true)) {
+        $ll_is_remote = true;
+      }
+      if ($ll_is_remote && $back_links) {
+        $match = $back_links[0];
+      }
+      // Name cross-check fallback
+      if ($match === null && $pname !== '' && $remote_host !== '' && strcasecmp($pname, $remote_host) === 0) {
+        foreach ($data['links'] ?? [] as $pl) {
+          if (($pl['media'] ?? '') !== 'thunderbolt') continue;
+          $pl_name = trim((string)($pl['peer_name'] ?? ''));
           if ($our_host !== '' && ($pl_name === '' || strcasecmp($pl_name, $our_host) === 0)) {
             $match = $pl;
             break;
@@ -622,8 +639,6 @@ function tbn_mesh_poll_all(array $cfg = null) {
           $match = $rem_tb[0];
         }
       }
-      // Multi-link: pair by local peer fabric UUID appearing as a host we fetched…
-      // (already handled by our_fabrics match above)
       if ($match === null) continue;
       $gen = strtotime($data['generated_at'] ?? '') ?: $now;
       $stale = ($now - $gen) > $stale_secs;
