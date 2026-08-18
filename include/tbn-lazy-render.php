@@ -35,6 +35,28 @@ if ($iface !== '') {
   } else {
     $tbn_label = $iface;
   }
+  // After cable/peer change: re-apply Saved peer plan onto this path so the
+  // form matches the device that just came back (survives tbn renumber).
+  $resync = isset($_GET['resync']) && (string)$_GET['resync'] === '1';
+  if ($resync && function_exists('tbn_link_summaries') && function_exists('tbn_apply_peer_plan_to_iface')) {
+    try {
+      $peers = function_exists('tbn_load_peers_memory') ? tbn_load_peers_memory() : [];
+      foreach (tbn_link_summaries() as $L) {
+        if (($L['iface'] ?? '') !== $iface) {
+          continue;
+        }
+        $key = function_exists('tbn_peer_key_from_link')
+          ? tbn_peer_key_from_link($L, $peers)
+          : trim((string)($L['remote']['unique_id'] ?? ''));
+        if ($key !== '') {
+          @tbn_apply_peer_plan_to_iface($key, $iface);
+        }
+        break;
+      }
+    } catch (Throwable $e) {
+      // non-fatal — still render whatever is on flash
+    }
+  }
   // Full iface form (same as TbnN.page used to require directly)
   require '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-iface-page.php';
   exit;

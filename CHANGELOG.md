@@ -1,3 +1,9 @@
+## 2026.08.18al
+
+- **UI:** After cable changes, the open tbnN config form **reloads from the Saved peer**
+  when that link/UUID is restored (or swapped). Live poll detects peer identity change,
+  re-applies the peer plan, and refreshes form fields (IP, DHCP, NAT, MTU, etc.).
+
 ## 2026.08.18ak
 
 - **NAT lifecycle:** udev **remove** clears tagged NAT for that `thunderboltN`; **add**

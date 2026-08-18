@@ -968,6 +968,92 @@
     return false;
   }
 
+  /** Last-seen peer identity per thunderboltN (UUID or offline marker). */
+  var tbnIfacePeerSig = {};
+  /** Ifaces currently mid Saved-peer form reload (avoid poll thrash). */
+  var tbnIfaceReloading = {};
+
+  function tbnPeerSigFromLink(L) {
+    if (!L) {
+      return '';
+    }
+    var rem = L.remote || {};
+    var uid = String(rem.unique_id || '').trim();
+    if (uid) {
+      return uid;
+    }
+    var ifc = String(L.iface || '').trim();
+    var carrier = '';
+    if (L.local && L.local.carrier != null && L.local.carrier !== '') {
+      carrier = String(L.local.carrier);
+    }
+    return 'offline:' + ifc + ':' + carrier;
+  }
+
+  function tbnPeerUuidFromSig(sig) {
+    sig = String(sig || '');
+    if (!sig || sig.indexOf('offline:') === 0) {
+      return '';
+    }
+    return sig;
+  }
+
+  /**
+   * Invalidate + re-fetch a tbnN lazy panel. When resync=true, server re-applies
+   * the Saved peer plan before rendering so form fields match that device.
+   */
+  function tbnLazyReloadIface(ifc, opts) {
+    opts = opts || {};
+    if (!ifc || !/^thunderbolt\d+$/.test(ifc)) {
+      return;
+    }
+    if (tbnIfaceReloading[ifc]) {
+      return;
+    }
+    var nodes = document.querySelectorAll(
+      '.tbn-lazy-iface[data-tbn-lazy-iface="' + ifc + '"]'
+    );
+    if (!nodes.length) {
+      return;
+    }
+    var resync = !!opts.resync;
+    var url =
+      '/plugins/ThunderboltNet/include/tbn-lazy-render.php?iface=' +
+      encodeURIComponent(ifc) +
+      (resync ? '&resync=1' : '');
+    tbnIfaceReloading[ifc] = true;
+    for (var i = 0; i < nodes.length; i++) {
+      (function (target) {
+        target.removeAttribute('data-tbn-lazy-loaded');
+        target.removeAttribute('data-tbn-lazy-loading');
+        if (!tbnIsShown(target)) {
+          // Next tab show will fetch fresh (with resync via pending flag).
+          if (resync) {
+            target.setAttribute('data-tbn-pending-resync', '1');
+          }
+          return;
+        }
+        target.innerHTML =
+          '<p class="tbn-muted tbn-lazy-placeholder">Loading Saved peer config…</p>';
+        tbnLazyFetch(url, target, function () {
+          target.removeAttribute('data-tbn-pending-resync');
+          tbnIfaceReloading[ifc] = false;
+        });
+      })(nodes[i]);
+    }
+    // If nothing was visible, clear the reloading lock
+    var anyShown = false;
+    for (var j = 0; j < nodes.length; j++) {
+      if (tbnIsShown(nodes[j])) {
+        anyShown = true;
+        break;
+      }
+    }
+    if (!anyShown) {
+      tbnIfaceReloading[ifc] = false;
+    }
+  }
+
   function tbnLazyFetch(url, target, done) {
     if (!target || target.getAttribute('data-tbn-lazy-loaded') === '1') {
       if (done) {
@@ -1049,22 +1135,26 @@
   function tbnLazyEnsureIfaces() {
     var nodes = document.querySelectorAll('.tbn-lazy-iface[data-tbn-lazy-iface]');
     for (var i = 0; i < nodes.length; i++) {
-      if (!tbnIsShown(nodes[i])) {
-        continue;
-      }
-      var ifc = nodes[i].getAttribute('data-tbn-lazy-iface');
-      if (!ifc) {
-        continue;
-      }
-      tbnLazyFetch(
-        '/plugins/ThunderboltNet/include/tbn-lazy-render.php?iface=' + encodeURIComponent(ifc),
-        nodes[i],
-        function (ok) {
+      (function (target) {
+        if (!tbnIsShown(target)) {
+          return;
+        }
+        var ifc = target.getAttribute('data-tbn-lazy-iface');
+        if (!ifc) {
+          return;
+        }
+        var pending = target.getAttribute('data-tbn-pending-resync') === '1';
+        var q =
+          '/plugins/ThunderboltNet/include/tbn-lazy-render.php?iface=' +
+          encodeURIComponent(ifc) +
+          (pending ? '&resync=1' : '');
+        tbnLazyFetch(q, target, function (ok) {
           if (ok) {
+            target.removeAttribute('data-tbn-pending-resync');
             tbnLivePoll();
           }
-        }
-      );
+        });
+      })(nodes[i]);
     }
   }
 
@@ -1081,7 +1171,58 @@
     tbnLazyEnsureIfaces();
   }
 
-  /** Light live refresh: activity / IPs without full page reload. */
+  /**
+   * When the peer UUID on a path changes (cable / device swap / restore),
+   * reload that tbnN form from the Saved peer plan so fields match the device.
+   */
+  function tbnSyncIfaceFormsFromPeers(links) {
+    if (!links || !links.length) {
+      return;
+    }
+    var seen = {};
+    for (var i = 0; i < links.length; i++) {
+      var L = links[i];
+      var ifc = L.iface;
+      if (!ifc || !/^thunderbolt\d+$/.test(ifc)) {
+        continue;
+      }
+      seen[ifc] = true;
+      var next = tbnPeerSigFromLink(L);
+      var prev = tbnIfacePeerSig[ifc];
+      var liveUid = tbnPeerUuidFromSig(next);
+
+      if (prev === undefined) {
+        tbnIfacePeerSig[ifc] = next;
+        // Panel may already be loaded from an earlier peer; reconcile once.
+        var panel0 = document.querySelector(
+          '.tbn-lazy-iface[data-tbn-lazy-iface="' + ifc + '"]'
+        );
+        if (
+          panel0 &&
+          panel0.getAttribute('data-tbn-lazy-loaded') === '1' &&
+          !tbnIfaceReloading[ifc]
+        ) {
+          var form0 = panel0.querySelector('form.tbn-iface-form');
+          var bound0 = form0
+            ? String(form0.getAttribute('data-tbn-bound-peer') || '')
+            : '';
+          if (bound0 !== liveUid) {
+            tbnLazyReloadIface(ifc, { resync: liveUid !== '' });
+          }
+        }
+        continue;
+      }
+
+      if (prev === next) {
+        continue;
+      }
+      tbnIfacePeerSig[ifc] = next;
+      // Peer identity changed (restore, swap, or drop) — refresh form.
+      tbnLazyReloadIface(ifc, { resync: liveUid !== '' });
+    }
+  }
+
+  /** Light live refresh: activity / IPs; reload tbn forms when peer changes. */
   function tbnLivePoll() {
     if (!tbnThunderboltUiVisible()) {
       return;
@@ -1122,6 +1263,7 @@
             }
           }
         });
+        tbnSyncIfaceFormsFromPeers(data.links);
       })
       .catch(function () { /* ignore */ });
   }

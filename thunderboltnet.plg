@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.18ak">
+<!ENTITY version "2026.08.18al">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,10 +27,10 @@
 
 <CHANGES>
 ###&version;
-- NAT clears on unplug, restores on replug; NAT follows Saved peer (not leftover tbn slot).
+- tbnN form reloads from Saved peer when the link/UUID is restored after cable changes.
 
-###2026.08.18aj–ad
-- DHCP labels/pool; NAT share uplink; path line; bridge mutex; reapply/pool fixes.
+###2026.08.18ak–ad
+- NAT unplug/replug lifecycle; DHCP labels/pool; NAT share uplink; path line; bridge mutex.
 
 ###2026.08.18ac–aa
 - MTU 1500 default; shelve Steam docs; Network Settings lazy-load; Age humanized.

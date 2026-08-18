@@ -172,6 +172,7 @@ Matching Current and Saved after a normal Apply is expected — not duplicate se
 | **Plugin `startup`** | After plugins install at boot: e2e modprobe persist/reload + udev + reapply (array may still be stopped) |
 | **Array `started`** | When array reaches Started (Normal **or Maintenance**) — second pass + OpenFabric/Dashboard |
 | Open Peers/Status | Refresh online flags; dedupe ghost `iface:` rows; seed Saved from last addrs if missing |
+| **tbnN form open** (after cable change) | Live poll detects peer UUID change on that path and **reloads the tab form** from Saved (L3/MTU/NAT) so fields match the restored device |
 
 **Maintenance mode:** array **Started** still runs `event/started` — L3 reapply and udev reinstall run. Do not assume “maintenance = no plugin events.”
 

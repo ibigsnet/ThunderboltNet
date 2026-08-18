@@ -54,12 +54,17 @@ $vlan_ids = array_values(array_filter($vlan_ids, function ($v) {
 }));
 
 $peer = $rx = $tx = $rl = $tl = '';
+$bound_peer_uuid = '';
 $parent = @realpath('/sys/class/net/' . $if . '/device');
 if ($parent) {
   $up = dirname($parent);
   $peer = tbn_sysfs_str($up . '/device_name');
   if ($peer === '') {
     $peer = tbn_sysfs_str(dirname($up) . '/device_name');
+  }
+  $bound_peer_uuid = tbn_sysfs_str($up . '/unique_id');
+  if ($bound_peer_uuid === '') {
+    $bound_peer_uuid = tbn_sysfs_str(dirname($up) . '/unique_id');
   }
   foreach ([dirname($parent), dirname(dirname($parent))] as $c) {
     if (tbn_sysfs_str($c . '/rx_speed') !== '') {
@@ -156,7 +161,8 @@ if (strpos($nm, '.') === false) {
 
   <form method="POST" action="/update.php" target="progressFrame"
     id="tbn-form-<?= htmlspecialchars($label) ?>" class="tbn-iface-form"
-    data-tbn-slave="<?= $is_slave ? '1' : '0' ?>">
+    data-tbn-slave="<?= $is_slave ? '1' : '0' ?>"
+    data-tbn-bound-peer="<?= htmlspecialchars($bound_peer_uuid) ?>">
     <input type="hidden" name="#file" value="ThunderboltNet/ifaces/<?= htmlspecialchars($if) ?>.cfg">
     <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update-iface.php">
     <input type="hidden" name="#arg[1]" value="<?= htmlspecialchars($if) ?>">
