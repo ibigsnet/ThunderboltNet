@@ -151,21 +151,38 @@ function tbn_dhcp_server_plan($if, array $cfg = null) {
     $prefix = 24;
   }
 
-  // Default pool: first usable after network through last usable, excluding host
+  // Default pool: largest contiguous usable range that does NOT include the host IP.
   $net_l = ip2long($network);
   $bcast_l = $net_l | ((1 << (32 - $prefix)) - 1);
-  $def_start_l = $net_l + 1;
-  $def_end_l = $bcast_l - 1;
+  $first_l = $net_l + 1;
+  $last_l = $bcast_l - 1;
   $host_l = ip2long($ip);
-  if ($def_start_l === $host_l) {
-    $def_start_l++;
-  }
-  if ($def_end_l === $host_l) {
-    $def_end_l--;
+  $low_start = $first_l;
+  $low_end = $host_l - 1;
+  $high_start = $host_l + 1;
+  $high_end = $last_l;
+  $low_n = ($low_end >= $low_start) ? ($low_end - $low_start + 1) : 0;
+  $high_n = ($high_end >= $high_start) ? ($high_end - $high_start + 1) : 0;
+  if ($high_n >= $low_n && $high_n > 0) {
+    $def_start_l = $high_start;
+    $def_end_l = $high_end;
+  } elseif ($low_n > 0) {
+    $def_start_l = $low_start;
+    $def_end_l = $low_end;
+  } else {
+    // Degenerate /31-ish — fall back to classic .2–.254 style if possible
+    $def_start_l = $first_l;
+    $def_end_l = $last_l;
+    if ($def_start_l === $host_l) {
+      $def_start_l++;
+    }
+    if ($def_end_l === $host_l) {
+      $def_end_l--;
+    }
   }
   if ($def_start_l > $def_end_l) {
-    $def_start_l = $net_l + 1;
-    $def_end_l = $bcast_l - 1;
+    $def_start_l = $first_l;
+    $def_end_l = $last_l;
   }
   $pool_start = long2ip($def_start_l);
   $pool_end = long2ip($def_end_l);
@@ -177,11 +194,10 @@ function tbn_dhcp_server_plan($if, array $cfg = null) {
       && filter_var($pe, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)
       && tbn_dhcp_ip_in_subnet($ps, $network, $prefix)
       && tbn_dhcp_ip_in_subnet($pe, $network, $prefix)
-      && ip2long($ps) <= ip2long($pe)
-      && $ps !== $ip && $pe !== $ip) {
-    // Allow pool that doesn't include host; still reject if host sits inside range
+      && ip2long($ps) <= ip2long($pe)) {
     $ps_l = ip2long($ps);
     $pe_l = ip2long($pe);
+    // Reject if Unraid host address sits inside the pool
     if ($host_l < $ps_l || $host_l > $pe_l) {
       $pool_start = $ps;
       $pool_end = $pe;

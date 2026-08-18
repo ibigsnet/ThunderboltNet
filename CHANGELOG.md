@@ -1,3 +1,8 @@
+## 2026.08.18ai
+
+- **Fix:** DHCP server default pool excludes the Unraid host address even when the
+  host is not `.1` (pick largest contiguous usable range).
+
 ## 2026.08.18ah
 
 - **UI:** IPv4 assignment labels — Static (Manual User Config), DHCP Client
