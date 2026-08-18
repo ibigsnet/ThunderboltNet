@@ -120,15 +120,39 @@ function tbn_mesh_cache_dir() { return tbn_cfg_dir() . '/mesh-cache'; }
 
 function tbn_mesh_host_id() {
   $path = tbn_mesh_host_id_path();
+  // Derive from machine-id + hostname. Cloned Unraid USB sticks often share
+  // /etc/machine-id; hostname usually differs (NIROG vs HoloX3D). A copied
+  // ThunderboltNet/mesh_host_id file alone also used to cause self_host_id rejects.
+  $mid = is_readable('/etc/machine-id') ? trim((string)@file_get_contents('/etc/machine-id')) : '';
+  $host = gethostname() ?: (php_uname('n') ?: '');
+  // Unraid NAME= from ident.cfg is more stable than transient hostname
+  if (is_readable('/boot/config/ident.cfg')) {
+    $ident = (string)@file_get_contents('/boot/config/ident.cfg');
+    if (preg_match('/^NAME=\"([^\"]+)\"/m', $ident, $m) && trim($m[1]) !== '') {
+      $host = trim($m[1]);
+    }
+  }
+  $seed = strtolower($mid) . "\0" . strtolower($host);
+  if ($mid !== '' || $host !== '') {
+    $hex = md5($seed);
+    $id = substr($hex, 0, 8) . '-' . substr($hex, 8, 4) . '-' . substr($hex, 12, 4)
+      . '-' . substr($hex, 16, 4) . '-' . substr($hex, 20, 12);
+    @mkdir(tbn_cfg_dir(), 0755, true);
+    $prev = is_readable($path) ? trim((string)@file_get_contents($path)) : '';
+    if ($prev !== $id) {
+      @file_put_contents($path, $id . "\n");
+    }
+    return $id;
+  }
   if (is_readable($path)) {
     $id = trim((string)@file_get_contents($path));
-    if ($id !== '' && preg_match('/^[a-f0-9-]{8,64}$/i', $id)) return $id;
+    if ($id !== '' && preg_match('/^[a-f0-9-]{8,64}$/i', $id)) {
+      return $id;
+    }
   }
-  $id = is_readable('/etc/machine-id') ? trim((string)@file_get_contents('/etc/machine-id')) : '';
-  if ($id === '') $id = bin2hex(random_bytes(16));
-  if (strlen($id) === 32 && strpos($id, '-') === false) {
-    $id = substr($id,0,8).'-'.substr($id,8,4).'-'.substr($id,12,4).'-'.substr($id,16,4).'-'.substr($id,20,12);
-  }
+  $hex = bin2hex(random_bytes(16));
+  $id = substr($hex, 0, 8) . '-' . substr($hex, 8, 4) . '-' . substr($hex, 12, 4)
+    . '-' . substr($hex, 16, 4) . '-' . substr($hex, 20, 12);
   @mkdir(tbn_cfg_dir(), 0755, true);
   @file_put_contents($path, $id . "\n");
   return $id;

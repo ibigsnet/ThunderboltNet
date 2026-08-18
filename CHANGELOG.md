@@ -1,3 +1,8 @@
+## 2026.08.17aw
+
+- **Peer link-check host_id:** derive from `/etc/machine-id` **plus** Unraid `NAME`/hostname.
+  Cloned flash sticks often share machine-id; identical ids made polls report `self_host_id` and stay Unverified.
+
 ## 2026.08.17av
 
 - **Peer link-check:** mesh export via local **php -S beacon on TCP 10807** (token + private-IP gated).
