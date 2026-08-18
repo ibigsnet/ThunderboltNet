@@ -185,7 +185,7 @@ Underlay addressing above is still required when OpenFabric is on (link IPs + un
 
 ## Join an Unraid bridge (`br0`, `br0.10`, …)
 
-Use this when the Thunderbolt peer should sit on the **house LAN** for discovery (Steam Local Network Game Transfers, SMB browse, etc.). Direct Thunderbolt `/24` static links stay a separate island — see [steam-and-lan-discovery.md](steam-and-lan-discovery.md).
+Use this when the Thunderbolt peer should sit on the **house LAN** for discovery (SMB browse, mDNS-style LAN apps, etc.). Direct Thunderbolt `/24` static links stay a separate island from the management LAN.
 
 On each tbn tab: **Enable bridging = Yes**, then pick an **existing** bridge from the list
 (Unraid Network Settings must already have created `br0` / VLAN bridges).

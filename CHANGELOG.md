@@ -1,3 +1,9 @@
+## 2026.08.18ab
+
+- **Docs:** Remove public `steam-and-lan-discovery.md` and Steam-specific troubleshooting /
+  index entries for now (kept in local lab notes). Bridging copy points at house LAN /
+  [addressing.md](docs/addressing.md) only.
+
 ## 2026.08.18aa
 
 - **Perf:** Network Settings first paint no longer runs full Thunderbolt diagnostics for every
@@ -10,7 +16,7 @@
 
 - **Docs / bridge help:** Steam Local Network transfers discover the **house LAN subnet**, not a
   separate Thunderbolt `10.255.x` island — turning Wi‑Fi off on the library PC can make Steam
-  fall back to another LAN PC. New [steam-and-lan-discovery.md](docs/steam-and-lan-discovery.md).
+  fall back to another LAN PC. Steam/LAN discovery notes (later shelved from public docs).
 - Unraid **join `br0`** is the supported way to put a TB peer on house LAN for Steam/SMB discovery;
   settings-reference no longer calls bridging “reserved.” Peer should use LAN addressing on its TB iface.
 

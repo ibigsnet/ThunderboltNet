@@ -16,7 +16,6 @@ Physical Thunderbolt/USB4 path  →  kernel thunderbolt_net (thunderboltN)
 | Install / update | [../RELEASES.md](../RELEASES.md) |
 | First plug / defaults | [../DOCS.md](../DOCS.md) |
 | Known peers, Current/Saved, Forget, renumber | [peers-and-plans.md](peers-and-plans.md) |
-| Steam LAN transfer still on Wi‑Fi | [steam-and-lan-discovery.md](steam-and-lan-discovery.md) |
 | Why is my rate “only 20G · 1-lane”? | [standards-and-speeds.md](standards-and-speeds.md) |
 | Dual cable / multi-peer / ring | [links-and-topology.md](links-and-topology.md) |
 | Multi-hop routing / FRR | [routing-openfabric.md](routing-openfabric.md) |
@@ -33,7 +32,6 @@ Physical Thunderbolt/USB4 path  →  kernel thunderbolt_net (thunderboltN)
 | [peer-scenarios.md](peer-scenarios.md) | Unraid ↔ Linux, Proxmox, macOS, Windows, docks/hubs |
 | [peers-and-plans.md](peers-and-plans.md) | UUID peers, Current/Saved, Forget, vs Interface Rules |
 | [addressing.md](addressing.md) | `/24` vs `/30`, unique subnets, path cfg vs Saved, join `br0` |
-| [steam-and-lan-discovery.md](steam-and-lan-discovery.md) | Steam Local Network transfers vs Thunderbolt; bridge / TB-only island |
 | [standards-and-speeds.md](standards-and-speeds.md) | Directionality, bandwidth table, mixing gens/cables/lanes, FAQ |
 | [port-icons.md](port-icons.md) | Rear-panel silkscreen: lightning/40 vs SS — do I have Thunderbolt? |
 | [mtu-and-throughput.md](mtu-and-throughput.md) | MTU 1500 vs 9000, jumbo both ends |

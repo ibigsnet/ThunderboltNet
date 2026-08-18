@@ -336,11 +336,10 @@ if (strpos($nm, '.') === false) {
       <blockquote class="inline_help">
         Join this Thunderbolt interface into an <strong>existing</strong> Unraid bridge
         (<code>br0</code>, VLAN <code>br0.10</code>, …) so the peer can sit on the
-        <strong>house LAN</strong> (Steam discovery, SMB browse, etc.).
+        <strong>house LAN</strong> (SMB browse, LAN discovery, etc.).
         Does not create or delete bridges — those stay under Network Settings.
         Default <strong>No</strong>. One bridge only (kernel limit).
-        <?= tbn_help_docs_footer('docs/steam-and-lan-discovery.md', 'Steam / LAN discovery') ?>
-        · <?= tbn_help_docs_footer('docs/addressing.md', 'Addressing / bridging') ?>
+        <?= tbn_help_docs_footer('docs/addressing.md', 'Addressing / bridging') ?>
       </blockquote>
       <div class="tbn-bridge-opts tbn-hidden">
         <dl>

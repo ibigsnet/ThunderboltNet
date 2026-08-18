@@ -18,7 +18,6 @@
 - [Two cables, still one interface (or worse)](#two-cables-still-one-interface-or-worse)
 - [One-way traffic / flaky after reboot](#one-way-traffic-flaky-after-reboot)
 - [Controller probe fails / no Thunderbolt devices after reboot](#controller-probe-fails--no-thunderbolt-devices-after-reboot)
-- [Steam / LAN transfers use Wi‑Fi not Thunderbolt](#steam--lan-transfers-use-wifi-not-thunderbolt)
 - [Do not](#do-not)
 - [OpenFabric / FRR (multi-hop)](#openfabric-frr-multi-hop)
 - [Peer-specific notes](#peer-specific-notes)
@@ -221,17 +220,6 @@ Software cleanup alone may not fix NO-CARRIER / missing peer:
 | Still dead | BIOS Thunderbolt enabled; NHI not bound to vfio; try another cable/port; see [No Thunderbolt hardware detected](#no-thunderbolt-hardware-detected) |
 
 Do **not** unbind the Thunderbolt **NHI** as a reset (can make this worse). Prefer power-off cycle + cable reseat.
-
-## Steam / LAN transfers use Wi‑Fi not Thunderbolt
-
-| Symptom | Cause | Fix |
-|---------|--------|-----|
-| Steam Local Network Game Transfer uses another PC on Wi‑Fi even though a Thunderbolt peer has the game | Steam discovers peers on the **house LAN subnet**; TB `/24` is a separate island | See [steam-and-lan-discovery.md](steam-and-lan-discovery.md) |
-| Turning Wi‑Fi off on the library PC makes Steam fall back to a different LAN PC | Library left the discovery subnet | Keep library on that subnet, **or** join Unraid TB into `br0`, **or** use a TB-only island (TB IPs + downloader Wi‑Fi off) |
-| Route metric / “prefer Thunderbolt” does nothing | Steam’s destination IP is still the Wi‑Fi address | Bridge into house LAN, or transfer to a TB address (not Steam’s auto picker alone) |
-
-Unraid: **tbn → Bridging = Yes → join `br0`**; peer uses a house-LAN IP on its Thunderbolt iface.  
-Desktop↔desktop: bring TB IPs up first; for Steam prefer downloader Wi‑Fi off so only the TB peer remains.
 
 ## Do not
 
