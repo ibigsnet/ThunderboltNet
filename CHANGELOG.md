@@ -1,3 +1,10 @@
+## 2026.08.17ar
+
+- **Bridging:** join an **existing** Unraid bridge (`br0`, `br0.10`, …) from the tbn tab.
+  Select from live bridges; Apply enslaves the Thunderbolt iface (no own IP on the member).
+  Does not create/destroy Unraid bridges; reapply on boot/hotplug when Bridging=Yes.
+  Mutual exclusion with bonding on that path; underlay DHCP server skipped while bridged.
+
 ## 2026.08.17aq
 
 - DHCP server Settings notice: print host / pool / netdev **once** (removed duplicate “Ready: …” line).

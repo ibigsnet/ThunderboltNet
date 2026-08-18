@@ -32,6 +32,16 @@ $membership = $live['masters'] ?? tbn_iface_membership_labels($if, $master);
 $is_bond_slave = ($master !== '' && (
   preg_match('/^bond-tb/', $master) || is_dir('/sys/class/net/' . $master . '/bonding')
 ));
+$is_bridge_slave = ($master !== '' && function_exists('tbn_is_bridge_netdev') && tbn_is_bridge_netdev($master));
+$is_slave = $is_bond_slave || $is_bridge_slave;
+$system_bridges = function_exists('tbn_list_system_bridges') ? tbn_list_system_bridges() : [];
+$br_cfg = (string)($cfg['BR_NAME'] ?? '');
+// Keep configured bridge in the list even if momentarily missing (e.g. mid-boot)
+if ($br_cfg !== '' && !in_array($br_cfg, $system_bridges, true) && preg_match('/^[A-Za-z0-9_.-]+$/', $br_cfg)) {
+  $system_bridges[] = $br_cfg;
+  natcasesort($system_bridges);
+  $system_bridges = array_values($system_bridges);
+}
 $tb_ifaces = tbn_list_tb_iface_names();
 $bond_members_sel = tbn_parse_bond_members($cfg['BOND_MEMBERS'] ?? '', false);
 if (!$bond_members_sel && ($cfg['BOND_MEMBERS'] ?? '') === '') {
@@ -111,7 +121,7 @@ if (strpos($nm, '.') === false) {
 ?>
     · <?= htmlspecialchars($iface_rate !== '' ? $iface_rate : '—') ?>
 <?php endif; ?>
-<?php if ($is_bond_slave): ?>
+<?php if ($is_slave): ?>
     · <strong>member of <?= htmlspecialchars($master) ?></strong>
 <?php endif; ?>
     <span class="tbn-muted"><br>Same idea as eth0: static IP on this path, Apply. Defaults use <code>10.255.N.2/24</code> for thunderboltN.</span>
@@ -126,11 +136,20 @@ if (strpos($nm, '.') === false) {
       same idea as eth0 when it is in bond0.
     </p>
   </div>
+<?php elseif ($is_bridge_slave): ?>
+  <div class="tbn-notice" role="status">
+    <h4>Bridge member</h4>
+    <p>
+      This interface is enslaved to <code><?= htmlspecialchars($master) ?></code>.
+      Addressing stays on the bridge (e.g. Unraid <code>br0</code> / VLAN <code>br0.10</code>) —
+      same idea as eth0 when bridging is enabled in Network Settings.
+    </p>
+  </div>
 <?php endif; ?>
 
   <form method="POST" action="/update.php" target="progressFrame"
     id="tbn-form-<?= htmlspecialchars($label) ?>" class="tbn-iface-form"
-    data-tbn-slave="<?= $is_bond_slave ? '1' : '0' ?>">
+    data-tbn-slave="<?= $is_slave ? '1' : '0' ?>">
     <input type="hidden" name="#file" value="ThunderboltNet/ifaces/<?= htmlspecialchars($if) ?>.cfg">
     <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update-iface.php">
     <input type="hidden" name="#arg[1]" value="<?= htmlspecialchars($if) ?>">
@@ -158,7 +177,7 @@ if (strpos($nm, '.') === false) {
     <dl>
       <dt>Enable interface:</dt>
       <dd>
-        <select name="ENABLE" <?= $is_bond_slave ? 'disabled' : '' ?>>
+        <select name="ENABLE" <?= $is_slave ? 'disabled' : '' ?>>
           <?= mk_option($cfg['ENABLE'] ?? 'yes', 'yes', 'Yes') ?>
           <?= mk_option($cfg['ENABLE'] ?? 'yes', 'no', 'No') ?>
         </select>
@@ -175,7 +194,7 @@ if (strpos($nm, '.') === false) {
       <dl>
         <dt>Enable bonding:</dt>
         <dd>
-          <select name="BONDING" class="tbn-ctl-bond" <?= $is_bond_slave ? 'disabled' : '' ?>>
+          <select name="BONDING" class="tbn-ctl-bond" <?= $is_slave ? 'disabled' : '' ?>>
             <?= mk_option($cfg['BONDING'] ?? 'no', 'no', 'No') ?>
             <?= mk_option($cfg['BONDING'] ?? 'no', 'yes', 'Yes') ?>
           </select>
@@ -258,7 +277,7 @@ if (strpos($nm, '.') === false) {
       <dl>
         <dt>OpenFabric participate:</dt>
         <dd>
-          <select name="OPENFABRIC_PARTICIPATE" <?= $is_bond_slave ? 'disabled' : '' ?>>
+          <select name="OPENFABRIC_PARTICIPATE" <?= $is_slave ? 'disabled' : '' ?>>
             <?= mk_option($cfg['OPENFABRIC_PARTICIPATE'] ?? 'yes', 'yes', 'Yes (default)') ?>
             <?= mk_option($cfg['OPENFABRIC_PARTICIPATE'] ?? 'yes', 'passive', 'Passive') ?>
             <?= mk_option($cfg['OPENFABRIC_PARTICIPATE'] ?? 'yes', 'no', 'No') ?>
@@ -275,7 +294,7 @@ if (strpos($nm, '.') === false) {
       <dl>
         <dt>OpenFabric metric mode:</dt>
         <dd>
-          <select name="OPENFABRIC_METRIC_MODE" <?= $is_bond_slave ? 'disabled' : '' ?>>
+          <select name="OPENFABRIC_METRIC_MODE" <?= $is_slave ? 'disabled' : '' ?>>
             <?= mk_option($cfg['OPENFABRIC_METRIC_MODE'] ?? 'auto', 'auto', 'Auto from trained rate') ?>
             <?= mk_option($cfg['OPENFABRIC_METRIC_MODE'] ?? 'auto', 'manual', 'Manual') ?>
           </select>
@@ -291,7 +310,7 @@ if (strpos($nm, '.') === false) {
         <dd>
           <input type="text" name="OPENFABRIC_METRIC" class="narrow" maxlength="8"
             value="<?= htmlspecialchars($cfg['OPENFABRIC_METRIC'] ?? '') ?>"
-            placeholder="auto" <?= $is_bond_slave ? 'disabled' : '' ?>>
+            placeholder="auto" <?= $is_slave ? 'disabled' : '' ?>>
         </dd>
       </dl>
       <blockquote class="inline_help">
@@ -315,30 +334,48 @@ if (strpos($nm, '.') === false) {
         </dd>
       </dl>
       <blockquote class="inline_help">
-        Reserved: shows name field when Yes. Full auto-bridge apply is still limited — prefer manual
-        <code>br-tb0</code> if you need a bridge today.
+        Join this Thunderbolt interface into an <strong>existing</strong> Unraid bridge
+        (<code>br0</code>, VLAN <code>br0.10</code>, …). Does not create or delete bridges —
+        those stay under Network Settings. One bridge only (kernel limit).
+        <?= tbn_help_docs_footer('docs/addressing.md', 'Addressing / bridging') ?>
       </blockquote>
       <div class="tbn-bridge-opts tbn-hidden">
         <dl>
-          <dt>Bridge name:</dt>
+          <dt>Join bridge:</dt>
           <dd>
+<?php if (!$system_bridges): ?>
             <input type="text" name="BR_NAME" class="tbn-ifname" maxlength="15"
-              value="<?= htmlspecialchars($cfg['BR_NAME'] ?? 'br-tb0') ?>"
-              placeholder="br-tb0">
+              value="<?= htmlspecialchars($br_cfg !== '' ? $br_cfg : 'br0') ?>"
+              placeholder="br0" <?= $is_bond_slave ? 'disabled' : '' ?>>
+            <p class="tbn-muted" style="margin:0.35em 0 0">No bridges detected yet — type an existing name (e.g. <code>br0</code>) or enable bridging on eth0 first.</p>
+<?php else: ?>
+            <select name="BR_NAME" class="tbn-ctl-br-name" <?= $is_bond_slave ? 'disabled' : '' ?>>
+<?php
+  $sel_br = $br_cfg;
+  if ($sel_br === '' || !in_array($sel_br, $system_bridges, true)) {
+    $sel_br = in_array('br0', $system_bridges, true) ? 'br0' : $system_bridges[0];
+  }
+  foreach ($system_bridges as $br):
+?>
+              <?= mk_option($sel_br, $br, $br) ?>
+<?php endforeach; ?>
+            </select>
+<?php endif; ?>
           </dd>
         </dl>
         <blockquote class="inline_help">
-          Default <code>br-tb0</code> (then <code>br-tb1</code>, …). Unraid management stays on <code>br0</code> —
-          never reuse that name. Only shown when bridging is Yes. Auto-create is still limited.
+          Member has no own IP — addressing stays on the bridge.
+          Prefer <strong>one</strong> end joining <code>br0</code> unless you understand L2 loops.
+          DHCP server on this tab is disabled while joined.
         </blockquote>
       </div>
     </div>
 
-    <div class="tbn-addressing <?= $is_bond_slave ? 'tbn-disabled-block' : '' ?>">
+    <div class="tbn-addressing <?= $is_slave ? 'tbn-disabled-block' : '' ?>">
       <dl>
         <dt>Network protocol:</dt>
         <dd>
-          <select name="PROTOCOL" class="tbn-ctl-proto" <?= $is_bond_slave ? 'disabled' : '' ?>>
+          <select name="PROTOCOL" class="tbn-ctl-proto" <?= $is_slave ? 'disabled' : '' ?>>
             <?= mk_option($cfg['PROTOCOL'] ?? 'ipv4', 'ipv4', 'IPv4 only') ?>
             <?= mk_option($cfg['PROTOCOL'] ?? 'ipv4', 'ipv6', 'IPv6 only') ?>
             <?= mk_option($cfg['PROTOCOL'] ?? 'ipv4', 'ipv4+ipv6', 'IPv4 + IPv6') ?>
@@ -554,11 +591,11 @@ if (strpos($nm, '.') === false) {
         <input type="number" name="MTU" class="narrow tbn-mtu-input" min="<?= (int)$mtu_lim['min'] ?>"
           max="<?= (int)$mtu_lim['max'] ?>" placeholder="1500"
           value="<?= htmlspecialchars($mtu_val) ?>"
-          <?= ($mtu_use && !$is_bond_slave) ? '' : 'disabled' ?>>
+          <?= ($mtu_use && !$is_slave) ? '' : 'disabled' ?>>
         <span>
           <input type="hidden" name="USE_MTU" value="no">
           <input type="checkbox" name="USE_MTU" value="yes" class="tbn-ctl-mtu"
-            <?= $mtu_use ? 'checked' : '' ?> <?= $is_bond_slave ? 'disabled' : '' ?>>
+            <?= $mtu_use ? 'checked' : '' ?> <?= $is_slave ? 'disabled' : '' ?>>
           Enable jumbo frames
           <i class="fa fa-info-circle blue-text hand" title="<?= htmlspecialchars($jumbo_title) ?>"></i>
         </span>
@@ -574,11 +611,11 @@ if (strpos($nm, '.') === false) {
       <?= tbn_help_docs_footer('docs/mtu-and-throughput.md', 'MTU & throughput') ?>
     </blockquote>
 
-    <div class="tbn-section-vlan <?= $is_bond_slave ? 'tbn-disabled-block' : '' ?>">
+    <div class="tbn-section-vlan <?= $is_slave ? 'tbn-disabled-block' : '' ?>">
       <dl>
         <dt>Enable VLANs:</dt>
         <dd>
-          <select name="VLAN_ENABLE" class="tbn-ctl-vlan" <?= $is_bond_slave ? 'disabled' : '' ?>>
+          <select name="VLAN_ENABLE" class="tbn-ctl-vlan" <?= $is_slave ? 'disabled' : '' ?>>
             <?= mk_option($cfg['VLAN_ENABLE'] ?? 'no', 'no', 'No') ?>
             <?= mk_option($cfg['VLAN_ENABLE'] ?? 'no', 'yes', 'Yes') ?>
           </select>
@@ -647,7 +684,7 @@ if (strpos($nm, '.') === false) {
     </div>
 
     <p class="tbn-actions">
-      <input type="submit" name="#apply" value="Apply" <?= $is_bond_slave ? '' : 'disabled' ?>>
+      <input type="submit" name="#apply" value="Apply" <?= $is_slave ? '' : 'disabled' ?>>
       <input type="submit" name="#apply" value="Reset" onclick="return tbnConfirmReset(this.form);">
       <input type="button" value="Done" onclick="done()">
     </p>

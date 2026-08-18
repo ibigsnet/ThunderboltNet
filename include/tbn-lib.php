@@ -217,6 +217,61 @@ function tbn_iface_master($if) {
   return $real ? basename($real) : '';
 }
 
+/**
+ * Live Linux bridges on this host (for “join existing bridge”).
+ * Prefer Unraid-style names (br0, br0.10, br1, …); still include other bridges
+ * except common disposable ones (docker0, virbr*).
+ *
+ * @return string[]
+ */
+function tbn_list_system_bridges() {
+  $out = [];
+  foreach (glob('/sys/class/net/*/bridge') ?: [] as $p) {
+    $br = basename(dirname($p));
+    if ($br === '' || $br === 'docker0' || preg_match('/^virbr/', $br)) {
+      continue;
+    }
+    if (!preg_match('/^[A-Za-z0-9_.-]+$/', $br)) {
+      continue;
+    }
+    $out[] = $br;
+  }
+  $out = array_values(array_unique($out));
+  usort($out, function ($a, $b) {
+    // br0, br0.10, br1… before odd names
+    $sa = preg_match('/^br/', $a) ? 0 : 1;
+    $sb = preg_match('/^br/', $b) ? 0 : 1;
+    if ($sa !== $sb) {
+      return $sa - $sb;
+    }
+    return strnatcasecmp($a, $b);
+  });
+  return $out;
+}
+
+/** True if name is an existing bridge device. */
+function tbn_is_bridge_netdev($name) {
+  $name = (string)$name;
+  return $name !== '' && is_dir('/sys/class/net/' . $name . '/bridge');
+}
+
+/**
+ * Sanitize BR_NAME from cfg — must be an existing bridge when joining.
+ *
+ * @return string bridge name or ''
+ */
+function tbn_bridge_join_target(array $cfg) {
+  if (($cfg['BRIDGING'] ?? 'no') !== 'yes') {
+    return '';
+  }
+  $br = preg_replace('/[^A-Za-z0-9_.-]/', '', (string)($cfg['BR_NAME'] ?? ''));
+  if ($br === '' || !tbn_is_bridge_netdev($br)) {
+    return '';
+  }
+  // Never invent br-tb* here — join existing Unraid (or admin-created) bridges only.
+  return $br;
+}
+
 /** Human labels for bond/bridge membership. */
 function tbn_iface_membership_labels($if, $master = null) {
   if ($master === null) {
@@ -3435,27 +3490,48 @@ function tbn_apply_iface($if, array $opts = []) {
     @exec("ip link set {$ife} down 2>/dev/null");
     return ['ok' => true, 'iface' => $if, 'enabled' => false];
   }
-  // If this iface is enslaved to a bond, do not fight the bond master (eth-like).
+  // Join / leave an existing Unraid (or admin) bridge before L3 — member has no own IP.
+  // Mutual exclusion: bridging wins over bonding on this path.
+  $want_br = tbn_bridge_join_target($cfg);
+  if ($want_br !== '' && ($cfg['BONDING'] ?? 'no') === 'yes') {
+    // Prefer bridge when both set; leave bonding cfg alone but do not create a bond.
+  }
+  if ($want_br !== '') {
+    tbn_apply_bridge_join($if, $want_br);
+  } else {
+    // Bridging off (or invalid target): detach only if we were a *bridge* member
+    $cur = tbn_iface_master($if);
+    if ($cur !== '' && tbn_is_bridge_netdev($cur)) {
+      @exec('ip link set ' . escapeshellarg($if) . ' nomaster 2>/dev/null');
+    }
+  }
+
+  // If this iface is enslaved to a bond or bridge, do not fight the master (eth-like).
   $master = tbn_iface_master($if);
   $is_bond_slave = ($master !== '' && (
     preg_match('/^bond-tb/', $master) || is_dir('/sys/class/net/' . $master . '/bonding')
   ));
+  $is_bridge_slave = ($master !== '' && tbn_is_bridge_netdev($master));
+  $is_slave = $is_bond_slave || $is_bridge_slave;
 
-  // MTU on the netdev that carries the IP (slave: bond master owns MTU)
-  if (!$is_bond_slave) {
+  // MTU on the netdev that carries the IP (slave: master owns MTU)
+  if (!$is_slave) {
     tbn_apply_mtu($if, tbn_desired_mtu($cfg));
   }
 
-  if (!$is_bond_slave) {
+  if (!$is_slave) {
     tbn_apply_ip_block($if, $cfg, '');
     tbn_apply_vlans($if, $cfg);
+  } elseif ($is_bridge_slave) {
+    // Bridge owns addressing — ensure member has no leftover L3
+    tbn_iface_flush_l3($if, 0);
   }
 
-  // Listening include for this iface only
+  // Listening include for this iface only (bridge members usually leave No — LAN already on br0)
   tbn_set_listening_for_iface($if, ($cfg['INCLUDE_LISTENING'] ?? 'no') === 'yes' ? 'yes' : 'no');
 
   // Bonding — experimental; only when form enables it and ≥2 live Thunderbolt members
-  if (!$is_bond_slave && ($cfg['BONDING'] ?? 'no') === 'yes') {
+  if (!$is_slave && $want_br === '' && ($cfg['BONDING'] ?? 'no') === 'yes') {
     $members = tbn_parse_bond_members($cfg['BOND_MEMBERS'] ?? '', true);
     if (!$members && $if !== '') {
       $members = [$if];
@@ -3475,9 +3551,9 @@ function tbn_apply_iface($if, array $opts = []) {
     }
     // else: leave bonding=yes in cfg but do not create a useless 1-slave bond
   }
-  // DHCP server (after L3 / bond / bridge netdev exists)
+  // DHCP server (after L3 / bond exists). Never on a bridge member — LAN DHCP is Unraid's job.
   $dhcp_res = null;
-  if (!$is_bond_slave && function_exists('tbn_dhcp_server_apply')
+  if (!$is_slave && function_exists('tbn_dhcp_server_apply')
       && ((($cfg['USE_DHCP'] ?? '') === 'server') || (($cfg['USE_DHCP6'] ?? '') === 'server'))) {
     // Persist host .1 into cfg when serving so flash matches live
     if (($cfg['USE_DHCP'] ?? '') === 'server' && function_exists('tbn_dhcp_server_plan')) {
@@ -3487,11 +3563,13 @@ function tbn_apply_iface($if, array $opts = []) {
       tbn_write_iface_cfg($if, $cfg);
     }
     $dhcp_res = tbn_dhcp_server_apply($if, $cfg);
-  } elseif (!$is_bond_slave && function_exists('tbn_dhcp_server_stop')) {
+  } elseif (!$is_slave && function_exists('tbn_dhcp_server_stop')) {
     $netdev = function_exists('tbn_dhcp_netdev_for_cfg') ? tbn_dhcp_netdev_for_cfg($if, $cfg) : $if;
     if ($netdev !== '') {
       tbn_dhcp_server_stop($netdev);
     }
+  } elseif ($is_bridge_slave && function_exists('tbn_dhcp_server_stop')) {
+    tbn_dhcp_server_stop($if);
   }
 
   // Remember peers on Apply so Peers list fills without requiring a separate UI load.
@@ -3525,6 +3603,35 @@ function tbn_mask_to_prefix($mask) {
     return 24;
   }
   return substr_count(decbin($long), '1');
+}
+
+/**
+ * Enslave Thunderbolt iface into an existing bridge (br0, br0.10, …).
+ * Does not create or destroy the bridge — Unraid owns br0*.
+ */
+function tbn_apply_bridge_join($if, $bridge) {
+  $if = (string)$if;
+  $bridge = (string)$bridge;
+  if ($if === '' || $bridge === '' || !is_dir('/sys/class/net/' . $if)) {
+    return false;
+  }
+  if (!tbn_is_bridge_netdev($bridge)) {
+    return false;
+  }
+  // Drop L3 on member before enslaving
+  if (function_exists('tbn_iface_flush_l3')) {
+    tbn_iface_flush_l3($if, 0);
+  }
+  $cur = tbn_iface_master($if);
+  if ($cur !== '' && $cur !== $bridge) {
+    @exec('ip link set ' . escapeshellarg($if) . ' nomaster 2>/dev/null');
+  }
+  @exec('ip link set ' . escapeshellarg($if) . ' up 2>/dev/null');
+  @exec('ip link set ' . escapeshellarg($bridge) . ' up 2>/dev/null');
+  if ($cur !== $bridge) {
+    @exec('ip link set ' . escapeshellarg($if) . ' master ' . escapeshellarg($bridge) . ' 2>/dev/null');
+  }
+  return tbn_iface_master($if) === $bridge;
 }
 
 /**

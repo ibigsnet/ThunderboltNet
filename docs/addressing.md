@@ -181,4 +181,16 @@ Underlay addressing above is still required when OpenFabric is on (link IPs + un
 
 - Peer OS setup: [peer-scenarios.md](peer-scenarios.md)  
 - Settings fields: [settings-reference.md](settings-reference.md)  
-- Topology / multi-peer: [links-and-topology.md](links-and-topology.md)  
+- Topology / multi-peer: [links-and-topology.md](links-and-topology.md)
+
+## Join an Unraid bridge (`br0`, `br0.10`, …)
+
+On each tbn tab: **Enable bridging = Yes**, then pick an **existing** bridge from the list
+(Unraid Network Settings must already have created `br0` / VLAN bridges).
+
+- Thunderbolt becomes a **member** — no own IP on that tab; addressing stays on the bridge.
+- The plugin does **not** create or delete Unraid bridges.
+- Hotplug / boot reapply re-enslaves when bridging stays Yes.
+- Prefer **one** side joining `br0` unless you understand L2 loops / STP.
+- Underlay DHCP server on that tab is not used while the iface is a bridge member.
+
