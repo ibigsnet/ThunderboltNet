@@ -163,7 +163,7 @@ A filled **gateway** without default route still only matters for routes you add
 
 ### Share host uplink (NAT)
 
-If the **peer** needs house LAN / internet **via Unraid**, use **Share host uplink (NAT)** on the Unraid tbn tab (not “Enable default route”). Peer sets its default gateway to Unraid’s TB IP. See [nat-share-uplink.md](nat-share-uplink.md).
+If the peer needs internet **through Unraid** (no uplink of its own), use **Share host uplink (NAT)** on the Unraid tbn tab (not “Enable default route”). Peer sets its default gateway to Unraid’s TB IP. Cannot combine with Enable bridging. See [nat-share-uplink.md](nat-share-uplink.md).
 
 ---
 
@@ -189,7 +189,7 @@ Underlay addressing above is still required when OpenFabric is on (link IPs + un
 
 ## Join an Unraid bridge (`br0`, `br0.10`, …)
 
-Use this when the Thunderbolt peer should sit on the **house LAN** for discovery (SMB browse, mDNS-style LAN apps, etc.). Direct Thunderbolt `/24` static links stay a separate island from the management LAN.
+Optional. Default No. Use when the Thunderbolt peer should use the **same addressing as an existing Unraid bridge** (`br0`, `br0.10`, …) — same idea as eth0 when bridged. Direct Thunderbolt `/24` static links stay on their own subnet. Mutually exclusive with Share host uplink (NAT).
 
 On each tbn tab: **Enable bridging = Yes**, then pick an **existing** bridge from the list
 (Unraid Network Settings must already have created `br0` / VLAN bridges).

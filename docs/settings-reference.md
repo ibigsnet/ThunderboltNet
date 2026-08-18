@@ -67,13 +67,13 @@ Does **not** register Thunderbolt in stock **Interface Rules** (MAC→name). Hos
 | OpenFabric participate | **Yes** | yes / passive / no on this underlay |
 | OpenFabric metric mode | auto | auto from trained rate, or manual |
 | OpenFabric metric | empty | Manual integer when mode=manual |
-| Enable bridging | No | Join an **existing** Unraid bridge (`br0`, `br0.N`, …). Member has no own IP; peer uses house-LAN addressing on its TB iface. Default No — [addressing.md](addressing.md#join-an-unraid-bridge-br0-br010-) |
+| Enable bridging | No | Optional. Join an **existing** Unraid bridge (`br0`, `br0.N`, …). Mutually exclusive with NAT — [addressing.md](addressing.md#join-an-unraid-bridge-br0-br010-) |
 | Network protocol | IPv4 only | IPv6 limited |
 | IPv4 assignment | Static | Prefer static on host↔host |
 | IPv4 address / mask | 10.255.N.2 / 24 | Unique subnet per N |
 | IPv4 default gateway | empty | Optional next hop on this link |
 | Enable default route | No | Don’t steal system default from eth0 |
-| Share host uplink (NAT) | **No** | Rare. Peer sits on private TB subnet *behind* Unraid’s LAN and can use Unraid for internet (e.g. Proxmox on TB needing updates). Usual P2P copy/SMB: leave No — [nat-share-uplink.md](nat-share-uplink.md) |
+| Share host uplink (NAT) | **No** | Optional. Peer reaches internet through Unraid (e.g. Proxmox on TB needing updates). Usual P2P: leave No. Mutually exclusive with bridging — [nat-share-uplink.md](nat-share-uplink.md) |
 | NAT uplink interface | **Auto** | Shown when NAT is Yes. Auto = Unraid’s default-route iface (`br0`/`wlan0`/…) |
 | Address schema (read-only) | (derived) | Underlay CIDR · plan · host IP · peer hint · NAT on/off |
 | Desired MTU | **1500** (default) | Leave 1500 unless you opt into jumbo. **Enable jumbo frames** + 9000 (typical) can reduce packet/CPU cost on older or weaker hosts; **both ends must match**. See [mtu-and-throughput.md](mtu-and-throughput.md) |

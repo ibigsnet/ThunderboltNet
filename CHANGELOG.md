@@ -1,3 +1,9 @@
+## 2026.08.18ag
+
+- **UI:** NAT and Enable bridging are mutually exclusive (last change wins; Apply
+  reconciles flash). Hide the other section while one is Yes.
+- **Copy:** Drop “house LAN” phrasing; prefer optional / default No and concrete examples.
+
 ## 2026.08.18af
 
 - **Help:** Shorter NAT hints — default No; usual P2P does not need it; Yes = peer on private TB

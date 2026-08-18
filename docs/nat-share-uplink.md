@@ -1,10 +1,10 @@
 # Share host uplink (NAT)
 
-**Default: No.** Most Thunderbolt users only need a private pipe between two machines (copy / SMB on `10.255.x`). Leave NAT off.
+**Optional. Default: No.** Typical Thunderbolt (copy / SMB between two hosts on a private TB address) does not need this.
 
-**Yes** means the Thunderbolt peer lives on its own private subnet *behind* Unraid’s normal LAN (`br0` / `eth0` / `wlan0`). Unraid forwards and MASQUERADEs so that peer can reach the house network / internet **through Unraid** — for example a Proxmox or Debian box on TB that has no Wi‑Fi and needs `apt update`. The peer’s default gateway is Unraid’s tbn IP.
+**Yes:** the peer keeps a private Thunderbolt IP and reaches the internet **through Unraid** (Unraid NATs toward `br0` / `eth0` / `wlan0`). Example: Proxmox on TB with no other uplink, needs `apt update`. Peer default gateway = Unraid’s tbn IP.
 
-This is not “join house LAN” (that’s [bridging to br0](addressing.md#join-an-unraid-bridge-br0-br010-)). Bridging puts the peer *on* the LAN; NAT keeps it on a separate TB subnet behind Unraid.
+**Not the same as Enable bridging** (join an existing Unraid `br0`). Bridging puts the peer on that bridge’s network; NAT keeps a separate TB subnet and forwards via Unraid. The UI will not allow both Yes at once.
 
 ---
 
@@ -86,8 +86,7 @@ Examples: Proxmox `/etc/network/interfaces`, Debian ifupdown/Netplan, another Un
 
 | Uplink | When |
 |--------|------|
-| **br0** (or bond0) | Preferred when Unraid’s house LAN / default route is on the bridge |
-| **eth0** | Fine if that is the routed iface (no bridge) |
+| **br0** (or bond0) | Preferred when Unraid’s default route is on the bridge || **eth0** | Fine if that is the routed iface (no bridge) |
 | **wlan0** | Fine for lab boxes that only have Wi‑Fi uplink (same NAT feature) |
 | **Auto** | Follows whatever currently owns the IPv4 default route |
 

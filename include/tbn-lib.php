@@ -3664,8 +3664,29 @@ function tbn_remove_net_udev() {
  *
  * @param array $opts skip_peer_capture=true when applying from a peer plan (avoid recursion)
  */
+/**
+ * NAT (private TB underlay via Unraid uplink) and join-existing-bridge cannot both be Yes.
+ * Prefer the explicit request: if both set, NAT wins when called after UI force; otherwise bridging
+ * clears NAT (bridge member has no underlay IP to MASQUERADE).
+ */
+function tbn_iface_reconcile_nat_bridge(array $cfg) {
+  $nat = strtolower(trim((string)($cfg['NAT_ENABLE'] ?? 'no'))) === 'yes';
+  $br = strtolower(trim((string)($cfg['BRIDGING'] ?? 'no'))) === 'yes';
+  if ($nat && $br) {
+    // Keep NAT; drop bridging (peer-behind-Unraid model needs its own underlay IP).
+    $cfg['BRIDGING'] = 'no';
+  }
+  return $cfg;
+}
+
 function tbn_apply_iface($if, array $opts = []) {
   $cfg = tbn_load_iface_cfg($if);
+  $before_br = (string)($cfg['BRIDGING'] ?? 'no');
+  $before_nat = (string)($cfg['NAT_ENABLE'] ?? 'no');
+  $cfg = tbn_iface_reconcile_nat_bridge($cfg);
+  if ((string)($cfg['BRIDGING'] ?? 'no') !== $before_br || (string)($cfg['NAT_ENABLE'] ?? 'no') !== $before_nat) {
+    tbn_write_iface_cfg($if, $cfg);
+  }
   if (!is_dir('/sys/class/net/' . $if)) {
     return ['ok' => false, 'error' => "interface {$if} not present"];
   }

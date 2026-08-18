@@ -340,11 +340,10 @@ if (strpos($nm, '.') === false) {
         </dd>
       </dl>
       <blockquote class="inline_help">
-        Join this Thunderbolt interface into an <strong>existing</strong> Unraid bridge
-        (<code>br0</code>, VLAN <code>br0.10</code>, …) so the peer can sit on the
-        <strong>house LAN</strong> (SMB browse, LAN discovery, etc.).
-        Does not create or delete bridges — those stay under Network Settings.
-        Default <strong>No</strong>. One bridge only (kernel limit).
+        Optional. Default <strong>No</strong>. Join this Thunderbolt interface into an
+        <strong>existing</strong> Unraid bridge (<code>br0</code>, <code>br0.10</code>, …) —
+        same idea as eth0 when bridged. Does not create or delete bridges.
+        Cannot combine with <strong>Share host uplink (NAT)</strong>.
         <?= tbn_help_docs_footer('docs/addressing.md', 'Addressing / bridging') ?>
       </blockquote>
       <div class="tbn-bridge-opts tbn-hidden">
@@ -501,22 +500,27 @@ if (strpos($nm, '.') === false) {
     ? tbn_nat_normalize_uplink($cfg['NAT_UPLINK'] ?? 'auto')
     : (string)($cfg['NAT_UPLINK'] ?? 'auto');
   $nat_choices = function_exists('tbn_nat_uplink_choices') ? tbn_nat_uplink_choices() : ['auto', 'br0', 'eth0', 'wlan0'];
+  // Bridging and NAT are mutually exclusive (reconciled again on Apply).
+  if (($cfg['BRIDGING'] ?? 'no') === 'yes') {
+    $nat_en = 'no';
+  }
 ?>
+          <div class="tbn-nat-section">
           <dl>
             <dt>Share host uplink (NAT):</dt>
             <dd>
-              <select name="NAT_ENABLE">
+              <select name="NAT_ENABLE" class="tbn-ctl-nat">
                 <?= mk_option($nat_en, 'no', 'No') ?>
                 <?= mk_option($nat_en, 'yes', 'Yes') ?>
               </select>
             </dd>
           </dl>
           <blockquote class="inline_help">
-            Default <strong>No</strong> — most Thunderbolt setups (copy files / SMB between two machines) do not need this.
-            <strong>Yes</strong> puts the Thunderbolt peer on its own private subnet <em>behind</em> Unraid’s normal LAN
-            (br0/eth0/wlan0), so the peer can reach the internet through Unraid — e.g. a Proxmox box on TB that needs
-            <code>apt update</code> but has no Wi‑Fi of its own. Peer gateway = this Unraid’s tbn IP. Not the same as
-            “Enable default route” above. Apply with No removes the NAT rules for this link.
+            Optional. Default <strong>No</strong> — typical Thunderbolt (copy / SMB between two hosts) does not need it.
+            <strong>Yes</strong>: peer keeps a private Thunderbolt address and reaches the internet
+            <em>through Unraid</em> (NAT toward <code>br0</code>/<code>eth0</code>/<code>wlan0</code>).
+            Example: Proxmox on TB with no other uplink, needs <code>apt update</code>.
+            Peer gateway = this Unraid’s tbn IP. Cannot combine with Enable bridging.
             <?= tbn_help_docs_footer('docs/nat-share-uplink.md', 'NAT / share uplink') ?>
           </blockquote>
           <div class="tbn-nat-uplink-opts<?= $nat_en === 'yes' ? '' : ' tbn-hidden' ?>">
@@ -534,9 +538,10 @@ if (strpos($nm, '.') === false) {
               </dd>
             </dl>
             <blockquote class="inline_help">
-              Which Unraid interface faces the house LAN / internet.
-              <strong>Auto</strong> uses whatever carries Unraid’s default route (<code>br0</code>, <code>wlan0</code>, …).
+              Unraid interface that already reaches the internet (or your upstream LAN).
+              <strong>Auto</strong> = whatever carries Unraid’s default route.
             </blockquote>
+          </div>
           </div>
         </div>
       </div>

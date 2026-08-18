@@ -47,11 +47,11 @@ The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt l
 | IPv4 assignment | **Static** | No DHCP on a pure host↔host cable |
 | Suggested IPv4 | `10.255.N.2` / **24** for `thunderboltN` | One subnet per link; room for a few addresses |
 | Enable default route | **No** | Keep internet on eth0/br0; Thunderbolt stays peer-local |
-| Share host uplink (NAT) | **No** | Rare: TB peer behind Unraid’s LAN for internet via Unraid (e.g. Proxmox needing updates). Usual P2P: leave No — [nat-share-uplink.md](docs/nat-share-uplink.md) |
+| Share host uplink (NAT) | **No** | Optional. Peer reaches internet through Unraid (e.g. Proxmox on TB needing updates). Usual P2P: leave No — [nat-share-uplink.md](docs/nat-share-uplink.md) |
 | Include listening | **No** | Don’t advertise Unraid services on Thunderbolt unless you opt in |
 | MTU | **1500** (kernel default) | Easy default. Optional jumbo (often **9000 both ends**) can cut packet/CPU overhead on weaker hosts — [MTU & throughput](docs/mtu-and-throughput.md) |
 | Bonding | **Off** until ≥2 live Thunderbolt netdevs | Thunderbolt-only `bond-tb*`; dual-cable same-peer limited — [roadmap](docs/links-and-topology.md) |
-| Bridging | **No** | Opt-in join existing Unraid `br0` / `br0.N` so peers sit on house LAN (SMB browse, LAN discovery, etc.) — [addressing.md](docs/addressing.md#join-an-unraid-bridge-br0-br010-) |
+| Bridging | **No** | Optional. Join an existing Unraid `br0` / `br0.N` (same idea as eth0 bridged). Mutually exclusive with NAT — [addressing.md](docs/addressing.md#join-an-unraid-bridge-br0-br010-) |
 
 ---
 

@@ -603,7 +603,7 @@
    * eth0-like show/hide for protocol, DHCP static, bonding, bridging, VLANs.
    * Also enables Apply (Unraid greys Apply until change; Network Settings may bind late).
    */
-  window.tbnFormSync = function (form) {
+  window.tbnFormSync = function (form, ev) {
     if (!form) {
       return;
     }
@@ -633,15 +633,28 @@
     var bond = form.BONDING ? form.BONDING.value : 'no';
     tbnShow(form.querySelector('.tbn-bond-opts'), bond === 'yes' && !slave);
 
+    // NAT vs bridging: mutually exclusive. Last control the user changed wins.
+    var natEn = form.NAT_ENABLE ? form.NAT_ENABLE.value : 'no';
     var bridge = form.BRIDGING ? form.BRIDGING.value : 'no';
-    tbnShow(form.querySelector('.tbn-bridge-opts'), bridge === 'yes' && !slave);
+    var src = ev && ev.target ? ev.target.name : '';
+    if (src === 'NAT_ENABLE' && natEn === 'yes' && form.BRIDGING) {
+      form.BRIDGING.value = 'no';
+      bridge = 'no';
+    } else if (src === 'BRIDGING' && bridge === 'yes' && form.NAT_ENABLE) {
+      form.NAT_ENABLE.value = 'no';
+      natEn = 'no';
+    } else if (natEn === 'yes' && bridge === 'yes') {
+      // Both Yes in cfg (legacy): keep NAT, clear bridging
+      form.BRIDGING.value = 'no';
+      bridge = 'no';
+    }
+    tbnShow(form.querySelector('.tbn-section-bridge'), natEn !== 'yes' && !slave);
+    tbnShow(form.querySelector('.tbn-bridge-opts'), bridge === 'yes' && natEn !== 'yes' && !slave);
+    tbnShow(form.querySelector('.tbn-nat-section'), bridge !== 'yes' && !slave);
+    tbnShow(form.querySelector('.tbn-nat-uplink-opts'), natEn === 'yes' && bridge !== 'yes' && !slave);
 
     var vlan = form.VLAN_ENABLE ? form.VLAN_ENABLE.value : 'no';
     tbnShow(form.querySelector('.tbn-vlan-opts'), vlan === 'yes' && !slave);
-
-    // NAT uplink picker only when Share host uplink is Yes
-    var natEn = form.NAT_ENABLE ? form.NAT_ENABLE.value : 'no';
-    tbnShow(form.querySelector('.tbn-nat-uplink-opts'), natEn === 'yes' && !slave);
 
     // eth0-like: Desired MTU number + Enable jumbo frames checkbox
     var mtuInput = form.querySelector('input.tbn-mtu-input') || form.MTU;
@@ -678,13 +691,13 @@
       'select,input[type=text],input[type=number],input[type=password],input[type=checkbox],input[type=radio],textarea'
     );
     for (var i = 0; i < list.length; i++) {
-      list[i].addEventListener('input', function () {
+      list[i].addEventListener('input', function (ev) {
         tbnUnlockApply(form);
-        tbnFormSync(form);
+        tbnFormSync(form, ev);
       });
-      list[i].addEventListener('change', function () {
+      list[i].addEventListener('change', function (ev) {
         tbnUnlockApply(form);
-        tbnFormSync(form);
+        tbnFormSync(form, ev);
       });
     }
     form.addEventListener('submit', function () {
