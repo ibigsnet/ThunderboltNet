@@ -1,3 +1,7 @@
+## 2026.08.17au
+
+- `.plg` `<CHANGES>`: trim back to ~**7** summarized entries (range-bundle micro-ships) before Older → CHANGELOG.
+
 ## 2026.08.17at
 
 - **DHCP server:** stop emitting empty `option:router` / `option:dns-server` in dnsmasq conf.
