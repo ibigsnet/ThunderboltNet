@@ -47,6 +47,7 @@ The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt l
 | IPv4 assignment | **Static** | No DHCP on a pure host↔host cable |
 | Suggested IPv4 | `10.255.N.2` / **24** for `thunderboltN` | One subnet per link; room for a few addresses |
 | Enable default route | **No** | Keep internet on eth0/br0; Thunderbolt stays peer-local |
+| Share host uplink (NAT) | **No** | Opt-in: MASQUERADE underlay toward br0/eth0/wlan0 so peers can use Unraid as gateway — [nat-share-uplink.md](docs/nat-share-uplink.md) |
 | Include listening | **No** | Don’t advertise Unraid services on Thunderbolt unless you opt in |
 | MTU | **1500** (kernel default) | Easy default. Optional jumbo (often **9000 both ends**) can cut packet/CPU overhead on weaker hosts — [MTU & throughput](docs/mtu-and-throughput.md) |
 | Bonding | **Off** until ≥2 live Thunderbolt netdevs | Thunderbolt-only `bond-tb*`; dual-cable same-peer limited — [roadmap](docs/links-and-topology.md) |
@@ -61,6 +62,7 @@ The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt l
 | Driver options (`e2e`, modules) — **host-wide** | [docs/driver-options.md](docs/driver-options.md) |
 | Unraid ↔ Mac / Linux / Windows / docks & hubs | [docs/peer-scenarios.md](docs/peer-scenarios.md) |
 | `/24` vs `/30`, unique subnets per link | [docs/addressing.md](docs/addressing.md) |
+| Share Unraid uplink with TB peers (NAT) | [docs/nat-share-uplink.md](docs/nat-share-uplink.md) |
 | Thunderbolt 3–5 / USB4: **directionality**, bandwidth table, **mixing** gens/cables/lanes, FAQ | [docs/standards-and-speeds.md](docs/standards-and-speeds.md) |
 | MTU 1500 vs 9000, PPS overhead, both-ends setup | [docs/mtu-and-throughput.md](docs/mtu-and-throughput.md) |
 | Dashboard throughput / errors for tbn (thunderboltN) | [docs/dashboard-network.md](docs/dashboard-network.md) |

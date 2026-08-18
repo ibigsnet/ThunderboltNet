@@ -155,15 +155,15 @@ It is **not** Ethernet bridging and **not** Thunderbolt “domain fabric” in t
 
 ```text
   Application / SMB / NFS / Ceph / VMs
-              │
-              ▼
-     Kernel IP stack  ◄── zebra installs fabric routes
-              │
-     OpenFabric (fabricd)  ◄── adjacencies, SPF, metrics
-              │
-     Underlay: thunderbolt0..N (+ optional bond-tb*)
-              │
-     Thunderbolt / USB4 physical path (trained rate, lanes)
+                 │
+                 ▼
+      Kernel IP stack  ◄── zebra installs fabric routes
+                 │
+      OpenFabric (fabricd)  ◄── adjacencies, SPF, metrics
+                 │
+      Underlay: thunderbolt0..N (+ optional bond-tb*)
+                 │
+      Thunderbolt / USB4 physical path (trained rate, lanes)
 ```
 
 ---
@@ -215,7 +215,7 @@ For each candidate path, **add the metrics of every hop**, then **use the path w
 ### Worked example: five-node ring (C–D is slower)
 
 ```text
-        20G      20G      10G      20G      20G
+       20G        20G        10G        20G        20G
    A -------- B -------- C -------- D -------- E -------- (back to A)
 ```
 
@@ -303,9 +303,11 @@ You do **not** need a Cisco OSPF simulator for a Thunderbolt ring — five nodes
 ```text
 Ring example (3 nodes):
 
-   [Unraid A] ----tb---- [Linux B]
-       |                     |
-       +--------tb--------[DGX/Strix C]
+           [Unraid A]
+            /       \
+          tb         tb
+          /           \
+   [Linux B] ----tb---- [DGX/Strix C]
 
 OpenFabric: A↔C traffic can go direct or A–B–C; metric prefers better trained links.
 ```
@@ -354,24 +356,24 @@ Stages: detect peer → underlay IP (manual then auto-restore) → OpenFabric ad
 ## Architecture
 
 ```text
-┌──────────────────────────────────────────────────────────┐
-│ Thunderbolt Net                                          │
-│  · Thunderbolt sysfs / tbnN underlay (one or more peers)          │
-│  · metric policy + OpenFabric conf generate              │
-│  · Detect FRR (vtysh/fabricd); point at FabricRouting        │
-│  · Apply, array-start, hotplug hooks                     │
-│  · UI: status, overrides; neighbors when FRR live        │
-└────────────────────────────┬─────────────────────────────┘
-                             │ uses when present
-                             ▼
-┌──────────────────────────────────────────────────────────┐
-│ FRR: zebra + fabricd  (FabricRouting or other install)       │
-│  · router openfabric 1                                   │
-│  · Thunderbolt interfaces + lo /32 (passive)                          │
-│  · interface metrics from policy                         │
-└────────────────────────────┬─────────────────────────────┘
-                             ▼
-                   thunderbolt* / bond-tb* underlay
+┌───────────────────────────────────────────────────────────┐
+│ Thunderbolt Net                                           │
+│  · Thunderbolt sysfs / tbnN underlay (one or more peers)  │
+│  · metric policy + OpenFabric conf generate               │
+│  · Detect FRR (vtysh/fabricd); point at FabricRouting     │
+│  · Apply, array-start, hotplug hooks                      │
+│  · UI: status, overrides; neighbors when FRR live         │
+└─────────────────────────────┬─────────────────────────────┘
+                              │ uses when present
+                              ▼
+┌───────────────────────────────────────────────────────────┐
+│ FRR: zebra + fabricd  (FabricRouting or other install)    │
+│  · router openfabric 1                                    │
+│  · Thunderbolt interfaces + lo /32 (passive)              │
+│  · interface metrics from policy                          │
+└─────────────────────────────┬─────────────────────────────┘
+                              ▼
+              thunderbolt* / bond-tb* underlay
 ```
 
 ### Address model (default direction)

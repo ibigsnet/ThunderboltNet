@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.18ac">
+<!ENTITY version "2026.08.18ad">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,10 +27,10 @@
 
 <CHANGES>
 ###&version;
-- Docs/UI: MTU 1500 easy default; jumbo optional for packet/CPU cost (both ends).
+- Share host uplink (NAT) per tbnN; address schema line; docs.
 
-###2026.08.18ab–aa
-- Shelve Steam/LAN discovery docs; Network Settings lazy-load; Age humanized.
+###2026.08.18ac–aa
+- MTU 1500 default; shelve Steam docs; Network Settings lazy-load; Age humanized.
 
 ###2026.08.17bd–ba
 - Join br0 / house LAN; Current/Saved; E2E flash persist.
@@ -41,15 +41,11 @@
 ###2026.08.17ay–av
 - Peer link-check: path pairing + auth-free mesh beacon (TCP 10807).
 
-
 ###2026.08.17au–at
 - CA/Plugins ~7-entry notes; DHCP underlay must not blank Unraid DNS.
 
 ###2026.08.17as–ao
 - DHCP server /24; join Unraid bridges; ARP conflict banner.
-
-###2026.08.17an–ag
-- Dashboard TB ports; eth0-layout polish (MTU/jumbo, VLANs, Info CSRF).
 
 ### Older releases
 - Full changelog: https://github.com/ibigsnet/ThunderboltNet/blob/main/CHANGELOG.md

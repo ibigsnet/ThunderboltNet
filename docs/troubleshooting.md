@@ -4,6 +4,7 @@
 ## Contents
 
 - [Slow rsync / SMB despite high trained Gb/s](#slow-rsync-smb-despite-high-trained-gbs)
+- [Peer has TB IP but no internet / apt fails](#peer-has-tb-ip-but-no-internet--apt-fails)
 - [Reseating the cable (why it matters)](#reseating-the-cable-why-it-matters)
 - [Multi-cable situations](#multi-cable-situations)
 - [No Thunderbolt hardware detected](#no-thunderbolt-hardware-detected)
@@ -226,6 +227,16 @@ Do **not** unbind the Thunderbolt **NHI** as a reset (can make this worse). Pref
 - Put two Thunderbolt links on the **same** IPv4 prefix.  
 - Expect a dock RJ45 to show up as `thunderbolt0`.  
 - Debug with three variables at once (E2E + new cable + dual plug) — change one thing, then reseat.
+
+## Peer has TB IP but no internet / apt fails
+
+1. On Unraid tbnN: **Share host uplink (NAT) = Yes**, uplink **Auto** or your real WAN (`br0` / `wlan0`). Apply.  
+2. **Info** on that tab should show NAT live toward the uplink.  
+3. On the peer: default gateway = Unraid’s TB address; DNS reachable (e.g. `1.1.1.1`).  
+4. Confirm Unraid itself has internet on that uplink.  
+5. Do not confuse with **Enable default route** on tbn (that steers *Unraid’s* default out TB).
+
+Details: [nat-share-uplink.md](nat-share-uplink.md).
 
 ## OpenFabric / FRR (multi-hop)
 

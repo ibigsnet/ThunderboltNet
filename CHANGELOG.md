@@ -1,3 +1,12 @@
+## 2026.08.18ad
+
+- **Feature:** Per-link **Share host uplink (NAT)** — MASQUERADE the tbn underlay toward
+  Unraid’s LAN/WAN (`br0` / `eth0` / `wlan0` / Auto). Opposite of “Enable default route.”
+  Flash cfg + reapply on Apply / array-start / hotplug; marked iptables tags for clean remove.
+- **UI:** NAT enable + uplink picker; read-only **Address schema** line; Info dialog NAT status.
+- **Docs:** [nat-share-uplink.md](docs/nat-share-uplink.md); settings-reference, addressing,
+  troubleshooting, DOCS/README indexes.
+
 ## 2026.08.18ac
 
 - **Docs/UI:** Recommend **MTU 1500** as the easy default. Jumbo (often 9000 both ends) is

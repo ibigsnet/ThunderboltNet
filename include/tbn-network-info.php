@@ -100,6 +100,20 @@ if (count($ipv4)) {
   echo "<tr><td>IPv4 address:</td><td>" . $missing . "</td></tr>";
 }
 echo "<tr><td>IPv4 default gateway:</td><td>" . ($gw4 !== '' ? htmlspecialchars($gw4) : $missing) . "</td></tr>";
+if (function_exists('tbn_nat_status') && function_exists('tbn_load_iface_cfg')) {
+  $nat = tbn_nat_status($if, tbn_load_iface_cfg($if));
+  if (!empty($nat['want'])) {
+    $nat_txt = !empty($nat['live'])
+      ? ('Yes → ' . ($nat['uplink'] !== '' ? $nat['uplink'] : '?') . ' (' . ($nat['prefix'] !== '' ? $nat['prefix'] : '?') . ')')
+      : 'Configured (rules not live yet — Apply / wait for link)';
+  } else {
+    $nat_txt = 'No';
+  }
+  echo "<tr><td>Share uplink (NAT):</td><td>" . htmlspecialchars($nat_txt) . "</td></tr>";
+  if (!empty($nat['schema'])) {
+    echo "<tr><td>Address schema:</td><td>" . htmlspecialchars($nat['schema']) . "</td></tr>";
+  }
+}
 if (count($ipv6)) {
   foreach ($ipv6 as $ip) {
     echo "<tr><td>IPv6 address:</td><td>" . htmlspecialchars($ip) . "</td></tr>";

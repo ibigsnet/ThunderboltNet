@@ -14,6 +14,10 @@ if (!function_exists('tbn_plugin_name')) {
 if (is_file(__DIR__ . '/tbn-dhcp.php')) {
   require_once __DIR__ . '/tbn-dhcp.php';
 }
+// Per-link NAT / share host uplink
+if (is_file(__DIR__ . '/tbn-nat.php')) {
+  require_once __DIR__ . '/tbn-nat.php';
+}
 
 function tbn_cfg_dir() {
   return '/boot/config/plugins/ThunderboltNet';
@@ -2899,6 +2903,9 @@ function tbn_iface_defaults($if = 'thunderbolt0') {
     'GATEWAY' => '',
     // Install a system default route via this iface? Default no (peer-local only).
     'DEFAULT_ROUTE' => 'no',
+    // Share Unraid uplink (br0/eth0/wlan0/…) with peers on this underlay — opposite of DEFAULT_ROUTE.
+    'NAT_ENABLE' => 'no',
+    'NAT_UPLINK' => 'auto',
     // IPv6 (shown when PROTOCOL is ipv6 or ipv4+ipv6)
     'USE_DHCP6' => 'no',
     'IPADDR6' => '',
@@ -3082,6 +3089,7 @@ function tbn_docs_bar_html($active = 'overview') {
     'drivers' => ['docs/driver-options.md', 'Driver options'],
     'peers' => ['docs/peer-scenarios.md', 'Peer scenarios'],
     'addressing' => ['docs/addressing.md', 'Addressing'],
+    'nat' => ['docs/nat-share-uplink.md', 'NAT / share uplink'],
     'mtu' => ['docs/mtu-and-throughput.md', 'MTU & throughput'],
     'speeds' => ['docs/standards-and-speeds.md', 'Standards & speeds'],
     'ports' => ['docs/port-icons.md', 'Port icons'],
@@ -3666,6 +3674,9 @@ function tbn_apply_iface($if, array $opts = []) {
     @exec("ip link set {$ife} up 2>/dev/null");
   } else {
     // Disable: drop addresses + routes so nothing lingers in the main table
+    if (function_exists('tbn_nat_clear')) {
+      tbn_nat_clear($if);
+    }
     if (function_exists('tbn_dhcp_server_stop')) {
       tbn_dhcp_server_stop($if);
       $netdev = function_exists('tbn_dhcp_netdev_for_cfg') ? tbn_dhcp_netdev_for_cfg($if, $cfg) : '';
@@ -3773,6 +3784,15 @@ function tbn_apply_iface($if, array $opts = []) {
       // non-fatal — no peer on path is normal
     }
   }
+
+  // Share host uplink with TB peers (NAT). Cleared when off; reapplied on boot/udev via this path.
+  $nat_res = null;
+  if (!$is_slave && function_exists('tbn_nat_apply')) {
+    $nat_res = tbn_nat_apply($if, $cfg);
+  } elseif ($is_slave && function_exists('tbn_nat_clear')) {
+    tbn_nat_clear($if);
+  }
+
   $out = ['ok' => true, 'iface' => $if, 'cfg' => $cfg, 'netdevs' => tbn_list_netdevs()];
   if (is_array($dhcp_res) && empty($dhcp_res['ok'])) {
     $out['ok'] = false;
@@ -3780,6 +3800,13 @@ function tbn_apply_iface($if, array $opts = []) {
     $out['dhcp'] = $dhcp_res;
   } elseif (is_array($dhcp_res)) {
     $out['dhcp'] = $dhcp_res;
+  }
+  if (is_array($nat_res)) {
+    $out['nat'] = $nat_res;
+    if (empty($nat_res['ok']) && empty($out['error'])) {
+      $out['ok'] = false;
+      $out['error'] = $nat_res['error'] ?? 'NAT apply failed';
+    }
   }
   return $out;
 }

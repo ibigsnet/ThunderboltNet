@@ -5,10 +5,12 @@ Full product intro: [../DOCS.md](../DOCS.md).
 ## How the pieces fit
 
 ```text
-Physical Thunderbolt/USB4 path  →  kernel thunderbolt_net (thunderboltN)
-                         →  Thunderbolt Net underlay (tbnN IP, MTU, listening)
-                         →  optional OpenFabric/FRR (multi-hop / ring / mesh)
-                         →  FRR packages on Unraid: companion Fabric Routing (not this plugin)
+Physical Thunderbolt/USB4 path
+  →  kernel thunderbolt_net (thunderboltN)
+  →  Thunderbolt Net underlay (tbnN IP, MTU, listening)
+  →  optional NAT (share Unraid br0/eth0/wlan0 with TB peers)
+  →  optional OpenFabric/FRR (multi-hop / ring / mesh)
+  →  FRR packages: companion Fabric Routing (not this plugin)
 ```
 
 | You want… | Start here |
@@ -19,6 +21,7 @@ Physical Thunderbolt/USB4 path  →  kernel thunderbolt_net (thunderboltN)
 | Why is my rate “only 20G · 1-lane”? | [standards-and-speeds.md](standards-and-speeds.md) |
 | Dual cable / multi-peer / ring | [links-and-topology.md](links-and-topology.md) |
 | Multi-hop routing / FRR | [routing-openfabric.md](routing-openfabric.md) |
+| Peer needs internet via Unraid (NAT) | [nat-share-uplink.md](nat-share-uplink.md) |
 | Unraid + Proxmox (or other Linux) fabric | [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md) |
 | Every Settings field | [settings-reference.md](settings-reference.md) |
 | Something broke | [troubleshooting.md](troubleshooting.md) |
@@ -32,6 +35,7 @@ Physical Thunderbolt/USB4 path  →  kernel thunderbolt_net (thunderboltN)
 | [peer-scenarios.md](peer-scenarios.md) | Unraid ↔ Linux, Proxmox, macOS, Windows, docks/hubs |
 | [peers-and-plans.md](peers-and-plans.md) | UUID peers, Current/Saved, Forget, vs Interface Rules |
 | [addressing.md](addressing.md) | `/24` vs `/30`, unique subnets, path cfg vs Saved, join `br0` |
+| [nat-share-uplink.md](nat-share-uplink.md) | Share Unraid uplink (NAT) with TB peers; vs default route |
 | [standards-and-speeds.md](standards-and-speeds.md) | Directionality, bandwidth table, mixing gens/cables/lanes, FAQ |
 | [port-icons.md](port-icons.md) | Rear-panel silkscreen: lightning/40 vs SS — do I have Thunderbolt? |
 | [mtu-and-throughput.md](mtu-and-throughput.md) | MTU 1500 default; optional jumbo for CPU/packet cost |

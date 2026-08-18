@@ -40,9 +40,9 @@ Five nodes in a **ring** is a convenient teaching example (any ring, mesh, or st
     P1, P2, P3  =  Proxmox / Debian-class Linux (apt FRR)
     U1, U2      =  Unraid (Thunderbolt Net + optional Fabric Routing)
 
-        Thunderbolt        Thunderbolt        Thunderbolt        Thunderbolt        Thunderbolt
-  P1 ------- P2 ------- P3 ------- U1 ------- U2 ------- P1
-  |______________________________________________________|
+      Thunderbolt   Thunderbolt   Thunderbolt   Thunderbolt   Thunderbolt
+  P1 ---------- P2 ---------- P3 ---------- U1 ---------- U2 ---------- P1
+  |_____________________________________________________________________|
 
 Physical cabling can be a ring, partial mesh, or star.
 OpenFabric uses L3 underlay adjacencies and metrics — not chassis brands.
@@ -77,21 +77,21 @@ Not required for initial interop: dual-cable bonding, USB4STREAM, or putting VM 
 ## Who owns what
 
 ```text
-┌─────────── Proxmox / Debian peers ──────────┐
-│  Thunderbolt underlay: OS / ifupdown / SDN / NM      │
-│  FRR: distro packages → fabricd=yes         │
-│  Conf: vtysh / /etc/frr/frr.conf            │
-│  (align area, NET, lo /32, metrics)         │
-└──────────────────┬──────────────────────────┘
-                   │  OpenFabric (fabricd)
-                   │  over thunderbolt*
-┌──────────────────▼──────────────────────────┐
-│  Unraid                                     │
-│  Thunderbolt underlay: Thunderbolt Net               │
-│  FRR packages: FabricRouting (opt-in)           │
-│  OpenFabric stanzas: Thunderbolt Net        │
-│    (marked block; Thunderbolt interfaces + lo only)      │
-└─────────────────────────────────────────────┘
+┌────────────── Proxmox / Debian peers ──────────────┐
+│  Thunderbolt underlay: OS / ifupdown / SDN / NM    │
+│  FRR: distro packages → fabricd=yes                │
+│  Conf: vtysh / /etc/frr/frr.conf                   │
+│  (align area, NET, lo /32, metrics)                │
+└──────────────────────────┬─────────────────────────┘
+                           │  OpenFabric (fabricd)
+                           │  over thunderbolt*
+┌──────────────────────────▼─────────────────────────┐
+│  Unraid                                            │
+│  Thunderbolt underlay: Thunderbolt Net             │
+│  FRR packages: FabricRouting (opt-in)              │
+│  OpenFabric stanzas: Thunderbolt Net               │
+│    (marked block; Thunderbolt interfaces + lo only)│
+└────────────────────────────────────────────────────┘
 ```
 
 | Layer | Proxmox / Debian | Unraid |

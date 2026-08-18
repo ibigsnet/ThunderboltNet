@@ -161,6 +161,10 @@ Thunderbolt interfaces often install a **much lower route metric** than eth0/br0
 
 A filled **gateway** without default route still only matters for routes you add toward that gateway (it does not by itself replace eth0/br0 internet).
 
+### Share host uplink (NAT)
+
+If the **peer** needs house LAN / internet **via Unraid**, use **Share host uplink (NAT)** on the Unraid tbn tab (not “Enable default route”). Peer sets its default gateway to Unraid’s TB IP. See [nat-share-uplink.md](nat-share-uplink.md).
+
 ---
 
 ## DHCP
@@ -178,7 +182,7 @@ Underlay addressing above is still required when OpenFabric is on (link IPs + un
 ## Related
 
 - [peers-and-plans.md](peers-and-plans.md) — UUID identity, Forget peer, why not Interface Rules  
-
+- [nat-share-uplink.md](nat-share-uplink.md) — share Unraid br0/eth0/wlan0 with TB peers  
 - Peer OS setup: [peer-scenarios.md](peer-scenarios.md)  
 - Settings fields: [settings-reference.md](settings-reference.md)  
 - Topology / multi-peer: [links-and-topology.md](links-and-topology.md)
