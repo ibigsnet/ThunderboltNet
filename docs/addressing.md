@@ -2,14 +2,14 @@
 
 Each live kernel interface `thunderboltN` (Settings tab **tbnN**) is its own L2 segment to **one** remote peer path. Addressing is almost always **static**.
 
-**Peer plans:** desired local IPv4 can also be stored per **remote fabric UUID** (Peers tab). On reconnect, that plan is applied to **whichever** `thunderboltN` the peer appears on — so renumber (tbn0↔tbn1) does not strand the IP on the wrong host. See [peers-and-plans.md](peers-and-plans.md).
+**Saved** (Peers tab): desired local IPv4 stored per **remote fabric UUID**. On reconnect it is applied to **whichever** `thunderboltN` the peer appears on — so renumber (tbn0↔tbn1) does not strand the IP on the wrong host. **Current** is what is on the path right now. See [peers-and-plans.md](peers-and-plans.md).
 
 ---
 
 ## Contents
 
 - [Product defaults](#product-defaults)
-- [Path-slot cfg vs peer plan](#path-slot-cfg-vs-peer-plan)
+- [Path-slot cfg vs Saved](#path-slot-cfg-vs-saved)
 - [Small LAN (/24) vs point-to-point (/30)](#small-lan-24-vs-point-to-point-30)
 - [Hard rule: unique subnet per Thunderbolt link](#hard-rule-unique-subnet-per-thunderbolt-link)
 - [Examples](#examples)
@@ -17,14 +17,14 @@ Each live kernel interface `thunderboltN` (Settings tab **tbnN**) is its own L2 
 - [OpenFabric / multi-hop](#openfabric-multi-hop)
 - [Related](#related)
 
-## Path-slot cfg vs peer plan
+## Path-slot cfg vs Saved
 
 | Store | Key | Use |
 |-------|-----|-----|
-| `ifaces/thunderboltN.cfg` | Interface **name** | Eth-like tab editor; reapply when no peer plan |
-| Peer plan in `peers.json` | Remote **UUID** | Preferred on hotplug/boot when that peer is live on any path |
+| `ifaces/thunderboltN.cfg` | Interface **name** | Eth-like tab editor; reapply when no Saved plan |
+| **Saved** in `peers.json` | Remote **UUID** | Preferred on hotplug/boot when that peer is live on any path |
 
-**Apply on a tbn tab** while linked writes both: path cfg **and** peer plan for the remote host.
+**Apply on a tbn tab** while linked writes both: path cfg **and** Saved for the remote host.
 
 ## Product defaults
 

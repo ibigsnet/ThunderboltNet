@@ -171,10 +171,10 @@ Example: tbn0 → Linux workstation, tbn1 → laptop (when the kernel exposes tw
 | IPv4 | **Different subnet per peer path** (`10.255.0.0/24`, `10.255.1.0/24`) |
 | Default route | **No** on all Thunderbolt links |
 | Bonding | Only if you truly have two netdevs to the **same** peer path design — rare |
-| Known peers | **One row per remote UUID**; peer plan follows that host if path renumbers |
+| Known peers | **One row per remote UUID**; **Saved** follows that host if path renumbers |
 | tbn1 inherit tbn0? | **No** — each peer needs its own plan / Apply |
 
-Cable **order** can change which remote is `thunderbolt0` vs `thunderbolt1`. Use **peer plans** (Apply while each is linked) so L3 sticks to the host, not the slot name. See [peers-and-plans.md](peers-and-plans.md).
+Cable **order** can change which remote is `thunderbolt0` vs `thunderbolt1`. Use **Saved** (Apply while each is linked) so L3 sticks to the host, not the slot name. See [peers-and-plans.md](peers-and-plans.md).
 
 ---
 

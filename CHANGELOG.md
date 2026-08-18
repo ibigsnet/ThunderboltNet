@@ -1,3 +1,9 @@
+## 2026.08.17bc
+
+- **Docs:** Align user-facing docs with Peers **Current** / **Saved** (and toolbar Remember current /
+  Apply saved). Retire Live IPv4 / Peer plan phrasing in DOCS.md and docs/*. Historical CHANGELOG
+  entries unchanged.
+
 ## 2026.08.17bb
 
 - **Docs:** Saved auto-fills on first **tbn Apply** (Remember current optional); troubleshooting for

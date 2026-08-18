@@ -1,8 +1,8 @@
-# Known peers and peer plans
+# Known peers and Saved addresses
 
 How Thunderbolt Net remembers remote hosts and restores local addressing without Unraid **Interface Rules**.
 
-This page is both **how it works** and **why** we built it this way — including Unraid forum field reports on L3 persistence after reboot and cable reseat, plus lab follow-ups on renumber, MACs, and Known peers ghosts.
+Peers table columns: **Current** (on the path now) and **Saved** (remembered for that remote UUID). This page is both **how it works** and **why** — forum reports on L3 persistence after reboot and cable reseat, plus follow-ups on renumber, MACs, and Known peers ghosts.
 
 **Forum:** [Plugin support thread](https://forums.unraid.net/topic/200065-plugin-thunderbolt-net-host-to-host-networking-over-thunderbolt-345-and-usb44v2/)
 
@@ -114,7 +114,7 @@ It is **not** a full replacement for path reapply — it **sits on top** of it.
 
 Prefer plugin **≥ 2026.08.17ba**. Confirm `cat /sys/module/thunderbolt_net/parameters/e2e` is `N`/`0` when Settings → E2E is No. See [driver-options.md](driver-options.md) and [troubleshooting.md](troubleshooting.md#online-ip-and-rates-but-no-ping).
 
-### 5. What Saved / peer plans deliberately do *not* claim
+### 5. What Saved deliberately does *not* claim
 
 | Not claimed | Why |
 |-------------|-----|
@@ -138,7 +138,7 @@ Known peers are keyed by **remote fabric UUID** (with a short-lived `iface:thund
 
 ## Saved address (L3 follows the remote host)
 
-**Saved** (internally a peer plan) is the desired **local** IPv4 (and related L3 fields) for *this Unraid* when talking to that remote UUID.
+**Saved** is the desired **local** IPv4 (and related L3 fields) for *this Unraid* when talking to that remote UUID.
 
 On the Peers table:
 
@@ -149,7 +149,7 @@ On the Peers table:
 
 Matching Current and Saved after a normal Apply is expected — not duplicate settings.
 
-**First setup:** Apply on the tbn tab while the peer is linked. That writes path cfg **and** fills Saved. You do **not** need **Remember current** for the first established settings. Opening Peers can also **seed** Saved from last live addrs when a plan is still missing.
+**First setup:** Apply on the tbn tab while the peer is linked. That writes path cfg **and** fills Saved. You do **not** need **Remember current** for the first established settings. Opening Peers can also **seed** Saved from last live addrs when Saved is still missing.
 
 **Remember current** / **Apply saved** are for later drift (live changed without Apply, or push memory back onto the path).
 
@@ -159,7 +159,7 @@ Matching Current and Saved after a normal Apply is expected — not duplicate se
 | Listening Yes/No (services on TB IP) | Panel port index |
 | Last path (`tbnN` / `thunderboltN`) for display | Unraid Interface Rules |
 
-**Path-slot files** still exist: `ifaces/thunderbolt0.cfg`, etc. They act like an eth-style **name cache**. When a live peer has a usable plan, **reapply prefers Saved** over the path-slot file alone.
+**Path-slot files** still exist: `ifaces/thunderbolt0.cfg`, etc. They act like an eth-style **name cache**. When a live peer has usable **Saved**, reapply prefers that over the path-slot file alone.
 
 ## What Apply / hotplug do
 
@@ -203,10 +203,10 @@ So peer identity and L3 plans stay **inside Thunderbolt Net**, keyed by fabric U
 
 | Scenario | Expected |
 |----------|----------|
-| One peer, unplug/replug | Same Known peers row; plan reapplied; path name may stay or change |
-| Same peer later on tbn1 | Same UUID row; plan follows; path column updates |
-| Two peers at once | Two UUID rows; **two different** plans/subnets; tbn1 does **not** inherit tbn0 |
-| Cable order swaps which peer is `thunderbolt0` | Peer plans still land on the correct remotes; path-slot-only configs can look “wrong” until plans exist |
+| One peer, unplug/replug | Same Known peers row; Saved reapplied; path name may stay or change |
+| Same peer later on tbn1 | Same UUID row; Saved follows; path column updates |
+| Two peers at once | Two UUID rows; **two different** Saved subnets; tbn1 does **not** inherit tbn0 |
+| Cable order swaps which peer is `thunderbolt0` | **Saved** still lands on the correct remotes; path-slot-only configs can look “wrong” until Saved exists |
 
 Always use **unique subnets per peer path** (e.g. `10.255.0.0/24` vs `10.255.1.0/24`). See [addressing.md](addressing.md).
 
@@ -218,4 +218,4 @@ Always use **unique subnets per peer path** (e.g. `10.255.0.0/24` vs `10.255.1.0
 - [peer-scenarios.md](peer-scenarios.md)
 - [links-and-topology.md](links-and-topology.md)  
 - [settings-reference.md](settings-reference.md)  
-- [CHANGELOG.md](../CHANGELOG.md) — **2026.08.15ak** (path reapply / static persistence), **16ac** (ghost rows), **16ad** (peer plans)  
+- [CHANGELOG.md](../CHANGELOG.md) — **2026.08.15ak** (path reapply / static persistence), **16ac** (ghost rows), **16ad** (Saved addresses), **17az** (Current/Saved UI wording)  

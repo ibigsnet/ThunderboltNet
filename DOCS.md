@@ -100,7 +100,7 @@ OpenFabric **policy** lives on Thunderbolt Net (Advanced). FRR **packages** live
 1. Confirm a Thunderbolt-family **host controller** is visible (Thunderbolt tab shows hardware, not the empty state).
 2. Use a certified Thunderbolt / USB4-class cable that matches both hosts (Thunderbolt 3/4/5, USB4, USB4 v2 as applicable — not SS-only SuperSpeed USB). Start with **one cable per peer path**; multi-path bonding is optional when two netdevs exist ([topology](docs/links-and-topology.md)).
 3. On **Thunderbolt → Driver options**, leave **E2E flow control = No** unless a peer scenario says otherwise.
-4. When `thunderbolt0` appears, open **tbn0**, set a **static** IPv4 (e.g. `10.255.0.2/24`), leave **MTU 1500** unless both ends will set jumbo, **Apply**. That also stores a **peer plan** for the remote host (fabric UUID) so unplug/replug can restore L3 even if the path renumbers.
+4. When `thunderbolt0` appears, open **tbn0**, set a **static** IPv4 (e.g. `10.255.0.2/24`), leave **MTU 1500** unless both ends will set jumbo, **Apply**. That also fills **Saved** for the remote host (fabric UUID) so unplug/replug can restore L3 even if the path renumbers.
 5. On the peer, matching address (e.g. `10.255.0.1/24`). MTU is not auto-negotiated — only raise to 9000 if you set **both** ends.
 6. Ping both ways. Check **Peers**: one Known peers row; **Saved** should already show your Unraid-side address (filled by that Apply — no extra Remember step). Set listening **Yes** if you want SMB/NFS/web on the TB IP.
 7. **Trained** rate can be less than the port sticker (e.g. **20 Gb/s · 1-lane**). Sticker **40 Gb/s** is typically **~20 G each direction** (simplex lanes) — expect roughly **~10–15 Gbit/s** TCP one way on a 1-lane train ([speeds](docs/standards-and-speeds.md)).
@@ -142,7 +142,7 @@ These are **supported directions**, not throwaway experiments. Defaults favor in
 | **Mixed OpenFabric fabric** | Unraid + Proxmox/Debian (or other FRR) peers | Shared area/NET/metrics; FRR both sides | [fabric-proxmox-unraid.md](docs/fabric-proxmox-unraid.md) |
 | **FabricRouting (companion)** | Opt-in install of FRR packages/daemons (invasive) | Separate plugin; not required for static Thunderbolt | [ibigsnet/FabricRouting](https://github.com/ibigsnet/FabricRouting) |
 | **Bonding multi-path** | Thunderbolt-only `bond-tb*` when ≥2 netdevs | Off by default; dual-cable same-peer **roadmap** | [links-and-topology.md](docs/links-and-topology.md) |
-| **Peer memory + peer plans** | Remember hosts by fabric UUID; desired local IPv4 follows the peer | **Supported** — see [peers-and-plans.md](docs/peers-and-plans.md) |
+| **Peer memory + Saved addresses** | Remember hosts by fabric UUID; Current/Saved L3 follows the peer | **Supported** — see [peers-and-plans.md](docs/peers-and-plans.md) |
 | **Activity / unplug** | Safe to disconnect hints | Heuristic today; tighter idle later | Settings UI |
 | **USB4STREAM** | Raw path awareness where kernel allows | Off until module exists; never break tbn IP | [usb4stream.md](docs/usb4stream.md) |
 
@@ -155,16 +155,16 @@ These are **supported directions**, not throwaway experiments. Defaults favor in
 | Saved reapplied on **hotplug / array start** to whichever `thunderboltN` that peer is on | Survives tbn0↔tbn1 renumber when cable order changes |
 | **Known peers** table: online/offline, path, Current / Saved, listening, **Forget** | Does **not** use Unraid Interface Rules; quiet No reply if underlay silent |
 | Ghost offline rows after unplug (blank name) | Deduped when UUID returns (**16ac+**) |
-| Path-slot cfg `ifaces/thunderboltN.cfg` | Still eth-like cache for the **name**; peer plan is preferred when a UUID plan exists |
+| Path-slot cfg `ifaces/thunderboltN.cfg` | Still eth-like cache for the **name**; **Saved** is preferred when a UUID plan exists |
 
 | Optional next | |
 |---------------|--|
-| Inline edit of peer plan while offline | Capture + Apply is enough for v1 |
+| Inline edit of Saved while offline | Apply / Remember current while linked is enough for v1 |
 | Tighter activity / idle (share-aware unplug) | Heuristic today |
 
 **Not** stock Network Settings → Interface Rules (MAC→ethN). Thunderbolt host-net MACs often change each link; binding by MAC would thrash. Identity is fabric UUID inside this plugin.
 
-**Why this path (short):** Forum reports showed static addresses failing after reboot/unplug and 169.254 stacking with Static — fixed with path reapply, udev hotplug, and dhcpcd kill. Peer plans extend that so L3 follows the **remote host** when path names renumber. Full findings → solutions: [peers-and-plans.md — Why this design](docs/peers-and-plans.md#why-this-design-field-findings). Symptom index: [troubleshooting.md](docs/troubleshooting.md#static-ip-missing-after-reboot-or-unplugreplug).
+**Why this path (short):** Forum reports showed static addresses failing after reboot/unplug and 169.254 stacking with Static — fixed with path reapply, udev hotplug, and dhcpcd kill. **Saved** addresses extend that so L3 follows the **remote host** when path names renumber. Full findings → solutions: [peers-and-plans.md — Why this design](docs/peers-and-plans.md#why-this-design-field-findings). Symptom index: [troubleshooting.md](docs/troubleshooting.md#static-ip-missing-after-reboot-or-unplugreplug).
 
 Goal: plug in a laptop or mini-PC, transfer, unplug when idle is safe — without redoing IP every time **and** without assuming tbn0 is always the same remote host. Multi-hop/rings = OpenFabric; dual-cable bonding = separate roadmap.
 

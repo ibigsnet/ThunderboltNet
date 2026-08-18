@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.17bb">
+<!ENTITY version "2026.08.17bc">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,10 +27,10 @@
 
 <CHANGES>
 ###&version;
-- Docs: Saved auto-capture on tbn Apply; Online-but-no-ping (E2E flash); controller power-off recovery.
+- Docs: Current/Saved wording across DOCS and docs/* (retire Live IPv4 / Peer plan in user docs).
 
-###2026.08.17ba
-- Persist thunderbolt_net e2e=0 to flash modprobe.d; reload on startup if kernel defaulted e2e=1.
+###2026.08.17bb–ba
+- Saved auto-capture docs; E2E flash persist; Online-but-no-ping troubleshooting.
 
 ###2026.08.17az
 - Peers: Current / Saved columns; Remember current / Apply saved; quiet mismatch highlight.

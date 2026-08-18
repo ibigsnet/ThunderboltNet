@@ -152,7 +152,7 @@ Classic field report (Unraid forum): path trains, `thunderbolt0` exists, **no** 
 
 | Check | What to do |
 |-------|------------|
-| Plugin version | Prefer **≥ 2026.08.15ak** (reapply + dhcpcd kill), **≥ 2026.08.16ad** (Saved / peer plans), **≥ 2026.08.16ae** (startup + array started), **≥ 2026.08.17ba** (E2E flash persist) |
+| Plugin version | Prefer **≥ 2026.08.15ak** (reapply + dhcpcd kill), **≥ 2026.08.16ad** (Saved addresses), **≥ 2026.08.16ae** (startup + array started), **≥ 2026.08.17ba** (E2E flash persist) |
 | Flash plan | `ifaces/thunderboltN.cfg` or Peers → **Saved** for that UUID |
 | udev | `/etc/udev/rules.d/99-thunderboltnet-net.rules` after **startup** or install (RAM root is refilled each boot) |
 | Array state | Reapply also runs at plugin **startup** (before array Online). Array **started** (Normal/Maintenance) runs a second pass |

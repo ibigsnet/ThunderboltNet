@@ -80,7 +80,7 @@ This is **unrelated** to NTP or wrong system time. Host clock can be correct whi
 ### Not the cause
 
 - Manual one-off edits outside the plugin (incident reproduced by **normal plugin apply**).  
-- Peer plans / udev L3 reapply (different subsystem).  
+- Saved addresses / udev L3 reapply (different subsystem).  
 - Stock Unraid “hide clock” setting (clock markup remains; feed stops).
 
 ## Impact

@@ -171,7 +171,7 @@ less /usr/local/emhttp/plugins/ThunderboltNet/docs/safe-mode-recovery.md
 
 1. Prefer returning to a **normal** boot (plugins on) when the emergency is over.  
 2. Fix the underlying issue (LAN, flash, misconfig) so Safe Mode is temporary.  
-3. Re-enable the plugin path: Settings → Network Settings → Thunderbolt / tbn tabs → **Apply** (saves peer plan / path cfg).  
+3. Re-enable the plugin path: Settings → Network Settings → Thunderbolt / tbn tabs → **Apply** (fills Saved + path cfg).  
 4. On a current build, **normal** boots re-apply L3 via plugin `startup` + array `started` + udev hotplug — you should not need Safe Mode steps for everyday reboot/unplug.  
 5. Keep multi-cable experiments for **after** single-link stability.
 
