@@ -197,7 +197,7 @@ A filled **gateway** without default route still only matters for routes you add
 
 ### Share host uplink (NAT)
 
-If the peer needs internet **through Unraid** (no uplink of its own), use **Share host uplink (NAT)** on the Unraid tbn tab (not “Enable default route”). Peer sets its default gateway to Unraid’s TB IP. Cannot combine with Enable bridging. See [nat-share-uplink.md](nat-share-uplink.md).
+If the peer has no Wi‑Fi or viable Ethernet of its own and should reach the internet **through Unraid**, use **Share host uplink (NAT)** on the Unraid tbn tab (not “Enable default route”). Peer sets its default gateway to Unraid’s TB IP. Cannot combine with Enable bridging. See [nat-share-uplink.md](nat-share-uplink.md).
 
 ---
 

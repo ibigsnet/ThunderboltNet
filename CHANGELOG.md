@@ -1,3 +1,9 @@
+## 2026.08.18ap
+
+- **Copy:** NAT help/docs generalized — peer with no Wi‑Fi or viable Ethernet;
+  Unraid shares its uplink. Drop lab-specific “house br0” / Proxmox-`apt` phrasing
+  from product NAT text.
+
 ## 2026.08.18ao
 
 - **UI:** IPv6 DHCP server orange notice → field + blue helper note (same idea as

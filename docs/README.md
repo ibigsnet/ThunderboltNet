@@ -21,7 +21,7 @@ Physical Thunderbolt/USB4 path
 | Why is my rate “only 20G · 1-lane”? | [standards-and-speeds.md](standards-and-speeds.md) |
 | Dual cable / multi-peer / ring | [links-and-topology.md](links-and-topology.md) |
 | Multi-hop routing / FRR | [routing-openfabric.md](routing-openfabric.md) |
-| Peer needs internet via Unraid (NAT) | [nat-share-uplink.md](nat-share-uplink.md) |
+| Peer has no own uplink; share Unraid’s via NAT | [nat-share-uplink.md](nat-share-uplink.md) |
 | Unraid + Proxmox (or other Linux) fabric | [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md) |
 | Every Settings field | [settings-reference.md](settings-reference.md) |
 | Something broke | [troubleshooting.md](troubleshooting.md) |

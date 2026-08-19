@@ -2,9 +2,9 @@
 
 **Optional. Default: No.** Typical Thunderbolt (copy / SMB between two hosts on a private TB address) does not need this.
 
-**Yes:** the peer keeps a private Thunderbolt IP and reaches the internet **through Unraid** (Unraid NATs toward `br0` / `eth0` / `wlan0`). Example: Proxmox on TB with no other uplink, needs `apt update`. Peer default gateway = Unraid’s tbn IP.
+**Yes:** the peer keeps a private Thunderbolt IP and reaches the internet **through Unraid** (Unraid NATs toward whatever carries Unraid’s uplink — often `br0`, `eth0`, or `wlan0`). Set the peer’s default gateway to Unraid’s tbn IP.
 
-**Not the same as Enable bridging** (join an existing Unraid `br0`). Bridging puts the peer on that bridge’s network; NAT keeps a separate TB subnet and forwards via Unraid. The UI will not allow both Yes at once.
+**Not the same as Enable bridging** (join an existing Unraid bridge). Bridging puts the peer on that bridge’s network; NAT keeps a separate TB subnet and forwards via Unraid. The UI will not allow both Yes at once.
 
 After enabling NAT, click **Apply** while the peer is linked so Saved remembers it for that peer UUID (survives cable moves / tbn renumber).
 
@@ -17,7 +17,7 @@ After enabling NAT, click **Apply** while the peer is linked so Saved remembers 
 - [How it works](#how-it-works)
 - [Settings](#settings)
 - [Peer side (gateway)](#peer-side-gateway)
-- [br0 vs wlan0 vs eth0](#br0-vs-wlan0-vs-eth0)
+- [Choosing an uplink](#choosing-an-uplink)
 - [Persistence](#persistence)
 - [vs Enable default route](#vs-enable-default-route)
 - [Safety](#safety)
@@ -27,34 +27,34 @@ After enabling NAT, click **Apply** while the peer is linked so Saved remembers 
 
 | Situation | Use NAT? |
 |-----------|----------|
-| Proxmox / Debian / another Unraid on TB needs `apt` / updates / DNS via Unraid | **Yes** |
-| Lab peer has no Wi‑Fi of its own; Unraid has the only uplink | **Yes** |
-| Two hosts only exchanging data on `10.255.N.x` | **No** |
-| You already joined the TB path into house `br0` (peer uses LAN IPs) | **No** — peer is already on LAN |
+| Peer has no Wi‑Fi or viable Ethernet of its own (tablet, laptop on TB only, appliance, etc.); Unraid can share its uplink | **Yes** |
+| Peer needs packages / updates / DNS via Unraid while staying on a private TB address | **Yes** |
+| Two hosts only exchanging data on the TB underlay (`10.255.N.x`) | **No** |
+| Bridging is already Yes (peer addresses on the bridge’s network) | **No** — pick bridging **or** NAT, not both |
 
-Typical lab: Unraid `10.255.1.1/24` on tbn0, peer `10.255.1.2/24`, peer default gateway `10.255.1.1`, NAT toward Unraid’s `br0` or `wlan0`.
+Example underlay: Unraid `10.255.N.1/24`, peer `10.255.N.2/24`, peer default gateway = Unraid’s TB IP, NAT toward Unraid’s uplink iface.
 
 ## When not to use it
 
 - Do **not** use NAT as a substitute for unique underlay addressing ([addressing.md](addressing.md)).
-- Do **not** bridge Thunderbolt into `br0` *and* enable NAT on the same path without a clear design — pick one model.
+- Do **not** enable bridging **and** NAT on the same path — pick one model.
 - Do **not** point NAT “uplink” at another `thunderbolt*` interface.
 
 ## How it works
 
 ```text
-  Peer (e.g. Proxmox)
-       │  underlay 10.255.1.2/24
-       │  default via 10.255.1.1
+  Peer
+       │  underlay 10.255.N.2/24
+       │  default via Unraid’s TB IP
        ▼
-  Unraid thunderboltN  10.255.1.1/24
+  Unraid thunderboltN  10.255.N.1/24
        │
        │  ip_forward + MASQUERADE
        ▼
   Unraid uplink (br0 / eth0 / wlan0 / …)
        │
        ▼
-  House LAN / internet
+  LAN / internet
 ```
 
 Unraid enables `net.ipv4.ip_forward`, installs marked `iptables` rules for **this link’s prefix only**, and leaves Docker/libvirt NAT alone.
@@ -70,7 +70,7 @@ On **Network Settings → Thunderbolt → tbnN** (IPv4 static block):
 
 Also shown (read-only):
 
-- **Address schema** — underlay CIDR, plan, this host IP, suggested peer IP, NAT on/off.
+- Path line — underlay · peer · `NAT off`, or `underlay → uplink (ip) → internet`
 
 Full field list: [settings-reference.md](settings-reference.md).
 
@@ -78,21 +78,22 @@ Full field list: [settings-reference.md](settings-reference.md).
 
 The plugin **cannot** configure the peer OS. On the peer, set:
 
-- Address on its TB iface: same subnet (e.g. `10.255.1.2/24`)
-- **Default gateway:** Unraid’s TB IP (e.g. `10.255.1.1`)
-- DNS: any reachable resolver (e.g. `1.1.1.1` or your LAN DNS)
+- Address on its TB iface: same subnet (e.g. `10.255.N.2/24`)
+- **Default gateway:** Unraid’s TB IP (e.g. `10.255.N.1`)
+- DNS: any reachable resolver (public DNS or your LAN resolver)
 
-Examples: Proxmox `/etc/network/interfaces`, Debian ifupdown/Netplan, another Unraid’s own tbn tab (gateway + default route there is the *peer’s* choice).
+Any peer OS that can set a static gateway works (Linux, another Unraid tbn tab, etc.).
 
-## br0 vs wlan0 vs eth0
+## Choosing an uplink
 
 | Uplink | When |
 |--------|------|
-| **br0** (or bond0) | Preferred when Unraid’s default route is on the bridge || **eth0** | Fine if that is the routed iface (no bridge) |
-| **wlan0** | Fine for lab boxes that only have Wi‑Fi uplink (same NAT feature) |
+| **br0** (or bond0) | Preferred when Unraid’s default route is on the bridge |
+| **eth0** | Fine if that is the routed iface (no bridge) |
+| **wlan0** | Fine when Unraid’s uplink is Wi‑Fi |
 | **Auto** | Follows whatever currently owns the IPv4 default route |
 
-If `br0` is down and Wi‑Fi carries default, Auto correctly picks `wlan0`. When you later move Unraid’s default to `br0`, Apply again (or reboot) so Auto refreshes — or set **NAT uplink** to `br0` explicitly.
+If the wired bridge is down and Wi‑Fi carries default, Auto picks `wlan0`. When Unraid’s default later moves to `br0`, Apply again (or reboot) so Auto refreshes — or set **NAT uplink** explicitly.
 
 ## Persistence
 
@@ -113,22 +114,21 @@ Disabling NAT in the UI (or disabling the interface) also removes this plugin’
 | Control | Direction |
 |---------|-----------|
 | **Enable default route** on tbnN | Unraid may send *its own* default traffic **out** the Thunderbolt link (rare; can steal LAN/WAN) |
-| **Share host uplink (NAT)** | Thunderbolt *peers* send traffic **to** Unraid, which NATs out br0/eth0/wlan0 |
+| **Share host uplink (NAT)** | Thunderbolt *peers* send traffic **to** Unraid, which NATs out Unraid’s uplink |
 
-Use NAT for “peer needs internet via Unraid.” Leave default route **No** unless Unraid itself should use TB as WAN.
+Use NAT when the **peer** should reach the internet via Unraid. Leave default route **No** unless Unraid itself should use Thunderbolt as WAN.
 
 ## Safety
 
 - Default **off**.
 - Rules carry comment tags `ThunderboltNet-NAT-thunderboltN` — only those are removed on clear.
-- Does not create or join `br0`.
+- Does not create or join bridges.
 - IPv6 NAT not included in this feature.
 - OpenFabric / Fabric Routing are orthogonal; NAT does not enroll eth/br into the fabric.
 
 ## Related
 
 - [addressing.md](addressing.md) — unique `/24` per link, `.1`/`.2` habit  
-- [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md) — mixed Proxmox + Unraid labs  
-- [routing-openfabric.md](routing-openfabric.md) — multi-hop (not a substitute for NAT)  
 - [settings-reference.md](settings-reference.md) — field catalog  
 - [troubleshooting.md](troubleshooting.md) — NAT / peer gateway checks  
+- [routing-openfabric.md](routing-openfabric.md) — multi-hop (not a substitute for NAT)  

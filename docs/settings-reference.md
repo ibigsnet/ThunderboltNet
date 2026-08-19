@@ -74,7 +74,7 @@ Does **not** register Thunderbolt in stock **Interface Rules** (MAC→name). Hos
 | DHCP pool start / end | (derived) | Shown for DHCP Server; default `.2`–`.254` when host is `.1` (excludes Unraid’s address) |
 | IPv4 default gateway | empty | Optional next hop on this link (static mode) |
 | Enable default route | No | Don’t steal system default from eth0 |
-| Share host uplink (NAT) | **No** | Optional. Peer reaches internet through Unraid (e.g. Proxmox on TB needing updates). Usual P2P: leave No. Mutually exclusive with bridging — [nat-share-uplink.md](nat-share-uplink.md) |
+| Share host uplink (NAT) | **No** | Optional. Peer reaches internet through Unraid when it has no Wi‑Fi/Ethernet of its own. Leave No for ordinary P2P. Mutually exclusive with bridging — [nat-share-uplink.md](nat-share-uplink.md) |
 | NAT uplink interface | **Auto** | Shown when NAT is Yes. Auto = Unraid’s default-route iface (`br0`/`wlan0`/…) |
 | Path line (read-only) | (derived) | Compact underlay · peer · `NAT off` or `underlay → uplink (ip) → internet` |
 | Desired MTU | **1500** (default) | Leave 1500 unless you opt into jumbo. **Enable jumbo frames** + 9000 (typical) can reduce packet/CPU cost on older or weaker hosts; **both ends must match**. See [mtu-and-throughput.md](mtu-and-throughput.md) |

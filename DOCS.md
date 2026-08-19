@@ -36,7 +36,7 @@ That includes **Thunderbolt 3, 4, and 5**, and **USB4 / USB4 v2** host controlle
 | Saved peers | Peers tab + flash `peers.json` | L3/MTU/NAT follow remote **fabric UUID** across unplug / tbn renumber |
 | Live kernel ifaces | `thunderbolt0`, `thunderbolt1`, … | Created by `thunderbolt_net` when a peer path trains |
 
-The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt links are usually **peer-to-peer** pipes used alongside your main LAN. Optional **NAT** lets a TB peer (e.g. Proxmox) reach the internet *through* Unraid without joining `br0`.
+The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt links are usually **peer-to-peer** pipes used alongside your main LAN. Optional **NAT** lets a TB peer without its own Wi‑Fi/Ethernet reach the internet *through* Unraid without joining a bridge.
 
 ### Product defaults
 

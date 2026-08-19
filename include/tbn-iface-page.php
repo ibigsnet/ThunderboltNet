@@ -581,8 +581,8 @@ if (strpos($nm, '.') === false) {
           <blockquote class="inline_help">
             Optional. Default <strong>No</strong> — typical Thunderbolt (copy / SMB between two hosts) does not need it.
             <strong>Yes</strong>: peer keeps a private Thunderbolt address and reaches the internet
-            <em>through Unraid</em> (NAT toward <code>br0</code>/<code>eth0</code>/<code>wlan0</code>).
-            Example: Proxmox on TB with no other uplink, needs <code>apt update</code>.
+            <em>through Unraid</em> (NAT toward Unraid’s uplink — <code>br0</code>/<code>eth0</code>/<code>wlan0</code>/…).
+            Use when the peer has no Wi‑Fi or viable Ethernet of its own (tablet, laptop on TB only, appliance, …).
             Peer gateway = this Unraid’s tbn IP. Cannot combine with Enable bridging.
             <?= tbn_help_docs_footer('docs/nat-share-uplink.md', 'NAT / share uplink') ?>
           </blockquote>

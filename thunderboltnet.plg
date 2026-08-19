@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.18ao">
+<!ENTITY version "2026.08.18ap">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,10 +27,10 @@
 
 <CHANGES>
 ###&version;
-- IPv4/IPv6 DHCP hints behind Help; pool and IPv6 server orange → inline help.
+- Generalize NAT help: peer without Wi‑Fi/Ethernet; Unraid shares uplink.
 
-###2026.08.18an–ad
-- Form init label fix; Saved-peer form reload; NAT lifecycle; DHCP/NAT UI.
+###2026.08.18ao–ad
+- DHCP hints behind Help; Saved-peer form reload; NAT lifecycle; DHCP/NAT UI.
 
 ###2026.08.18ac–aa
 - MTU 1500 default; shelve Steam docs; Network Settings lazy-load; Age humanized.
