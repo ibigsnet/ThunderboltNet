@@ -1136,6 +1136,65 @@
       });
   }
 
+  /** Overview subtab order for background preload after the active panel. */
+  var TBN_OVERVIEW_PANELS = ['status', 'peers', 'hardware', 'settings'];
+  var tbnOverviewPreloadBusy = false;
+
+  /**
+   * After the active Thunderbolt subtab finishes loading, fetch the rest in the
+   * background (staggered) so the next click is usually already warm.
+   */
+  function tbnLazyPreloadSiblingPanels(activeName) {
+    var ov = document.getElementById('tbn-overview');
+    if (!ov || !tbnThunderboltUiVisible()) {
+      return;
+    }
+    if (tbnOverviewPreloadBusy) {
+      return;
+    }
+    var rest = [];
+    for (var i = 0; i < TBN_OVERVIEW_PANELS.length; i++) {
+      if (TBN_OVERVIEW_PANELS[i] !== activeName) {
+        rest.push(TBN_OVERVIEW_PANELS[i]);
+      }
+    }
+    if (!rest.length) {
+      return;
+    }
+    tbnOverviewPreloadBusy = true;
+    var idx = 0;
+    function loadNext() {
+      if (!tbnThunderboltUiVisible()) {
+        tbnOverviewPreloadBusy = false;
+        return;
+      }
+      while (idx < rest.length) {
+        var name = rest[idx++];
+        var panel = ov.querySelector('[data-tbn-lazy-panel="' + name + '"]');
+        if (
+          !panel ||
+          panel.getAttribute('data-tbn-lazy-loaded') === '1' ||
+          panel.getAttribute('data-tbn-lazy-loading') === '1'
+        ) {
+          continue;
+        }
+        tbnLazyFetch(
+          '/plugins/ThunderboltNet/include/tbn-lazy-render.php?panel=' +
+            encodeURIComponent(name),
+          panel,
+          function () {
+            // Brief gap so the active tab stays responsive; then continue.
+            setTimeout(loadNext, 60);
+          }
+        );
+        return;
+      }
+      tbnOverviewPreloadBusy = false;
+    }
+    // Let the active panel paint / wire before background work.
+    setTimeout(loadNext, 120);
+  }
+
   window.tbnLazyEnsurePanel = function (name) {
     var ov = document.getElementById('tbn-overview');
     if (!ov || !tbnIsShown(ov)) {
@@ -1145,6 +1204,11 @@
     if (!panel) {
       return;
     }
+    // Already warm — still kick sibling preload once.
+    if (panel.getAttribute('data-tbn-lazy-loaded') === '1') {
+      tbnLazyPreloadSiblingPanels(name);
+      return;
+    }
     tbnLazyFetch(
       '/plugins/ThunderboltNet/include/tbn-lazy-render.php?panel=' + encodeURIComponent(name),
       panel,
@@ -1152,6 +1216,7 @@
         if (ok) {
           tbnLivePoll();
         }
+        tbnLazyPreloadSiblingPanels(name);
       }
     );
   };

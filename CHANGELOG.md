@@ -1,3 +1,9 @@
+## 2026.08.18ar
+
+- **UI:** Thunderbolt overview lazy-load — finish the **active** subtab (last visited /
+  Status), then **preload** Peers / Hardware / Settings in the background so the next
+  click is usually already warm.
+
 ## 2026.08.18aq
 
 - **Addressing:** Product seed is Unraid **`10.255.N.1`**, peer **`.2`** (Reset / first-create).
