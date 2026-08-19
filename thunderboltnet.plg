@@ -29,8 +29,8 @@
 ###&version;
 - Thunderbolt overview: load active subtab first, then preload the rest in background.
 
-###2026.08.18ap
-- Generalize NAT help: peer without Wi‑Fi/Ethernet; Unraid shares uplink.
+###2026.08.18aq–ap
+- Seed Unraid .1; Dashboard tbnN labels and TB trained rates; generalize NAT help.
 
 ###2026.08.18ao–ad
 - DHCP hints behind Help; Saved-peer form reload; NAT lifecycle; DHCP/NAT UI.
