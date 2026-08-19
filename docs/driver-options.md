@@ -145,8 +145,8 @@ These are **examples**, not a claim about which peer type is most popular.
 1. Driver options: **Load modules = Yes**, **E2E = No**.  
 2. Apply; confirm `e2e` sysfs if you just changed it.  
 3. One cable between the hosts; wait for `thunderbolt0`.  
-4. tbn0: static `10.255.0.2/24`, default route **No**.  
-5. On the Linux peer: static `10.255.0.1/24` on its Thunderbolt net iface (NetworkManager or `ip`).  
+4. tbn0: static `10.255.0.1/24`, default route **No**.  
+5. On the Linux peer: static `10.255.0.2/24` on its Thunderbolt net iface (NetworkManager or `ip`).  
 6. Ping both ways. If the iface never appears, [reseat](troubleshooting.md#reseating-the-cable-why-it-matters) once with only that cable plugged in.
 
 See [peer-scenarios.md](peer-scenarios.md).

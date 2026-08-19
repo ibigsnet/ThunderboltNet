@@ -42,14 +42,14 @@ Well-supported with this plugin (same kernel family both sides). Not necessarily
 ### Unraid
 
 1. Thunderbolt tab: modules **Yes**, E2E **No**.  
-2. When `thunderbolt0` exists → **tbn0**: Enable **Yes**, Static, e.g. `10.255.0.2/24`, default route **No**.  
+2. When `thunderbolt0` exists → **tbn0**: Enable **Yes**, Static, e.g. `10.255.0.1/24`, default route **No**.  
 3. Apply.
 
 ### Linux peer (example)
 
 - Interface name may be `thunderbolt0` or similar.  
-- NetworkManager: manual IPv4 `10.255.0.1/24`, never-default / ignore automatically obtained routes if you use the main Wi‑Fi/Ethernet for internet.  
-- Or: `ip link set thunderbolt0 up` and `ip addr add 10.255.0.1/24 dev thunderbolt0`.
+- NetworkManager: manual IPv4 `10.255.0.2/24`, never-default / ignore automatically obtained routes if you use the main Wi‑Fi/Ethernet for internet.  
+- Or: `ip link set thunderbolt0 up` and `ip addr add 10.255.0.2/24 dev thunderbolt0`.
 
 ### Tips
 
@@ -77,7 +77,7 @@ Apple’s product name is typically **Thunderbolt Bridge** (network over Thunder
 
 - A trained host path can create a `thunderboltN` on Unraid with the Mac’s advertised name.  
 - On the Mac: System Settings → Network → Thunderbolt Bridge (wording varies by macOS version).  
-- Configure IPv4 **Manually** to match Unraid’s subnet (e.g. Mac `10.255.0.1`, Unraid `10.255.0.2`, mask `255.255.255.0`), or use a small manual plan both sides agree on.
+- Configure IPv4 **Manually** to match Unraid’s subnet (e.g. Unraid `10.255.0.1`, Mac `10.255.0.2`, mask `255.255.255.0`), or use a small manual plan both sides agree on.
 
 ### E2E
 
@@ -182,10 +182,10 @@ Cable **order** can change which remote is `thunderbolt0` vs `thunderbolt1`. Use
 
 | Link | Unraid | Peer |
 |------|--------|------|
-| tbn0 ↔ Linux workstation | `10.255.0.2/24` | `10.255.0.1/24` |
-| tbn1 ↔ Mac laptop | `10.255.1.2/24` | `10.255.1.1/24` |
+| tbn0 ↔ Linux workstation | `10.255.0.1/24` | `10.255.0.2/24` |
+| tbn1 ↔ Mac laptop | `10.255.1.1/24` | `10.255.1.2/24` |
 
-Ping: `ping 10.255.0.1` from Unraid, etc.
+Ping: `ping 10.255.0.2` from Unraid, etc.
 
 More on masks: [addressing.md](addressing.md).
 

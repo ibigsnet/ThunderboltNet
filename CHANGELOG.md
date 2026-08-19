@@ -1,3 +1,14 @@
+## 2026.08.18aq
+
+- **Addressing:** Product seed is Unraid **`10.255.N.1`**, peer **`.2`** (Reset / first-create).
+  One-shot migrate of exact historical `10.255.N.2` → `.1` on path-slot + Saved.
+- **Dashboard:** Interface dropdown and tables show **`tbnN`** (value stays `thunderboltN`).
+- **Dashboard:** Thunderbolt mode of operation uses trained `rx_speed`/`tx_speed`
+  (netdev `speed` is empty on thunderbolt_net). Equal → `20 Gbps, full duplex`;
+  asymmetric → `Rx: …, Tx: …` (not “half duplex”).
+- **Docs:** addressing.md `/24` vs `/30` vs `/32`; product defaults no longer
+  contradict seed vs recommend.
+
 ## 2026.08.18ap
 
 - **Copy:** NAT help/docs generalized — peer with no Wi‑Fi or viable Ethernet;

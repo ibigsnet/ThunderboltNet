@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.18ap">
+<!ENTITY version "2026.08.18aq">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,6 +27,9 @@
 
 <CHANGES>
 ###&version;
+- Unraid seed 10.255.N.1 (peer .2); Dashboard tbnN labels; TB mode uses trained Rx/Tx.
+
+###2026.08.18ap
 - Generalize NAT help: peer without Wi‑Fi/Ethernet; Unraid shares uplink.
 
 ###2026.08.18ao–ad
@@ -86,7 +89,7 @@ if [ -f /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt ]; 
     /boot/config/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt
 fi
 # Hotplug + boot reapply for thunderbolt* L3 (forum persistence findings)
-php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; tbn_install_net_udev(); if (function_exists("tbn_sync_iface_pages")) { tbn_sync_iface_pages(); }' 2>/dev/null || true
+php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; if (function_exists("tbn_migrate_seed_dot2_to_dot1")) { tbn_migrate_seed_dot2_to_dot1(); } tbn_install_net_udev(); if (function_exists("tbn_sync_iface_pages")) { tbn_sync_iface_pages(); }' 2>/dev/null || true
 /bin/bash /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-net-reapply >/dev/null 2>&1 || true
 udevadm trigger --subsystem-match=net --action=add 2>/dev/null || true
 # Dashboard Interface dropdown: include thunderboltN (re-apply after every upgrade;

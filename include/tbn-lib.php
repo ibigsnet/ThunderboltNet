@@ -48,7 +48,7 @@ function tbn_load_cfg() {
     'include_listening' => 'no',
     // Legacy global IP path (tbn tabs own addressing; leave manage_ip=no)
     'manage_ip' => 'no',
-    'ip_addr' => '10.255.0.2',
+    'ip_addr' => '10.255.0.1',
     'ip_cidr' => '24',
     'ip_gateway' => '',
     'never_default' => 'yes',
@@ -2462,6 +2462,10 @@ function tbn_diagnostics_text() {
  */
 function tbn_status() {
   $cfg = tbn_load_cfg();
+  // Historical Unraid seed was 10.255.N.2; product standard is Unraid .1 / peer .2
+  if (function_exists('tbn_migrate_seed_dot2_to_dot1')) {
+    @tbn_migrate_seed_dot2_to_dot1();
+  }
   // FRR installed → OpenFabric on (unless user explicitly turned it off)
   if (function_exists('tbn_of_maybe_auto_enable_from_frr')) {
     $cfg = tbn_of_maybe_auto_enable_from_frr($cfg);
@@ -2898,7 +2902,7 @@ function tbn_normalize_address_plan($plan) {
 }
 
 /**
- * Suggested static IPv4 for a plan + iface (Unraid = .2, peer often .1).
+ * Suggested static IPv4 for a plan + iface (Unraid = .1, peer = .2).
  * Each thunderboltN gets third-octet N so dual peers do not share one /24.
  */
 function tbn_suggest_address($if, $plan = 'small-lan') {
@@ -2907,21 +2911,88 @@ function tbn_suggest_address($if, $plan = 'small-lan') {
   $base = '10.255.' . $n;
   if ($plan === 'p2p') {
     return [
-      'IPADDR' => $base . '.2',
+      'IPADDR' => $base . '.1',
       'NETMASK' => '255.255.255.252',
       'prefix' => 30,
-      'peer_hint' => $base . '.1',
+      'peer_hint' => $base . '.2',
       'network' => $base . '.0/30',
     ];
   }
   // small-lan (and custom suggestions when resetting)
   return [
-    'IPADDR' => $base . '.2',
+    'IPADDR' => $base . '.1',
     'NETMASK' => '255.255.255.0',
     'prefix' => 24,
-    'peer_hint' => $base . '.1',
+    'peer_hint' => $base . '.2',
     'network' => $base . '.0/24',
   ];
+}
+
+/**
+ * One-shot: rewrite path-slot + Saved plans still on the historical Unraid seed
+ * 10.255.N.2 → 10.255.N.1 (only exact old seed for that N). Custom IPs untouched.
+ *
+ * @return array{migrated:bool,ifaces:string[],peers:string[]}
+ */
+function tbn_migrate_seed_dot2_to_dot1() {
+  $flag = tbn_cfg_dir() . '/.migrated-seed-dot1';
+  $out = ['migrated' => false, 'ifaces' => [], 'peers' => []];
+  if (is_file($flag)) {
+    return $out;
+  }
+  $dir = function_exists('tbn_iface_cfg_dir') ? tbn_iface_cfg_dir() : (tbn_cfg_dir() . '/ifaces');
+  foreach (glob($dir . '/thunderbolt*.cfg') ?: [] as $path) {
+    $base = basename($path, '.cfg');
+    if (!preg_match('/^thunderbolt(\d+)$/', $base, $m)) {
+      continue;
+    }
+    $n = (int)$m[1];
+    $old = '10.255.' . $n . '.2';
+    $new = '10.255.' . $n . '.1';
+    $cfg = tbn_load_iface_cfg($base);
+    if (trim((string)($cfg['IPADDR'] ?? '')) !== $old) {
+      continue;
+    }
+    // Only migrate static (or empty DHCP mode); leave DHCP client alone
+    $dhcp = (string)($cfg['USE_DHCP'] ?? 'no');
+    if ($dhcp === 'yes') {
+      continue;
+    }
+    $cfg['IPADDR'] = $new;
+    tbn_write_iface_cfg($base, $cfg);
+    $out['ifaces'][] = $base;
+  }
+  $peers = tbn_load_peers_memory();
+  $changed = false;
+  foreach ($peers as $k => $p) {
+    if (!is_array($p)) {
+      continue;
+    }
+    $plan = is_array($p['plan'] ?? null) ? $p['plan'] : [];
+    $ip = trim((string)($plan['IPADDR'] ?? ''));
+    if ($ip === '' || !preg_match('/^10\.255\.(\d+)\.2$/', $ip, $m)) {
+      continue;
+    }
+    $n = (int)$m[1];
+    // Prefer last_iface index when present
+    $last = (string)($p['last_iface'] ?? '');
+    if (preg_match('/^thunderbolt(\d+)$/', $last, $lm)) {
+      $n = (int)$lm[1];
+      if ($ip !== ('10.255.' . $n . '.2')) {
+        continue;
+      }
+    }
+    $peers[$k]['plan']['IPADDR'] = '10.255.' . $n . '.1';
+    $out['peers'][] = $k;
+    $changed = true;
+  }
+  if ($changed) {
+    tbn_save_peers_memory($peers);
+  }
+  @file_put_contents($flag, date('c') . " ifaces=" . implode(',', $out['ifaces'])
+    . " peers=" . count($out['peers']) . "\n");
+  $out['migrated'] = ($out['ifaces'] || $out['peers']);
+  return $out;
 }
 
 function tbn_iface_defaults($if = 'thunderbolt0') {
@@ -4172,7 +4243,7 @@ function tbn_write_global_cfg(array $cfg) {
     'address_plan' => 'small-lan',
     'include_listening' => 'no',
     'manage_ip' => 'no',
-    'ip_addr' => '10.255.0.2',
+    'ip_addr' => '10.255.0.1',
     'ip_cidr' => '24',
     'ip_gateway' => '',
     'never_default' => 'yes',

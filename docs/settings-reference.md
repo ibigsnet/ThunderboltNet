@@ -70,7 +70,7 @@ Does **not** register Thunderbolt in stock **Interface Rules** (MAC→name). Hos
 | Enable bridging | No | Optional. Join an **existing** Unraid bridge (`br0`, `br0.N`, …). Mutually exclusive with NAT — [addressing.md](addressing.md#join-an-unraid-bridge-br0-br010-) |
 | Network protocol | IPv4 only | IPv6 limited |
 | IPv4 assignment | Static (Manual User Config) | Also: DHCP Client (Automatic); DHCP Server (Unraid-Managed). Autofill table: [addressing.md](addressing.md#autofill-by-assignment-mode) |
-| IPv4 address / mask | Static seed `10.255.N.2/24` | Unique subnet per N; DHCP server mode autofills Unraid `.1` when empty or still on seed `.2` |
+| IPv4 address / mask | Static seed Unraid `10.255.N.1/24` (peer `.2`) | Unique subnet per N; DHCP server mode autofills Unraid `.1` when empty or leftover historical `.2` |
 | DHCP pool start / end | (derived) | Shown for DHCP Server; default `.2`–`.254` when host is `.1` (excludes Unraid’s address) |
 | IPv4 default gateway | empty | Optional next hop on this link (static mode) |
 | Enable default route | No | Don’t steal system default from eth0 |

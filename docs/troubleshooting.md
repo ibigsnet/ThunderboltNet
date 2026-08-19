@@ -84,7 +84,7 @@ More topology detail: [links-and-topology.md](links-and-topology.md).
 For console recovery when plugins are off:
 
 1. Unplug **all** TB/USB4 host cables; wait; plug **one** cable only (same multi-cable steps above).  
-2. `modprobe thunderbolt_net`, bring `thunderbolt0` up, set a static `/24` (e.g. `10.255.0.2` / peer `10.255.0.1`).  
+2. `modprobe thunderbolt_net`, bring `thunderbolt0` up, set a static `/24` (e.g. Unraid `10.255.0.1` / peer `10.255.0.2`).  
 3. **Do not** add a default route via Thunderbolt unless you mean to.  
 4. Prefer **no** persistent “always run without plugins” flash automation; manual is enough for rare recovery.
 

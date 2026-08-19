@@ -129,7 +129,7 @@ if (strpos($nm, '.') === false) {
 <?php if ($is_slave): ?>
     · <strong>member of <?= htmlspecialchars($master) ?></strong>
 <?php endif; ?>
-    <span class="tbn-muted"><br>Same idea as eth0: static IP on this path, Apply. Defaults use <code>10.255.N.2/24</code> for thunderboltN.<?php
+    <span class="tbn-muted"><br>Same idea as eth0: static IP on this path, Apply. Defaults use Unraid <code>10.255.N.1/24</code> (peer typically <code>.2</code>).<?php
   if (function_exists('tbn_nat_schema_line')) {
     $schema = tbn_nat_schema_line($if, $cfg);
     if ($schema !== '') {
@@ -438,7 +438,7 @@ if (strpos($nm, '.') === false) {
   if ($pool_end_val === '') {
     $pool_end_val = $dhcp_def_pe;
   }
-  // When already in server mode, show host IP from plan if cfg still has seed .2
+  // When already in server mode, empty address uses the DHCP-server plan default (.1)
   $server_ip_val = (string)($cfg['IPADDR'] ?? '');
   if ($use_dhcp4 === 'server' && $server_ip_val === '') {
     $server_ip_val = $dhcp_def_ip;
@@ -478,8 +478,8 @@ if (strpos($nm, '.') === false) {
             </dd>
           </dl>
           <blockquote class="inline_help tbn-ipv4-addr-help-static">
-            Unique subnet per tbnN. Recommended: Unraid <code>.1</code>, peer <code>.2</code>
-            (e.g. tbn0 <code>10.255.0.1/24</code>). Same <code>.2</code> on both Unraids breaks Peer link check.
+            Unique subnet per tbnN. Default seed: Unraid <code>.1</code>, peer <code>.2</code>
+            (e.g. tbn0 <code>10.255.0.1/24</code>). Same address on both Unraids breaks Peer link check.
             <?= tbn_help_docs_footer('docs/addressing.md', 'Addressing') ?>
           </blockquote>
           <blockquote class="inline_help tbn-ipv4-addr-help-server tbn-hidden">

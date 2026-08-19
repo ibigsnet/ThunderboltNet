@@ -1,11 +1,17 @@
 #!/bin/bash
 # Include Thunderbolt host-net ifaces on Unraid Dashboard network throughput.
 #
-# Stock dynamix only lists bondN / ethN / wlanN (+ lo). Kernel names for this
-# plugin are thunderboltN (Settings tabs tbn0, tbn1, …), plus optional bond-tbN
-# and br-tbN. Patch (content only — one grep line each file):
-#   - plugins/dynamix/nchan/update_3     (nchan worker: net stats + Dashboard clock)
-#   - plugins/dynamix/DashStats.page     (UI port list for Interface dropdown)
+# Stock dynamix only lists bondN / ethN / wlanN (+ lo). It does not list br0.
+# Kernel names for this plugin are thunderboltN (Settings tabs tbn0, tbn1, …),
+# plus optional bond-tbN and br-tbN. We only add those — never stock br0.
+#
+# Patches (content only; preserve file mode — never mktemp+mv over the target):
+#   - plugins/dynamix/nchan/update_3
+#       * port-list grep (thunderbolt / bond-tb / br-tb)
+#       * default: mode line — trained rx_speed/tx_speed (netdev speed is empty)
+#   - plugins/dynamix/DashStats.page
+#       * same port-list grep
+#       * short labels: display tbnN, option value stays thunderboltN
 #
 # INCIDENT (2026.08.16): early replace used mktemp+mv which dropped file mode.
 # update_3 lost +x → nchan worker never stayed up → Dashboard clock frozen/missing
@@ -18,13 +24,32 @@
 set -euo pipefail
 
 MARKER='ThunderboltNet-dashboard-ports'
-UPDATE3="/usr/local/emhttp/plugins/dynamix/nchan/update_3"
-DASH="/usr/local/emhttp/plugins/dynamix/DashStats.page"
-BACKUP_DIR="/boot/config/plugins/ThunderboltNet/dashboard-ports-backup"
+UPDATE3="${TBN_UPDATE3:-/usr/local/emhttp/plugins/dynamix/nchan/update_3}"
+DASH="${TBN_DASH:-/usr/local/emhttp/plugins/dynamix/DashStats.page}"
+BACKUP_DIR="${TBN_DASH_BACKUP:-/boot/config/plugins/ThunderboltNet/dashboard-ports-backup}"
 
 # Literal substrings as they appear in LimeTech files
 STOCK="grep -Po '^(bond|eth|wlan)\\d+$'"
 PATCHED="grep -Po '^(bond|eth|wlan|thunderbolt)\\d+$|^(bond-tb|br-tb)\\d+$' # ${MARKER}"
+
+# DashStats only: show tbnN instead of thunderboltN (value stays kernel name for stats)
+# Single-line inject — replace_first matches one physical line.
+LABEL_MARKER='ThunderboltNet-dashboard-labels'
+LABEL_FN_STOCK="\$ports[] = 'lo';"
+LABEL_FN_PATCHED="\$ports[] = 'lo'; if (!function_exists('tbn_dash_port_label')) { function tbn_dash_port_label(\$p) { return preg_match('/^thunderbolt(\\d+)\$/', \$p, \$m) ? ('tbn'.\$m[1]) : \$p; } } # ${LABEL_MARKER}"
+LABEL_OPT_STOCK='<?=mk_option("",$port,_($port))?>'
+LABEL_OPT_PATCHED='<?=mk_option("",$port,_(tbn_dash_port_label($port)))?>'
+LABEL_SPAN_STOCK="<span class='w26'>\$port</span>"
+LABEL_SPAN_PATCHED="<span class='w26'>\".tbn_dash_port_label(\$port).\"</span>"
+
+# update_3 default: — thunderbolt_net has empty netdev speed; use TB sysfs rx/tx.
+TBMODE_MARKER='ThunderboltNet-dashboard-tbmode'
+TBMODE_STOCK='    default:'
+# shellcheck disable=SC2016
+TBMODE_PATCHED='    default: if (strpos($port,"thunderbolt")===0) { if (!$link) { $echo["mode"][]=_("interface down"); break; } $tbn_rx=$tbn_tx=""; $tbn_dev=@realpath("$net/$port/device"); if ($tbn_dev) { foreach (array(dirname($tbn_dev),dirname(dirname($tbn_dev))) as $tbn_c) { $tbn_s=@file_get_contents($tbn_c."/rx_speed"); if ($tbn_s!==false && trim($tbn_s)!=="") { $tbn_rx=trim($tbn_s); $tbn_tx=trim((string)@file_get_contents($tbn_c."/tx_speed")); break; } } } $tbn_fn=function($s){ $s=trim((string)$s); if ($s===""||$s==="0") return array(0,""); if (!preg_match("/([\d.]+)/",$s,$m)) return array(0,""); $n=(float)$m[1]; if ((stripos($s,"mb")!==false && stripos($s,"gb")===false) || ($n>500 && stripos($s,"gb")===false)) $n=$n/1000.0; $lab=(abs($n-round($n))<0.05)?(string)intval(round($n)):rtrim(rtrim(sprintf("%.1f",$n),"0"),"."); return array($n,$lab." Gbps"); }; $tbn_rp=$tbn_fn($tbn_rx); $tbn_tp=$tbn_fn($tbn_tx); if ($tbn_rp[1]!=="" && $tbn_tp[1]!=="" && $tbn_rp[0]>0 && $tbn_tp[0]>0 && abs($tbn_rp[0]-$tbn_tp[0])<0.05) { $echo["mode"][]=$tbn_rp[1].", full duplex, mtu ".$mtu; } elseif ($tbn_rp[1]!=="" && $tbn_tp[1]!=="") { $echo["mode"][]=_("Rx").": ".$tbn_rp[1].", "._("Tx").": ".$tbn_tp[1].", mtu ".$mtu; } elseif ($tbn_rp[1]!=="" || $tbn_tp[1]!=="") { $echo["mode"][]=($tbn_rp[1]!==""?_("Rx").": ".$tbn_rp[1]:_("Tx").": ".$tbn_tp[1]).", mtu ".$mtu; } else { $echo["mode"][]="---, mtu ".$mtu; } break; } # ThunderboltNet-dashboard-tbmode'
+
+LABELS_CHANGED=0
+TBMODE_CHANGED=0
 
 # Unraid event/started captures stdout into the bottom status bar
 # ("Array Started • …"). Keep routine success quiet unless a TTY or VERBOSE=1.
@@ -79,14 +104,16 @@ heal_mode() {
 # Replace first occurrence of $old with $new in file (bash only).
 # Never use mv over the target from a temp file without restoring mode —
 # that dropped +x on update_3 and broke the Dashboard clock (nchan).
+# Escape & in $new: ${line/old/new} treats & as the matched text.
 replace_first() {
   local f="$1" old="$2" new="$3"
-  local tmp done=0 line mode
+  local tmp done=0 line mode esc
   mode=$(stat -c '%a' "$f" 2>/dev/null || echo 644)
+  esc="${new//&/\\&}"
   tmp=$(mktemp)
   while IFS= read -r line || [ -n "$line" ]; do
     if [ "$done" -eq 0 ] && [[ "$line" == *"$old"* ]]; then
-      line="${line/"$old"/$new}"
+      line="${line/"$old"/$esc}"
       done=1
     fi
     printf '%s\n' "$line"
@@ -111,18 +138,93 @@ apply_file() {
   if grep -qF "$MARKER" "$f" 2>/dev/null; then
     heal_mode "$f"
     log "already applied: $f (mode $(stat -c '%a' "$f" 2>/dev/null || echo '?'))"
+  else
+    if ! grep -qF "grep -Po '^(bond|eth|wlan)" "$f" 2>/dev/null; then
+      warn "WARN: ports grep not found in $f — Unraid layout may have changed; skip"
+      return 0
+    fi
+    backup_once "$f"
+    if replace_first "$f" "$STOCK" "$PATCHED"; then
+      heal_mode "$f"
+      log "applied: $f (mode $(stat -c '%a' "$f" 2>/dev/null || echo '?'))"
+    else
+      warn "WARN: failed to patch $f (stock pattern not exact match)"
+    fi
+  fi
+  # Short labels on DashStats dropdown + tables (kernel name unchanged for stats)
+  if [ "$f" = "$DASH" ]; then
+    apply_dash_labels
+  fi
+  # Thunderbolt mode-of-operation (trained rx/tx) even if port-list already patched
+  if [ "$f" = "$UPDATE3" ]; then
+    apply_tb_mode
+  fi
+}
+
+apply_dash_labels() {
+  local f="$DASH"
+  [ -f "$f" ] || return 0
+  local changed=0
+  backup_once "$f"
+  # Inject label helper after ports[] = 'lo'; (single line)
+  if ! grep -qF 'function tbn_dash_port_label' "$f" 2>/dev/null; then
+    if ! grep -qF "\$ports[] = 'lo';" "$f" 2>/dev/null; then
+      warn "WARN: ports[]=lo not found in DashStats — skip short labels"
+      return 0
+    fi
+    if replace_first "$f" "$LABEL_FN_STOCK" "$LABEL_FN_PATCHED"; then
+      changed=1
+    else
+      warn "WARN: failed to inject tbn_dash_port_label helper"
+      return 0
+    fi
+  fi
+  # Dropdown option text (value stays kernel name)
+  if grep -qF 'mk_option("",$port,_($port))' "$f" 2>/dev/null; then
+    if replace_first "$f" "$LABEL_OPT_STOCK" "$LABEL_OPT_PATCHED"; then
+      changed=1
+    fi
+  fi
+  # General / Counters / Errors row labels (three identical $port spans)
+  local i
+  for i in 1 2 3; do
+    if grep -qF "<span class='w26'>\$port</span>" "$f" 2>/dev/null; then
+      if replace_first "$f" "$LABEL_SPAN_STOCK" "$LABEL_SPAN_PATCHED"; then
+        changed=1
+      fi
+    fi
+  done
+  heal_mode "$f"
+  if grep -qF 'tbn_dash_port_label' "$f" 2>/dev/null; then
+    if [ "$changed" -eq 1 ]; then
+      LABELS_CHANGED=1
+      log "short labels applied: thunderboltN → tbnN in DashStats"
+    else
+      log "labels already applied: $f"
+    fi
+  else
+    warn "WARN: short labels may be incomplete in DashStats"
+  fi
+}
+
+apply_tb_mode() {
+  local f="$UPDATE3"
+  [ -f "$f" ] || return 0
+  if grep -qF "$TBMODE_MARKER" "$f" 2>/dev/null; then
+    log "tbmode already applied: $f"
     return 0
   fi
-  if ! grep -qF "grep -Po '^(bond|eth|wlan)" "$f" 2>/dev/null; then
-    warn "WARN: ports grep not found in $f — Unraid layout may have changed; skip"
+  if ! grep -qE '^[[:space:]]*default:' "$f" 2>/dev/null; then
+    warn "WARN: default: branch not found in update_3 — skip TB mode"
     return 0
   fi
   backup_once "$f"
-  if replace_first "$f" "$STOCK" "$PATCHED"; then
+  if replace_first "$f" "$TBMODE_STOCK" "$TBMODE_PATCHED"; then
     heal_mode "$f"
-    log "applied: $f (mode $(stat -c '%a' "$f" 2>/dev/null || echo '?'))"
+    TBMODE_CHANGED=1
+    log "tbmode applied: thunderbolt uses trained rx/tx (not netdev speed)"
   else
-    warn "WARN: failed to patch $f (stock pattern not exact match)"
+    warn "WARN: failed to patch update_3 default: for TB mode"
   fi
 }
 
@@ -200,6 +302,20 @@ status_file() {
   else
     echo "  other:   $f  mode=$mode executable=$exe"
   fi
+  if [ "$f" = "$DASH" ]; then
+    if grep -qF 'tbn_dash_port_label' "$f" 2>/dev/null; then
+      echo "    labels: tbnN short names (value=thunderboltN)"
+    else
+      echo "    labels: stock kernel names"
+    fi
+  fi
+  if [ "$f" = "$UPDATE3" ]; then
+    if grep -qF "$TBMODE_MARKER" "$f" 2>/dev/null; then
+      echo "    tbmode: trained rx/tx for thunderbolt*"
+    else
+      echo "    tbmode: stock netdev speed"
+    fi
+  fi
 }
 
 status_workers() {
@@ -236,23 +352,25 @@ case "$cmd" in
     apply_file "$DASH"
     restart_nchan_update3
     if [ -t 1 ] || [ "${TBN_DASH_VERBOSE:-0}" = "1" ]; then
-      log "done — hard-refresh Dashboard; choose thunderbolt0 in the Interface dropdown"
+      log "done — hard-refresh Dashboard; pick tbn0 (kernel thunderbolt0) in Interface"
     else
       log "apply complete"
     fi
     ;;
   ensure)
     # Array-start safe: do not patch stock dynamix on hosts with no Thunderbolt.
-    # If we already patched (upgrade path), heal modes + worker only.
+    # If we already patched the port-list, still apply labels + TB mode (upgrade path).
     if already_patched; then
       heal_mode "$UPDATE3"
       heal_mode "$DASH"
-      if ! pgrep -f 'php -q .*/nchan/update_3' >/dev/null 2>&1; then
+      apply_dash_labels
+      apply_tb_mode
+      if [ "${TBMODE_CHANGED:-0}" = "1" ] || ! pgrep -f 'php -q .*/nchan/update_3' >/dev/null 2>&1; then
         restart_nchan_update3
       else
         heal_mode "$UPDATE3"
       fi
-      log "ensure: already patched — healed modes"
+      log "ensure: already patched — healed; labels/tbmode checked"
     elif tb_present; then
       apply_file "$UPDATE3"
       apply_file "$DASH"

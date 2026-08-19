@@ -13,7 +13,9 @@ Stock pattern only matches:
 ^(bond|eth|wlan)\d+$
 ```
 
-plus hardcoded `lo`. That **omits** kernel names used by ThunderboltNet:
+plus hardcoded `lo`. Stock Dashboard does **not** list `br0` (only eth / bond / wlan + lo). This plugin only adds ThunderboltNet names — never `br0`.
+
+That **omits** kernel names used by ThunderboltNet:
 
 | Kernel iface | Settings tab label |
 |--------------|--------------------|
@@ -46,10 +48,10 @@ Uninstall runs `remove` and restores the stock files from a one-time backup unde
 /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports remove
 ```
 
-After apply: hard-refresh the Dashboard and pick **`thunderbolt0`** (not “tbn0”) in the Interface dropdown — the UI uses the **kernel** name.
+After apply: hard-refresh the Dashboard. The Interface dropdown and table rows show **`tbn0`** (short label). The option **value** and stats stay the kernel name **`thunderbolt0`**. `bond-tb*` / `br-tb*` are already short.
 
 ## Notes
 
 - Chart scale is the same as other ports (bits/s from byte counters).
-- Link mode line for Thunderbolt uses the stock **default** path (sysfs `speed` / `duplex` / MTU) — typically “20 Gbps, full duplex, mtu …” when the link is up.
-- OS upgrades may replace `update_3` / `DashStats.page`; `event/started` re-applies the patch.
+- **Mode of operation** for `thunderbolt*` does **not** use netdev `speed` (empty on `thunderbolt_net`). The patch reads trained `rx_speed` / `tx_speed` from the Thunderbolt device sysfs (netdev `device` + parents). Equal rates → `20 Gbps, full duplex, mtu …`. Asymmetric (e.g. TB5) → `Rx: 20 Gbps, Tx: 160 Gbps, mtu …` — not “half duplex”. Down → interface down.
+- OS upgrades may replace `update_3` / `DashStats.page`; `event/started` re-applies the port-list, short labels, and TB mode patches.

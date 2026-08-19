@@ -11,7 +11,7 @@ if (!$has_hw):
       <input type="hidden" name="tbn_defaults" value="">
       <input type="hidden" name="include_listening" value="<?= htmlspecialchars($cfg['include_listening'] ?? 'no') ?>">
       <input type="hidden" name="manage_ip" value="<?= htmlspecialchars($cfg['manage_ip'] ?? 'no') ?>">
-      <input type="hidden" name="ip_addr" value="<?= htmlspecialchars($cfg['ip_addr'] ?? '10.255.0.2') ?>">
+      <input type="hidden" name="ip_addr" value="<?= htmlspecialchars($cfg['ip_addr'] ?? '10.255.0.1') ?>">
       <input type="hidden" name="ip_cidr" value="<?= htmlspecialchars($cfg['ip_cidr'] ?? '24') ?>">
       <input type="hidden" name="ip_gateway" value="<?= htmlspecialchars($cfg['ip_gateway'] ?? '') ?>">
       <input type="hidden" name="never_default" value="<?= htmlspecialchars($cfg['never_default'] ?? 'yes') ?>">

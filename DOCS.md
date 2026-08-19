@@ -46,8 +46,8 @@ The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt l
 | E2E flow control | **No (`e2e=0`)** | Persisted on flash across reboot; more reliable for many cross-host Linux links (see [driver options](docs/driver-options.md)) |
 | Per-link Enable | **Yes** | Bring the netdev up when you Apply |
 | IPv4 assignment | **Static** | Usual for two known hosts; DHCP client/server available when needed |
-| Static seed IPv4 | `10.255.N.2` / **24** for `thunderboltN` | Unique subnet per link; historical Reset seed (new labs often prefer Unraid `.1`) |
-| DHCP server autofill | Unraid `10.255.N.1/24`, pool `.2`–`.254` | When you switch into server mode (empty or still-on-seed `.2`) |
+| Static seed IPv4 | Unraid `10.255.N.1` / **24**, peer `.2` | Unique subnet per `thunderboltN`; Reset / first-create |
+| DHCP server autofill | Unraid `10.255.N.1/24`, pool `.2`–`.254` | When you switch into server mode (empty or leftover historical `.2`) |
 | Enable default route | **No** | Keep internet on eth0/br0; Thunderbolt stays peer-local |
 | Share host uplink (NAT) | **No** | Optional. Peer reaches internet through Unraid — [nat-share-uplink.md](docs/nat-share-uplink.md) |
 | NAT uplink | **Auto** | Unraid’s current default-route iface (`br0` / `wlan0` / …) |
@@ -66,7 +66,7 @@ Assignment-mode autofill detail: [addressing.md — Autofill by assignment mode]
 |-------|-----|
 | Driver options (`e2e`, modules) — **host-wide** | [docs/driver-options.md](docs/driver-options.md) |
 | Unraid ↔ Mac / Linux / Windows / docks & hubs | [docs/peer-scenarios.md](docs/peer-scenarios.md) |
-| `/24` vs `/30`, assignment autofill, unique subnets | [docs/addressing.md](docs/addressing.md) |
+| `/24` vs `/30` vs `/32`, assignment autofill, unique subnets | [docs/addressing.md](docs/addressing.md) |
 | Share Unraid uplink with TB peers (NAT) | [docs/nat-share-uplink.md](docs/nat-share-uplink.md) |
 | Thunderbolt 3–5 / USB4: **directionality**, bandwidth table, **mixing** gens/cables/lanes, FAQ | [docs/standards-and-speeds.md](docs/standards-and-speeds.md) |
 | MTU 1500 vs 9000, PPS overhead, both-ends setup | [docs/mtu-and-throughput.md](docs/mtu-and-throughput.md) |
@@ -108,8 +108,8 @@ OpenFabric **policy** lives on Thunderbolt Net (Advanced). FRR **packages** live
 1. Confirm a Thunderbolt-family **host controller** is visible (Thunderbolt tab shows hardware, not the empty state).
 2. Use a certified Thunderbolt / USB4-class cable that matches both hosts (Thunderbolt 3/4/5, USB4, USB4 v2 as applicable — not SS-only SuperSpeed USB). Start with **one cable per peer path**; multi-path bonding is optional when two netdevs exist ([topology](docs/links-and-topology.md)).
 3. On **Thunderbolt → Driver options**, leave **E2E flow control = No** unless a peer scenario says otherwise.
-4. When `thunderbolt0` appears, open **tbn0**, set a **static** IPv4 (e.g. `10.255.0.2/24`), leave **MTU 1500** unless both ends will set jumbo, **Apply**. That also fills **Saved** for the remote host (fabric UUID) so unplug/replug can restore L3 even if the path renumbers.
-5. On the peer, matching address (e.g. `10.255.0.1/24`). MTU is not auto-negotiated — only raise to 9000 if you set **both** ends.
+4. When `thunderbolt0` appears, open **tbn0**, set a **static** IPv4 (e.g. `10.255.0.1/24`), leave **MTU 1500** unless both ends will set jumbo, **Apply**. That also fills **Saved** for the remote host (fabric UUID) so unplug/replug can restore L3 even if the path renumbers.
+5. On the peer, matching address (e.g. `10.255.0.2/24`). MTU is not auto-negotiated — only raise to 9000 if you set **both** ends.
 6. Ping both ways. Check **Peers**: one Known peers row; **Saved** should already show your Unraid-side address (filled by that Apply — no extra Remember step). Set listening **Yes** if you want SMB/NFS/web on the TB IP.
 7. **Trained** rate can be less than the port sticker (e.g. **20 Gb/s · 1-lane**). Sticker **40 Gb/s** is typically **~20 G each direction** (simplex lanes) — expect roughly **~10–15 Gbit/s** TCP one way on a 1-lane train ([speeds](docs/standards-and-speeds.md)).
 8. If dual-cable experiments wedged the fabric: unplug **all** Thunderbolt cables on **both** machines, wait, plug **one** cable only ([troubleshooting](docs/troubleshooting.md)).

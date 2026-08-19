@@ -12,7 +12,7 @@ Each live kernel interface `thunderboltN` (Settings tab **tbnN**) is its own L2 
 - [Path-slot cfg vs Saved](#path-slot-cfg-vs-saved)
 - [Address assignment modes](#address-assignment-modes)
 - [Autofill by assignment mode](#autofill-by-assignment-mode)
-- [Small LAN (/24) vs point-to-point (/30)](#small-lan-24-vs-point-to-point-30)
+- [/24 vs /30 vs /32](#24-vs-30-vs-32)
 - [Hard rule: unique subnet per Thunderbolt link](#hard-rule-unique-subnet-per-thunderbolt-link)
 - [Examples](#examples)
 - [DHCP](#dhcp)
@@ -33,22 +33,23 @@ Each live kernel interface `thunderboltN` (Settings tab **tbnN**) is its own L2 
 | Item | Default | Rationale |
 |------|---------|-----------|
 | Assignment | Static | No DHCP server on a pure host↔host cable |
-| Suggestion (seed) | `10.255.N.2` for `thunderboltN` | Historical seed; unique third octet per link |
+| Suggestion (seed) | Unraid **`10.255.N.1`**, peer **`.2`** | Unique third octet per `thunderboltN`; Unraid is the near / infrastructure end |
 | Mask | **/24** (`255.255.255.0`) | Familiar; room for a few extra addresses (VM, alias) |
 | Gateway | empty | Peer-local only; set only if tbn is an uplink (rare) |
 | Enable default route | **No** | Internet stays on eth0/br0; Yes can steal default via lower metric |
 
-### Recommended host numbers (.1 vs .2)
+Reset / first-create on a tbn tab seeds **this Unraid** at `10.255.N.1/24` (or `/30` if the plan is point-to-point). The far peer is expected at **`.2`**.
 
-From a routing/tshoot habit (CCIE-style): treat **Unraid as `.1`** on each link subnet (stable infrastructure / “near” end of the pipe) and give the **peer `.2`**. That matches how most people label router↔host and reads cleanly in `ip route` / traceroute.
+### One-shot migrate (old seed `.2` → `.1`)
 
-| Role | Recommended | Notes |
-|------|-------------|--------|
-| Unraid tbnN | **`10.255.N.1/24`** (or `/30`) | Prefer for **new** links |
-| Far peer | **`10.255.N.2/...`** | |
-| Current plugin seed | still `10.255.N.2` on Unraid | Kept so existing labs are not reshuffled; either works for P2P if both ends agree |
+Older builds seeded Unraid at **`10.255.N.2`**. On install finish and on status, the plugin rewrites **exact** historical seeds only:
 
-Either `.1`/`.2` orientation is fine for peer-to-peer **without** a default route. Be consistent per link; do not put two Thunderbolt ifaces in the same subnet.
+| Store | What moves |
+|-------|------------|
+| Path-slot `ifaces/thunderboltN.cfg` | `IPADDR` exactly `10.255.N.2` → `10.255.N.1` (static / DHCP-server; not DHCP client) |
+| **Saved** plans in `peers.json` | Same exact old seed for that N |
+
+Custom addresses are left alone. A flag file (`.migrated-seed-dot1`) makes this **one-shot**. If two Unraids share a cable, give them complementary hosts (`.1` / `.2`) — do not leave both on the seed.
 
 ### Address assignment modes
 
@@ -64,9 +65,9 @@ What the tbnN form does when you change **IPv4 address assignment** (and on **Re
 
 | Mode | Fields shown | Autofill / seed | Apply does |
 |------|--------------|-----------------|------------|
-| **Static** (default) | IPv4 address + mask, gateway, default route, NAT | **Reset / new iface:** `10.255.N.2/24`. Switching *into* Static does **not** rewrite a filled address. | Sets that static on the netdev; captures Saved for the live peer |
+| **Static** (default) | IPv4 address + mask, gateway, default route, NAT | **Reset / new iface:** `10.255.N.1/24`. Switching *into* Static does **not** rewrite a filled address. | Sets that static on the netdev; captures Saved for the live peer |
 | **DHCP Client** | (address row hidden) | No IP autofill — kernel/dhcpcd gets the lease (or 169.254 if nothing serves) | Starts DHCP client on the underlay; stops on leave |
-| **DHCP Server** | Unraid IPv4 + mask, DHCP pool start–end, (NAT still under static-only block — use Static or set before switch) | On switch into Server: if address empty **or** still ends in `.2`, fill **`10.255.N.1`** + `/24`; empty pool → **`.2`–`.254`** (largest usable range that excludes host). Keeps non-seed edits. | Host L3 = Unraid address; dnsmasq serves the pool on **this** `thunderboltN` only (never eth0/br0) |
+| **DHCP Server** | Unraid IPv4 + mask, DHCP pool start–end, (NAT still under static-only block — use Static or set before switch) | On switch into Server: if address empty **or** still the historical seed `.2`, fill **`10.255.N.1`** + `/24`; empty pool → **`.2`–`.254`** (largest usable range that excludes host). Keeps non-seed edits. | Host L3 = Unraid address; dnsmasq serves the pool on **this** `thunderboltN` only (never eth0/br0) |
 
 | Related default | Value |
 |-----------------|-------|
@@ -107,18 +108,18 @@ Most users are Unraid↔Mac/PC, not two Unraids. If you **do** run two Unraid pl
 - Prefer **Static** with complementary hosts: one **`.1`**, one **`.2`** on the same `10.255.N.0/24`, **or**
 - **DHCP server** on one side only (that box becomes `.1` and serves the peer).
 
-Leaving **both** on the historical seed **`.2`** means neither can reach the other’s link-check export → Peer link check stays **Unverified** even with a matching token. The UI only orange-flags a **confirmed** duplicate (same IP + two MACs in ARP), not the mere use of `.2`.
+Leaving **both** on the product seed **`.1`** (or both on any same host number) means neither can reach the other’s link-check export → Peer link check stays **Unverified** even with a matching token. The UI only orange-flags a **confirmed** duplicate (same IP + two MACs in ARP), not the mere use of the seed.
 
 ---
 
-## Small LAN (/24) vs point-to-point (/30)
+## /24 vs /30 vs /32
 
-| | **/24** Small LAN (default) | **/30** Point-to-point |
-|--|-----------------------------|-------------------------|
-| Usable hosts | 254 | 2 |
-| Fit | Host + peer + optional extras | Pure two-host pipe |
-| Mental model | Tiny private LAN on this cable | ISP-style link |
-| Dual peers on Unraid | Use **different** /24 per tbnN | Use **different** /30 per tbnN |
+| Prefix | Product role | Usable hosts | When |
+|--------|--------------|--------------|------|
+| **/24** | **Default** (`small-lan`) | 254 | Host + peer + optional extras (VM, alias). Reset seeds this. |
+| **/30** | Optional (`p2p` plan) | 2 | Pure two-host pipe. Reset seeds Unraid `.1` / peer hint `.2` on that /30. |
+| **/32** | **Not** a Thunderbolt underlay default | 1 | Linux/FRR often use `/32` for **loopback router-ids** or advanced on-link routes — not what tbn Reset seeds. See [routing-openfabric.md](routing-openfabric.md) (router-id / `lo` /32). |
+| **/31** | Not a product plan | 2 (RFC 3021) | Linux can do it; this plugin does not offer it. |
 
 Thunderbolt networking is **peer-to-peer** at the fabric level either way. The mask is a **policy** choice, not proof of a multi-port Thunderbolt switch.
 
@@ -133,10 +134,6 @@ Thunderbolt networking is **peer-to-peer** at the fabric level either way. The m
 - Strict two addresses only (Unraid + one peer).  
 - You want routing tables to scream “this is a pipe.”  
 - You are comfortable with tight subnets.
-
-### /31
-
-Linux supports `/31` (RFC 3021) for P2P; many UIs and humans do not. Not a product default.
 
 ---
 
@@ -155,10 +152,10 @@ The kernel has two paths to `10.255.1.0/24` — ambiguous routing.
 
 | Iface | Address |
 |-------|---------|
-| thunderbolt0 | 10.255.0.2/24 |
-| thunderbolt1 | 10.255.1.2/24 |
+| thunderbolt0 | 10.255.0.1/24 |
+| thunderbolt1 | 10.255.1.1/24 |
 
-Same idea with /30: `10.255.0.2/30` and `10.255.1.2/30`.
+Same idea with /30: `10.255.0.1/30` and `10.255.1.1/30` (peer `.2` on each link).
 
 ---
 
@@ -168,22 +165,22 @@ Same idea with /30: `10.255.0.2/30` and `10.255.1.2/30`.
 
 | Host | Address |
 |------|---------|
-| Unraid tbn0 | `10.255.0.2/24` |
-| Linux | `10.255.0.1/24` |
+| Unraid tbn0 | `10.255.0.1/24` |
+| Linux | `10.255.0.2/24` |
 
 ### Single peer, tight P2P
 
 | Host | Address |
 |------|---------|
-| Unraid tbn0 | `10.255.0.2/30` |
-| Peer | `10.255.0.1/30` |
+| Unraid tbn0 | `10.255.0.1/30` |
+| Peer | `10.255.0.2/30` |
 
 ### Two peers
 
 | Link | Unraid | Peer |
 |------|--------|------|
-| tbn0 | `10.255.0.2/24` | `10.255.0.1/24` |
-| tbn1 | `10.255.1.2/24` | `10.255.1.1/24` |
+| tbn0 | `10.255.0.1/24` | `10.255.0.2/24` |
+| tbn1 | `10.255.1.1/24` | `10.255.1.2/24` |
 
 ### Gateway and default route
 

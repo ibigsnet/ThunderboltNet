@@ -82,34 +82,34 @@ Plugin defaults often use **one /24 per link**, e.g. first link `10.255.0.0/24`:
 
 | Role | Example |
 |------|---------|
-| This Unraid | `10.255.0.2/24` on `thunderbolt0` |
-| Peer | `10.255.0.1/24` on its TB netdev |
+| This Unraid | `10.255.0.1/24` on `thunderbolt0` |
+| Peer | `10.255.0.2/24` on its TB netdev |
 
 ```bash
 IFACE=thunderbolt0
 ip link set "$IFACE" up
 # remove a wrong trial address if needed: ip addr flush dev "$IFACE"
-ip addr add 10.255.0.2/24 dev "$IFACE"
+ip addr add 10.255.0.1/24 dev "$IFACE"
 ```
 
 On the peer (Unraid, Linux, etc.), matching subnet, different host address:
 
 ```bash
 ip link set thunderbolt0 up
-ip addr add 10.255.0.1/24 dev thunderbolt0
+ip addr add 10.255.0.2/24 dev thunderbolt0
 ```
 
 **Do not** add a default route via Thunderbolt unless you intend to replace LAN internet for this session:
 
 ```bash
 # usually leave default on eth0/br0/wlan — do NOT run:
-# ip route add default via 10.255.0.1 dev thunderbolt0
+# ip route add default via 10.255.0.2 dev thunderbolt0
 ```
 
 ### 4. Verify
 
 ```bash
-ping -c 3 10.255.0.1
+ping -c 3 10.255.0.2
 ip -br addr show thunderbolt0
 ```
 

@@ -21,8 +21,8 @@ On array `event/started`, `scripts/tbn-dashboard-ports **ensure**` runs (not a b
 
 | Situation | Behavior |
 |-----------|----------|
-| Already patched | Heal file modes + restart `update_3` worker if needed |
-| Thunderbolt bus or `thunderbolt*` netdev present | Apply the port-list patch |
+| Already patched (port-list) | Heal file modes; apply short labels + TB mode if missing; restart `update_3` if mode just landed or worker is down |
+| Thunderbolt bus or `thunderbolt*` netdev present | Apply port-list, DashStats `tbnN` labels, and TB mode-of-operation |
 | No Thunderbolt hardware | **Skip** — leave stock dynamix alone |
 
 Manual: `tbn-dashboard-ports apply|remove|status|heal|ensure`.
@@ -34,7 +34,11 @@ When it does apply, it edits **exactly two** LimeTech files, each by replacing *
 | `/usr/local/emhttp/plugins/dynamix/nchan/update_3` | Nchan PHP worker | Publishes **port throughput** *and* **current date/time** for the Dashboard |
 | `/usr/local/emhttp/plugins/dynamix/DashStats.page` | Dashboard page | Same port list for the Interface dropdown |
 
-**Content change:** allow `thunderboltN`, `bond-tbN`, `br-tbN` in addition to stock `bond|eth|wlan`.
+**Content change:**
+
+- Port list: allow `thunderboltN`, `bond-tbN`, `br-tbN` in addition to stock `bond|eth|wlan`. Stock Dashboard does **not** list `br0`; we do not add it.
+- DashStats labels: display `tbnN` instead of `thunderboltN` (option value / stats stay the kernel name).
+- `update_3` `default:` mode: for `thunderbolt*`, trained `rx_speed`/`tx_speed` instead of empty netdev `speed`.
 
 **Not patched:** `update_1`, `update_2`, other nchan workers, DefaultPageLayout, themes, `network.cfg`, etc.
 
