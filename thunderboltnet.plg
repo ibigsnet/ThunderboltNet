@@ -4,9 +4,9 @@
 <!ENTITY author "RifleJock">
 <!ENTITY version "2026.08.18ar">
 <!ENTITY launch "Settings/ThunderboltNet">
-<!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
+<!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/testing/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
-<!ENTITY raw "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main">
+<!ENTITY raw "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/testing">
 <!ENTITY forum "https://forums.unraid.net/topic/200065-plugin-thunderbolt-net-host-to-host-networking-over-thunderbolt-345-and-usb44v2/">
 <!ENTITY plugdir "/usr/local/emhttp/plugins/ThunderboltNet">
 <!ENTITY configdir "/boot/config/plugins/ThunderboltNet">
@@ -23,7 +23,7 @@
   min="6.12.0"
   support="&forum;"
   project="https://github.com/&github;"
-  readme="https://raw.githubusercontent.com/&github;/main/README.md">
+  readme="https://raw.githubusercontent.com/&github;/testing/README.md">
 
 <CHANGES>
 ###&version;
@@ -42,7 +42,7 @@
 - Join br0; Current/Saved; E2E flash persist.
 
 ### Older releases
-- Full changelog: https://github.com/ibigsnet/ThunderboltNet/blob/main/CHANGELOG.md
+- Full changelog: https://github.com/ibigsnet/ThunderboltNet/blob/testing/CHANGELOG.md
 </CHANGES>
 
 <FILE Run="/bin/bash">
