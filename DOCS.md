@@ -4,7 +4,7 @@
 That includes **Thunderbolt 3, 4, and 5**, and **USB4 / USB4 v2** host controllers when the platform and kernel expose the same fabric—not plain USB&nbsp;2/3-only ports. See [standards and speeds](docs/standards-and-speeds.md).
 
 **Install:** Plugins → Install Plugin →  
-`https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/stable/thunderboltnet.plg`
+`https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg`
 
 **Source / project:** [github.com/ibigsnet/ThunderboltNet](https://github.com/ibigsnet/ThunderboltNet)  
 **Support (Unraid forum):** [Plugin support thread](https://forums.unraid.net/topic/200065-plugin-thunderbolt-net-host-to-host-networking-over-thunderbolt-345-and-usb44v2/)  
@@ -82,7 +82,7 @@ Assignment-mode autofill detail: [addressing.md — Autofill by assignment mode]
 | Every Settings field | [docs/settings-reference.md](docs/settings-reference.md) |
 | Common failures | [docs/troubleshooting.md](docs/troubleshooting.md) |
 | Safe Mode / no plugins — manual TB recovery | [docs/safe-mode-recovery.md](docs/safe-mode-recovery.md) |
-| Install / update (`stable`, freezes, tags) | [RELEASES.md](RELEASES.md) |
+| Install / update (`main`, freezes, tags) | [RELEASES.md](RELEASES.md) |
 | Optional FRR packages on Unraid | [FabricRouting](https://github.com/ibigsnet/FabricRouting) (separate plugin) |
 
 ---

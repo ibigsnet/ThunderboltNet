@@ -50,5 +50,5 @@ Physical Thunderbolt/USB4 path
 | [settings-reference.md](settings-reference.md) | Every global and tbnN field |
 | [troubleshooting.md](troubleshooting.md) | Common failures and recovery |
 | [safe-mode-recovery.md](safe-mode-recovery.md) | Safe Mode / no plugins: manual modprobe + IP |
-| [../RELEASES.md](../RELEASES.md) | Install URLs (`stable` / `main` / freezes) |
+| [../RELEASES.md](../RELEASES.md) | Install URLs (`main` CA / `testing` lab) |
 | [../CONTRIBUTING.md](../CONTRIBUTING.md) | How to contribute |
