@@ -1,4 +1,4 @@
-## 2026.08.20aa
+## 2026.08.24aa
 
 - **Fix (Vinney):** Enable jumbo / Desired MTU now persists on Apply. Submit no longer
   drops `USE_MTU=yes` behind a hidden `no`, and `tbn-update-iface` rewrites MTU fields
