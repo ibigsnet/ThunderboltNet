@@ -1,3 +1,9 @@
+## 2026.08.20aa
+
+- **Fix (Vinney):** Enable jumbo / Desired MTU now persists on Apply. Submit no longer
+  drops `USE_MTU=yes` behind a hidden `no`, and `tbn-update-iface` rewrites MTU fields
+  from POST before apply so flash matches the form across reboot.
+
 ## 2026.08.18ar
 
 - **UI:** Thunderbolt overview lazy-load — finish the **active** subtab (last visited /
