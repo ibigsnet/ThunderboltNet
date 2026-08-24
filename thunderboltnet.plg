@@ -45,7 +45,7 @@
 - Join br0; Current/Saved; E2E flash persist.
 
 ### Older releases
-- Full changelog: https://github.com/ibigsnet/ThunderboltNet/blob/testing/CHANGELOG.md
+- Full changelog: https://github.com/ibigsnet/ThunderboltNet/blob/main/CHANGELOG.md
 </CHANGES>
 
 <FILE Run="/bin/bash">
