@@ -755,18 +755,37 @@
     }
     form.addEventListener('submit', function () {
       tbnSyncBondMembers(form);
-      // eth0: when jumbo off, clear/disable MTU so Apply stores default 1500
+      // MTU must post correctly: disabled inputs are omitted; hidden USE_MTU=no
+      // before the checkbox can win in some parsers → jumbo never saved (Vinney).
       var jumboCb = form.querySelector('input.tbn-ctl-mtu[type="checkbox"]');
       var mtuInput = form.querySelector('input.tbn-mtu-input') || form.MTU;
       var mtuModeEl = form.querySelector('input.tbn-mtu-mode');
-      if (jumboCb && mtuInput && !jumboCb.checked) {
+      var useHidden = form.querySelector('input[type="hidden"][name="USE_MTU"]');
+      if (!jumboCb || !mtuInput) {
+        return;
+      }
+      if (!jumboCb.checked) {
         mtuInput.disabled = false;
         mtuInput.value = '';
         if (mtuModeEl) {
           mtuModeEl.value = 'default';
         }
-      } else if (jumboCb && mtuInput && jumboCb.checked && mtuModeEl) {
-        mtuModeEl.value = String(mtuInput.value) === '9000' ? '9000' : 'custom';
+        if (useHidden) {
+          useHidden.disabled = false;
+          useHidden.value = 'no';
+        }
+      } else {
+        mtuInput.disabled = false;
+        if (!mtuInput.value) {
+          mtuInput.value = '9000';
+        }
+        if (mtuModeEl) {
+          mtuModeEl.value = String(mtuInput.value) === '9000' ? '9000' : 'custom';
+        }
+        // Only post USE_MTU=yes (drop the leading hidden "no")
+        if (useHidden) {
+          useHidden.disabled = true;
+        }
       }
     });
   };

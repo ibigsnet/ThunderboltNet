@@ -33,6 +33,44 @@ if (strcasecmp((string)$apply, 'Reset') === 0) {
 // Ensure iface dir exists
 @mkdir(tbn_iface_cfg_dir(), 0755, true);
 
+// MTU: update.php can miss jumbo (disabled number input; duplicate USE_MTU=no/yes).
+// Reconcile from POST and rewrite flash before apply so jumbo survives reboot.
+if (strcasecmp((string)$apply, 'Reset') !== 0 && function_exists('tbn_load_iface_cfg')) {
+  $cfg = tbn_load_iface_cfg($if);
+  $use = $_POST['USE_MTU'] ?? null;
+  if (is_array($use)) {
+    $use = in_array('yes', $use, true) ? 'yes' : 'no';
+  }
+  if ($use !== null) {
+    $use = (strtolower(trim((string)$use)) === 'yes') ? 'yes' : 'no';
+    $cfg['USE_MTU'] = $use;
+    if ($use === 'yes') {
+      $mtu = trim((string)($_POST['MTU'] ?? ''));
+      if ($mtu === '' || (int)$mtu < 68) {
+        $mtu = '9000';
+      }
+      $cfg['MTU'] = $mtu;
+      $mode = trim((string)($_POST['MTU_MODE'] ?? ''));
+      if (!in_array($mode, ['9000', 'custom'], true)) {
+        $mode = ((int)$mtu === 9000) ? '9000' : 'custom';
+      }
+      $cfg['MTU_MODE'] = $mode;
+    } else {
+      $cfg['USE_MTU'] = 'no';
+      $cfg['MTU_MODE'] = 'default';
+      $cfg['MTU'] = '1500';
+    }
+    if (function_exists('tbn_normalize_mtu_mode')) {
+      $cfg['MTU_MODE'] = tbn_normalize_mtu_mode($cfg);
+      $cfg['USE_MTU'] = ($cfg['MTU_MODE'] === 'default') ? 'no' : 'yes';
+      if ($cfg['MTU_MODE'] === '9000') {
+        $cfg['MTU'] = '9000';
+      }
+    }
+    tbn_write_iface_cfg($if, $cfg);
+  }
+}
+
 // Global modules from main cfg
 $g = tbn_load_cfg();
 if (($g['load_modules'] ?? 'yes') === 'yes') {
