@@ -1,0 +1,95 @@
+#!/bin/bash
+# Print last-known Saved peer addresses from flash (Safe Mode friendly).
+# Does NOT apply them — copy/paste into `ip addr` when plugins are not loaded.
+#
+# Usage:
+#   tbn-last-good
+#   /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-last-good
+#   /boot/config/plugins/ThunderboltNet/…  (if you copied the script)
+#
+set -u
+PEERS="${1:-/boot/config/plugins/ThunderboltNet/peers.json}"
+
+echo "Thunderbolt Net — last-known Saved peers"
+echo "========================================"
+echo "Source: $PEERS"
+echo
+
+if [ ! -f "$PEERS" ]; then
+  echo "No peers.json on flash (nothing Saved yet, or plugin never applied while linked)."
+  echo "Manual recovery: see ThunderboltNet-RECOVERY.txt"
+  exit 1
+fi
+
+PHP_BIN=""
+for c in /usr/bin/php /usr/local/bin/php php; do
+  if command -v "$c" >/dev/null 2>&1 || [ -x "$c" ]; then
+    PHP_BIN="$c"
+    break
+  fi
+done
+
+if [ -z "$PHP_BIN" ]; then
+  echo "php not found — dump raw JSON:"
+  echo
+  cat "$PEERS"
+  exit 0
+fi
+
+"$PHP_BIN" -r '
+$raw = @file_get_contents($argv[1]);
+$j = json_decode(is_string($raw) ? $raw : "", true);
+if (!is_array($j)) {
+  fwrite(STDERR, "Could not parse peers.json\n");
+  exit 1;
+}
+$peers = $j;
+$n = 0;
+foreach ($peers as $key => $p) {
+  if (!is_array($p)) continue;
+  if (is_string($key) && strpos($key, "iface:") === 0) continue;
+  $plan = isset($p["plan"]) && is_array($p["plan"]) ? $p["plan"] : [];
+  $name = trim((string)($p["peer_name"] ?? $p["name"] ?? ""));
+  $if = trim((string)($p["last_iface"] ?? ""));
+  $dhcp = (string)($plan["USE_DHCP"] ?? "no");
+  $ip = trim((string)($plan["IPADDR"] ?? ""));
+  $nm = trim((string)($plan["NETMASK"] ?? "24"));
+  $mtu = (string)($plan["MTU_MODE"] ?? "default");
+  if ($mtu === "9000" || (($plan["USE_MTU"] ?? "") === "yes")) {
+    $mtu_s = "mtu " . (string)($plan["MTU"] ?? "9000");
+  } elseif ($mtu === "custom") {
+    $mtu_s = "mtu " . (string)($plan["MTU"] ?? "1500");
+  } else {
+    $mtu_s = "mtu 1500 (default)";
+  }
+  $n++;
+  echo ($name !== "" ? $name : "(unnamed)") . "\n";
+  echo "  uuid:  $key\n";
+  if ($if !== "") echo "  last path: $if (tbn tab label only — kernel name is thunderboltN)\n";
+  echo "  mode:  $dhcp\n";
+  if ($dhcp === "yes") {
+    echo "  note:  DHCP client — in Safe Mode set a static yourself or wait for a server\n";
+  } elseif ($dhcp === "server") {
+    echo "  host:  " . ($ip !== "" ? "$ip/$nm" : "(derive .1)") . "  (DHCP server — needs plugin/dnsmasq)\n";
+  } else {
+    echo "  addr:  " . ($ip !== "" ? "$ip/$nm" : "(none saved)") . "\n";
+  }
+  echo "  $mtu_s\n";
+  if ($ip !== "" && $dhcp !== "yes") {
+    $dev = $if !== "" ? $if : "thunderbolt0";
+    $cidr = preg_replace("/\D/", "", $nm);
+    if ($cidr === "") $cidr = "24";
+    if (strpos($nm, ".") !== false) $cidr = "24"; // mask → use /24 hint
+    echo "  Safe Mode example:\n";
+    echo "    IFACE=$dev\n";
+    echo "    ip link set \"\$IFACE\" up\n";
+    echo "    ip addr flush dev \"\$IFACE\" scope global 2>/dev/null || true\n";
+    echo "    ip addr add ${ip}/${cidr} dev \"\$IFACE\"\n";
+  }
+  echo "\n";
+}
+if ($n === 0) {
+  echo "No fabric-UUID peers with memory yet.\n";
+}
+echo "This prints memory only — it does not Apply. For full restore, boot normally with the plugin.\n";
+' "$PEERS"

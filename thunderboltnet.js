@@ -809,8 +809,10 @@
     }
     tbnEnableFormApply(form);
     tbnFormSync(form);
+    tbnWireIfaceFormDirty(form.parentNode || form);
     // After Apply (progressFrame), refresh kernel IP rows so "live" matches Apply
     form.addEventListener('submit', function () {
+      form.setAttribute('data-tbn-dirty', '0');
       setTimeout(tbnLivePoll, 800);
       setTimeout(tbnLivePoll, 2000);
       setTimeout(tbnLivePoll, 4000);
@@ -1041,6 +1043,43 @@
     return sig;
   }
 
+  /** Mark tbn iface forms dirty so peer-resync does not silently wipe edits. */
+  function tbnWireIfaceFormDirty(root) {
+    root = root || document;
+    var forms = root.querySelectorAll
+      ? root.querySelectorAll('form.tbn-iface-form')
+      : [];
+    for (var i = 0; i < forms.length; i++) {
+      (function (form) {
+        if (form.getAttribute('data-tbn-dirty-wired') === '1') {
+          return;
+        }
+        form.setAttribute('data-tbn-dirty-wired', '1');
+        form.setAttribute('data-tbn-dirty', '0');
+        var mark = function () {
+          form.setAttribute('data-tbn-dirty', '1');
+        };
+        form.addEventListener('input', mark, true);
+        form.addEventListener('change', mark, true);
+        form.addEventListener('submit', function () {
+          form.setAttribute('data-tbn-dirty', '0');
+        });
+      })(forms[i]);
+    }
+  }
+
+  function tbnIfaceFormIsDirty(ifc) {
+    var form = document.querySelector(
+      '.tbn-lazy-iface[data-tbn-lazy-iface="' + ifc + '"] form.tbn-iface-form'
+    );
+    if (!form) {
+      form = document.querySelector(
+        'form.tbn-iface-form[data-tbn-iface="' + ifc + '"]'
+      );
+    }
+    return !!(form && form.getAttribute('data-tbn-dirty') === '1');
+  }
+
   /**
    * Invalidate + re-fetch a tbnN lazy panel. When resync=true, server re-applies
    * the Saved peer plan before rendering so form fields match that device.
@@ -1060,6 +1099,26 @@
       return;
     }
     var resync = !!opts.resync;
+    // Peer change would wipe unsaved form edits — ask first when the tab is open.
+    if (resync && !opts.force && tbnIfaceFormIsDirty(ifc)) {
+      var anyShown = false;
+      for (var di = 0; di < nodes.length; di++) {
+        if (tbnIsShown(nodes[di])) {
+          anyShown = true;
+          break;
+        }
+      }
+      if (anyShown) {
+        if (
+          !window.confirm(
+            'Peer on this path changed. Reload the tbn form from Saved?\n\n' +
+              'You have unsaved edits on this tab — OK discards them; Cancel keeps your edits (live path may already use Saved).'
+          )
+        ) {
+          return;
+        }
+      }
+    }
     var url =
       '/plugins/ThunderboltNet/include/tbn-lazy-render.php?iface=' +
       encodeURIComponent(ifc) +
@@ -1137,6 +1196,7 @@
           innerWrap.remove();
         }
         tbnWireAllForms();
+        tbnWireIfaceFormDirty(target);
         tbnBindInlineHelp();
         tbnInitAdvancedPanels();
         tbnInitCompanionJumps();

@@ -15,9 +15,10 @@ This is **not** the same as **array Maintenance mode** (array started, disks not
 | **[Bare-minimum manual recovery](#bare-minimum-manual-recovery-unraid-console)** | Console commands: modules → netdev → **IP on `thunderboltN`** → ping |
 | → [1. Modules](#1-modules) | `modprobe thunderbolt` / `thunderbolt_net` |
 | → [2. Wait for a netdev](#2-one-cable-then-wait-for-a-netdev) | Find `thunderbolt0` (etc.) |
-| → [3. Addresses](#3-addresses-example-plan) | `ip link` / `ip addr` examples |
-| → [4. Verify](#4-verify) | `ping` and show address |
-| → [5. Services (optional)](#5-services-optional) | SSH/SMB on TB without the plugin |
+| → [3. Last-known Saved](#3-last-known-saved-optional) | `tbn-last-good` / peers.json |
+| → [4. Addresses](#4-addresses-example-plan) | `ip link` / `ip addr` examples |
+| → [5. Verify](#5-verify) | `ping` and show address |
+| → [6. Services (optional)](#6-services-optional) | SSH/SMB on TB without the plugin |
 | [Careful cable practice](#careful-cable-practice-do-this-first) | One cable only — do this before addressing |
 | [Offline docs on flash](#offline-docs-on-flash-no-internet) | Local recovery text when GitHub/WebUI is unavailable |
 | [Recommendation](#recommendation) | Prefer manual; avoid persistent auto-bootstrap |
@@ -76,7 +77,18 @@ ip -br link | grep -i thunder || true
 
 If nothing appears: reseat the **one** cable; check peer authorization / security mode; check NHI not bound to vfio. Do not add a second cable yet.
 
-### 3. Addresses (example plan)
+### 3. Last-known Saved (optional)
+
+If you previously **Apply**’d while linked, flash may still have `peers.json`. Print remembered Unraid-side addresses (does **not** apply them — no full plugin in Safe Mode):
+
+```bash
+/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-last-good
+# or: cat /boot/config/plugins/ThunderboltNet/peers.json
+```
+
+Use a printed `ip addr add …` example when it matches the peer you have cabled now. Full Saved/NAT/DHCP-server restore needs a **normal** boot with the plugin.
+
+### 4. Addresses (example plan)
 
 Plugin defaults often use **one /24 per link**, e.g. first link `10.255.0.0/24`:
 
@@ -106,14 +118,14 @@ ip addr add 10.255.0.2/24 dev thunderbolt0
 # ip route add default via 10.255.0.2 dev thunderbolt0
 ```
 
-### 4. Verify
+### 5. Verify
 
 ```bash
 ping -c 3 10.255.0.2
 ip -br addr show thunderbolt0
 ```
 
-### 5. Services (optional)
+### 6. Services (optional)
 
 SMB/NFS/SSH on TB require the service to listen on that address (or `0.0.0.0`). In Safe Mode the plugin will **not** edit `network-extra.cfg`. Prefer **SSH to the TB IP** or tools you start by hand. Avoid binding management services to TB unless you understand the exposure.
 

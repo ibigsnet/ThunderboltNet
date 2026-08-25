@@ -66,9 +66,23 @@ Optional (many cross-host links prefer e2e off):
 Kernel names are thunderbolt0, thunderbolt1, ... (not tbn0).
 
 
-4) ADDRESS (example first link /24)
+4) LAST-KNOWN Saved (optional)
+------------------------------
+If you Applied while linked before, flash may still have peers.json.
+Print remembered Unraid-side addresses (does NOT apply them):
+
+  /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-last-good
+  # or, if plugins are not installed this boot but flash remains:
+  #   php is usually still on Unraid — run the script from the plugin tree
+  #   after a normal-boot install, or cat peers.json by hand:
+  #   cat /boot/config/plugins/ThunderboltNet/peers.json
+
+Copy the printed `ip addr add …` example for your peer, then continue below.
+
+
+5) ADDRESS (example first link /24)
 -----------------------------------
-Plugin-style plan example — change to match YOUR peer:
+Plugin-style plan example — change to match YOUR peer (or use tbn-last-good):
 
   This Unraid:  10.255.0.1/24 on thunderbolt0
   Peer:         10.255.0.2/24 on its TB netdev
@@ -88,13 +102,13 @@ Do NOT add a default route via Thunderbolt unless you intend to
 replace LAN internet for this session.
 
 
-5) VERIFY
+6) VERIFY
 ---------
   ping -c 3 10.255.0.2
   ip -br addr show thunderbolt0
 
 
-6) AFTER RECOVERY
+7) AFTER RECOVERY
 -----------------
   - Prefer a normal boot (plugins on) when the emergency is over
   - Settings → Network Settings → Thunderbolt / tbn tabs → Apply

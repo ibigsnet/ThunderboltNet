@@ -172,7 +172,9 @@ Matching Current and Saved after a normal Apply is expected — not duplicate se
 | **Plugin `startup`** | After plugins install at boot: e2e modprobe persist/reload + udev + reapply (array may still be stopped) |
 | **Array `started`** | When array reaches Started (Normal **or Maintenance**) — second pass + OpenFabric/Dashboard |
 | Open Peers/Status | Refresh online flags; dedupe ghost `iface:` rows; seed Saved from last addrs if missing |
-| **tbnN form open** (after cable change) | Live poll detects peer UUID change on that path and **reloads the tab form** from Saved (L3/MTU/NAT) so fields match the restored device |
+| **tbnN form open** (after cable change) | Live poll detects peer UUID change on that path and **reloads the tab form** from Saved (L3/MTU/NAT) so fields match the restored device. Unsaved form edits prompt before reload. |
+| **udev remove** | Tear down NAT **and** DHCP client/server for that iface name (not NAT-only) |
+| **Unknown peer** (fabric UUID, no usable Saved) | Seed product L3 defaults on the path — do **not** reuse the previous peer’s path-slot IP/DHCP/NAT |
 
 **Maintenance mode:** array **Started** still runs `event/started` — L3 reapply and udev reinstall run. Do not assume “maintenance = no plugin events.”
 

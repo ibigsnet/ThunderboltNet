@@ -6,6 +6,17 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+## 2026.08.25aa
+
+- **Hotplug remove:** tear down NAT **and** DHCP client/server for that `thunderboltN`
+  (was NAT-only; dhcpcd/dnsmasq could linger).
+- **Unknown peer:** fabric UUID with no usable Saved → seed product L3 defaults on the
+  path-slot; do not re-impose the previous peer’s IP/DHCP/NAT.
+- **ENABLE=no:** stop dhcpcd/dhclient as well as dnsmasq/NAT before link down.
+- **UI:** if the open tbnN form has unsaved edits, confirm before Saved-peer form reload.
+- **Offline:** `scripts/tbn-last-good` prints last-known Saved addresses from flash
+  (Safe Mode cheat sheet; does not Apply). RECOVERY.txt / safe-mode-recovery updated.
+
 ## 2026.08.24aa
 
 - **Fix (forum report):** Jumbo / Desired MTU now persists on Apply — addressed Vinney’s

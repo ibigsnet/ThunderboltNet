@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.24aa">
+<!ENTITY version "2026.08.25aa">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/testing/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,13 +27,14 @@
 
 <CHANGES>
 ###&version;
+- Hotplug remove stops DHCP client/server (with NAT); unknown peer seeds defaults (no path-slot inherit).
+- Dirty tbn form guard on Saved resync; tbn-last-good offline helper; ENABLE=no kills dhcpcd.
+
+###2026.08.24aa
 - Fix jumbo MTU save (Vinney’s forum findings); persist USE_MTU / MTU_MODE to flash.
 
 ###2026.08.18ar–aq
 - Overview subtab preload; seed Unraid .1; Dashboard tbnN labels and TB rates.
-
-###2026.08.18aq–ap
-- Seed Unraid .1; Dashboard tbnN labels and TB trained rates; generalize NAT help.
 
 ###2026.08.18ao–ad
 - DHCP hints behind Help; Saved-peer form reload; NAT lifecycle; DHCP/NAT UI.
