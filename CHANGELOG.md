@@ -1,3 +1,11 @@
+# Changelog — ThunderboltNet
+
+User-facing history for this plugin. The `.plg` file (Community Applications / Plugins page) shows only the **most recent releases**; this file is the complete record.
+
+**Install channels:** production/CA uses branch **`main`**; WIP uses branch **`testing`**. See [RELEASES.md](RELEASES.md).
+
+---
+
 ## 2026.08.24aa
 
 - **Fix (Vinney):** Enable jumbo / Desired MTU now persists on Apply. Submit no longer
@@ -308,120 +316,112 @@
 
 - **Audit harden:** dashboard-ports `ensure` (skip stock patch without TB; heal if already patched); uninstall `br-tb*`; network-extra preserves unknown keys; Peers toolbar (checkbox actions outside table); Last seen uses Date and Time format; SECURITY + recovery sheet match full flash wipe; Safe Mode sheet notes Vinney findings live in normal-boot docs.
 
-# Changelog — ThunderboltNet
-
-User-facing history for this plugin. The `.plg` file (Community Applications / Plugins page) shows only the **most recent releases**; this file is the complete record.
-
-**Install channels:** production/CA uses branch `stable`; lab uses `main`. See [RELEASES.md](RELEASES.md).
-
----
-
-###2026.08.16ag
+## 2026.08.16ag
 - **Dashboard ports harden:** heal modes from stock backups for both patched dynamix files;
   `tbn-dashboard-ports status|heal`; full incident write-up in docs/dashboard-ports-and-clock.md.
 
-###2026.08.16af
+## 2026.08.16af
 - **Dashboard clock:** `tbn-dashboard-ports` no longer drops `+x` on dynamix `nchan/update_3`
   (that poller publishes Dashboard date/time). Restore mode after patch and restart the worker.
 
-###2026.08.16ae
+## 2026.08.16ae
 - **Boot lifecycle:** install udev + L3 reapply on plugin **`startup`** (Unraid up; array not
   required) and again on array **`started`** (Normal or Maintenance). Fixes TB config when the
   array is stopped/delayed or when users need the path before array Online. Hotplug still via udev.
 
-###2026.08.16ad
+## 2026.08.16ad
 - **Peer plans (UUID-keyed L3):** desired local IPv4 follows the remote host across
   `thunderbolt0`/`tbn0` renumber. Saved on tbn Apply (or Peers → Save live path as peer plan);
   reapplied on hotplug/boot before path-slot iface cfg. **Forget selected peers** drops Known
   peers memory/plans only — does not touch Unraid Interface Rules or eth. Visits column removed
   from the main Peers table (was a refresh counter, not reconnects).
 
-###2026.08.16ac
+## 2026.08.16ac
 - **Known peers:** unplug/replug no longer leaves a second Offline row (blank peer name) next
   to the real peer. Root cause: hotplug can briefly omit fabric `unique_id`, which created an
   `iface:thunderboltN` key; reconnect with UUID then showed two rows. Dedupe/merge into the
   UUID peer and reuse remembered UUID when sysfs UUID is empty for that iface.
 
-###2026.08.16ab
+## 2026.08.16ab
 - **Install/upgrade hygiene:** prepare always `removepkg`s every prior `ThunderboltNet-*`
   package and wipes emhttp plugin dirs (canonical + legacy casings) before the new `.txz`.
   Prevents mixed leftover files when Unraid updates across `YYYY.MM.DDxx` package names.
   Finish step fails loudly if core files did not land.
 
-###2026.08.16aa
+## 2026.08.16aa
 - Fabric devices table: sysfs IDs and netdev names share one monospace style on peer and
   service/domain rows (detail rows no longer shrink identifiers). Service netdev shows
   **same as peer** so `thunderbolt0` is not read as two different NICs.
 
-###2026.08.15an
+## 2026.08.15an
 - OpenFabric default **off**; multi-hop settings hidden until FRR is installed (companion CTA only).
   When FRR packages appear, OpenFabric is **auto-enabled** (user can set No to opt out permanently until Yes again).
 
-###2026.08.15am
+## 2026.08.15am
 - Peer link check defaults **on**; Peers column renamed **Link check** with clearer Match / Checking / Mismatch labels.
   Shared token still required on both hosts for a green match (not FRR).
 
-###2026.08.15al
+## 2026.08.15al
 - Known peers: save on Apply / reapply (not only when Peers tab loads status). Empty-state copy: no lab “Machine B” placeholder.
 
-###2026.08.15ak
+## 2026.08.15ak
 - **Persist addresses after reboot and link drop:** kill dhcpcd/dhclient when applying Static
   (stops stacked 169.254.x.x); re-apply saved per-link flash config at array start; udev rule
   on thunderbolt* net add for hotplug. Thanks to **Vinney** on the Unraid forums for the bug
   report, root cause analysis, and workaround notes that shaped this fix.
 
-###2026.08.15aj
+## 2026.08.15aj
 - Companion card Block export (NBD): Not installed / Install from CA or raw .plg (aligned with Multi-hop FRR card).
 
-###2026.08.15ai
+## 2026.08.15ai
 - CA entry banner: plain user wording (no tab inventory / maintainer-style copy).
 
-###2026.08.15ah
+## 2026.08.15ah
 - CA / standalone Settings: orange Network Settings redirect banner on all sub-tabs (Status · Peers · Hardware · Settings), not only Status.
 
-###2026.08.15ag
+## 2026.08.15ag
 - Uninstall: full flash wipe (peers/ifaces/recovery no longer preserved).
 
-###2026.08.15ac
+## 2026.08.15ac
 - Changelog: Plugins page shows recent entries only; full history on GitHub <code>CHANGELOG.md</code>.
 
-###2026.08.14ap
+## 2026.08.14ap
 - **Fix:** Cables and safety help link showed literal “Directionality &amp; speeds” (double-escaped
   label). Same for Peers / MTU / bonding doc footers that used pre-encoded ampersands.
 
-###2026.08.14ao
+## 2026.08.14ao
 - Fabric reports: clear LAN peer-to-peer wording (not cloud/telemetry); TB and optional eth paths;
   off-message path + clickable jump to Settings → Show Fabric reports.
 
-###2026.08.14an
+## 2026.08.14an
 - Fabric reports off message path + <code>tbnGotoFabricReportsSettings</code> jump.
 
-###2026.08.14am
+## 2026.08.14am
 - Status: restore summary table rows; short per-field Help text (no meta UI notes in user copy).
 
-###2026.08.14al
+## 2026.08.14al
 - Status: per-field inline_help for This host.
 
-###2026.08.14ak
+## 2026.08.14ak
 - **Fix:** in-page Thunderbolt tabs must not use ARIA <code>role=tab</code> /
   <code>role=tabpanel</code> — Unraid Network Settings selects all of those and
   broke Interface Extra / Routing Table (and tab switching). Use data-* only.
 
-###2026.08.14aj
+## 2026.08.14aj
 - Install: re-fetch ThunderboltNet.page if empty xmenu stub left behind.
 
-###2026.08.14ai
+## 2026.08.14ai
 - Ensure ThunderboltNet.page body ships (in-page Status/Peers/Hardware/Settings tabs).
 
-###2026.08.14ah
+## 2026.08.14ah
 - **UI:** in-page **Status · Peers · Hardware · Settings** tabs on Thunderbolt (Network Settings
   sibling). Nested Unraid xmenu left an empty Thunderbolt tab — fixed. **tbnN** remains on the
   top Network Settings strip (not nested).
 
-###2026.08.14ag
+## 2026.08.14ag
 - Attempted Unraid nested xmenu sub-pages (empty parent tab under Network Settings).
 
-###2026.08.14af
+## 2026.08.14af
 - **Fabric reports (multi-host):** opt-in mesh export/poll — peer Unraid plugin validation (green/orange/red), Known peers last validation, legend (orange ≠ degraded). Private IP + shared token; eth allowlist optional.
 - Docs: [fabric-link-map.md](docs/fabric-link-map.md).
 - Offline recovery: single flash file **ThunderboltNet-RECOVERY.txt** (Thunderbolt in the name).
@@ -429,46 +429,46 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 - WebUI: Recovery section + docs bar note the flash path while plugins work.
 - Drop SAFE-MODE-RECOVERY naming; clean old filenames on install.
 
-###2026.08.14ae
+## 2026.08.14ae
 - Recovery sheet: **single** flash path only
   `/boot/config/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt` (left after uninstall).
 - Drop multi-copy under `/boot/` and `/boot/config/` root — discover with `find` or `man -l` on that file.
 - Docs: no system manpage/alias/profile hooks (would be core-ish); optional `man -l` local file only.
 
-###2026.08.14ad
+## 2026.08.14ad
 - Offline recovery discoverability: same sheet also at flash root and
   `/boot/config/` as `ThunderboltNet-SAFE-MODE-RECOVERY.txt`; file header
   teaches `ls /boot/*RECOVERY*` / `find /boot -iname '*RECOVERY*'`.
 - First-run notify and install log mention the short flash paths.
 
-###2026.08.14ac
+## 2026.08.14ac
 - **Offline recovery sheet:** ship `SAFE-MODE-RECOVERY.txt` to emhttp + copy to flash
   (`/boot/config/plugins/ThunderboltNet/SAFE-MODE-RECOVERY.txt`) so Safe Mode can
   `cat` recovery steps without GitHub. Intentionally left on flash after uninstall.
 
-###2026.08.14ab
+## 2026.08.14ab
 - **Lab channel:** On branch `main`, PluginURL + raw FILE sources point at `main` (lab uninstall/reinstall testing).
 - Branch `stable` remains the CA/production pin Production channel is branch `stable` (CA PluginURL).
 
-###2026.08.14aa
+## 2026.08.14aa
 - **License:** GNU GPLv3 or later (copyright ibigs, LLC; Author: RifleJock).
 - **Release channel:** PluginURL + raw sources on branch `stable`. Development continues on `main`.
 - SECURITY.md: host networking, mesh export token/private-IP notes.
 
-###2026.08.13ad
+## 2026.08.13ad
 - Wording: spell out **Thunderbolt** instead of ambiguous “TB” in UI/docs (terabyte confusion).
 - Companion rename: **Fabric Routing** / id **FabricRouting** (was UnraidFRR — trademark). Detects legacy install paths.
 - Docs/UI: public sanitization — no personal lab hostnames (use peer/Machine B language).
 
-###2026.08.13aa
+## 2026.08.13aa
 - Fleet standard: **`ibigsGotoNetTab`** for all Network Settings sibling links (Fabric Routing, tbnN, …); aliases `tbnGotoNetTab` / `frrGotoNetTab` / `nbdGotoNetTab`; `sessionStorage.ibigsWantTab` (+ legacy `tbnWantTab`).
 - Docs: RELEASES cross-plugin UI link table (never deep-link `/Settings/FabricRouting` or `/Settings/ThunderboltNet`).
 
-###2026.08.13
+## 2026.08.13
 - UI: “Network Settings → Fabric Routing” via tbnGotoNetTab, not standalone `/Settings/FabricRouting`.
 - Versioning: bare `2026.08.13` after historical single-letter `12a`.
 
-###2026.08.12a
+## 2026.08.12a
 - OpenFabric: metric reference default **20000** (~20G Thunderbolt host-net class), not 100G; docs explain DAC/manual override.
 - UI/docs: less “Not USB4STREAM” noise — point to usb4stream.md once.
 - Docs: Contents/TOC on large guides (routing-openfabric, standards, DOCS, …).
@@ -476,89 +476,89 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 - Companion name: **Fabric Routing** / CA **Fabric Routing (FRR)** (FabricRouting packages tab).
 - Note: single-letter `12a` was non-standard (use two-letter suffixes after bare date).
 
-###2026.08.11al
+## 2026.08.11al
 - Companion copy: FRR packages live under Network Settings → Fabric Routing (FabricRouting tab).
 
-###2026.08.11ak
+## 2026.08.11ak
 - Links empty state: no broken one-column LOCAL compare table; clean host summary when no peers online. Recovery moved out of Links body.
 - Uninstall keeps peers.json + ifaces/ on flash so known peers survive remove/reinstall.
 
-###2026.08.11aj
+## 2026.08.11aj
 - Entry banner: hide when already on Network Settings (tabs visible); show only on standalone CA / Plugins launch.
 
-###2026.08.11ai
+## 2026.08.11ai
 - OpenFabric UX: **needs FRR packages** chip + CTAs jump to Multi-hop companion card (install Fabric Routing path); clearer when/why (rings, multi-hop, Proxmox) and plugin roles (TBN policy vs FRR packages vs USB4STREAM).
 - Docs: routing-openfabric “when do I need this”, ecosystem table in DOCS.md, fabric-proxmox intro, troubleshooting chip path.
 
-###2026.08.11ah
+## 2026.08.11ah
 - Dashboard ports patch: no python3 (use bash replace) so thunderboltN appears on Unraid stock kernels without python.
 
-###2026.08.11ag
+## 2026.08.11ag
 - Wording pass: peer stream check uses module presence; CA Overview trained vs sticker class.
 
-###2026.08.11af
+## 2026.08.11af
 - USB4STREAM: “Linux ~7.2” = **kernel** version (uname -r), not Unraid 7.2.x; show running kernel in status; docs warn upgrades alone do not enable stream.
 
-###2026.08.11ae
+## 2026.08.11ae
 - UX: Network Settings entry banner; companion strip (FRR / NBD / USB4STREAM); OpenFabric + USB4STREAM collapsed behind orange Show when not ready.
 - Wording: IP host-net modules separate from thunderbolt_stream; FabricRouting ≠ USB4STREAM; first-run green notify + clearer install path.
 
-###2026.08.11ad
+## 2026.08.11ad
 - Known peers / quality: link rate shows **full-duplex** when RX≈TX (e.g. 20 Gb/s full-duplex · 1-lane); asymmetric shows TX (to peer) · RX (from peer).
 - Services help: NBD Export is separate from listening Yes (bind under Network Services → NBD).
 
-###2026.08.11ac
+## 2026.08.11ac
 - Docs: full consistency pass — multi-peer underlay model, OpenFabric vs FabricRouting roles, doc index map, troubleshooting FRR, RELEASES version table.
 
-###2026.08.11ab
+## 2026.08.11ab
 - Wording: drop “single-link only” product framing — multi-peer tbn paths and optional OpenFabric multi-host fabric; honest trained rates; dual-cable bonding only when multiple netdevs exist.
 
-###2026.08.11aa
+## 2026.08.11aa
 - OpenFabric: point at companion plugin FabricRouting for FRR package install (separate, opt-in, not required for static Thunderbolt); status UI shows companion presence.
 
-###2026.08.11
+## 2026.08.11
 - OpenFabric / FRR: defaults On when FRR available; generate conf, auto metrics (ref/trained), router-id on lo, Apply + array-start hooks; degrades to static if FRR missing.
 - UI: Routing (OpenFabric) section on overview; per-tbn participate / metric mode.
 - Docs: FRR/OpenFabric LTS (pros/cons, path cost, rings, hot-plug Strix Halo / Gorgon Halo / DGX Spark class); bonding dual-cable as roadmap not non-goal; CONTRIBUTING; release tagging checklist.
 
-###2026.08.05ad
+## 2026.08.05ad
 - Docs: full standards guide — directionality, bandwidth table, mixing gens/cables/lanes, FAQ.
 
-###2026.08.05ac
+## 2026.08.05ac
 - Docs: planning table — expected bandwidth by Thunderbolt/USB4 class (each direction vs sticker sum vs TCP).
 
-###2026.08.05ab
+## 2026.08.05ab
 - Docs/UI: directionality — USB4/Thunderbolt simplex lanes vs PCIe full-duplex; 40G-class ≈ 20G each way, not 40 each way.
 
-###2026.08.05aa
+## 2026.08.05aa
 - Support link → Unraid forum thread; Project stays GitHub (CA shows both).
 
-###2026.08.05
+## 2026.08.05
 - USB4STREAM awareness: detect thunderbolt_stream, optional load on Apply, status/diagnostics, docs (not InfiniBand; needs kernel ~7.2+).
 - Dashboard network: include thunderboltN (tbnN), bond-tbN, br-tbN in Interface dropdown, throughput graph, counters, and errors (same poller as eth/bond/wlan).
 
-###2026.08.03
+## 2026.08.03
 - Dashboard network: include thunderboltN (tbnN), bond-tbN, br-tbN in Interface dropdown, throughput graph, counters, and errors (same poller as eth/bond/wlan).
 
-###2026.07.30bd
+## 2026.07.30bd
 - Clean defaults: 10.255.0.2/24 + address_plan small-lan; bond_mode active-backup; MTU 1500; document legacy global keys.
 
-###2026.07.30bc
+## 2026.07.30bc
 - Default IPv4 10.255.0.2/24 for thunderbolt0 (not 10.255.1.2); matches tbnN → 10.255.N.2 plan.
 
-###2026.07.30bb
+## 2026.07.30bb
 - MTU product default back to 1500 for compatibility; 9000 optional both ends (not negotiated to peer; little TCP gain on 1-lane in lab).
 
-###2026.07.30ba
+## 2026.07.30ba
 - Clarify support across Thunderbolt 3/4/5 and USB4 / USB4 v2 (20G–80G class when Linux exposes host-net); trained rate ≠ sticker; not Thunderbolt 4-only.
 - Docs, README, UI cable/recovery help: generation-agnostic wording.
 
-###2026.07.30az
+## 2026.07.30az
 - Promise single-link host-net: honest trained/lanes copy; Single-lane badge (not “Below max = fix cable”); recovery help for dual-cable wedge (unplug all both boxes).
 - Bonding experimental: hidden with one thunderbolt*; refuse Apply with &lt;2 members; active-backup preferred.
 - Docs/README match lab reality (~10–15 Gbit/s 1-lane normal).
 
-###2026.07.30ay
+## 2026.07.30ay
 - Restore Unraid form grid on tbn tabs; only IP/CIDR rows forced horizontal (not whole form left-smashed).
 
 - Remove in-UI port icon legend (docs-only port-icons guide); restore simple empty-state layout.
@@ -603,43 +603,43 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 - Fix blank tbn1/tbnN tabs: use require (not require_once) so each tab re-renders the shared form.
 
-###2026.07.30ab
+## 2026.07.30ab
 - Link quality: short complete lead lines (no mid-sentence cutoffs); richer fabric role help with examples.
 - Install fix follow-up: ensure clean plg for Unraid wget (stale compressed main cache).
 
-###2026.07.30aa
+## 2026.07.30aa
 - Install fix follow-up: ensure clean plg for Unraid wget (stale compressed main cache).
 - Fix plg XML parse error (bare ampersand in CHANGES broke Install Plugin).
 - Fabric devices: hide service/domain rows by default; compact link quality cells.
 
-###2026.07.30
+## 2026.07.30
 - Fix plg XML parse error (bare ampersand in CHANGES broke Install Plugin).
 - Fabric devices: hide service/domain rows by default; compact link quality cells.
 
-###2026.07.29bb
+## 2026.07.29bb
 - Fabric devices: hide service/domain rows by default (expand for detail); link quality cells compact + wrap.
 
-###2026.07.29ba
+## 2026.07.29ba
 - Empty-state: clearer Thunderbolt 3–5/USB4 wording, spacing, link to Tools → Diagnostics.
 - Docs: standards matrix (Thunderbolt 3–5, USB4/v2; not USB3-only; no “USB5” brand).
 
-###2026.07.29az
+## 2026.07.29az
 - Docs: reseating cables and multi-cable recovery; drop confusing E2E “already know” row; no “most common” peer claim.
 
-###2026.07.29ay
+## 2026.07.29ay
 - Plug-and-play groundwork: remembered peers, activity / safe-unplug hints; Plugins blurb updated.
 - Docs (DOCS.md + docs/*), Unraid blue helpers, LOCAL|REMOTE|REMOTE table, link quality cable advice.
 - Clearer description: Thunderbolt-compatible host networking (not one generation only).
 
-###2026.07.29ax
+## 2026.07.29ax
 - Clearer Plugins description: Thunderbolt-compatible host networking (not one USB/Thunderbolt generation only).
 
-###2026.07.29aw
+## 2026.07.29aw
 - Docs treasure trove (DOCS.md + docs/*): driver E2E, peer scenarios (Linux/Mac/Windows/docks), addressing, speeds.
 - Unraid blue inline_help on driver and tbn fields; Documentation bar links to GitHub guides.
 - Link quality advice: likely cable limit + upgrade suggestion; LOCAL|REMOTE|REMOTE comparison table.
 
-###2026.07.29av
+## 2026.07.29av
 - Compact Remote peers table (one row per tbnN); link quality badge vs controller capability.
 
 - Clearer local vs remote identity (hostname, product, manufacturer/stack); unified link table; more driver help and spacing.
@@ -656,27 +656,27 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 - Summary: local hostname/controller, listening includes, bond/bridge membership; per-link local↔remote (peer name, RX/TX, lanes); optional LLDP if tools exist.
 
-###2026.07.29am
+## 2026.07.29am
 - Thunderbolt tab vs tbnN eth-style settings; cleaner form layout.
 
 - Neutral settings copy (remove personal use-case marketing from the UI).
 - Fix tbnN tabs showing raw PHP: set Markdown=false on generated pages.
 
-###2026.07.29aj
+## 2026.07.29aj
 - Fix blank Settings tab (absolute plugin paths).
 - Overview **Thunderbolt** plus per-link **tbn0** / **tbn1** tabs; eth-like per-iface settings; IOMMU/VFIO info.
 
-###2026.07.29ai
+## 2026.07.29ai
 - Empty state when no Thunderbolt hardware is detected.
 
-###2026.07.29ah
+## 2026.07.29ah
 - Thorough uninstall cleanup.
 
-###2026.07.29ag
+## 2026.07.29ag
 - Network Settings placement and host-to-host Thunderbolt LAN UX.
 
-###2026.07.29ae
+## 2026.07.29ae
 - CLI/JSON status over SSH.
 
-###2026.07.29aa
+## 2026.07.29aa
 - Initial public release.
