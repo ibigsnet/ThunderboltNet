@@ -8,9 +8,9 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ## 2026.08.24aa
 
-- **Fix (Vinney):** Enable jumbo / Desired MTU now persists on Apply. Submit no longer
-  drops `USE_MTU=yes` behind a hidden `no`, and `tbn-update-iface` rewrites MTU fields
-  from POST before apply so flash matches the form across reboot.
+- **Fix (forum report):** Jumbo / Desired MTU now persists on Apply — addressed Vinney’s
+  findings (submit dropped `USE_MTU=yes` behind a hidden `no`; `tbn-update-iface` now
+  rewrites MTU fields from POST before apply so flash matches the form across reboot).
 
 ## 2026.08.18ar
 

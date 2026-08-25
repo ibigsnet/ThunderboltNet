@@ -27,7 +27,7 @@
 
 <CHANGES>
 ###&version;
-- Fix jumbo MTU not saving on Apply (Vinney); persist USE_MTU / MTU_MODE to flash.
+- Fix jumbo MTU save (Vinney’s forum findings); persist USE_MTU / MTU_MODE to flash.
 
 ###2026.08.18ar–aq
 - Overview subtab preload; seed Unraid .1; Dashboard tbnN labels and TB rates.
