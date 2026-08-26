@@ -2392,7 +2392,25 @@ function tbn_hardware_probe() {
 }
 
 /**
- * Plain-text diagnostics for GitHub issues / support (no secrets).
+ * Support / project URLs (forum + GitHub).
+ * @return array{forum:string,github:string,issues:string}
+ */
+function tbn_support_links() {
+  $github = function_exists('tbn_github_repo')
+    ? tbn_github_repo()
+    : 'https://github.com/ibigsnet/ThunderboltNet';
+  $forum = function_exists('tbn_forum_support_url')
+    ? tbn_forum_support_url()
+    : 'https://forums.unraid.net/topic/200065-plugin-thunderbolt-net-host-to-host-networking-over-thunderbolt-345-and-usb44v2/';
+  return [
+    'forum' => $forum,
+    'github' => $github,
+    'issues' => $github . '/issues',
+  ];
+}
+
+/**
+ * Plain-text diagnostics for forum / GitHub issues (no secrets).
  */
 function tbn_diagnostics_text() {
   $probe = tbn_hardware_probe();
@@ -2408,12 +2426,17 @@ function tbn_diagnostics_text() {
     $ini = @parse_ini_file('/etc/unraid-version');
     $unraid = is_array($ini) && isset($ini['version']) ? $ini['version'] : '';
   }
+  $links = tbn_support_links();
   $out = [];
   $out[] = '=== ThunderboltNet diagnostics ===';
   $out[] = 'plugin_version: ' . $ver;
   $out[] = 'hostname: ' . (gethostname() ?: '');
   $out[] = 'unraid: ' . $unraid;
   $out[] = 'time: ' . date('c');
+  $out[] = 'support_forum: ' . $links['forum'];
+  $out[] = 'github: ' . $links['github'];
+  $out[] = 'github_issues: ' . $links['issues'];
+  $out[] = 'unraid_diagnostics: Tools → Diagnostics (/Tools/Diagnostics)';
   $out[] = 'has_hardware: ' . ($probe['has_hardware'] ? 'yes' : 'no');
   $out[] = 'sysfs_bus: ' . ($probe['sysfs_bus'] ? 'yes' : 'no');
   $out[] = 'domain0: ' . ($probe['domain0'] ? 'yes' : 'no');

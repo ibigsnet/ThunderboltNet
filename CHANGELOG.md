@@ -6,6 +6,12 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+## 2026.08.26aa
+
+- **Diagnostics empty-state:** support links now include the **Unraid forum**, **GitHub
+  Issues**, and the **repository** (plus existing **Tools → Diagnostics**). The
+  copyable diagnostics blob also embeds those URLs for paste-into-forum/issue reports.
+
 ## 2026.08.25aa
 
 - **Hotplug remove:** tear down NAT **and** DHCP client/server for that `thunderboltN`

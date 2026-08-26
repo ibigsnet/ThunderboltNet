@@ -12,14 +12,24 @@
       Rear-panel marks (Thunderbolt lightning /&nbsp;40 vs SuperSpeed SS only): see
       <a href="<?= htmlspecialchars(tbn_docs_url('docs/port-icons.md')) ?>" target="_blank" rel="noopener">port icons guide</a>.
     </p>
+<?php
+  $tbn_support = function_exists('tbn_support_links') ? tbn_support_links() : [
+    'forum' => 'https://forums.unraid.net/topic/200065-plugin-thunderbolt-net-host-to-host-networking-over-thunderbolt-345-and-usb44v2/',
+    'github' => 'https://github.com/ibigsnet/ThunderboltNet',
+    'issues' => isset($issues_url) ? $issues_url : 'https://github.com/ibigsnet/ThunderboltNet/issues',
+  ];
+?>
     <p class="tbn-notice-issue">
-      If that seems wrong, copy the plugin diagnostics below and open an issue:<br>
-      <a href="<?= htmlspecialchars($issues_url) ?>" target="_blank" rel="noopener"><?= htmlspecialchars($issues_url) ?></a>
+      If that seems wrong, copy the plugin diagnostics below and paste them on the
+      <a href="<?= htmlspecialchars($tbn_support['forum']) ?>" target="_blank" rel="noopener">Unraid support forum</a>
+      or open a
+      <a href="<?= htmlspecialchars($tbn_support['issues']) ?>" target="_blank" rel="noopener">GitHub issue</a>
+      (<a href="<?= htmlspecialchars($tbn_support['github']) ?>" target="_blank" rel="noopener">repository</a>).
     </p>
     <p class="tbn-notice-tools">
       For a full Unraid package (logs, lspci, etc.), also run
       <a href="/Tools/Diagnostics">Tools → Diagnostics</a>
-      and attach that zip when filing the issue.
+      and attach that zip when filing the report.
     </p>
     <label class="tbn-diag-label" for="tbn-diagnostics">Plugin diagnostics</label>
     <textarea id="tbn-diagnostics" class="tbn-diag" readonly rows="14" spellcheck="false"><?= htmlspecialchars($diag) ?></textarea>

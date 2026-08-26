@@ -111,7 +111,10 @@ Full write-up: [dashboard-ports-and-clock.md](dashboard-ports-and-clock.md).
 
 - Board/CPU may lack a host controller, or it is disabled in BIOS.  
 - Controller bound to **vfio-pci** — check PCI panel; return NHI to host driver if you want host networking.  
-- Copy diagnostics from the empty-state page when filing an issue.
+- Copy diagnostics from the empty-state Status page when filing a report. The panel
+  links the **Unraid support forum**, **GitHub Issues**, the **repository**, and
+  Unraid **Tools → Diagnostics** (full system zip). The copyable blob also includes
+  those URLs.
 
 ## Interface never appears (`thunderbolt0` missing)
 
