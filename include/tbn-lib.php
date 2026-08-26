@@ -2392,7 +2392,25 @@ function tbn_hardware_probe() {
 }
 
 /**
- * Plain-text diagnostics for GitHub issues / support (no secrets).
+ * Support / project URLs (forum + GitHub).
+ * @return array{forum:string,github:string,issues:string}
+ */
+function tbn_support_links() {
+  $github = function_exists('tbn_github_repo')
+    ? tbn_github_repo()
+    : 'https://github.com/ibigsnet/ThunderboltNet';
+  $forum = function_exists('tbn_forum_support_url')
+    ? tbn_forum_support_url()
+    : 'https://forums.unraid.net/topic/200065-plugin-thunderbolt-net-host-to-host-networking-over-thunderbolt-345-and-usb44v2/';
+  return [
+    'forum' => $forum,
+    'github' => $github,
+    'issues' => $github . '/issues',
+  ];
+}
+
+/**
+ * Plain-text diagnostics for forum / GitHub issues (no secrets).
  */
 function tbn_diagnostics_text() {
   $probe = tbn_hardware_probe();
@@ -2408,12 +2426,17 @@ function tbn_diagnostics_text() {
     $ini = @parse_ini_file('/etc/unraid-version');
     $unraid = is_array($ini) && isset($ini['version']) ? $ini['version'] : '';
   }
+  $links = tbn_support_links();
   $out = [];
   $out[] = '=== ThunderboltNet diagnostics ===';
   $out[] = 'plugin_version: ' . $ver;
   $out[] = 'hostname: ' . (gethostname() ?: '');
   $out[] = 'unraid: ' . $unraid;
   $out[] = 'time: ' . date('c');
+  $out[] = 'support_forum: ' . $links['forum'];
+  $out[] = 'github: ' . $links['github'];
+  $out[] = 'github_issues: ' . $links['issues'];
+  $out[] = 'unraid_diagnostics: Tools → Diagnostics (/Tools/Diagnostics)';
   $out[] = 'has_hardware: ' . ($probe['has_hardware'] ? 'yes' : 'no');
   $out[] = 'sysfs_bus: ' . ($probe['sysfs_bus'] ? 'yes' : 'no');
   $out[] = 'domain0: ' . ($probe['domain0'] ? 'yes' : 'no');
@@ -3339,7 +3362,8 @@ function tbn_write_iface_cfg($if, array $cfg) {
  * $family: 4, 6, or 0 for both.
  */
 function tbn_iface_stop_dhcp_clients($if, $family = 0) {
-  if ($if === '' || !is_dir('/sys/class/net/' . $if)) {
+  // Allow kill even when sysfs is already gone (udev remove — netdev destroyed).
+  if ($if === '' || !preg_match('/^[A-Za-z0-9._:-]+$/', (string)$if)) {
     return;
   }
   $ife = escapeshellarg($if);
@@ -3353,6 +3377,78 @@ function tbn_iface_stop_dhcp_clients($if, $family = 0) {
     @exec("dhcpcd -6 -k {$ife} 2>/dev/null || true");
     @exec("dhclient -6 -r {$ife} 2>/dev/null || true");
   }
+}
+
+/**
+ * Hotplug remove / disable teardown: NAT + DHCP server + DHCP clients.
+ * Safe when the netdev is already gone from sysfs.
+ *
+ * @return array{ok:bool,iface:string,nat?:mixed,dhcp_server?:bool,dhcp_clients?:bool}
+ */
+function tbn_hotplug_teardown_iface($if) {
+  $if = trim((string)$if);
+  $out = ['ok' => true, 'iface' => $if];
+  if ($if === '' || !preg_match('/^thunderbolt\d+$/', $if)) {
+    return ['ok' => false, 'iface' => $if, 'error' => 'bad iface'];
+  }
+  if (function_exists('tbn_nat_clear')) {
+    tbn_nat_clear($if);
+    $out['nat'] = true;
+  }
+  if (function_exists('tbn_dhcp_server_stop')) {
+    tbn_dhcp_server_stop($if);
+    $cfg = function_exists('tbn_load_iface_cfg') ? tbn_load_iface_cfg($if) : [];
+    $netdev = function_exists('tbn_dhcp_netdev_for_cfg') ? tbn_dhcp_netdev_for_cfg($if, $cfg) : '';
+    if ($netdev !== '' && $netdev !== $if) {
+      tbn_dhcp_server_stop($netdev);
+    }
+    $out['dhcp_server'] = true;
+  }
+  tbn_iface_stop_dhcp_clients($if, 0);
+  $out['dhcp_clients'] = true;
+  return $out;
+}
+
+/**
+ * Path-slot keys that stay with the thunderboltN name (not the remote UUID).
+ * L3/NAT for an unknown peer must not inherit the previous host's plan.
+ *
+ * @return string[]
+ */
+function tbn_path_slot_policy_keys() {
+  return [
+    'DESCRIPTION', 'ENABLE',
+    'BONDING', 'BONDING_MODE', 'BOND_NAME', 'BOND_MEMBERS',
+    'BRIDGING', 'BR_NAME',
+    'VLAN_ENABLE', 'VLAN_LIST',
+    'INCLUDE_LISTENING',
+    'OF_PARTICIPATE', 'OF_METRIC_MODE', 'OF_METRIC',
+  ];
+}
+
+/**
+ * Reset L3/NAT/MTU on a path-slot to product defaults; keep bonding/bridge/VLAN/OF policy.
+ * Used when a live peer UUID has no usable Saved plan (new/stranger host on this tbnN).
+ */
+function tbn_path_slot_seed_unknown_peer($if) {
+  if (!preg_match('/^thunderbolt\d+$/', (string)$if)) {
+    return ['ok' => false, 'error' => 'bad iface'];
+  }
+  $cur = tbn_load_iface_cfg($if);
+  $defs = tbn_iface_defaults($if);
+  $keep = array_flip(tbn_path_slot_policy_keys());
+  $next = $defs;
+  foreach ($cur as $k => $v) {
+    if (isset($keep[$k])) {
+      $next[$k] = $v;
+    }
+  }
+  // Stranger on this slot: never inherit previous peer's NAT
+  $next['NAT_ENABLE'] = 'no';
+  $next['NAT_UPLINK'] = 'auto';
+  $next['ENABLE'] = 'yes';
+  tbn_write_iface_cfg($if, $next);
+  return ['ok' => true, 'iface' => $if, 'seeded' => true];
 }
 
 /**
@@ -3732,15 +3828,33 @@ function tbn_reapply_live_ifaces($if_filter = null) {
   }
   foreach ($names as $if) {
     $applied = false;
+    $key = '';
+    $has_fabric_uuid = false;
     if (isset($link_by_if[$if])) {
-      $key = tbn_peer_key_from_link($link_by_if[$if], $peers);
+      $key = (string)tbn_peer_key_from_link($link_by_if[$if], $peers);
+      $has_fabric_uuid = ($key !== '' && strpos($key, 'iface:') !== 0);
       $pr = tbn_apply_peer_plan_to_iface($key, $if);
       if (!empty($pr['applied'])) {
         $out[$if] = $pr;
         $applied = true;
       }
     }
-    if (!$applied && is_file(tbn_iface_cfg_path($if))) {
+    if ($applied) {
+      continue;
+    }
+    // Live fabric UUID but no usable Saved → seed product L3 defaults.
+    // Do not re-impose the previous peer's path-slot IP/DHCP/NAT on a stranger.
+    if ($has_fabric_uuid) {
+      $seed = tbn_path_slot_seed_unknown_peer($if);
+      $r = tbn_apply_iface($if, ['skip_peer_capture' => true]);
+      $out[$if] = array_merge(is_array($r) ? $r : [], [
+        'seeded_unknown_peer' => !empty($seed['ok']),
+        'peer_key' => $key,
+      ]);
+      continue;
+    }
+    // No UUID yet (hotplug race) or no live link: path-slot reapply is fine
+    if (is_file(tbn_iface_cfg_path($if))) {
       $out[$if] = tbn_apply_iface($if, ['skip_peer_capture' => true]);
     }
   }
@@ -3819,16 +3933,17 @@ function tbn_apply_iface($if, array $opts = []) {
   if (($cfg['ENABLE'] ?? 'yes') === 'yes') {
     @exec("ip link set {$ife} up 2>/dev/null");
   } else {
-    // Disable: drop addresses + routes so nothing lingers in the main table
-    if (function_exists('tbn_nat_clear')) {
-      tbn_nat_clear($if);
-    }
-    if (function_exists('tbn_dhcp_server_stop')) {
-      tbn_dhcp_server_stop($if);
-      $netdev = function_exists('tbn_dhcp_netdev_for_cfg') ? tbn_dhcp_netdev_for_cfg($if, $cfg) : '';
-      if ($netdev !== '' && $netdev !== $if) {
-        tbn_dhcp_server_stop($netdev);
+    // Disable: NAT + DHCP server/clients + L3 (same cleanup family as hotplug remove)
+    if (function_exists('tbn_hotplug_teardown_iface')) {
+      tbn_hotplug_teardown_iface($if);
+    } else {
+      if (function_exists('tbn_nat_clear')) {
+        tbn_nat_clear($if);
       }
+      if (function_exists('tbn_dhcp_server_stop')) {
+        tbn_dhcp_server_stop($if);
+      }
+      tbn_iface_stop_dhcp_clients($if, 0);
     }
     tbn_iface_flush_l3($if, 0);
     @exec("ip link set {$ife} down 2>/dev/null");

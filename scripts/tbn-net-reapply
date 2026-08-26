@@ -42,15 +42,17 @@ if [ "$MODE" = "remove" ]; then
     thunderbolt*) ;;
     *) exit 0 ;;
   esac
-  # Netdev may already be gone — NAT clear only needs the iface name for the tag.
+  # Netdev may already be gone — tear down NAT + DHCP server/clients by name.
   OUT=$("$PHP_BIN" -r '
     require_once "'"$LIB"'";
     $if = $argv[1];
-    if (function_exists("tbn_nat_clear")) {
+    if (function_exists("tbn_hotplug_teardown_iface")) {
+      echo json_encode(tbn_hotplug_teardown_iface($if));
+    } elseif (function_exists("tbn_nat_clear")) {
       tbn_nat_clear($if);
-      echo json_encode(["ok" => true, "removed_nat" => $if]);
+      echo json_encode(["ok" => true, "removed_nat" => $if, "legacy" => true]);
     } else {
-      echo json_encode(["ok" => false, "error" => "nat_clear missing"]);
+      echo json_encode(["ok" => false, "error" => "teardown missing"]);
     }
   ' "$IFACE" 2>/dev/null) || true
   if [ -n "${OUT:-}" ]; then
