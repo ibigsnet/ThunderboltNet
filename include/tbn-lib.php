@@ -1663,6 +1663,113 @@ function tbn_pci_is_tb_usb($bdf) {
 }
 
 /**
+ * SuperSpeed(+) USB root hubs (5 Gb/s and up). Independent of Thunderbolt NHI.
+ *
+ * @return list of rows: kind, title, detail, ports, speed_short, attached, mbps, is_tb, bus, bdf
+ */
+function tbn_list_usb_superspeed_roots() {
+  $usb_roots = [];
+  foreach (@scandir('/sys/bus/usb/devices') ?: [] as $bn) {
+    if (!preg_match('/^usb(\d+)$/', $bn, $m)) {
+      continue;
+    }
+    $hub = '/sys/bus/usb/devices/' . $bn;
+    $speed = tbn_sysfs_str($hub . '/speed');
+    $mbps = (float)$speed;
+    if ($mbps < 5000) {
+      continue; // skip pure USB2 roots (companion of SS hubs)
+    }
+    $maxchild = (int)tbn_sysfs_str($hub . '/maxchild');
+    $bdf = tbn_sysfs_pci_bdf($hub);
+    $sl = tbn_usb_speed_label($speed);
+    $is_tb = tbn_pci_is_tb_usb($bdf);
+    $attached = 0;
+    foreach (glob($hub . '/*-0:1.0/usb*-port*') ?: [] as $pd) {
+      $st = strtolower(tbn_sysfs_str($pd . '/state'));
+      if ($st !== '' && $st !== 'not attached') {
+        $attached++;
+      }
+    }
+    $nports = $maxchild > 0 ? $maxchild : 0;
+    $usb_roots[] = [
+      'kind' => $is_tb ? 'usb-tb' : 'usb-ss',
+      'title' => $is_tb ? 'USB-C on Thunderbolt controller' : 'USB SuperSpeed',
+      'detail' => $sl['short']
+        . ($nports > 0 ? ' · ' . $nports . ' port' . ($nports === 1 ? '' : 's') : '')
+        . ($attached > 0 ? ' · ' . $attached . ' in use' : '')
+        . ' · ' . $bn,
+      'ports' => $nports > 0 ? $nports : null,
+      'speed_short' => $sl['short'],
+      'attached' => $attached,
+      'mbps' => $sl['mbps'],
+      'is_tb' => $is_tb,
+      'bus' => $bn,
+      'bdf' => $bdf,
+    ];
+  }
+  usort($usb_roots, function ($a, $b) {
+    if (!empty($a['is_tb']) !== !empty($b['is_tb'])) {
+      return !empty($a['is_tb']) ? -1 : 1;
+    }
+    $sa = (int)($a['mbps'] ?? 0);
+    $sb = (int)($b['mbps'] ?? 0);
+    if ($sa !== $sb) {
+      return $sb - $sa;
+    }
+    return strcmp($a['bus'] ?? '', $b['bus'] ?? '');
+  });
+  return $usb_roots;
+}
+
+/**
+ * USB SuperSpeed bank list — Peers LOCAL (collapsed) and no-controller diagnostics (open).
+ *
+ * @param array $opts open (bool) show as a panel instead of <details>; show_empty (bool)
+ */
+function tbn_usb_superspeed_html(array $opts = []) {
+  $open = !empty($opts['open']);
+  $show_empty = !empty($opts['show_empty']);
+  $usb = tbn_list_usb_superspeed_roots();
+  if (!$usb) {
+    if (!$show_empty) {
+      return '';
+    }
+    $html = '<div class="tbn-port-box tbn-port-box-usb tbn-port-box-usb-open">';
+    $html .= '<div class="tbn-port-box-hd">USB SuperSpeed</div>';
+    $html .= '<p class="tbn-muted tbn-port-empty">No SuperSpeed USB roots in sysfs (5&nbsp;Gb/s or faster).</p>';
+    $html .= '</div>';
+    return $html;
+  }
+  $n = count($usb);
+  $lis = '<p class="tbn-port-usb-note tbn-muted">Type-C may show a Thunderbolt icon but these are USB data paths, not full Thunderbolt host networking.</p>';
+  $lis .= '<ul class="tbn-port-list tbn-port-list-usb">';
+  foreach ($usb as $p) {
+    $lis .= '<li class="tbn-port-' . htmlspecialchars($p['kind'] ?? 'usb-ss') . '">';
+    $lis .= '<span class="tbn-port-spd tbn-port-spd-usb">'
+      . htmlspecialchars($p['speed_short'] ?? '')
+      . '</span> ';
+    $lis .= '<span class="tbn-port-detail">'
+      . htmlspecialchars($p['detail'] ?? $p['title'] ?? '')
+      . '</span>';
+    $lis .= '</li>';
+  }
+  $lis .= '</ul>';
+  $title = 'USB SuperSpeed (' . (int)$n . ' bank' . ($n === 1 ? '' : 's') . ')';
+  if ($open) {
+    $html = '<div class="tbn-port-box tbn-port-box-usb tbn-port-box-usb-open">';
+    $html .= '<div class="tbn-port-box-hd">' . htmlspecialchars($title) . '</div>';
+    $html .= $lis;
+    $html .= '</div>';
+    return $html;
+  }
+  $html = '<details class="tbn-port-box tbn-port-box-usb">';
+  $html .= '<summary>' . htmlspecialchars($title) . '</summary>';
+  $html .= $lis;
+  $html .= '</details>';
+  return $html;
+}
+
+/**
  * Brief local port inventory for Link quality LOCAL column.
  *
  * Includes:
@@ -1735,63 +1842,9 @@ function tbn_list_local_ports(array $cap = null) {
   }
 
   // 3) USB SuperSpeed(+) root hubs — physical USB-C / Type-A SS banks
-  //    Pair HS+SS of same controller later if needed; list SS roots only to avoid 480M clutter.
-  $usb_roots = [];
-  foreach (@scandir('/sys/bus/usb/devices') ?: [] as $bn) {
-    if (!preg_match('/^usb(\d+)$/', $bn, $m)) {
-      continue;
-    }
-    $hub = '/sys/bus/usb/devices/' . $bn;
-    $speed = tbn_sysfs_str($hub . '/speed');
-    $mbps = (float)$speed;
-    if ($mbps < 5000) {
-      continue; // skip pure USB2 roots (companion of SS hubs)
-    }
-    $maxchild = (int)tbn_sysfs_str($hub . '/maxchild');
-    $bdf = tbn_sysfs_pci_bdf($hub);
-    $sl = tbn_usb_speed_label($speed);
-    $is_tb = tbn_pci_is_tb_usb($bdf);
-    // Count attached vs empty via port state files
-    $attached = 0;
-    $empty = 0;
-    foreach (glob($hub . '/*-0:1.0/usb*-port*') ?: [] as $pd) {
-      $st = strtolower(tbn_sysfs_str($pd . '/state'));
-      if ($st === '' || $st === 'not attached') {
-        $empty++;
-      } else {
-        $attached++;
-      }
-    }
-    $nports = $maxchild > 0 ? $maxchild : 0;
-    $usb_roots[] = [
-      'kind' => $is_tb ? 'usb-tb' : 'usb-ss',
-      'title' => $is_tb ? 'USB-C on Thunderbolt controller' : 'USB SuperSpeed',
-      'detail' => $sl['short']
-        . ($nports > 0 ? ' · ' . $nports . ' port' . ($nports === 1 ? '' : 's') : '')
-        . ($attached > 0 ? ' · ' . $attached . ' in use' : '')
-        . ' · ' . $bn,
-      'ports' => $nports > 0 ? $nports : null,
-      'speed_short' => $sl['short'],
-      'attached' => $attached,
-      'mbps' => $sl['mbps'],
-      'is_tb' => $is_tb,
-      'bus' => $bn,
-    ];
-  }
-  // Sort: Thunderbolt-USB first, then by speed desc, then bus name
-  usort($usb_roots, function ($a, $b) {
-    if (!empty($a['is_tb']) !== !empty($b['is_tb'])) {
-      return !empty($a['is_tb']) ? -1 : 1;
-    }
-    $sa = (int)($a['mbps'] ?? 0);
-    $sb = (int)($b['mbps'] ?? 0);
-    if ($sa !== $sb) {
-      return $sb - $sa;
-    }
-    return strcmp($a['bus'] ?? '', $b['bus'] ?? '');
-  });
+  $usb_roots = tbn_list_usb_superspeed_roots();
   foreach ($usb_roots as $r) {
-    unset($r['mbps'], $r['is_tb'], $r['bus']);
+    unset($r['mbps'], $r['is_tb'], $r['bus'], $r['bdf']);
     $rows[] = $r;
   }
 
@@ -1838,16 +1891,10 @@ function tbn_controller_capability_html(array $cap = null) {
 
   $ports = tbn_list_local_ports($cap);
   $tb = [];
-  $usb = [];
   foreach ($ports as $p) {
     $k = $p['kind'] ?? '';
-    if ($k === 'tb-host') {
-      continue;
-    }
     if ($k === 'tb-link') {
       $tb[] = $p;
-    } elseif ($k === 'usb-tb' || $k === 'usb-ss') {
-      $usb[] = $p;
     }
   }
 
@@ -1887,25 +1934,7 @@ function tbn_controller_capability_html(array $cap = null) {
   $html .= '</div>';
 
   // Other USB SuperSpeed banks — secondary, collapsed by default
-  if ($usb) {
-    $n = count($usb);
-    $html .= '<details class="tbn-port-box tbn-port-box-usb">';
-    $html .= '<summary>Other USB SuperSpeed (' . (int)$n . ' bank'
-      . ($n === 1 ? '' : 's') . ')</summary>';
-    $html .= '<p class="tbn-port-usb-note tbn-muted">Type-C may show a Thunderbolt icon but these are USB data paths, not full Thunderbolt host networking.</p>';
-    $html .= '<ul class="tbn-port-list tbn-port-list-usb">';
-    foreach ($usb as $p) {
-      $html .= '<li class="tbn-port-' . htmlspecialchars($p['kind'] ?? 'usb-ss') . '">';
-      $html .= '<span class="tbn-port-spd tbn-port-spd-usb">'
-        . htmlspecialchars($p['speed_short'] ?? '')
-        . '</span> ';
-      $html .= '<span class="tbn-port-detail">'
-        . htmlspecialchars($p['detail'] ?? $p['title'] ?? '')
-        . '</span>';
-      $html .= '</li>';
-    }
-    $html .= '</ul></details>';
-  }
+  $html .= tbn_usb_superspeed_html();
 
   $html .= '</div>';
   return $html;
@@ -2447,6 +2476,34 @@ function tbn_diagnostics_text() {
   $out[] = 'module_thunderbolt_stream: ' . (!empty($stream['loaded']) ? 'loaded' : 'not loaded');
   $out[] = 'usb4stream_devices: ' . (implode(' ', $stream['devices'] ?? []) ?: '(none)');
   $out[] = 'domain_security: ' . (tbn_domain_security() ?: '(none)');
+  $out[] = '--- VFIO / Thunderbolt PCI ---';
+  $pci_rows = function_exists('tbn_list_pci_iommu') ? tbn_list_pci_iommu() : [];
+  if ($pci_rows) {
+    foreach ($pci_rows as $p) {
+      $out[] = ($p['bdf'] ?? '?')
+        . ' driver=' . ($p['driver'] ?? '-')
+        . ' vfio=' . ($p['vfio'] ?? 'no')
+        . (($p['vfio_boot_cfg'] ?? '') === 'yes' ? ' boot_cfg' : '')
+        . ' iommu=' . ($p['iommu_group'] ?? '-')
+        . ' ' . ($p['description'] ?? '');
+    }
+  } else {
+    $out[] = '(none matched)';
+  }
+  $out[] = '--- USB SuperSpeed roots ---';
+  $usb = function_exists('tbn_list_usb_superspeed_roots') ? tbn_list_usb_superspeed_roots() : [];
+  if ($usb) {
+    foreach ($usb as $r) {
+      $out[] = ($r['bus'] ?? '?')
+        . ' ' . ($r['speed_short'] ?? '')
+        . ' ports=' . (isset($r['ports']) && $r['ports'] !== null ? (int)$r['ports'] : '?')
+        . ' in_use=' . (int)($r['attached'] ?? 0)
+        . ' pci=' . (($r['bdf'] ?? '') !== '' ? $r['bdf'] : '-')
+        . ' ' . ($r['kind'] ?? 'usb-ss');
+    }
+  } else {
+    $out[] = '(none at 5 Gb/s+)';
+  }
   $out[] = '--- lspci (thunderbolt/USB4 matches) ---';
   if ($probe['pci_lines']) {
     foreach ($probe['pci_lines'] as $l) {
@@ -3101,26 +3158,67 @@ function tbn_iface_mtu_limits($if) {
  * Normalize MTU_MODE + USE_MTU/MTU (legacy) → mode string.
  */
 function tbn_normalize_mtu_mode(array $cfg) {
-  // eth0-style checkbox wins when present (form posts USE_MTU=yes|no)
-  $use = strtolower(trim((string)($cfg['USE_MTU'] ?? '')));
-  if ($use === 'no' || $use === '0') {
-    return 'default';
+  $mode = strtolower(trim((string)($cfg['MTU_MODE'] ?? '')));
+  if ($mode === '9000' || $mode === 'custom') {
+    return $mode;
   }
+  $use = strtolower(trim((string)($cfg['USE_MTU'] ?? '')));
   if ($use === 'yes' || $use === '1') {
     $v = (int)($cfg['MTU'] ?? 0);
     if ($v === 9000) {
       return '9000';
     }
-    if ($v >= 68) {
+    if ($v >= 68 && $v !== 1500) {
       return 'custom';
     }
-    return 'default';
-  }
-  $mode = strtolower(trim((string)($cfg['MTU_MODE'] ?? '')));
-  if (in_array($mode, ['default', '9000', 'custom'], true)) {
-    return $mode;
   }
   return 'default';
+}
+
+/**
+ * Jumbo vs default from a tbnN Apply POST.
+ *
+ * Unraid update.php runs #include *before* writing the cfg, then saves $_POST.
+ * Duplicate name=USE_MTU (hidden no + checkbox yes) is a scalar in PHP — often
+ * "no" — so a rewrite in the include was clobbered on save (Vinney / 24aa).
+ * The form posts the checkbox as USE_MTU_YES; this helper returns scalars to
+ * assign back onto $_POST before update.php writes.
+ *
+ * @return array{USE_MTU:string,MTU_MODE:string,MTU:string}
+ */
+function tbn_reconcile_iface_mtu_post(array $post) {
+  $use = 'no';
+  $yes = $post['USE_MTU_YES'] ?? null;
+  if (is_array($yes)) {
+    $use = in_array('yes', $yes, true) ? 'yes' : 'no';
+  } elseif (strtolower(trim((string)$yes)) === 'yes') {
+    $use = 'yes';
+  } else {
+    $legacy = $post['USE_MTU'] ?? null;
+    if (is_array($legacy)) {
+      $use = in_array('yes', $legacy, true) ? 'yes' : 'no';
+    } elseif (strtolower(trim((string)$legacy)) === 'yes') {
+      $use = 'yes';
+    }
+  }
+
+  $mtu = trim((string)($post['MTU'] ?? ''));
+  $mode = strtolower(trim((string)($post['MTU_MODE'] ?? '')));
+  if ($use === 'yes') {
+    if ($mtu === '' || (int)$mtu < 68) {
+      $mtu = '9000';
+    }
+    if (!in_array($mode, ['9000', 'custom'], true)) {
+      $mode = ((int)$mtu === 9000) ? '9000' : 'custom';
+    }
+    if ($mode === '9000') {
+      $mtu = '9000';
+    }
+  } else {
+    $mode = 'default';
+    $mtu = '1500';
+  }
+  return ['USE_MTU' => $use, 'MTU_MODE' => $mode, 'MTU' => $mtu];
 }
 
 /**
@@ -4444,4 +4542,41 @@ function tbn_pci_warnings(array $pci, ?array $cfg = null) {
     ];
   }
   return $out;
+}
+
+/**
+ * Top-of-page VFIO banners (Status / Peers / Settings / tbnN / Hardware).
+ * Same copy as Hardware PCI panel; Ignore is global (plugin settings).
+ */
+function tbn_vfio_warning_banner_html($pci = null, $cfg = null) {
+  if ($pci === null && function_exists('tbn_list_pci_iommu')) {
+    $pci = tbn_list_pci_iommu();
+  }
+  if (!is_array($pci)) {
+    $pci = [];
+  }
+  if ($cfg === null) {
+    $cfg = tbn_load_cfg();
+  }
+  $warnings = tbn_pci_warnings($pci, $cfg);
+  if (!$warnings) {
+    return '';
+  }
+  $html = '<div class="tbn-vfio-banners" role="alert">';
+  foreach ($warnings as $w) {
+    $html .= '<div class="tbn-notice tbn-notice-warn tbn-warn-item tbn-vfio-banner" data-warn-key="'
+      . htmlspecialchars($w['key']) . '">';
+    $html .= '<p class="tbn-warn-msg"><strong>VFIO:</strong> '
+      . htmlspecialchars($w['message']) . '</p>';
+    $html .= '<form method="POST" action="/update.php" target="progressFrame" class="tbn-warn-form" style="display:inline">';
+    $html .= '<input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">';
+    $html .= '<input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-ignore-warning.php">';
+    $html .= '<input type="hidden" name="tbn_ignore_key" value="' . htmlspecialchars($w['key']) . '">';
+    $html .= '<input type="submit" name="#apply" value="Ignore">';
+    $html .= '</form>';
+    $html .= ' <span class="tbn-muted tbn-warn-hint">Hides this warning on all Thunderbolt pages (stored in plugin settings).</span>';
+    $html .= '</div>';
+  }
+  $html .= '</div>';
+  return $html;
 }

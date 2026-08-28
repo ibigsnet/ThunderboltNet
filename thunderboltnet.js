@@ -715,6 +715,7 @@
     var mtuModeEl = form.querySelector('input.tbn-mtu-mode');
     if (jumboCb && mtuInput) {
       var jumbo = !slave && jumboCb.checked;
+      var useHidden = form.querySelector('input[type="hidden"][name="USE_MTU"]');
       mtuInput.disabled = !jumbo;
       if (jumbo && !mtuInput.value) {
         mtuInput.value = '9000';
@@ -730,6 +731,9 @@
         } else {
           mtuModeEl.value = 'custom';
         }
+      }
+      if (useHidden) {
+        useHidden.value = jumbo ? 'yes' : 'no';
       }
     }
 
@@ -755,8 +759,8 @@
     }
     form.addEventListener('submit', function () {
       tbnSyncBondMembers(form);
-      // MTU must post correctly: disabled inputs are omitted; hidden USE_MTU=no
-      // before the checkbox can win in some parsers → jumbo never saved (Vinney).
+      // Disabled number inputs are omitted. Hidden USE_MTU stays "no"; the
+      // checkbox posts as USE_MTU_YES so update.php cannot keep the hidden no.
       var jumboCb = form.querySelector('input.tbn-ctl-mtu[type="checkbox"]');
       var mtuInput = form.querySelector('input.tbn-mtu-input') || form.MTU;
       var mtuModeEl = form.querySelector('input.tbn-mtu-mode');
@@ -764,14 +768,16 @@
       if (!jumboCb || !mtuInput) {
         return;
       }
+      if (useHidden) {
+        useHidden.disabled = false;
+      }
       if (!jumboCb.checked) {
         mtuInput.disabled = false;
-        mtuInput.value = '';
+        mtuInput.value = '1500';
         if (mtuModeEl) {
           mtuModeEl.value = 'default';
         }
         if (useHidden) {
-          useHidden.disabled = false;
           useHidden.value = 'no';
         }
       } else {
@@ -782,9 +788,8 @@
         if (mtuModeEl) {
           mtuModeEl.value = String(mtuInput.value) === '9000' ? '9000' : 'custom';
         }
-        // Only post USE_MTU=yes (drop the leading hidden "no")
         if (useHidden) {
-          useHidden.disabled = true;
+          useHidden.value = 'yes';
         }
       }
     });

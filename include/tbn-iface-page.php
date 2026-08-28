@@ -98,6 +98,7 @@ if (strpos($nm, '.') === false) {
 
 <div class="tbn-wrap">
 <?= tbn_docs_bar_html('iface') ?>
+<?= function_exists('tbn_vfio_warning_banner_html') ? tbn_vfio_warning_banner_html() : '' ?>
 
 <?php if (!$present): ?>
   <div class="tbn-notice">
@@ -726,8 +727,8 @@ if (strpos($nm, '.') === false) {
           value="<?= htmlspecialchars($mtu_val) ?>"
           <?= ($mtu_use && !$is_slave) ? '' : 'disabled' ?>>
         <span>
-          <input type="hidden" name="USE_MTU" value="no">
-          <input type="checkbox" name="USE_MTU" value="yes" class="tbn-ctl-mtu"
+          <input type="hidden" name="USE_MTU" class="tbn-use-mtu" value="no">
+          <input type="checkbox" name="USE_MTU_YES" value="yes" class="tbn-ctl-mtu"
             <?= $mtu_use ? 'checked' : '' ?> <?= $is_slave ? 'disabled' : '' ?>>
           Enable jumbo frames
           <i class="fa fa-info-circle blue-text hand" title="<?= htmlspecialchars($jumbo_title) ?>"></i>

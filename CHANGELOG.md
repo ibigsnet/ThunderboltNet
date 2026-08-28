@@ -6,6 +6,27 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+## 2026.08.28ac
+
+- **Fix (forum / Vinney):** Jumbo / Desired MTU still did not persist after 24aa.
+  Unraid `update.php` runs `#include` *then* writes `$_POST` onto flash, so the
+  24aa rewrite was overwritten by hidden `USE_MTU=no`. The jumbo checkbox now
+  posts as `USE_MTU_YES`; include mutates `$_POST` so the subsequent save keeps
+  jumbo (and 1500 when unchecked). Boot/hotplug already reapply from flash.
+
+## 2026.08.28ab
+
+- **VFIO banner:** if a Thunderbolt-related PCI function is VFIO-bound (or in
+  `vfio-pci.cfg`), the same warning as Hardware now appears at the **top of Status,
+  Peers, Settings, and tbnN** (Ignore still hides it everywhere). Diagnostics blob
+  lists VFIO PCI rows.
+
+## 2026.08.28aa
+
+- **No-controller Status:** empty-state diagnostics stay copyable, and **USB SuperSpeed
+  banks** (speed, port count, in-use) sit beside them — same inventory as Peers → LOCAL.
+  Copyable blob also lists those USB roots (`bus`, speed, ports, PCI BDF).
+
 ## 2026.08.26aa
 
 - **Diagnostics empty-state:** support links now include the **Unraid forum**, **GitHub
