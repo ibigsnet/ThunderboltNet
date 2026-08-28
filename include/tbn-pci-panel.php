@@ -10,24 +10,11 @@ if (!isset($cfg) || !is_array($cfg)) {
   $cfg = tbn_load_cfg();
 }
 $tbn_pci_uid = isset($tbn_pci_uid) ? preg_replace('/[^A-Za-z0-9_-]/', '', $tbn_pci_uid) : 'main';
-$warnings = tbn_pci_warnings($pci, $cfg);
 $table_id = 'tbn-pci-table-' . $tbn_pci_uid;
+$tbn_pci_skip_banner = !empty($tbn_pci_skip_banner);
 ?>
-<?php if ($warnings): ?>
-  <div class="tbn-warn-list">
-<?php foreach ($warnings as $w): ?>
-    <div class="tbn-notice tbn-notice-warn tbn-warn-item" data-warn-key="<?= htmlspecialchars($w['key']) ?>">
-      <p class="tbn-warn-msg"><strong>VFIO:</strong> <?= htmlspecialchars($w['message']) ?></p>
-      <form method="POST" action="/update.php" target="progressFrame" class="tbn-warn-form" style="display:inline">
-        <input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">
-        <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-ignore-warning.php">
-        <input type="hidden" name="tbn_ignore_key" value="<?= htmlspecialchars($w['key']) ?>">
-        <input type="submit" name="#apply" value="Ignore">
-      </form>
-      <span class="tbn-muted tbn-warn-hint">Hides this warning on all Thunderbolt pages (stored in plugin settings).</span>
-    </div>
-<?php endforeach; ?>
-  </div>
+<?php if (!$tbn_pci_skip_banner && function_exists('tbn_vfio_warning_banner_html')): ?>
+  <?= tbn_vfio_warning_banner_html($pci, $cfg) ?>
 <?php endif; ?>
 
 <div class="tbn-pci-block">

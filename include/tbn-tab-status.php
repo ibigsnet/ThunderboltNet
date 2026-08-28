@@ -1,4 +1,5 @@
 <?php /* Entry banner lives in ThunderboltNet.page (all sub-tabs). */ ?>
+<?= function_exists('tbn_vfio_warning_banner_html') ? tbn_vfio_warning_banner_html($pci ?? null, $cfg ?? null) : '' ?>
 <?php if (!$has_hw): ?>
   <div class="tbn-notice" role="status">
     <h4>No Thunderbolt host controller detected</h4>

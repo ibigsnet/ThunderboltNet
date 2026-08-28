@@ -98,6 +98,7 @@ if (strpos($nm, '.') === false) {
 
 <div class="tbn-wrap">
 <?= tbn_docs_bar_html('iface') ?>
+<?= function_exists('tbn_vfio_warning_banner_html') ? tbn_vfio_warning_banner_html() : '' ?>
 
 <?php if (!$present): ?>
   <div class="tbn-notice">

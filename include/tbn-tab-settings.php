@@ -1,4 +1,5 @@
 <?php
+echo function_exists('tbn_vfio_warning_banner_html') ? tbn_vfio_warning_banner_html($pci ?? null, $cfg ?? null) : '';
 if (!$has_hw):
 ?>
   <div class="tbn-notice" role="status">

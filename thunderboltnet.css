@@ -185,6 +185,16 @@
   border-color: rgba(200, 80, 40, 0.65);
   background: rgba(200, 80, 40, 0.1);
 }
+.tbn-vfio-banners {
+  margin: 0 0 1rem;
+}
+.tbn-wrap .tbn-vfio-banner {
+  max-width: none;
+  margin: 0 0 0.65rem;
+}
+.tbn-wrap .tbn-vfio-banner:last-child {
+  margin-bottom: 0;
+}
 .tbn-notice h4 {
   margin: 0 0 0.4rem;
   font-size: 1.05em;

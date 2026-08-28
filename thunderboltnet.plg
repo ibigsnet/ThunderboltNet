@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.28aa">
+<!ENTITY version "2026.08.28ab">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/testing/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,6 +27,9 @@
 
 <CHANGES>
 ###&version;
+- VFIO banner on Status/Peers/Settings/tbnN when Thunderbolt PCI is VFIO-bound; Ignore still global. Diagnostics lists VFIO PCI.
+
+###2026.08.28aa
 - No-controller Status: USB SuperSpeed banks (speed/ports) beside diagnostics, same as Peers LOCAL; blob lists USB roots.
 
 ###2026.08.26aa
@@ -43,9 +46,6 @@
 
 ###2026.08.18ao–ad
 - DHCP hints behind Help; Saved-peer form reload; NAT lifecycle; DHCP/NAT UI.
-
-###2026.08.18ac–aa
-- MTU 1500 default; shelve Steam docs; Network Settings lazy-load; Age humanized.
 
 ### Older releases
 - Full changelog: https://github.com/ibigsnet/ThunderboltNet/blob/main/CHANGELOG.md

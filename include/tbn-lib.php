@@ -2476,6 +2476,20 @@ function tbn_diagnostics_text() {
   $out[] = 'module_thunderbolt_stream: ' . (!empty($stream['loaded']) ? 'loaded' : 'not loaded');
   $out[] = 'usb4stream_devices: ' . (implode(' ', $stream['devices'] ?? []) ?: '(none)');
   $out[] = 'domain_security: ' . (tbn_domain_security() ?: '(none)');
+  $out[] = '--- VFIO / Thunderbolt PCI ---';
+  $pci_rows = function_exists('tbn_list_pci_iommu') ? tbn_list_pci_iommu() : [];
+  if ($pci_rows) {
+    foreach ($pci_rows as $p) {
+      $out[] = ($p['bdf'] ?? '?')
+        . ' driver=' . ($p['driver'] ?? '-')
+        . ' vfio=' . ($p['vfio'] ?? 'no')
+        . (($p['vfio_boot_cfg'] ?? '') === 'yes' ? ' boot_cfg' : '')
+        . ' iommu=' . ($p['iommu_group'] ?? '-')
+        . ' ' . ($p['description'] ?? '');
+    }
+  } else {
+    $out[] = '(none matched)';
+  }
   $out[] = '--- USB SuperSpeed roots ---';
   $usb = function_exists('tbn_list_usb_superspeed_roots') ? tbn_list_usb_superspeed_roots() : [];
   if ($usb) {
@@ -4487,4 +4501,41 @@ function tbn_pci_warnings(array $pci, ?array $cfg = null) {
     ];
   }
   return $out;
+}
+
+/**
+ * Top-of-page VFIO banners (Status / Peers / Settings / tbnN / Hardware).
+ * Same copy as Hardware PCI panel; Ignore is global (plugin settings).
+ */
+function tbn_vfio_warning_banner_html($pci = null, $cfg = null) {
+  if ($pci === null && function_exists('tbn_list_pci_iommu')) {
+    $pci = tbn_list_pci_iommu();
+  }
+  if (!is_array($pci)) {
+    $pci = [];
+  }
+  if ($cfg === null) {
+    $cfg = tbn_load_cfg();
+  }
+  $warnings = tbn_pci_warnings($pci, $cfg);
+  if (!$warnings) {
+    return '';
+  }
+  $html = '<div class="tbn-vfio-banners" role="alert">';
+  foreach ($warnings as $w) {
+    $html .= '<div class="tbn-notice tbn-notice-warn tbn-warn-item tbn-vfio-banner" data-warn-key="'
+      . htmlspecialchars($w['key']) . '">';
+    $html .= '<p class="tbn-warn-msg"><strong>VFIO:</strong> '
+      . htmlspecialchars($w['message']) . '</p>';
+    $html .= '<form method="POST" action="/update.php" target="progressFrame" class="tbn-warn-form" style="display:inline">';
+    $html .= '<input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">';
+    $html .= '<input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-ignore-warning.php">';
+    $html .= '<input type="hidden" name="tbn_ignore_key" value="' . htmlspecialchars($w['key']) . '">';
+    $html .= '<input type="submit" name="#apply" value="Ignore">';
+    $html .= '</form>';
+    $html .= ' <span class="tbn-muted tbn-warn-hint">Hides this warning on all Thunderbolt pages (stored in plugin settings).</span>';
+    $html .= '</div>';
+  }
+  $html .= '</div>';
+  return $html;
 }
