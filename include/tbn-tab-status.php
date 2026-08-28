@@ -31,13 +31,24 @@
       <a href="/Tools/Diagnostics">Tools → Diagnostics</a>
       and attach that zip when filing the report.
     </p>
-    <label class="tbn-diag-label" for="tbn-diagnostics">Plugin diagnostics</label>
-    <textarea id="tbn-diagnostics" class="tbn-diag" readonly rows="14" spellcheck="false"><?= htmlspecialchars($diag) ?></textarea>
-    <p class="tbn-actions">
-      <input type="button" value="Copy diagnostics" onclick="tbnCopyDiagnostics()">
-      <input type="button" value="Refresh" onclick="location.reload()">
-      <input type="button" value="Done" onclick="done()">
-    </p>
+    <div class="tbn-diag-layout">
+      <div class="tbn-diag-col">
+        <label class="tbn-diag-label" for="tbn-diagnostics">Plugin diagnostics</label>
+        <textarea id="tbn-diagnostics" class="tbn-diag" readonly rows="14" spellcheck="false"><?= htmlspecialchars($diag) ?></textarea>
+        <p class="tbn-actions">
+          <input type="button" value="Copy diagnostics" onclick="tbnCopyDiagnostics()">
+          <input type="button" value="Refresh" onclick="location.reload()">
+          <input type="button" value="Done" onclick="done()">
+        </p>
+      </div>
+      <aside class="tbn-diag-usb" aria-label="USB SuperSpeed controllers">
+        <p class="tbn-diag-label">USB SuperSpeed on this host</p>
+        <p class="tbn-muted tbn-diag-usb-lead">Same inventory as Peers → LOCAL. These banks do not provide Thunderbolt host-net.</p>
+        <?= function_exists('tbn_usb_superspeed_html')
+          ? tbn_usb_superspeed_html(['open' => true, 'show_empty' => true])
+          : '' ?>
+      </aside>
+    </div>
   </div>
   <?= tbn_docs_bar_html('overview') ?>
 

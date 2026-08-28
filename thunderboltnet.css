@@ -230,6 +230,31 @@
   margin-left: 0.4rem;
   font-size: 0.9em;
 }
+.tbn-diag-layout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem 1.25rem;
+  margin-top: 0.25rem;
+}
+.tbn-diag-col {
+  flex: 1 1 28rem;
+  min-width: 16rem;
+  max-width: 52rem;
+}
+.tbn-diag-usb {
+  flex: 1 1 16rem;
+  min-width: 14rem;
+  max-width: 28rem;
+}
+.tbn-diag-usb-lead {
+  margin: 0 0 0.5rem;
+  font-size: 0.9em;
+  line-height: 1.35;
+}
+.tbn-wrap .tbn-diag-usb .tbn-port-box-usb-open {
+  margin-top: 0;
+}
 .tbn-diag {
   width: 100%;
   max-width: 52rem;

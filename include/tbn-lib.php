@@ -1663,6 +1663,113 @@ function tbn_pci_is_tb_usb($bdf) {
 }
 
 /**
+ * SuperSpeed(+) USB root hubs (5 Gb/s and up). Independent of Thunderbolt NHI.
+ *
+ * @return list of rows: kind, title, detail, ports, speed_short, attached, mbps, is_tb, bus, bdf
+ */
+function tbn_list_usb_superspeed_roots() {
+  $usb_roots = [];
+  foreach (@scandir('/sys/bus/usb/devices') ?: [] as $bn) {
+    if (!preg_match('/^usb(\d+)$/', $bn, $m)) {
+      continue;
+    }
+    $hub = '/sys/bus/usb/devices/' . $bn;
+    $speed = tbn_sysfs_str($hub . '/speed');
+    $mbps = (float)$speed;
+    if ($mbps < 5000) {
+      continue; // skip pure USB2 roots (companion of SS hubs)
+    }
+    $maxchild = (int)tbn_sysfs_str($hub . '/maxchild');
+    $bdf = tbn_sysfs_pci_bdf($hub);
+    $sl = tbn_usb_speed_label($speed);
+    $is_tb = tbn_pci_is_tb_usb($bdf);
+    $attached = 0;
+    foreach (glob($hub . '/*-0:1.0/usb*-port*') ?: [] as $pd) {
+      $st = strtolower(tbn_sysfs_str($pd . '/state'));
+      if ($st !== '' && $st !== 'not attached') {
+        $attached++;
+      }
+    }
+    $nports = $maxchild > 0 ? $maxchild : 0;
+    $usb_roots[] = [
+      'kind' => $is_tb ? 'usb-tb' : 'usb-ss',
+      'title' => $is_tb ? 'USB-C on Thunderbolt controller' : 'USB SuperSpeed',
+      'detail' => $sl['short']
+        . ($nports > 0 ? ' · ' . $nports . ' port' . ($nports === 1 ? '' : 's') : '')
+        . ($attached > 0 ? ' · ' . $attached . ' in use' : '')
+        . ' · ' . $bn,
+      'ports' => $nports > 0 ? $nports : null,
+      'speed_short' => $sl['short'],
+      'attached' => $attached,
+      'mbps' => $sl['mbps'],
+      'is_tb' => $is_tb,
+      'bus' => $bn,
+      'bdf' => $bdf,
+    ];
+  }
+  usort($usb_roots, function ($a, $b) {
+    if (!empty($a['is_tb']) !== !empty($b['is_tb'])) {
+      return !empty($a['is_tb']) ? -1 : 1;
+    }
+    $sa = (int)($a['mbps'] ?? 0);
+    $sb = (int)($b['mbps'] ?? 0);
+    if ($sa !== $sb) {
+      return $sb - $sa;
+    }
+    return strcmp($a['bus'] ?? '', $b['bus'] ?? '');
+  });
+  return $usb_roots;
+}
+
+/**
+ * USB SuperSpeed bank list — Peers LOCAL (collapsed) and no-controller diagnostics (open).
+ *
+ * @param array $opts open (bool) show as a panel instead of <details>; show_empty (bool)
+ */
+function tbn_usb_superspeed_html(array $opts = []) {
+  $open = !empty($opts['open']);
+  $show_empty = !empty($opts['show_empty']);
+  $usb = tbn_list_usb_superspeed_roots();
+  if (!$usb) {
+    if (!$show_empty) {
+      return '';
+    }
+    $html = '<div class="tbn-port-box tbn-port-box-usb tbn-port-box-usb-open">';
+    $html .= '<div class="tbn-port-box-hd">USB SuperSpeed</div>';
+    $html .= '<p class="tbn-muted tbn-port-empty">No SuperSpeed USB roots in sysfs (5&nbsp;Gb/s or faster).</p>';
+    $html .= '</div>';
+    return $html;
+  }
+  $n = count($usb);
+  $lis = '<p class="tbn-port-usb-note tbn-muted">Type-C may show a Thunderbolt icon but these are USB data paths, not full Thunderbolt host networking.</p>';
+  $lis .= '<ul class="tbn-port-list tbn-port-list-usb">';
+  foreach ($usb as $p) {
+    $lis .= '<li class="tbn-port-' . htmlspecialchars($p['kind'] ?? 'usb-ss') . '">';
+    $lis .= '<span class="tbn-port-spd tbn-port-spd-usb">'
+      . htmlspecialchars($p['speed_short'] ?? '')
+      . '</span> ';
+    $lis .= '<span class="tbn-port-detail">'
+      . htmlspecialchars($p['detail'] ?? $p['title'] ?? '')
+      . '</span>';
+    $lis .= '</li>';
+  }
+  $lis .= '</ul>';
+  $title = 'USB SuperSpeed (' . (int)$n . ' bank' . ($n === 1 ? '' : 's') . ')';
+  if ($open) {
+    $html = '<div class="tbn-port-box tbn-port-box-usb tbn-port-box-usb-open">';
+    $html .= '<div class="tbn-port-box-hd">' . htmlspecialchars($title) . '</div>';
+    $html .= $lis;
+    $html .= '</div>';
+    return $html;
+  }
+  $html = '<details class="tbn-port-box tbn-port-box-usb">';
+  $html .= '<summary>' . htmlspecialchars($title) . '</summary>';
+  $html .= $lis;
+  $html .= '</details>';
+  return $html;
+}
+
+/**
  * Brief local port inventory for Link quality LOCAL column.
  *
  * Includes:
@@ -1735,63 +1842,9 @@ function tbn_list_local_ports(array $cap = null) {
   }
 
   // 3) USB SuperSpeed(+) root hubs — physical USB-C / Type-A SS banks
-  //    Pair HS+SS of same controller later if needed; list SS roots only to avoid 480M clutter.
-  $usb_roots = [];
-  foreach (@scandir('/sys/bus/usb/devices') ?: [] as $bn) {
-    if (!preg_match('/^usb(\d+)$/', $bn, $m)) {
-      continue;
-    }
-    $hub = '/sys/bus/usb/devices/' . $bn;
-    $speed = tbn_sysfs_str($hub . '/speed');
-    $mbps = (float)$speed;
-    if ($mbps < 5000) {
-      continue; // skip pure USB2 roots (companion of SS hubs)
-    }
-    $maxchild = (int)tbn_sysfs_str($hub . '/maxchild');
-    $bdf = tbn_sysfs_pci_bdf($hub);
-    $sl = tbn_usb_speed_label($speed);
-    $is_tb = tbn_pci_is_tb_usb($bdf);
-    // Count attached vs empty via port state files
-    $attached = 0;
-    $empty = 0;
-    foreach (glob($hub . '/*-0:1.0/usb*-port*') ?: [] as $pd) {
-      $st = strtolower(tbn_sysfs_str($pd . '/state'));
-      if ($st === '' || $st === 'not attached') {
-        $empty++;
-      } else {
-        $attached++;
-      }
-    }
-    $nports = $maxchild > 0 ? $maxchild : 0;
-    $usb_roots[] = [
-      'kind' => $is_tb ? 'usb-tb' : 'usb-ss',
-      'title' => $is_tb ? 'USB-C on Thunderbolt controller' : 'USB SuperSpeed',
-      'detail' => $sl['short']
-        . ($nports > 0 ? ' · ' . $nports . ' port' . ($nports === 1 ? '' : 's') : '')
-        . ($attached > 0 ? ' · ' . $attached . ' in use' : '')
-        . ' · ' . $bn,
-      'ports' => $nports > 0 ? $nports : null,
-      'speed_short' => $sl['short'],
-      'attached' => $attached,
-      'mbps' => $sl['mbps'],
-      'is_tb' => $is_tb,
-      'bus' => $bn,
-    ];
-  }
-  // Sort: Thunderbolt-USB first, then by speed desc, then bus name
-  usort($usb_roots, function ($a, $b) {
-    if (!empty($a['is_tb']) !== !empty($b['is_tb'])) {
-      return !empty($a['is_tb']) ? -1 : 1;
-    }
-    $sa = (int)($a['mbps'] ?? 0);
-    $sb = (int)($b['mbps'] ?? 0);
-    if ($sa !== $sb) {
-      return $sb - $sa;
-    }
-    return strcmp($a['bus'] ?? '', $b['bus'] ?? '');
-  });
+  $usb_roots = tbn_list_usb_superspeed_roots();
   foreach ($usb_roots as $r) {
-    unset($r['mbps'], $r['is_tb'], $r['bus']);
+    unset($r['mbps'], $r['is_tb'], $r['bus'], $r['bdf']);
     $rows[] = $r;
   }
 
@@ -1838,16 +1891,10 @@ function tbn_controller_capability_html(array $cap = null) {
 
   $ports = tbn_list_local_ports($cap);
   $tb = [];
-  $usb = [];
   foreach ($ports as $p) {
     $k = $p['kind'] ?? '';
-    if ($k === 'tb-host') {
-      continue;
-    }
     if ($k === 'tb-link') {
       $tb[] = $p;
-    } elseif ($k === 'usb-tb' || $k === 'usb-ss') {
-      $usb[] = $p;
     }
   }
 
@@ -1887,25 +1934,7 @@ function tbn_controller_capability_html(array $cap = null) {
   $html .= '</div>';
 
   // Other USB SuperSpeed banks — secondary, collapsed by default
-  if ($usb) {
-    $n = count($usb);
-    $html .= '<details class="tbn-port-box tbn-port-box-usb">';
-    $html .= '<summary>Other USB SuperSpeed (' . (int)$n . ' bank'
-      . ($n === 1 ? '' : 's') . ')</summary>';
-    $html .= '<p class="tbn-port-usb-note tbn-muted">Type-C may show a Thunderbolt icon but these are USB data paths, not full Thunderbolt host networking.</p>';
-    $html .= '<ul class="tbn-port-list tbn-port-list-usb">';
-    foreach ($usb as $p) {
-      $html .= '<li class="tbn-port-' . htmlspecialchars($p['kind'] ?? 'usb-ss') . '">';
-      $html .= '<span class="tbn-port-spd tbn-port-spd-usb">'
-        . htmlspecialchars($p['speed_short'] ?? '')
-        . '</span> ';
-      $html .= '<span class="tbn-port-detail">'
-        . htmlspecialchars($p['detail'] ?? $p['title'] ?? '')
-        . '</span>';
-      $html .= '</li>';
-    }
-    $html .= '</ul></details>';
-  }
+  $html .= tbn_usb_superspeed_html();
 
   $html .= '</div>';
   return $html;
@@ -2447,6 +2476,20 @@ function tbn_diagnostics_text() {
   $out[] = 'module_thunderbolt_stream: ' . (!empty($stream['loaded']) ? 'loaded' : 'not loaded');
   $out[] = 'usb4stream_devices: ' . (implode(' ', $stream['devices'] ?? []) ?: '(none)');
   $out[] = 'domain_security: ' . (tbn_domain_security() ?: '(none)');
+  $out[] = '--- USB SuperSpeed roots ---';
+  $usb = function_exists('tbn_list_usb_superspeed_roots') ? tbn_list_usb_superspeed_roots() : [];
+  if ($usb) {
+    foreach ($usb as $r) {
+      $out[] = ($r['bus'] ?? '?')
+        . ' ' . ($r['speed_short'] ?? '')
+        . ' ports=' . (isset($r['ports']) && $r['ports'] !== null ? (int)$r['ports'] : '?')
+        . ' in_use=' . (int)($r['attached'] ?? 0)
+        . ' pci=' . (($r['bdf'] ?? '') !== '' ? $r['bdf'] : '-')
+        . ' ' . ($r['kind'] ?? 'usb-ss');
+    }
+  } else {
+    $out[] = '(none at 5 Gb/s+)';
+  }
   $out[] = '--- lspci (thunderbolt/USB4 matches) ---';
   if ($probe['pci_lines']) {
     foreach ($probe['pci_lines'] as $l) {

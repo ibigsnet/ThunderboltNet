@@ -6,6 +6,12 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+## 2026.08.28aa
+
+- **No-controller Status:** empty-state diagnostics stay copyable, and **USB SuperSpeed
+  banks** (speed, port count, in-use) sit beside them — same inventory as Peers → LOCAL.
+  Copyable blob also lists those USB roots (`bus`, speed, ports, PCI BDF).
+
 ## 2026.08.26aa
 
 - **Diagnostics empty-state:** support links now include the **Unraid forum**, **GitHub
