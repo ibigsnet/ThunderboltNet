@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.28ab">
+<!ENTITY version "2026.08.28ac">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/testing/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -27,19 +27,16 @@
 
 <CHANGES>
 ###&version;
-- VFIO banner on Status/Peers/Settings/tbnN when Thunderbolt PCI is VFIO-bound; Ignore still global. Diagnostics lists VFIO PCI.
+- Jumbo / Desired MTU now persists on Apply (Vinney). 24aa rewrite was overwritten by Unraid update.php (saves after #include).
 
-###2026.08.28aa
-- No-controller Status: USB SuperSpeed banks (speed/ports) beside diagnostics, same as Peers LOCAL; blob lists USB roots.
+###2026.08.28aa–ab
+- No-controller USB SuperSpeed banks; VFIO banner on Status/Peers/Settings/tbnN.
 
 ###2026.08.26aa
 - Empty-state diagnostics: Unraid forum, GitHub Issues/repo links; blob includes support URLs and Tools → Diagnostics.
 
 ###2026.08.25aa
 - Hotplug remove stops DHCP client/server (with NAT); unknown peer seeds defaults; tbn-last-good offline helper.
-
-###2026.08.24aa
-- Fix jumbo MTU save (Vinney’s forum findings); persist USE_MTU / MTU_MODE to flash.
 
 ###2026.08.18ar–aq
 - Overview subtab preload; seed Unraid .1; Dashboard tbnN labels and TB rates.

@@ -3158,26 +3158,67 @@ function tbn_iface_mtu_limits($if) {
  * Normalize MTU_MODE + USE_MTU/MTU (legacy) → mode string.
  */
 function tbn_normalize_mtu_mode(array $cfg) {
-  // eth0-style checkbox wins when present (form posts USE_MTU=yes|no)
-  $use = strtolower(trim((string)($cfg['USE_MTU'] ?? '')));
-  if ($use === 'no' || $use === '0') {
-    return 'default';
+  $mode = strtolower(trim((string)($cfg['MTU_MODE'] ?? '')));
+  if ($mode === '9000' || $mode === 'custom') {
+    return $mode;
   }
+  $use = strtolower(trim((string)($cfg['USE_MTU'] ?? '')));
   if ($use === 'yes' || $use === '1') {
     $v = (int)($cfg['MTU'] ?? 0);
     if ($v === 9000) {
       return '9000';
     }
-    if ($v >= 68) {
+    if ($v >= 68 && $v !== 1500) {
       return 'custom';
     }
-    return 'default';
-  }
-  $mode = strtolower(trim((string)($cfg['MTU_MODE'] ?? '')));
-  if (in_array($mode, ['default', '9000', 'custom'], true)) {
-    return $mode;
   }
   return 'default';
+}
+
+/**
+ * Jumbo vs default from a tbnN Apply POST.
+ *
+ * Unraid update.php runs #include *before* writing the cfg, then saves $_POST.
+ * Duplicate name=USE_MTU (hidden no + checkbox yes) is a scalar in PHP — often
+ * "no" — so a rewrite in the include was clobbered on save (Vinney / 24aa).
+ * The form posts the checkbox as USE_MTU_YES; this helper returns scalars to
+ * assign back onto $_POST before update.php writes.
+ *
+ * @return array{USE_MTU:string,MTU_MODE:string,MTU:string}
+ */
+function tbn_reconcile_iface_mtu_post(array $post) {
+  $use = 'no';
+  $yes = $post['USE_MTU_YES'] ?? null;
+  if (is_array($yes)) {
+    $use = in_array('yes', $yes, true) ? 'yes' : 'no';
+  } elseif (strtolower(trim((string)$yes)) === 'yes') {
+    $use = 'yes';
+  } else {
+    $legacy = $post['USE_MTU'] ?? null;
+    if (is_array($legacy)) {
+      $use = in_array('yes', $legacy, true) ? 'yes' : 'no';
+    } elseif (strtolower(trim((string)$legacy)) === 'yes') {
+      $use = 'yes';
+    }
+  }
+
+  $mtu = trim((string)($post['MTU'] ?? ''));
+  $mode = strtolower(trim((string)($post['MTU_MODE'] ?? '')));
+  if ($use === 'yes') {
+    if ($mtu === '' || (int)$mtu < 68) {
+      $mtu = '9000';
+    }
+    if (!in_array($mode, ['9000', 'custom'], true)) {
+      $mode = ((int)$mtu === 9000) ? '9000' : 'custom';
+    }
+    if ($mode === '9000') {
+      $mtu = '9000';
+    }
+  } else {
+    $mode = 'default';
+    $mtu = '1500';
+  }
+  return ['USE_MTU' => $use, 'MTU_MODE' => $mode, 'MTU' => $mtu];
 }
 
 /**

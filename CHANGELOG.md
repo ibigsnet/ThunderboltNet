@@ -6,6 +6,14 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+## 2026.08.28ac
+
+- **Fix (forum / Vinney):** Jumbo / Desired MTU still did not persist after 24aa.
+  Unraid `update.php` runs `#include` *then* writes `$_POST` onto flash, so the
+  24aa rewrite was overwritten by hidden `USE_MTU=no`. The jumbo checkbox now
+  posts as `USE_MTU_YES`; include mutates `$_POST` so the subsequent save keeps
+  jumbo (and 1500 when unchecked). Boot/hotplug already reapply from flash.
+
 ## 2026.08.28ab
 
 - **VFIO banner:** if a Thunderbolt-related PCI function is VFIO-bound (or in
