@@ -6,6 +6,11 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+## 2026.08.28ad
+
+- **UI:** empty-state USB SuperSpeed aside no longer says “Same inventory as Peers → LOCAL”
+  (the list is enough).
+
 ## 2026.08.28ac
 
 - **Fix (forum / Vinney):** Jumbo / Desired MTU still did not persist after 24aa.

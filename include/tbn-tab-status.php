@@ -44,7 +44,6 @@
       </div>
       <aside class="tbn-diag-usb" aria-label="USB SuperSpeed controllers">
         <p class="tbn-diag-label">USB SuperSpeed on this host</p>
-        <p class="tbn-muted tbn-diag-usb-lead">Same inventory as Peers → LOCAL. These banks do not provide Thunderbolt host-net.</p>
         <?= function_exists('tbn_usb_superspeed_html')
           ? tbn_usb_superspeed_html(['open' => true, 'show_empty' => true])
           : '' ?>
