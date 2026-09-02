@@ -249,7 +249,15 @@ if (!$has_hw):
         Thunderbolt links are included when present. Do not list <code>br0</code> or house Wi‑Fi.
       </blockquote>
       <p class="tbn-muted">
-        <a class="tbn-btn-link" href="/plugins/ThunderboltNet/include/tbn-mesh-poll.php?force=1" target="progressFrame">Refresh fabric reports now</a>
+<?php
+  // Submit as POST (Unraid csrf_token). formaction keeps this inside the settings form
+  // without nesting a second <form>; tbn-mesh-poll.php ignores the other fields.
+  $tbn_csrf = $var['csrf_token'] ?? ((@parse_ini_file('/var/local/emhttp/var.ini') ?: [])['csrf_token'] ?? '');
+?>
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($tbn_csrf) ?>">
+        <button type="submit" class="tbn-btn-link" name="force" value="1"
+          formaction="/plugins/ThunderboltNet/include/tbn-mesh-poll.php" formmethod="POST"
+          formtarget="progressFrame">Refresh fabric reports now</button>
         · Host id:
         <code><?= htmlspecialchars(function_exists('tbn_mesh_host_id') ? tbn_mesh_host_id() : '—') ?></code>
       </p>

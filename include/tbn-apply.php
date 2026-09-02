@@ -23,6 +23,17 @@ require_once '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php';
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 $out = ['ok' => false, 'action' => $action];
 
+// Read-only actions may use GET; anything that changes state must arrive as a
+// POST (Unraid validates csrf_token on the POST channel). CLI is unaffected.
+$read_only = ['status', 'openfabric_status', 'openfabric_preview'];
+if (PHP_SAPI !== 'cli' && $action !== '' && !in_array($action, $read_only, true)
+    && ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+  http_response_code(405);
+  $out['error'] = 'action requires POST';
+  echo json_encode($out, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+  exit;
+}
+
 switch ($action) {
   case 'load_modules':
     $out['modules'] = tbn_load_modules();

@@ -25,8 +25,11 @@ if (PHP_SAPI !== 'cli') {
 }
 
 $force = true;
-if (PHP_SAPI !== 'cli' && isset($_GET['force']) && $_GET['force'] === '0') {
-  $force = false;
+if (PHP_SAPI !== 'cli') {
+  // A forced poll contacts peers and rewrites peers.json; only allow it on a
+  // POST (csrf-checked by Unraid). GET polls only when the interval is due.
+  $force = (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST')
+    && (string)($_POST['force'] ?? '1') !== '0';
 }
 
 $cfg = tbn_load_cfg();
