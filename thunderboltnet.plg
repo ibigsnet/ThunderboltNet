@@ -71,6 +71,7 @@ echo "ThunderboltNet: ready."
 
 <FILE Name="/boot/config/plugins/ThunderboltNet/&pkgfile;" Run="upgradepkg --install-new --reinstall">
 <URL>&raw;/archive/&pkgfile;?v=&version;</URL>
+<MD5>1be1468569851ea535536ee44f6b7d19</MD5>
 </FILE>
 
 <FILE Run="/bin/bash">
