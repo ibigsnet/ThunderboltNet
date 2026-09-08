@@ -51,6 +51,62 @@ function tbn_mesh_dhcp_servers_snapshot(array $cfg = null) {
   return $out;
 }
 
+function tbn_mesh_beacon_piddir() {
+  return '/var/run/thunderboltnet-mesh-beacon';
+}
+
+function tbn_mesh_kill_pid($pid) {
+  $pid = (int)$pid;
+  if ($pid <= 1 || !@file_exists('/proc/' . $pid)) {
+    return;
+  }
+  if (function_exists('posix_kill')) {
+    @posix_kill($pid, 15);
+    usleep(120000);
+    if (@file_exists('/proc/' . $pid)) {
+      @posix_kill($pid, 9);
+    }
+  } else {
+    @exec('kill -TERM ' . $pid . ' 2>/dev/null');
+    usleep(120000);
+    @exec('kill -KILL ' . $pid . ' 2>/dev/null');
+  }
+}
+
+/**
+ * Private IPv4s the mesh beacon may bind (Thunderbolt + optional mesh_eth_ifaces).
+ * Never br0 / wlan / docker — that was the 0.0.0.0 leak onto the management LAN.
+ */
+function tbn_mesh_listen_addrs(array $cfg = null) {
+  if ($cfg === null) {
+    $cfg = tbn_load_cfg();
+  }
+  $ifaces = function_exists('tbn_list_tb_iface_names') ? tbn_list_tb_iface_names() : [];
+  foreach (preg_split('/[\s,;]+/', trim((string)($cfg['mesh_eth_ifaces'] ?? '')), -1, PREG_SPLIT_NO_EMPTY) as $if) {
+    $if = preg_replace('/[^A-Za-z0-9_.-]/', '', $if);
+    if ($if === '' || preg_match('/^(br|bond|wlan|docker|veth|virbr|wg|tun|tap|lo)/', $if)) {
+      continue;
+    }
+    $ifaces[] = $if;
+  }
+  $ips = [];
+  foreach (array_unique($ifaces) as $if) {
+    if (!is_dir('/sys/class/net/' . $if)) {
+      continue;
+    }
+    if (!function_exists('tbn_iface_addrs')) {
+      continue;
+    }
+    foreach (tbn_iface_addrs($if) as $raw) {
+      $ip = explode('/', (string)$raw)[0];
+      if (tbn_mesh_is_private_ip($ip)) {
+        $ips[$ip] = true;
+      }
+    }
+  }
+  return array_keys($ips);
+}
+
 /** Start mesh beacon when link-check export is enabled; stop when off. */
 function tbn_mesh_beacon_ensure(array $cfg = null) {
   if ($cfg === null) {
@@ -59,10 +115,10 @@ function tbn_mesh_beacon_ensure(array $cfg = null) {
   if (!tbn_mesh_enabled($cfg)) {
     return tbn_mesh_beacon_stop();
   }
-  $pidfile = tbn_mesh_beacon_pidfile();
-  $pid = is_file($pidfile) ? (int)@file_get_contents($pidfile) : 0;
-  if ($pid > 0 && @file_exists('/proc/' . $pid)) {
-    return ['ok' => true, 'running' => true, 'pid' => $pid, 'port' => tbn_mesh_beacon_port()];
+  $addrs = tbn_mesh_listen_addrs($cfg);
+  if (!$addrs) {
+    tbn_mesh_beacon_stop();
+    return ['ok' => true, 'running' => false, 'reason' => 'no thunderbolt IP yet', 'port' => tbn_mesh_beacon_port()];
   }
   $router = '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh-beacon-server.php';
   if (!is_file($router)) {
@@ -79,39 +135,62 @@ function tbn_mesh_beacon_ensure(array $cfg = null) {
     return ['ok' => false, 'error' => 'php not found'];
   }
   @mkdir('/var/run', 0755, true);
+  $dir = tbn_mesh_beacon_piddir();
+  @mkdir($dir, 0755, true);
+  $legacy = tbn_mesh_beacon_pidfile();
+  if (is_file($legacy)) {
+    tbn_mesh_kill_pid((int)@file_get_contents($legacy));
+    @unlink($legacy);
+  }
   $port = tbn_mesh_beacon_port();
   $log = tbn_mesh_beacon_logfile();
-  $cmd = 'setsid nohup ' . escapeshellarg($php) . ' -S 0.0.0.0:' . (int)$port
-    . ' ' . escapeshellarg($router)
-    . ' >>' . escapeshellarg($log) . ' 2>&1 & echo $! >' . escapeshellarg($pidfile);
-  exec($cmd);
-  usleep(250000);
-  $pid = is_file($pidfile) ? (int)@file_get_contents($pidfile) : 0;
+  $want = array_fill_keys($addrs, true);
+  $alive = [];
+  foreach (glob($dir . '/*.pid') ?: [] as $pf) {
+    $ip = basename($pf, '.pid');
+    $pid = (int)@file_get_contents($pf);
+    if (!isset($want[$ip]) || $pid <= 1 || !@file_exists('/proc/' . $pid)) {
+      tbn_mesh_kill_pid($pid);
+      @unlink($pf);
+      continue;
+    }
+    $alive[$ip] = $pid;
+  }
+  foreach ($addrs as $ip) {
+    if (isset($alive[$ip])) {
+      continue;
+    }
+    $pf = $dir . '/' . $ip . '.pid';
+    $cmd = 'setsid nohup ' . escapeshellarg($php) . ' -S ' . escapeshellarg($ip . ':' . (int)$port)
+      . ' ' . escapeshellarg($router)
+      . ' >>' . escapeshellarg($log) . ' 2>&1 & echo $! >' . escapeshellarg($pf);
+    exec($cmd);
+    usleep(150000);
+    $pid = is_file($pf) ? (int)@file_get_contents($pf) : 0;
+    if ($pid > 0 && @file_exists('/proc/' . $pid)) {
+      $alive[$ip] = $pid;
+    }
+  }
+  $n = count($alive);
   return [
-    'ok' => $pid > 0 && @file_exists('/proc/' . $pid),
-    'running' => $pid > 0 && @file_exists('/proc/' . $pid),
-    'pid' => $pid,
+    'ok' => $n > 0,
+    'running' => $n > 0,
+    'listen' => array_keys($alive),
     'port' => $port,
   ];
 }
 
 function tbn_mesh_beacon_stop() {
-  $pidfile = tbn_mesh_beacon_pidfile();
-  $pid = is_file($pidfile) ? (int)@file_get_contents($pidfile) : 0;
-  if ($pid > 0 && @file_exists('/proc/' . $pid)) {
-    if (function_exists('posix_kill')) {
-      @posix_kill($pid, 15);
-      usleep(150000);
-      if (@file_exists('/proc/' . $pid)) {
-        @posix_kill($pid, 9);
-      }
-    } else {
-      @exec('kill -TERM ' . (int)$pid . ' 2>/dev/null');
-      usleep(150000);
-      @exec('kill -KILL ' . (int)$pid . ' 2>/dev/null');
-    }
+  $legacy = tbn_mesh_beacon_pidfile();
+  if (is_file($legacy)) {
+    tbn_mesh_kill_pid((int)@file_get_contents($legacy));
+    @unlink($legacy);
   }
-  @unlink($pidfile);
+  $dir = tbn_mesh_beacon_piddir();
+  foreach (glob($dir . '/*.pid') ?: [] as $pf) {
+    tbn_mesh_kill_pid((int)@file_get_contents($pf));
+    @unlink($pf);
+  }
   return ['ok' => true, 'running' => false];
 }
 

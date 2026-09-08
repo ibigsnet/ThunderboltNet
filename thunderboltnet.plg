@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.09.06ab">
+<!ENTITY version "2026.09.08aa">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/testing/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -25,6 +25,9 @@
 
 <CHANGES>
 ###&version;
+- Mesh beacon binds Thunderbolt IPs (not all interfaces); Info is POST; mesh token is header-only.
+
+###2026.09.06aa–ab
 - Hashed raw install (SHA256/MD5); state-changing endpoints require POST.
 
 ###2026.08.28ad–ac
@@ -75,8 +78,8 @@ echo "ThunderboltNet: ready."
 </FILE>
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/default.cfg">
 <URL>&raw;/default.cfg?v=&version;</URL>
-<SHA256>d2fa30c111fff1d1fd1b7bf31dd9035eba8362b0639f401bcd5c9b9a4a524628</SHA256>
-<MD5>2a516d326fba2098d557fc80a1612f8c</MD5>
+<SHA256>eaf7fe1dc1c264fcdc7566216e31444ca394e7f328199a19c2602de62040fecf</SHA256>
+<MD5>92780ee8d49b8928f368059b7e7d0822</MD5>
 </FILE>
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/default-iface.cfg">
 <URL>&raw;/default-iface.cfg?v=&version;</URL>
@@ -140,18 +143,18 @@ echo "ThunderboltNet: ready."
 </FILE>
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh-beacon-server.php">
 <URL>&raw;/include/tbn-mesh-beacon-server.php?v=&version;</URL>
-<SHA256>55ad1fb9e9f36694652c1d9998546cb6f866f0ab1d0cb3c740ba22f3634e02ca</SHA256>
-<MD5>63bd1310096f7147644c6f7948e2e383</MD5>
+<SHA256>7b18ba3edb7bc1c3bb97d2e3818d738c578ccd93d5f5c6368c4b8fdab5165125</SHA256>
+<MD5>df6c896c9dcd0351925b6bc37211197a</MD5>
 </FILE>
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh-export.php">
 <URL>&raw;/include/tbn-mesh-export.php?v=&version;</URL>
-<SHA256>a2561f9a88efa47ba9b3191dbbd5c56afd363b4f06cd887c33a8170fa61e971c</SHA256>
-<MD5>906f3158c5dde8d1715382d40fb17525</MD5>
+<SHA256>0f28334d6275b61696cd92aa0a6feb1820d45d376d2f4c125c0aeef06f3818f0</SHA256>
+<MD5>45e602edf0fe06c3d5c707fe846270fe</MD5>
 </FILE>
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh.php">
 <URL>&raw;/include/tbn-mesh.php?v=&version;</URL>
-<SHA256>972bc976a21ec148276a02887abde39980bb4af0fd94cdb838b18cfbf58e3f20</SHA256>
-<MD5>1cbc568f08f7d0dc30a43d845dfeb950</MD5>
+<SHA256>075e173df737823f295ff938df544af9ce69945028d569a2390430b9663a588d</SHA256>
+<MD5>d95d1ed33ee9186a077204ad34e964a0</MD5>
 </FILE>
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh-poll.php">
 <URL>&raw;/include/tbn-mesh-poll.php?v=&version;</URL>
@@ -165,8 +168,8 @@ echo "ThunderboltNet: ready."
 </FILE>
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-network-info.php">
 <URL>&raw;/include/tbn-network-info.php?v=&version;</URL>
-<SHA256>f34b2c84a8371dceea3b0b8afe37b5f9f9a3279195b043dab760bc71d15d90bb</SHA256>
-<MD5>0c6b12f42f758c1eb3618aaa5b68e8fb</MD5>
+<SHA256>3757f44352791a316e6b3ce22b813e7b410e6b212557a988eb95cfb07c58b6b0</SHA256>
+<MD5>8f9f62b65b378261ba10b2504c462d5d</MD5>
 </FILE>
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-openfabric.php">
 <URL>&raw;/include/tbn-openfabric.php?v=&version;</URL>

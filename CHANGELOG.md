@@ -6,6 +6,13 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+## 2026.09.08aa
+
+- **Mesh beacon:** `php -S` binds each Thunderbolt (and optional `mesh_eth_ifaces`) private
+  IPv4, not `0.0.0.0`. Management LAN no longer gets a listener. Token is
+  `X-Tbn-Mesh-Token` only (no `?token=` in logs).
+- **Info dialog:** POST only (the UI already POSTed).
+
 ## 2026.09.06ab
 
 - **Install / security:** hashed raw files. State-changing endpoints (`tbn-apply`, lazy
