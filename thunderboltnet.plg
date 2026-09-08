@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.08.28ad">
+<!ENTITY version "2026.09.06aa">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/testing/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -10,8 +10,6 @@
 <!ENTITY forum "https://forums.unraid.net/topic/200065-plugin-thunderbolt-net-host-to-host-networking-over-thunderbolt-345-and-usb44v2/">
 <!ENTITY plugdir "/usr/local/emhttp/plugins/ThunderboltNet">
 <!ENTITY configdir "/boot/config/plugins/ThunderboltNet">
-<!ENTITY pkg "ThunderboltNet-&version;-x86_64-1">
-<!ENTITY pkgfile "&pkg;.txz">
 ]>
 
 <PLUGIN name="&name;"
@@ -27,6 +25,9 @@
 
 <CHANGES>
 ###&version;
+- Install copies plugin files from GitHub raw (SHA256/MD5 pin). No archive .txz payload.
+
+###2026.08.28ad
 - Drop redundant “Same inventory as Peers → LOCAL” line on no-controller USB SuperSpeed aside.
 
 ###2026.08.28ac
@@ -63,15 +64,209 @@ done
 rm -rf /usr/local/emhttp/plugins/ThunderboltNet \
        /usr/local/emhttp/plugins/thunderboltnet \
        /usr/local/emhttp/plugins/Thunderboltnet 2>/dev/null || true
-# Cached plugin runtime .txz only (not user config / peers / ifaces)
 rm -f /boot/config/plugins/ThunderboltNet/ThunderboltNet-*.txz 2>/dev/null || true
+mkdir -p /usr/local/emhttp/plugins/ThunderboltNet/{include,scripts,event,udev}
 echo "ThunderboltNet: ready."
 ]]></INLINE>
 </FILE>
 
-<FILE Name="/boot/config/plugins/ThunderboltNet/&pkgfile;" Run="upgradepkg --install-new --reinstall">
-<URL>&raw;/archive/&pkgfile;?v=&version;</URL>
+<!-- raw-files begin -->
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/ThunderboltNet.page">
+<URL>&raw;/ThunderboltNet.page?v=&version;</URL>
+<SHA256>d1334ebbcf2ff25cbeb4da944038cf3c39449c59bc924321fbdf70f58330e863</SHA256>
+<MD5>86a75d1f0b9f1490fd1da5fa494c0433</MD5>
 </FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/default.cfg">
+<URL>&raw;/default.cfg?v=&version;</URL>
+<SHA256>d2fa30c111fff1d1fd1b7bf31dd9035eba8362b0639f401bcd5c9b9a4a524628</SHA256>
+<MD5>2a516d326fba2098d557fc80a1612f8c</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/default-iface.cfg">
+<URL>&raw;/default-iface.cfg?v=&version;</URL>
+<SHA256>2b89c7de342c92065a8ed71f4aa9e058bf40d9fea99d8887991915a9f17cdaea</SHA256>
+<MD5>78909d46d098a23bcebdfd4d47bde58c</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/README.md">
+<URL>&raw;/README.md?v=&version;</URL>
+<SHA256>3c8d6f9bbd6364fa71f02471ba401b422bddcc39db9c9f4e8ed0f88dc7df88ff</SHA256>
+<MD5>b103d3820f0b635f9306fd5ecd806f75</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/thunderboltnet.css">
+<URL>&raw;/thunderboltnet.css?v=&version;</URL>
+<SHA256>ece82f331c1b7cdaecfc85a0bae2f935a0b136d75c87ac934576ab0b0e8f1b4d</SHA256>
+<MD5>f510c9b1eacf5cec8f720f48b0e388b2</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/thunderboltnet.js">
+<URL>&raw;/thunderboltnet.js?v=&version;</URL>
+<SHA256>fbd96b82844a157b0b4ff342dff3cd389fa9f2312adc06388bba810445460283</SHA256>
+<MD5>49bd117d1b262daedcff1518e6d4881b</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt">
+<URL>&raw;/ThunderboltNet-RECOVERY.txt?v=&version;</URL>
+<SHA256>0eb7b3c0ec7015eeb44c72b5a6d04ab4ce8ed2105b9fe13916f6eb9b96a11887</SHA256>
+<MD5>3fb2f48f8c3e89ca8d0ef7ae61f942ab</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/get-status.php">
+<URL>&raw;/include/get-status.php?v=&version;</URL>
+<SHA256>f2af7e3571b98287db4e354a7a39273cb04688a5f7ebeb248bbe535455742d44</SHA256>
+<MD5>f1f0e03752affdc213970661498d138f</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-apply.php">
+<URL>&raw;/include/tbn-apply.php?v=&version;</URL>
+<SHA256>9429970d98fd97cbb123bdbbb9c5b7a9a207bd3cc38b02eb49e87d1bfab6074d</SHA256>
+<MD5>dff9c4b63c391ee198accb90165534fd</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-dhcp.php">
+<URL>&raw;/include/tbn-dhcp.php?v=&version;</URL>
+<SHA256>33b92f70a8c2f647aa35931648751088a3316f84b1fff66cc9992b34a647e45f</SHA256>
+<MD5>89123c61e2dc7d3ebb7822a3a0709fbb</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-iface-page.php">
+<URL>&raw;/include/tbn-iface-page.php?v=&version;</URL>
+<SHA256>e306fbb25190a8f1d35d4cefcae5135d59a8dd592846118c90c8050e945caba9</SHA256>
+<MD5>ab9a6a8b83f2b335ca45f41e2ee7bfec</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-ignore-warning.php">
+<URL>&raw;/include/tbn-ignore-warning.php?v=&version;</URL>
+<SHA256>acb6d3e6623d3e123b6871c912215c4254d182dba6836ca706ae53dae36f89a1</SHA256>
+<MD5>6f713d416b94bc92cf5b9550ec7cf69e</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lazy-render.php">
+<URL>&raw;/include/tbn-lazy-render.php?v=&version;</URL>
+<SHA256>c2d27a31a5646e659e88d16098463faac8c7d5208fb20c0d1e501067e1ce326d</SHA256>
+<MD5>03ae19f4f48b43ebea4bf1ed81e66049</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php">
+<URL>&raw;/include/tbn-lib.php?v=&version;</URL>
+<SHA256>294fbe9a861bf856b8d11c790f61a12eed582d375e416e186d5394ca47491633</SHA256>
+<MD5>54fa4aeca509463f5a57d2b85f519b43</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh-beacon-server.php">
+<URL>&raw;/include/tbn-mesh-beacon-server.php?v=&version;</URL>
+<SHA256>55ad1fb9e9f36694652c1d9998546cb6f866f0ab1d0cb3c740ba22f3634e02ca</SHA256>
+<MD5>63bd1310096f7147644c6f7948e2e383</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh-export.php">
+<URL>&raw;/include/tbn-mesh-export.php?v=&version;</URL>
+<SHA256>a2561f9a88efa47ba9b3191dbbd5c56afd363b4f06cd887c33a8170fa61e971c</SHA256>
+<MD5>906f3158c5dde8d1715382d40fb17525</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh.php">
+<URL>&raw;/include/tbn-mesh.php?v=&version;</URL>
+<SHA256>972bc976a21ec148276a02887abde39980bb4af0fd94cdb838b18cfbf58e3f20</SHA256>
+<MD5>1cbc568f08f7d0dc30a43d845dfeb950</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh-poll.php">
+<URL>&raw;/include/tbn-mesh-poll.php?v=&version;</URL>
+<SHA256>502a087a00428404b1f88988311ab2e911b3fb60a6cf50698f161f53c09733cd</SHA256>
+<MD5>204891b0eb58fbc8382ac90c4173e7ee</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-nat.php">
+<URL>&raw;/include/tbn-nat.php?v=&version;</URL>
+<SHA256>1b7b23e12345d015c523a9aefd294bf2d93cd59920460e20b6409d210e457467</SHA256>
+<MD5>07983e722174e8f74f1360dd55ce8cca</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-network-info.php">
+<URL>&raw;/include/tbn-network-info.php?v=&version;</URL>
+<SHA256>f34b2c84a8371dceea3b0b8afe37b5f9f9a3279195b043dab760bc71d15d90bb</SHA256>
+<MD5>0c6b12f42f758c1eb3618aaa5b68e8fb</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-openfabric.php">
+<URL>&raw;/include/tbn-openfabric.php?v=&version;</URL>
+<SHA256>e1a0f8e881a188f0b5d10445756cb64e80dd1a669c453cca991b95042fa73541</SHA256>
+<MD5>072a54c6558ccee4862120391e0edae2</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-page-boot.php">
+<URL>&raw;/include/tbn-page-boot.php?v=&version;</URL>
+<SHA256>710219020847a5fee251418fd70d93523816ab72528a9b6abc2e79ee0c4304a0</SHA256>
+<MD5>012591be96f4c66d9c91734ca581800c</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-pci-panel.php">
+<URL>&raw;/include/tbn-pci-panel.php?v=&version;</URL>
+<SHA256>46e687ae7b79eb61822e49eaec94b0183eb5c772d18c1e0b2b00f51269b0db97</SHA256>
+<MD5>9f98347a63e494da72d45e881a1ac4c7</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-tab-hardware.php">
+<URL>&raw;/include/tbn-tab-hardware.php?v=&version;</URL>
+<SHA256>6e4e0e16ea1ebc6b6311cbaf6c54cead1a63734155f86f6eb275285a87ae21ef</SHA256>
+<MD5>8a99aa232a7bb3395b379404c907ebc6</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-tab-peers.php">
+<URL>&raw;/include/tbn-tab-peers.php?v=&version;</URL>
+<SHA256>048973bcbd3c4ae61c2b15020e9342c2845eda504f15d1d296c9bbde3ce1ad96</SHA256>
+<MD5>b05c458db49a683d8221c609c4e86d5e</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-tab-settings.php">
+<URL>&raw;/include/tbn-tab-settings.php?v=&version;</URL>
+<SHA256>680458ae081faa786cdbb86eb3db31e301d0448af55a7b0d14db27c143d37c2a</SHA256>
+<MD5>f87482c3ae86c9789fb805428cb042b3</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-tab-status.php">
+<URL>&raw;/include/tbn-tab-status.php?v=&version;</URL>
+<SHA256>129223f7e955b3d70b5fc98f7a79b12a1cec4a4e90df46b672bad369a9cd3672</SHA256>
+<MD5>613774f6459aa0e6c051176164e35929</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-update-iface.php">
+<URL>&raw;/include/tbn-update-iface.php?v=&version;</URL>
+<SHA256>c602b2f0f9a33ce880a971b937ce16480bd29a846978783d9aa1a40ea174ab31</SHA256>
+<MD5>e34f9e93de2cc9a98eba4e82ac78d2e4</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-update-listening.php">
+<URL>&raw;/include/tbn-update-listening.php?v=&version;</URL>
+<SHA256>b044ac9bf37d7c5c9cc7d64f746808c1fc01ede59eddbac30de55b362ec730fb</SHA256>
+<MD5>101b3d0f858b21e90a9d0d4b0eae946d</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-update-peers.php">
+<URL>&raw;/include/tbn-update-peers.php?v=&version;</URL>
+<SHA256>1ce8023a344385a9816da25d356dbc6362989a47eb91fc2527a4a557c46e69e5</SHA256>
+<MD5>a63f012c0d016cd341ac1763dce7f948</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-update.php">
+<URL>&raw;/include/tbn-update.php?v=&version;</URL>
+<SHA256>beedba7911e20983d62a6b4834d759690b5b4c228d39730428ad3c0e1f377992</SHA256>
+<MD5>698afae449fa2478946e1c8ccb8858f3</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-status">
+<URL>&raw;/scripts/tbn-status?v=&version;</URL>
+<SHA256>a547e13a1e31a35dda407b064fd8e694217e670fb0953fbdf509b4a85b1952f0</SHA256>
+<MD5>21483b6496e709cab63b6b4f42bc7cbc</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports">
+<URL>&raw;/scripts/tbn-dashboard-ports?v=&version;</URL>
+<SHA256>256f20a7479fc269a7cc35486435d61cf1daa889a633b820249165d4c823d38b</SHA256>
+<MD5>a17cfe61103e4f29eab0fba572a1bb8b</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-openfabric">
+<URL>&raw;/scripts/tbn-openfabric?v=&version;</URL>
+<SHA256>e85fd6edf5eb636393e3c3790ebd3579134a007cb61a59cce72405e8ded61ab0</SHA256>
+<MD5>082e8e5981ae01402aaed876f1125cf8</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-net-reapply">
+<URL>&raw;/scripts/tbn-net-reapply?v=&version;</URL>
+<SHA256>8f1bfb6a39137220e625c773496eee692fab249dd782326289aae3cc5b5eb3c1</SHA256>
+<MD5>42313b3f7d7966eb0706923f2d1ca450</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-last-good">
+<URL>&raw;/scripts/tbn-last-good?v=&version;</URL>
+<SHA256>c1e3364b0492de0ffd2ff8375c063eb243a360973f8fd8e61ff23bbc6adb5543</SHA256>
+<MD5>c1f7557dd908f17610b1243792f59c7d</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/event/started">
+<URL>&raw;/event/started?v=&version;</URL>
+<SHA256>cbdfaf20de24ab17b57d844ebef7d9939191bad3dc0515b8a778ba900f9dcf3a</SHA256>
+<MD5>0f1b38dcd9b9b7f3d375cd216033d603</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/event/startup">
+<URL>&raw;/event/startup?v=&version;</URL>
+<SHA256>0fc8bd7b0c5575e636b80c4802dfe88bbd38625c26ef9fc1931642ded59166b3</SHA256>
+<MD5>50d8d1fc44916ccb14d4d11bb48efe79</MD5>
+</FILE>
+<FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/udev/99-thunderboltnet-net.rules">
+<URL>&raw;/udev/99-thunderboltnet-net.rules?v=&version;</URL>
+<SHA256>7c6c0723c57575eaf950087ea34f47ae9c1a710ec92a7812cb37c8b0f71727b5</SHA256>
+<MD5>e2bea39bf1903aaef1ba3f10d5f1f2d1</MD5>
+</FILE>
+<!-- raw-files end -->
 
 <FILE Run="/bin/bash">
 <INLINE><![CDATA[
