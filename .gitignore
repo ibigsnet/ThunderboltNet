@@ -19,3 +19,6 @@ tests/
 patches/
 patches/*.ko
 patches/load-*.sh
+
+# Plugin payload is hashed raw files in the .plg — do not ship Slackware txz
+archive/*.txz

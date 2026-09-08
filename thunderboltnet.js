@@ -1126,8 +1126,8 @@
     }
     var url =
       '/plugins/ThunderboltNet/include/tbn-lazy-render.php?iface=' +
-      encodeURIComponent(ifc) +
-      (resync ? '&resync=1' : '');
+      encodeURIComponent(ifc);
+    var post = resync ? { resync: '1' } : null;
     tbnIfaceReloading[ifc] = true;
     for (var i = 0; i < nodes.length; i++) {
       (function (target) {
@@ -1145,7 +1145,7 @@
         tbnLazyFetch(url, target, function () {
           target.removeAttribute('data-tbn-pending-resync');
           tbnIfaceReloading[ifc] = false;
-        });
+        }, post);
       })(nodes[i]);
     }
     // If nothing was visible, clear the reloading lock
@@ -1161,7 +1161,7 @@
     }
   }
 
-  function tbnLazyFetch(url, target, done) {
+  function tbnLazyFetch(url, target, done, postBody) {
     if (!target || target.getAttribute('data-tbn-lazy-loaded') === '1') {
       if (done) {
         done(false);
@@ -1172,7 +1172,20 @@
       return;
     }
     target.setAttribute('data-tbn-lazy-loading', '1');
-    fetch(url, { credentials: 'same-origin', cache: 'no-store' })
+    var init = { credentials: 'same-origin', cache: 'no-store' };
+    if (postBody) {
+      var pairs = [];
+      Object.keys(postBody).forEach(function (k) {
+        pairs.push(encodeURIComponent(k) + '=' + encodeURIComponent(postBody[k]));
+      });
+      if (typeof csrf_token !== 'undefined' && csrf_token) {
+        pairs.push('csrf_token=' + encodeURIComponent(csrf_token));
+      }
+      init.method = 'POST';
+      init.headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+      init.body = pairs.join('&');
+    }
+    fetch(url, init)
       .then(function (r) {
         if (!r.ok) {
           throw new Error('HTTP ' + r.status);
@@ -1319,14 +1332,13 @@
         var pending = target.getAttribute('data-tbn-pending-resync') === '1';
         var q =
           '/plugins/ThunderboltNet/include/tbn-lazy-render.php?iface=' +
-          encodeURIComponent(ifc) +
-          (pending ? '&resync=1' : '');
+          encodeURIComponent(ifc);
         tbnLazyFetch(q, target, function (ok) {
           if (ok) {
             target.removeAttribute('data-tbn-pending-resync');
             tbnLivePoll();
           }
-        });
+        }, pending ? { resync: '1' } : null);
       })(nodes[i]);
     }
   }
