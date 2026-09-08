@@ -37,7 +37,8 @@ if ($iface !== '') {
   }
   // After cable/peer change: re-apply Saved peer plan onto this path so the
   // form matches the device that just came back (survives tbn renumber).
-  $resync = isset($_GET['resync']) && (string)$_GET['resync'] === '1';
+  $resync = ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST'
+    && isset($_POST['resync']) && (string)$_POST['resync'] === '1';
   if ($resync && function_exists('tbn_link_summaries') && function_exists('tbn_apply_peer_plan_to_iface')) {
     try {
       $peers = function_exists('tbn_load_peers_memory') ? tbn_load_peers_memory() : [];
