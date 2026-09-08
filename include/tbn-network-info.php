@@ -6,9 +6,16 @@
 header('Content-Type: text/html; charset=utf-8');
 header('Cache-Control: no-store');
 
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+  http_response_code(405);
+  header('Allow: POST');
+  echo '<p>POST required</p>';
+  exit;
+}
+
 require_once __DIR__ . '/tbn-lib.php';
 
-$if = preg_replace('/[^A-Za-z0-9_.-]/', '', (string)($_POST['port'] ?? $_GET['port'] ?? ''));
+$if = preg_replace('/[^A-Za-z0-9_.-]/', '', (string)($_POST['port'] ?? ''));
 if ($if === '' || !preg_match('/^thunderbolt\d+$/', $if)) {
   echo '<p>Missing or invalid Thunderbolt interface.</p>';
   exit;

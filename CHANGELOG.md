@@ -6,15 +6,28 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+## 2026.09.08ab
+
+- **Install:** do not `rm -rf` the live plugin or `removepkg` before GitHub FILE copies
+  (Update All error-install). Overlay; forget old txz package names only.
+
+## 2026.09.08aa
+
+- **Mesh beacon:** `php -S` binds each Thunderbolt (and optional `mesh_eth_ifaces`) private
+  IPv4, not `0.0.0.0`. Management LAN no longer gets a listener. Token is
+  `X-Tbn-Mesh-Token` only (no `?token=` in logs).
+- **Info dialog:** POST only (the UI already POSTed).
+
 ## 2026.09.06ab
 
-- **CA review:** hashed raw install. State-changing endpoints (`tbn-apply`, lazy
+- **Install / security:** hashed raw files. State-changing endpoints (`tbn-apply`, lazy
   resync, mesh force-poll) require POST; fabric refresh is a POST button.
 
 ## 2026.09.06aa
 
 - **Install:** plugin files come from GitHub raw with SHA256/MD5 pins in the `.plg`.
-  Dropped `archive/*.txz` payload (`upgradepkg`). Addresses CA review: unsigned package download.
+  Dropped `archive/*.txz` payload (`upgradepkg`). Pins the download so the payload cannot
+  change under a given plugin version.
 
 ## 2026.08.28ad
 

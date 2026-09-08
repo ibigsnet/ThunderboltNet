@@ -1,7 +1,7 @@
 <?php
 /**
  * Mesh snapshot export for peer Unraid Thunderbolt Net hosts.
- * Auth: X-Tbn-Mesh-Token (or ?token=) must match mesh_token when mesh_report=yes.
+ * Auth: X-Tbn-Mesh-Token must match mesh_token when mesh_report=yes.
  * Default: private-IP sources only when mesh_private_only=yes.
  */
 if (PHP_SAPI !== 'cli') {
@@ -35,12 +35,7 @@ if (!$want || $token === '') {
   exit;
 }
 
-$provided = '';
-if (!empty($_SERVER['HTTP_X_TBN_MESH_TOKEN'])) {
-  $provided = (string)$_SERVER['HTTP_X_TBN_MESH_TOKEN'];
-} elseif (isset($_GET['token'])) {
-  $provided = (string)$_GET['token'];
-}
+$provided = (string)($_SERVER['HTTP_X_TBN_MESH_TOKEN'] ?? '');
 if ($provided === '' || !hash_equals($token, $provided)) {
   http_response_code(403);
   echo json_encode(['error' => 'unauthorized']);

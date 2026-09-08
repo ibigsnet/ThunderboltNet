@@ -3,7 +3,7 @@
  * Mesh export beacon for php -S (no Unraid login / auth_request).
  * Peers poll this instead of /plugins/.../tbn-mesh-export.php (that returns 302).
  *
- * Usage: php -S 0.0.0.0:10807 /path/to/tbn-mesh-beacon-server.php
+ * Usage: php -S <thunderbolt-ip>:10807 /path/to/tbn-mesh-beacon-server.php
  */
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -36,12 +36,7 @@ if (!tbn_mesh_enabled($cfg)) {
 }
 
 $token = trim((string)($cfg['mesh_token'] ?? ''));
-$provided = '';
-if (!empty($_SERVER['HTTP_X_TBN_MESH_TOKEN'])) {
-  $provided = (string)$_SERVER['HTTP_X_TBN_MESH_TOKEN'];
-} elseif (isset($_GET['token'])) {
-  $provided = (string)$_GET['token'];
-}
+$provided = (string)($_SERVER['HTTP_X_TBN_MESH_TOKEN'] ?? '');
 if ($provided === '' || !hash_equals($token, $provided)) {
   http_response_code(403);
   echo json_encode(['error' => 'unauthorized']);
@@ -51,7 +46,7 @@ if ($provided === '' || !hash_equals($token, $provided)) {
 if (($cfg['mesh_private_only'] ?? 'yes') === 'yes') {
   if ($remote !== '127.0.0.1' && $remote !== '::1' && !tbn_mesh_is_private_ip($remote)) {
     http_response_code(403);
-    echo json_encode(['error' => 'private_only', 'remote' => $remote]);
+    echo json_encode(['error' => 'private_only']);
     exit;
   }
 }

@@ -26,7 +26,7 @@ if (PHP_SAPI !== 'cli') {
 
 $force = true;
 if (PHP_SAPI !== 'cli') {
-  // Forced poll rewrites peers.json; POST only (csrf). GET polls when interval is due.
+  // Force-poll is POST only (csrf). GET polls when the interval is due.
   $force = (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST')
     && (string)($_POST['force'] ?? '1') !== '0';
 }
