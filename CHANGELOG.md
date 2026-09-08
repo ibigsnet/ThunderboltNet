@@ -6,6 +6,11 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+## 2026.09.08ab
+
+- **Install:** do not `rm -rf` the live plugin or `removepkg` before GitHub FILE copies
+  (Update All error-install). Overlay; forget old txz package names only.
+
 ## 2026.09.08aa
 
 - **Mesh beacon:** `php -S` binds each Thunderbolt (and optional `mesh_eth_ifaces`) private

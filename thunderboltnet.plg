@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.09.08aa">
+<!ENTITY version "2026.09.08ab">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/testing/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -25,6 +25,9 @@
 
 <CHANGES>
 ###&version;
+- Install overlays hashed files; do not wipe the live plugin before FILE copy.
+
+###2026.09.08aa
 - Mesh beacon binds Thunderbolt IPs (not all interfaces); Info is POST; mesh token is header-only.
 
 ###2026.09.06aa–ab
@@ -42,9 +45,6 @@
 ###2026.08.25aa
 - Hotplug DHCP stop; unknown peer defaults; tbn-last-good.
 
-###2026.08.18ar–ad
-- Overview preload; seed Unraid .1; Dashboard tbnN/TB rates; DHCP/NAT UI.
-
 ### Older releases
 - Full changelog: https://github.com/ibigsnet/ThunderboltNet/blob/main/CHANGELOG.md
 </CHANGES>
@@ -54,15 +54,15 @@
 echo "ThunderboltNet: preparing..."
 # Note: do not delete /tmp/plugins/thunderboltnet.plg here — Unraid install working copy
 mkdir -p /boot/config/plugins/ThunderboltNet
-# YYYY.MM.DDxx package names: always remove prior installs so upgradepkg cannot leave mixed files
+# Forget old Slackware txz registration WITHOUT deleting the live tree.
+# removepkg / rm -rf here ran before GitHub FILE copies; a failed download
+# left Plugins on "error install".
 for p in /var/log/packages/ThunderboltNet-*; do
   [ -e "$p" ] || continue
-  echo "ThunderboltNet: removing old package $(basename "$p")"
-  removepkg "$(basename "$p")" 2>/dev/null || true
+  echo "ThunderboltNet: forgetting old package $(basename "$p") (overlay files next)"
+  rm -f "$p"
 done
-# Live tree: canonical path + historical casings from older plugin layouts
-rm -rf /usr/local/emhttp/plugins/ThunderboltNet \
-       /usr/local/emhttp/plugins/thunderboltnet \
+rm -rf /usr/local/emhttp/plugins/thunderboltnet \
        /usr/local/emhttp/plugins/Thunderboltnet 2>/dev/null || true
 rm -f /boot/config/plugins/ThunderboltNet/ThunderboltNet-*.txz 2>/dev/null || true
 mkdir -p /usr/local/emhttp/plugins/ThunderboltNet/{include,scripts,event,udev}
