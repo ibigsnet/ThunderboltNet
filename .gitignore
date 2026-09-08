@@ -13,6 +13,9 @@ NOTES.local.md
 
 # Lab / workstation only — NOT Unraid runtime (never ship in .txz, never push)
 AGENTS.md
+CA-CHANNEL.md
+DEVELOPMENT.md
+docs/DEVELOPMENT.md
 scripts/pack-txz.sh
 scripts/promote-stable.sh
 tests/

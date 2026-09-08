@@ -8,13 +8,14 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ## 2026.09.06ab
 
-- **CA review:** hashed raw install. State-changing endpoints (`tbn-apply`, lazy
+- **Install / security:** hashed raw files. State-changing endpoints (`tbn-apply`, lazy
   resync, mesh force-poll) require POST; fabric refresh is a POST button.
 
 ## 2026.09.06aa
 
 - **Install:** plugin files come from GitHub raw with SHA256/MD5 pins in the `.plg`.
-  Dropped `archive/*.txz` payload (`upgradepkg`). Addresses CA review: unsigned package download.
+  Dropped `archive/*.txz` payload (`upgradepkg`). Pins the download so the payload cannot
+  change under a given plugin version.
 
 ## 2026.08.28ad
 

@@ -25,25 +25,19 @@
 
 <CHANGES>
 ###&version;
-- Hashed raw install; state-changing plugin endpoints require POST.
+- Hashed raw install (SHA256/MD5); state-changing endpoints require POST.
 
-###2026.09.06aa
-- Install copies plugin files from GitHub raw (SHA256/MD5 pin). No archive .txz payload.
-
-###2026.08.28ad
-- Drop redundant “Same inventory as Peers → LOCAL” line on no-controller USB SuperSpeed aside.
-
-###2026.08.28ac
-- Jumbo / Desired MTU now persists on Apply (Vinney). 24aa rewrite was overwritten by Unraid update.php (saves after #include).
+###2026.08.28ad–ac
+- USB SuperSpeed aside; Jumbo / Desired MTU persists on Apply.
 
 ###2026.08.28aa–ab
 - No-controller USB SuperSpeed banks; VFIO banner on Status/Peers/Settings/tbnN.
 
 ###2026.08.26aa
-- Empty-state diagnostics: Unraid forum, GitHub Issues/repo links; blob includes support URLs and Tools → Diagnostics.
+- Empty-state diagnostics: Unraid forum, GitHub Issues, Tools → Diagnostics.
 
 ###2026.08.25aa
-- Hotplug remove stops DHCP client/server (with NAT); unknown peer seeds defaults; tbn-last-good offline helper.
+- Hotplug DHCP stop; unknown peer defaults; tbn-last-good.
 
 ###2026.08.18ar–ad
 - Overview preload; seed Unraid .1; Dashboard tbnN/TB rates; DHCP/NAT UI.
@@ -116,8 +110,8 @@ echo "ThunderboltNet: ready."
 </FILE>
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-apply.php">
 <URL>&raw;/include/tbn-apply.php?v=&version;</URL>
-<SHA256>d178eca33f10df8a2682cc66f4feca967d1be226f69fa348b6f9e60c1b9e8a0a</SHA256>
-<MD5>48e1a1621ac27c1e3c9224a96fcb35dd</MD5>
+<SHA256>880e856bf2fab0a63bb972f1fe537568872a44f7a6e303a1400e16ba77c14b23</SHA256>
+<MD5>212d5efa9bda5555a313cd6ad6f7f108</MD5>
 </FILE>
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-dhcp.php">
 <URL>&raw;/include/tbn-dhcp.php?v=&version;</URL>
@@ -136,8 +130,8 @@ echo "ThunderboltNet: ready."
 </FILE>
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lazy-render.php">
 <URL>&raw;/include/tbn-lazy-render.php?v=&version;</URL>
-<SHA256>1723bffa44ecaf130df1f5b7c99540c635ce8598ec9baaa8abe08541b619389a</SHA256>
-<MD5>8b806dad9dd1eecefd676383f2f07bff</MD5>
+<SHA256>88d12e78db7505a126574642d8a4d568eb70753df15cf6704fcde0e5e032439f</SHA256>
+<MD5>06ae6b788bd0312e36cec6eb296ed3d5</MD5>
 </FILE>
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php">
 <URL>&raw;/include/tbn-lib.php?v=&version;</URL>
@@ -161,8 +155,8 @@ echo "ThunderboltNet: ready."
 </FILE>
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh-poll.php">
 <URL>&raw;/include/tbn-mesh-poll.php?v=&version;</URL>
-<SHA256>57eeb7e54a006867a4781c75f2630b74519348e1be0e74bf86f8994c285c7c5e</SHA256>
-<MD5>a2b075b4e2a45dafb0c978c85ecf17f6</MD5>
+<SHA256>3d2ee909e7b9ca23f5359eacea6a9119d0ab22f7a2a3ac34648c7e73365ba12f</SHA256>
+<MD5>2f801c51553fd0e83ce90b7cb03d034a</MD5>
 </FILE>
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-nat.php">
 <URL>&raw;/include/tbn-nat.php?v=&version;</URL>
