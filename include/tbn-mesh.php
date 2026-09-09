@@ -634,6 +634,7 @@ function tbn_mesh_poll_all(array $cfg = null) {
   $targets = tbn_mesh_peer_targets($cfg, $links);
   @mkdir(tbn_mesh_cache_dir(), 0755, true);
   $peers = tbn_load_peers_memory();
+  $forgotten = function_exists('tbn_load_forgotten_peers') ? tbn_load_forgotten_peers() : [];
   $now = time();
   $our_host = $local_snap['hostname'] ?? '';
   $our_id = $local_snap['host_id'] ?? tbn_mesh_host_id();
@@ -724,6 +725,11 @@ function tbn_mesh_poll_all(array $cfg = null) {
       $raw = tbn_mesh_validate_pair($ll, $match, $stale);
       $pkey = $ll['peer_key'] ?? '';
       if ($pkey === '') continue;
+      if (function_exists('tbn_sanitize_peer_key')) {
+        $pkey = tbn_sanitize_peer_key($pkey);
+        if ($pkey === '') continue;
+      }
+      if (isset($forgotten[$pkey])) continue;
       $prev = $peers[$pkey]['mesh_validation'] ?? [];
       $val = tbn_mesh_apply_holdoff($prev, $raw, $holdoff);
       $val['peer_host_id'] = $hid;

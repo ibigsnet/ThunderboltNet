@@ -27,6 +27,28 @@ function tbn_cfg_path() {
   return tbn_cfg_dir() . '/ThunderboltNet.cfg';
 }
 
+/** Unraid csrf_token for lazy-loaded forms (Peers/tbnN are fetched after page-load inject). */
+function tbn_csrf_token() {
+  if (!empty($GLOBALS['var']['csrf_token'])) {
+    return (string)$GLOBALS['var']['csrf_token'];
+  }
+  if (is_readable('/var/local/emhttp/var.ini')) {
+    $vi = @parse_ini_file('/var/local/emhttp/var.ini');
+    if (is_array($vi) && !empty($vi['csrf_token'])) {
+      return (string)$vi['csrf_token'];
+    }
+  }
+  return '';
+}
+
+function tbn_csrf_field() {
+  $t = tbn_csrf_token();
+  if ($t === '') {
+    return '';
+  }
+  return '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($t, ENT_QUOTES) . '">' . "\n";
+}
+
 function tbn_network_extra_path() {
   return '/boot/config/network-extra.cfg';
 }
@@ -616,6 +638,62 @@ function tbn_save_peers_memory(array $peers) {
   ) !== false;
 }
 
+/** Fabric UUID or iface:thunderboltN. Reject path junk. */
+function tbn_sanitize_peer_key($k) {
+  $k = trim((string)$k);
+  if ($k === '' || strlen($k) > 96) {
+    return '';
+  }
+  if (strpos($k, '/') !== false || strpos($k, '\\') !== false || strpos($k, '..') !== false) {
+    return '';
+  }
+  if (!preg_match('/^[A-Za-z0-9:._-]+$/', $k)) {
+    return '';
+  }
+  return $k;
+}
+
+function tbn_forgotten_peers_path() {
+  return tbn_cfg_dir() . '/forgotten-peers.json';
+}
+
+/** @return array<string,int> key => unix time forgotten */
+function tbn_load_forgotten_peers() {
+  $path = tbn_forgotten_peers_path();
+  if (!is_readable($path)) {
+    return [];
+  }
+  $j = @json_decode((string)@file_get_contents($path), true);
+  $keys = is_array($j) ? ($j['keys'] ?? $j) : [];
+  if (!is_array($keys)) {
+    return [];
+  }
+  $out = [];
+  foreach ($keys as $k => $ts) {
+    $k = tbn_sanitize_peer_key(is_int($k) ? (string)$ts : (string)$k);
+    if ($k === '') {
+      continue;
+    }
+    $out[$k] = is_numeric($ts) ? (int)$ts : time();
+  }
+  return $out;
+}
+
+function tbn_save_forgotten_peers(array $map) {
+  if (count($map) > 64) {
+    arsort($map, SORT_NUMERIC);
+    $map = array_slice($map, 0, 64, true);
+  }
+  $dir = tbn_cfg_dir();
+  if (!is_dir($dir)) {
+    @mkdir($dir, 0755, true);
+  }
+  return @file_put_contents(
+    tbn_forgotten_peers_path(),
+    json_encode(['keys' => $map], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n"
+  ) !== false;
+}
+
 /**
  * Upsert live links into peers.json (by fabric unique_id or iface fallback).
  */
@@ -740,11 +818,15 @@ function tbn_set_listening_for_iface($if, $enable) {
  */
 function tbn_set_peer_listening_pref($peer_key, $enable, $if = '') {
   $enable = ($enable === true || $enable === 'yes' || $enable === 1 || $enable === '1') ? 'yes' : 'no';
-  $peer_key = trim((string)$peer_key);
+  $peer_key = tbn_sanitize_peer_key($peer_key);
   if ($peer_key === '') {
     return false;
   }
   $peers = tbn_load_peers_memory();
+  $forgotten = tbn_load_forgotten_peers();
+  if (isset($forgotten[$peer_key])) {
+    return false;
+  }
   if (!isset($peers[$peer_key])) {
     $peers[$peer_key] = [
       'unique_id' => (strpos($peer_key, 'iface:') === 0) ? '' : $peer_key,
@@ -821,6 +903,7 @@ function tbn_reconcile_listening_from_memory(array $links) {
 
 function tbn_remember_live_peers(array $links) {
   $peers = tbn_load_peers_memory();
+  $forgotten = tbn_load_forgotten_peers();
   $now = date('c');
   foreach ($links as $L) {
     $rem = $L['remote'] ?? [];
@@ -829,7 +912,9 @@ function tbn_remember_live_peers(array $links) {
     // Absorb iface: fallback for this netdev before key resolve / upsert
     if ($uid !== '' && $if !== '' && preg_match('/^thunderbolt\d+$/', $if)) {
       $fk = 'iface:' . $if;
-      if (isset($peers[$fk])) {
+      if (isset($forgotten[$uid])) {
+        unset($peers[$fk], $peers[$uid]);
+      } elseif (isset($peers[$fk])) {
         if (!isset($peers[$uid])) {
           $peers[$uid] = $peers[$fk];
           $peers[$uid]['unique_id'] = $uid;
@@ -843,6 +928,9 @@ function tbn_remember_live_peers(array $links) {
       }
     }
     $key = tbn_peer_key_from_link($L, $peers);
+    if ($key !== '' && isset($forgotten[$key])) {
+      continue;
+    }
     $prev = $peers[$key] ?? [];
     $iface_listen = 'no';
     if ($if !== '' && preg_match('/^thunderbolt\d+$/', $if)) {
@@ -888,6 +976,16 @@ function tbn_remember_live_peers(array $links) {
   }
   foreach ($peers as $k => $p) {
     $peers[$k]['online'] = in_array($k, $live_keys, true);
+  }
+  $fg_dirty = false;
+  foreach (array_keys($forgotten) as $fk) {
+    if (!in_array($fk, $live_keys, true)) {
+      unset($forgotten[$fk]);
+      $fg_dirty = true;
+    }
+  }
+  if ($fg_dirty) {
+    tbn_save_forgotten_peers($forgotten);
   }
   // Seed peer L3 plan from last live addrs when missing (migrate iface-only setups)
   foreach ($peers as $k => $p) {
@@ -1250,17 +1348,32 @@ function tbn_apply_peer_plan_to_iface($key, $if) {
  */
 function tbn_forget_peers(array $keys) {
   $peers = tbn_load_peers_memory();
+  $forgotten = tbn_load_forgotten_peers();
   $n = 0;
+  $now = time();
   foreach ($keys as $k) {
-    $k = trim((string)$k);
-    if ($k !== '' && isset($peers[$k])) {
+    $k = tbn_sanitize_peer_key($k);
+    if ($k === '') {
+      continue;
+    }
+    $if = '';
+    if (isset($peers[$k]) && is_array($peers[$k])) {
+      $if = trim((string)($peers[$k]['last_iface'] ?? ''));
       unset($peers[$k]);
       $n++;
     }
+    $forgotten[$k] = $now;
+    if ($if !== '' && preg_match('/^thunderbolt\d+$/', $if)) {
+      $fk = 'iface:' . $if;
+      if (isset($peers[$fk])) {
+        unset($peers[$fk]);
+        $n++;
+      }
+      $forgotten[$fk] = $now;
+    }
   }
-  if ($n > 0) {
-    tbn_save_peers_memory($peers);
-  }
+  tbn_save_peers_memory($peers);
+  tbn_save_forgotten_peers($forgotten);
   return $n;
 }
 
@@ -2539,39 +2652,53 @@ function tbn_diagnostics_text() {
 
 /**
  * Full status blob for UI / JSON.
+ *
+ * @param array{readonly?:bool} $opts readonly=true: no flash writes (GET live poll).
  */
-function tbn_status() {
+function tbn_status(array $opts = []) {
+  $readonly = !empty($opts['readonly']);
   $cfg = tbn_load_cfg();
-  // Historical Unraid seed was 10.255.N.2; product standard is Unraid .1 / peer .2
-  if (function_exists('tbn_migrate_seed_dot2_to_dot1')) {
-    @tbn_migrate_seed_dot2_to_dot1();
-  }
-  // FRR installed → OpenFabric on (unless user explicitly turned it off)
-  if (function_exists('tbn_of_maybe_auto_enable_from_frr')) {
-    $cfg = tbn_of_maybe_auto_enable_from_frr($cfg);
-  }
-  // Peer link check defaults on: ensure a token exists and is saved once
-  if (function_exists('tbn_mesh_ensure_token') && function_exists('tbn_write_global_cfg')) {
-    $before = trim((string)($cfg['mesh_token'] ?? ''));
-    tbn_mesh_ensure_token($cfg);
-    if (($cfg['mesh_report'] ?? 'yes') === 'yes' && $before === '' && trim((string)($cfg['mesh_token'] ?? '')) !== '') {
-      @tbn_write_global_cfg($cfg);
+  if (!$readonly) {
+    // Historical Unraid seed was 10.255.N.2; product standard is Unraid .1 / peer .2
+    if (function_exists('tbn_migrate_seed_dot2_to_dot1')) {
+      @tbn_migrate_seed_dot2_to_dot1();
+    }
+    // FRR installed → OpenFabric on (unless user explicitly turned it off)
+    if (function_exists('tbn_of_maybe_auto_enable_from_frr')) {
+      $cfg = tbn_of_maybe_auto_enable_from_frr($cfg);
+    }
+    // Peer link check defaults on: ensure a token exists and is saved once
+    if (function_exists('tbn_mesh_ensure_token') && function_exists('tbn_write_global_cfg')) {
+      $before = trim((string)($cfg['mesh_token'] ?? ''));
+      tbn_mesh_ensure_token($cfg);
+      if (($cfg['mesh_report'] ?? 'yes') === 'yes' && $before === '' && trim((string)($cfg['mesh_token'] ?? '')) !== '') {
+        @tbn_write_global_cfg($cfg);
+      }
     }
   }
   $probe = tbn_hardware_probe();
   $links = tbn_link_summaries();
-  // Plug-and-play: persist last-seen peers; re-apply remembered listening prefs
-  $peers = tbn_remember_live_peers($links);
-  tbn_reconcile_listening_from_memory($links);
-  // Refresh summaries after reconcile so "listening" flags match network-extra
-  $links = tbn_link_summaries();
-  $peers = tbn_load_peers_memory();
+  if ($readonly) {
+    $peers = tbn_load_peers_memory();
+    $live_keys = [];
+    foreach ($links as $L) {
+      $live_keys[] = tbn_peer_key_from_link($L, $peers);
+    }
+    foreach ($peers as $k => $p) {
+      $peers[$k]['online'] = in_array($k, $live_keys, true);
+    }
+  } else {
+    // Plug-and-play: persist last-seen peers; re-apply remembered listening prefs
+    tbn_remember_live_peers($links);
+    tbn_reconcile_listening_from_memory($links);
+    $links = tbn_link_summaries();
+    $peers = tbn_load_peers_memory();
+  }
   $mesh = null;
   $mesh_file = __DIR__ . '/tbn-mesh.php';
   if (is_file($mesh_file)) {
     require_once $mesh_file;
-    if (function_exists('tbn_mesh_maybe_poll')) {
-      // Best-effort poll when due (non-blocking enough for UI load)
+    if (!$readonly && function_exists('tbn_mesh_maybe_poll')) {
       @tbn_mesh_maybe_poll($cfg, false);
       $peers = tbn_load_peers_memory();
     }
@@ -4569,6 +4696,7 @@ function tbn_vfio_warning_banner_html($pci = null, $cfg = null) {
     $html .= '<p class="tbn-warn-msg"><strong>VFIO:</strong> '
       . htmlspecialchars($w['message']) . '</p>';
     $html .= '<form method="POST" action="/update.php" target="progressFrame" class="tbn-warn-form" style="display:inline">';
+    $html .= function_exists('tbn_csrf_field') ? tbn_csrf_field() : '';
     $html .= '<input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">';
     $html .= '<input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-ignore-warning.php">';
     $html .= '<input type="hidden" name="tbn_ignore_key" value="' . htmlspecialchars($w['key']) . '">';

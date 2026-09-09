@@ -7,6 +7,7 @@ if (!$has_hw):
   </div>
 <?php else: ?>
   <form method="POST" action="/update.php" target="progressFrame">
+      <?= function_exists('tbn_csrf_field') ? tbn_csrf_field() : '' ?>
       <input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">
       <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update.php">
       <input type="hidden" name="tbn_defaults" value="">

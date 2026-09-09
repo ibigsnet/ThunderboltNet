@@ -184,7 +184,9 @@ Matching Current and Saved after a normal Apply is expected — not duplicate se
 
 **Forget selected peers** (Peers tab):
 
-- Removes the row from `peers.json` (name, plan, listening memory, history).
+- POST + csrf (lazy Peers panel). Removes the row from `peers.json` (name, plan, listening memory).
+- Live status poll does **not** write peers (GET is read-only).
+- A still-plugged host stays off the list until unplug; the next link remembers it again.
 - Does **not** delete Unraid eth Interface Rules.
 - Does **not** automatically delete every `ifaces/thunderboltN.cfg` (path-slot files may remain until you Reset that tbn tab).
 

@@ -6,6 +6,16 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+## 2026.09.08ac
+
+- **Forget selected:** Known peers rows actually leave the table. Causes were
+  (1) lazy-loaded Peers forms missing `csrf_token` so Unraid dropped the POST,
+  (2) checkboxes outside the toolbar form not always posted, (3) every status
+  paint re-upserted live links into `peers.json`. Forget now POSTs keys in the
+  toolbar form; `$save=false` so the action does not pollute plugin cfg; a
+  forgotten UUID stays off the list while still plugged and is eligible again
+  after unplug. GET `get-status` is read-only (no flash writes / mesh poll).
+
 ## 2026.09.08ab
 
 - **Install:** do not `rm -rf` the live plugin or `removepkg` before GitHub FILE copies
