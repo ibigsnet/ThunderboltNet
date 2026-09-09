@@ -19,8 +19,8 @@ Copyright (c) 2026 ibigs, LLC · Author: RifleJock · License: GPL-3.0-or-later
 
 ## Install channel
 
-Production / Community Applications: GitHub branch **`main`**. Lab WIP: **`testing**.  
-Lab / development: branch **`main`**.
+Production / Community Applications: GitHub branch **`main`**.  
+WIP: branch **`testing`**.
 
 ## Uninstall
 

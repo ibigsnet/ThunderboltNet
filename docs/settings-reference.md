@@ -44,7 +44,7 @@ Full detail: [peers-and-plans.md](peers-and-plans.md).
 | Remember current | Copy Current (IP/MTU/services) into Saved — optional; first **tbn Apply** already captures |
 | Apply saved | Push Saved onto the path that peer currently uses |
 | Unraid services | Per-peer listening Yes/No (remembered) |
-| Forget selected | Drop from `peers.json` only — not eth Interface Rules |
+| Forget selected | POST + csrf. Drops the Known peers row (`peers.json`) only — not eth Interface Rules or tbn tab cfg. A still-plugged peer stays off the list until unplug. |
 | Link check | Optional peer Unraid rate compare (shared token) |
 
 **First setup:** Apply on the tbn tab while linked — that fills **Saved**. Matching Current and Saved afterward is normal.
