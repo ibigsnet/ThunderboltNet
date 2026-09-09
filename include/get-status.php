@@ -22,5 +22,5 @@ if (is_file($helpers)) {
 
 require_once '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php';
 
-echo json_encode(tbn_status(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo json_encode(tbn_status(['readonly' => true]), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 echo (PHP_SAPI === 'cli') ? "\n" : '';

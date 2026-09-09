@@ -153,6 +153,7 @@ if (!$has_hw):
           </td>
           <td>
             <form method="POST" action="/update.php" target="progressFrame" class="tbn-listen-form">
+              <?= function_exists('tbn_csrf_field') ? tbn_csrf_field() : '' ?>
               <input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">
               <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update-listening.php">
               <input type="hidden" name="tbn_listen_action" value="set">
@@ -190,23 +191,29 @@ if (!$has_hw):
 
     <form method="POST" action="/update.php" target="progressFrame" id="tbn-peers-action-form" class="tbn-peers-toolbar"
       onsubmit="return tbnPeersToolbarSubmit(this, event);">
+      <?= function_exists('tbn_csrf_field') ? tbn_csrf_field() : '' ?>
       <input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">
       <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update-peers.php">
       <input type="hidden" name="tbn_peer_action" id="tbn_peer_action" value="">
+      <input type="hidden" name="tbn_peer_keys_csv" id="tbn_peer_keys_csv" value="">
       <p class="tbn-actions tbn-peers-actions">
         <input type="submit" name="#apply" value="Forget selected" class="tbn-harden-btn"
           data-tbn-action="forget"
+          onclick="var a=document.getElementById('tbn_peer_action'); if(a) a.value='forget';"
           title="Remove selected hosts from this list (Saved address included). Does not delete tbn tab configs.">
         <input type="submit" name="#apply" value="Remember current" class="tbn-btn-small"
           data-tbn-action="capture_plan"
+          onclick="var a=document.getElementById('tbn_peer_action'); if(a) a.value='capture_plan';"
           title="Copy Current (IP/MTU/services) into Saved for each selected online peer">
         <input type="submit" name="#apply" value="Apply saved" class="tbn-btn-small"
           data-tbn-action="apply_plan"
+          onclick="var a=document.getElementById('tbn_peer_action'); if(a) a.value='apply_plan';"
           title="Push Saved onto the live path for each selected online peer">
       </p>
       <p class="tbn-hint">
         Select rows, then <strong>Remember current</strong> (Current → Saved) or <strong>Apply saved</strong> (Saved → path).
         <strong>Forget</strong> removes the row only — not <code>ifaces/*.cfg</code>.
+        A still-plugged peer stays off this list until unplug; the next link remembers it again.
       </p>
     </form>
 <?php endif; ?>
@@ -214,6 +221,7 @@ if (!$has_hw):
     <div class="tbn-peers-toolbar-foot">
     <form method="POST" action="/update.php" target="progressFrame" class="tbn-harden-form"
       onsubmit="return confirm('Turn OFF Unraid host services on ALL Thunderbolt links and clear remembered Yes for every peer?');">
+      <?= function_exists('tbn_csrf_field') ? tbn_csrf_field() : '' ?>
       <input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">
       <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update-listening.php">
       <input type="hidden" name="tbn_listen_action" value="harden_all">

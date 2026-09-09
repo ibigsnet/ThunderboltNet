@@ -54,7 +54,7 @@ switch ($action) {
     break;
 
   case 'status':
-    $out = tbn_status();
+    $out = tbn_status(['readonly' => (PHP_SAPI !== 'cli')]);
     $out['ok'] = true;
     break;
 

@@ -164,6 +164,7 @@ if (strpos($nm, '.') === false) {
     id="tbn-form-<?= htmlspecialchars($label) ?>" class="tbn-iface-form"
     data-tbn-slave="<?= $is_slave ? '1' : '0' ?>"
     data-tbn-bound-peer="<?= htmlspecialchars($bound_peer_uuid) ?>">
+    <?= function_exists('tbn_csrf_field') ? tbn_csrf_field() : '' ?>
     <input type="hidden" name="#file" value="ThunderboltNet/ifaces/<?= htmlspecialchars($if) ?>.cfg">
     <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update-iface.php">
     <input type="hidden" name="#arg[1]" value="<?= htmlspecialchars($if) ?>">

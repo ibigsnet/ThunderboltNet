@@ -824,11 +824,29 @@
     });
   };
 
+  /** Lazy-loaded forms miss Dynamix's page-load csrf inject. */
+  function tbnEnsureCsrf(form) {
+    if (!form || form.querySelector('input[name="csrf_token"]')) {
+      return;
+    }
+    var tok = (typeof csrf_token !== 'undefined' && csrf_token) ? String(csrf_token) : '';
+    if (!tok) {
+      return;
+    }
+    var h = document.createElement('input');
+    h.type = 'hidden';
+    h.name = 'csrf_token';
+    h.value = tok;
+    form.insertBefore(h, form.firstChild);
+  }
+
   /**
    * Known peers toolbar: checkbox selection + one form outside the table.
    * Nested forms inside the peer-plan column broke layout (invalid HTML).
+   * Copy keys into the form so POST does not depend on HTML form= association.
    */
   window.tbnPeersToolbarSubmit = function (form, evt) {
+    tbnEnsureCsrf(form);
     var submitter = (evt && evt.submitter) || (document.activeElement && document.activeElement.form === form
       ? document.activeElement
       : null);
@@ -837,7 +855,12 @@
       action = submitter.getAttribute('data-tbn-action') || '';
     }
     if (!action) {
-      // Fallback: first checked-looking submit
+      var hiddenPre = form.querySelector('#tbn_peer_action') || form.querySelector('input[name="tbn_peer_action"]');
+      if (hiddenPre && hiddenPre.value) {
+        action = hiddenPre.value;
+      }
+    }
+    if (!action) {
       var btns = form.querySelectorAll('[data-tbn-action]');
       for (var i = 0; i < btns.length; i++) {
         if (btns[i] === document.activeElement) {
@@ -851,7 +874,6 @@
       hidden.value = action;
     }
     var boxes = document.querySelectorAll('input.tbn-peer-sel[form="tbn-peers-action-form"]:checked, input.tbn-peer-sel:checked');
-    // Prefer form-associated checkboxes
     if (!boxes.length) {
       boxes = document.querySelectorAll('input[name="tbn_peer_keys[]"]:checked');
     }
@@ -859,11 +881,33 @@
       alert('Select at least one peer (checkbox) first.');
       return false;
     }
+    var old = form.querySelectorAll('input[name="tbn_peer_keys[]"][data-tbn-cloned]');
+    for (var d = 0; d < old.length; d++) {
+      old[d].parentNode.removeChild(old[d]);
+    }
+    var csv = [];
+    for (var j = 0; j < boxes.length; j++) {
+      if (!boxes[j].value) {
+        continue;
+      }
+      csv.push(boxes[j].value);
+      var clone = document.createElement('input');
+      clone.type = 'hidden';
+      clone.name = 'tbn_peer_keys[]';
+      clone.value = boxes[j].value;
+      clone.setAttribute('data-tbn-cloned', '1');
+      form.appendChild(clone);
+    }
+    var csvEl = form.querySelector('#tbn_peer_keys_csv') || form.querySelector('input[name="tbn_peer_keys_csv"]');
+    if (csvEl) {
+      csvEl.value = csv.join(',');
+    }
     if (action === 'forget') {
       return confirm(
         'Forget selected peers?\n\n' +
         'Removes them from this list (including Saved addresses).\n' +
-        'Does not delete tbn tab configs or eth Interface Rules.'
+        'Does not delete tbn tab configs or eth Interface Rules.\n' +
+        'A still-plugged peer stays off the list until unplug.'
       );
     }
     if (action === 'capture_plan') {
@@ -906,6 +950,7 @@
     if (!form) {
       return false;
     }
+    tbnEnsureCsrf(form);
     var btn = form.querySelector('input[name="#apply"]');
     if (!btn) {
       btn = document.createElement('input');
@@ -926,8 +971,9 @@
 
   /** Wire all ThunderboltNet forms (listening, iface, harden) for Apply enable. */
   function tbnWireAllForms() {
-    var wraps = document.querySelectorAll('.tbn-wrap form');
+    var wraps = document.querySelectorAll('.tbn-wrap form, #tbn-overview form');
     for (var i = 0; i < wraps.length; i++) {
+      tbnEnsureCsrf(wraps[i]);
       tbnEnableFormApply(wraps[i]);
       if (wraps[i].classList.contains('tbn-iface-form')) {
         tbnFormSync(wraps[i]);

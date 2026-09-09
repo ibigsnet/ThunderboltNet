@@ -4,6 +4,8 @@
  */
 require_once '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php';
 
+$save = false;
+
 $key = trim((string)($_POST['tbn_ignore_key'] ?? ''));
 if ($key !== '') {
   tbn_ignore_warning($key);
