@@ -71,7 +71,7 @@ Assignment-mode autofill detail: [addressing.md — Autofill by assignment mode]
 | Thunderbolt 3–5 / USB4: **directionality**, bandwidth table, **mixing** gens/cables/lanes, FAQ | [docs/standards-and-speeds.md](docs/standards-and-speeds.md) |
 | MTU 1500 vs 9000, PPS overhead, both-ends setup | [docs/mtu-and-throughput.md](docs/mtu-and-throughput.md) |
 | Dashboard throughput / errors for tbn (thunderboltN) | [docs/dashboard-network.md](docs/dashboard-network.md) |
-| USB4STREAM (raw Thunderbolt stream; needs **Linux kernel** with module — not Unraid 7.2 product) | [docs/usb4stream.md](docs/usb4stream.md) |
+| USB4STREAM (raw `/dev/tbstream*`; Stream tab + kernel module — not Unraid 7.2 product) | [docs/usb4stream.md](docs/usb4stream.md) |
 | Port silkscreen guide (Thunderbolt lightning / SS¹⁰ / SS²⁰) | [docs/port-icons.md](docs/port-icons.md) (docs only) |
 | Hardware, BIOS, modules, security | [docs/requirements.md](docs/requirements.md) |
 | Multi-host fabric reports (peer validation colors) | [docs/fabric-link-map.md](docs/fabric-link-map.md) |
@@ -97,7 +97,7 @@ Related **ibigsnet** pieces are optional companions. Install only what you need.
 | **Fabric Routing (FRR)** / FabricRouting | Installs **FRR packages/daemons** (`fabricd`, `vtysh`) — Network Settings → **Fabric Routing** | Rings, multi-hop, Proxmox/Linux FRR fabric | One cable + static IPs only |
 | **NBD Export** | Host or pull **raw disks** over NBD — Network Services → **NBD** (Status · Host · Pull · Settings) | Imaging/cloning large disks over Thunderbolt | File shares (SMB/NFS) are enough |
 | **Storage Guard** | Free-space thresholds and main-page free-bar colors | Know when a failed disk still leaves room | Optional |
-| **USB4STREAM** | Not a plugin — **kernel** module `thunderbolt_stream` | Experimental raw stream when kernel has it | Always optional; not FRR |
+| **USB4STREAM** | Thunderbolt Net **Stream** tab + kernel `thunderbolt_stream` | Raw `/dev/tbstream*` copy when both kernels have the module | Skip if you only need tbn IP |
 
 OpenFabric **policy** lives on Thunderbolt Net (Advanced). FRR **packages** live under **Network Settings → Fabric Routing**. NBD is independent TCP block export under **Network Services → NBD**.
 
@@ -152,7 +152,7 @@ These are **supported directions**, not throwaway experiments. Defaults favor in
 | **Bonding multi-path** | Thunderbolt-only `bond-tb*` when ≥2 netdevs | Off by default; dual-cable same-peer **roadmap** | [links-and-topology.md](docs/links-and-topology.md) |
 | **Peer memory + Saved addresses** | Remember hosts by fabric UUID; Current/Saved L3 follows the peer | **Supported** — see [peers-and-plans.md](docs/peers-and-plans.md) |
 | **Activity / unplug** | Safe to disconnect hints | Heuristic today; tighter idle later | Settings UI |
-| **USB4STREAM** | Raw path awareness where kernel allows | Off until module exists; never break tbn IP | [usb4stream.md](docs/usb4stream.md) |
+| **USB4STREAM** | ConfigFS streams, persist, copy helper | Enable No until you want boot recreate; Stream tab always present | [usb4stream.md](docs/usb4stream.md) |
 
 ### Peer plug-and-play (underlay)
 

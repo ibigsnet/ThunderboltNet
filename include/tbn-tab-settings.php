@@ -270,10 +270,11 @@ if (!$has_hw):
     <p class="tbn-note">Module load and E2E when you Apply here — not eth0, Docker, or VM IPs (those are on tbnN / Unraid network).</p>
     <dl>
       <dt>Driver options:</dt>
-      <dd class="tbn-muted">Modules · E2E flow control · optional USB4STREAM</dd>
+      <dd class="tbn-muted">Modules · E2E flow control · USB4STREAM load</dd>
     </dl>
     <blockquote class="inline_help">
-      Apply updates host drivers, E2E, USB4STREAM load (if enabled), and OpenFabric <strong>policy</strong> above.
+      Apply updates host drivers, E2E, USB4STREAM module load (if enabled), and OpenFabric <strong>policy</strong> above.
+      Create/tear down streams on the <strong>Stream</strong> tab.
       FRR <strong>packages</strong> are managed under <a href="/Settings/NetworkSettings" onclick="return ibigsGotoNetTab('Fabric Routing', event)">Network Settings → Fabric Routing</a> when Fabric Routing is installed.
       Per-link addresses and bonding are on each <strong>tbnN</strong> tab.
       <?= tbn_help_docs_footer('docs/driver-options.md', 'Driver options guide') ?>
@@ -334,62 +335,34 @@ if (!$has_hw):
         · <?= tbn_docs_more_html('docs/peer-scenarios.md', 'Peer scenarios (Mac / Linux / Windows / docks) ↗') ?>
       </blockquote>
 
-      <div class="tbn-advanced tbn-advanced-nested"
-           data-tbn-advanced="usb4stream"
-           data-tbn-default-open="<?= $stream_expand_default ? '1' : '0' ?>">
-        <div class="tbn-advanced-head">
-          <h4>Advanced: USB4STREAM (kernel raw path)</h4>
-          <button type="button" class="tbn-advanced-toggle" data-tbn-adv-toggle="usb4stream"
-            data-show="Show USB4STREAM"
-            data-hide="Hide USB4STREAM">Show USB4STREAM</button>
-          <span class="tbn-advanced-chip<?= $stream_ready ? ' tbn-chip-ok' : ' tbn-chip-muted' ?>">
-            <?= $stream_ready ? htmlspecialchars($mod_stream) : 'not in this kernel' ?>
-          </span>
-        </div>
-        <p class="tbn-note tbn-advanced-summary tbn-muted">
-          Optional. Needs a kernel that includes <code>thunderbolt_stream</code>
-          (mainline Linux <strong>kernel</strong> ~7.2+ — <em>not</em> Unraid 7.2.x product version).
-          Running: <code><?= htmlspecialchars($usb4stream['kernel'] ?? php_uname('r')) ?></code>.
-          <strong>Not InfiniBand.</strong> <strong>Not Fabric Routing.</strong>
-        </p>
-        <div class="tbn-advanced-body" id="tbn-adv-usb4stream"<?= $stream_expand_default ? '' : ' hidden' ?>>
       <dl>
         <dt>Enable USB4STREAM:</dt>
         <dd>
-          <select name="enable_usb4stream" <?= empty($usb4stream['available']) ? 'title="Module not in this kernel"' : '' ?>>
+          <select name="enable_usb4stream">
             <?= mk_option($cfg['enable_usb4stream'] ?? 'no', 'no', 'No (default)') ?>
-            <?= mk_option($cfg['enable_usb4stream'] ?? 'no', 'yes', 'Yes — load thunderbolt_stream when available') ?>
+            <?= mk_option($cfg['enable_usb4stream'] ?? 'no', 'yes', 'Yes — load thunderbolt_stream and recreate saved streams') ?>
           </select>
+          <span class="tbn-muted">
+            <?= htmlspecialchars($mod_stream ?? '') ?>
+            · kernel <code><?= htmlspecialchars($usb4stream['kernel'] ?? php_uname('r')) ?></code>
+          </span>
         </dd>
       </dl>
       <blockquote class="inline_help">
-        <strong>USB4STREAM</strong> is a separate Linux <em>kernel</em> path from <code>thunderbolt_net</code> (tbn0 IP networking).
-        When the <strong>running kernel</strong> ships the module, it can expose raw stream devices
-        (<code>/dev/tbstream*</code>) for high-speed host↔host transfers without the IP stack.<br><br>
-        <strong>“~7.2” = Linux kernel version</strong> (kernel.org / <code>uname -r</code>),
-        <strong>not Unraid 7.2.x</strong> and not Slackware package numbering.
-        Unraid 7.x can still run a 6.x kernel with no module — check status below, not the Unraid marketing version.
-        Do not upgrade Unraid expecting stream unless the new kernel actually includes <code>thunderbolt_stream</code>.<br><br>
-        <strong>This is not InfiniBand.</strong> IB-style RDMA over Thunderbolt is research / out-of-tree
-        (e.g. thunderbolt-ibverbs demos) — the plugin does not load those modules.<br><br>
-        <strong>This is not Fabric Routing.</strong> Fabric Routing installs FRR routing packages (<code>fabricd</code>, etc.);
-        it never provides <code>thunderbolt_stream</code>.<br><br>
-        <strong>Status on this host:</strong>
-        <?= htmlspecialchars($usb4stream['note'] ?? 'unknown') ?><br><br>
-        <strong>No</strong> (default) — only use IP host-net (tbn tabs). Correct when the module is missing.<br>
-        <strong>Yes</strong> — on Apply, also <code>modprobe thunderbolt_stream</code> if the kernel has it;
-        ignored cleanly if the module is missing. Peer must support stream too for a useful path.
+        USB4STREAM is a separate kernel path from tbn IP (<code>thunderbolt_net</code>).
+        <strong>Yes</strong> loads <code>thunderbolt_stream</code> on Apply (when the running kernel has it)
+        and recreates saved streams from flash.
+        Create, tear down, and copy live on the <strong>Stream</strong> tab — settings stay even if this kernel has no module yet.
+        Mainline kernel ~7.2+, not Unraid 7.2.x. Not InfiniBand. Not Fabric Routing.
         <?= tbn_help_docs_footer('docs/usb4stream.md', 'USB4STREAM guide') ?>
       </blockquote>
-        </div><!-- usb4stream body -->
-      </div>
 
       <p class="tbn-actions">
         <input type="submit" name="#apply" value="Apply">
         <input type="button" value="Done" onclick="done()">
       </p>
       <p class="tbn-muted tbn-apply-caption">
-        Apply = drivers, E2E, USB4STREAM load, OpenFabric policy, fabric reports.
+        Apply = drivers, E2E, USB4STREAM module + saved streams, OpenFabric policy, fabric reports.
         FRR packages → <a href="/Settings/NetworkSettings" onclick="return ibigsGotoNetTab('Fabric Routing', event)">Network Settings → Fabric Routing</a>.
         Per-link IPs → top-level <strong>tbnN</strong> tabs on Network Settings (not nested here).
       </p>

@@ -25,7 +25,7 @@ Full design, pros/cons, cost model, rings, mixed Proxmox/Unraid: [routing-openfa
 |-------|---------|-------|---------|
 | Load modules on Apply | Yes | Host | `modprobe thunderbolt` + `thunderbolt_net` |
 | E2E flow control | No (e2e=0) | **Host / whole module** | See [driver-options.md](driver-options.md) |
-| Enable USB4STREAM | No | Host | Load `thunderbolt_stream` when kernel has it |
+| Enable USB4STREAM | No | Host | Load `thunderbolt_stream` on Apply and recreate saved streams. Create/copy: **Stream** tab — [usb4stream.md](usb4stream.md) |
 
 Not per-tbn: changing E2E affects every Thunderbolt network interface on Unraid.
 
@@ -50,6 +50,23 @@ Full detail: [peers-and-plans.md](peers-and-plans.md).
 **First setup:** Apply on the tbn tab while linked — that fills **Saved**. Matching Current and Saved afterward is normal.
 
 Does **not** register Thunderbolt in stock **Interface Rules** (MAC→name). Host-net MACs are unstable.
+
+---
+
+## Stream tab — USB4STREAM
+
+Raw `/dev/tbstreamN` path. Not tbn IP. Details: [usb4stream.md](usb4stream.md).
+
+| Field / action | Summary |
+|----------------|---------|
+| Enable (Settings) | Load module + recreate `streams.json` on Apply / boot |
+| Peer path | Thunderbolt service id `domain-route.index` (e.g. `0-1.0`), not tbn0 |
+| Stream name | 1–8 characters; same name on both hosts |
+| in_hopid / out_hopid | **−1** = auto. Receiver first |
+| Create stream | ConfigFS mkdir + hopids; save to flash |
+| Tear down selected | rmdir groups; drop saved row |
+| Apply saved streams | Recreate enabled rows now |
+| Copy receive / send | `dd bs=256k` to/from `/dev/tbstreamN`. Files under `/mnt` or `/tmp`. Optional raw `/dev` disk (destructive) |
 
 ---
 

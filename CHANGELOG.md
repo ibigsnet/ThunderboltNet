@@ -6,6 +6,15 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+## 2026.09.09aa
+
+- **USB4STREAM:** Stream tab creates and tears down ConfigFS streams
+  (`/sys/kernel/config/thunderbolt/stream/<path>/<name>`), persists them on flash,
+  recreates on Apply / array start / Thunderbolt hotplug when Enable is Yes, and
+  copies with `dd` to `/dev/tbstreamN` (files under `/mnt` or `/tmp`; optional raw
+  disk). Settings Enable is the load + recreate hook — fields stay if this kernel
+  has no `thunderbolt_stream` yet. CLI: `scripts/tbn-stream`.
+
 ## 2026.09.08ac
 
 - **Forget selected:** Known peers rows actually leave the table. Causes were

@@ -18,6 +18,7 @@ if (is_file(__DIR__ . '/tbn-dhcp.php')) {
 if (is_file(__DIR__ . '/tbn-nat.php')) {
   require_once __DIR__ . '/tbn-nat.php';
 }
+// USB4STREAM configfs / copy (after tbn_cfg_dir exists — required below)
 
 function tbn_cfg_dir() {
   return '/boot/config/plugins/ThunderboltNet';
@@ -25,6 +26,10 @@ function tbn_cfg_dir() {
 
 function tbn_cfg_path() {
   return tbn_cfg_dir() . '/ThunderboltNet.cfg';
+}
+
+if (is_file(__DIR__ . '/tbn-usb4stream.php')) {
+  require_once __DIR__ . '/tbn-usb4stream.php';
 }
 
 /** Unraid csrf_token for lazy-loaded forms (Peers/tbnN are fetched after page-load inject). */
@@ -2420,74 +2425,6 @@ function tbn_modules_loaded() {
 }
 
 /**
- * Whether the running kernel can load USB4STREAM (module present in tree).
- * Module name: thunderbolt_stream / thunderbolt-stream
- * (mainline Linux kernel ~7.2+; not Unraid product 7.2.x).
- */
-function tbn_usb4stream_module_available() {
-  static $cached = null;
-  if ($cached !== null) {
-    return $cached;
-  }
-  $out = [];
-  @exec('modinfo thunderbolt_stream 2>/dev/null', $out, $rc1);
-  if ($rc1 === 0 && $out) {
-    $cached = true;
-    return true;
-  }
-  $out = [];
-  @exec('modinfo thunderbolt-stream 2>/dev/null', $out, $rc2);
-  $cached = ($rc2 === 0 && $out);
-  return $cached;
-}
-
-/**
- * USB4STREAM status for UI / JSON (raw host↔host stream, not IP).
- *
- * Returns: available, loaded, devices[], configfs, note
- */
-function tbn_usb4stream_status() {
-  $mods = tbn_modules_loaded();
-  $available = tbn_usb4stream_module_available();
-  $loaded = !empty($mods['thunderbolt_stream']);
-  $devs = [];
-  foreach (@glob('/dev/tbstream*') ?: [] as $p) {
-    $devs[] = basename($p);
-  }
-  sort($devs);
-  $configfs = is_dir('/sys/kernel/config/thunderbolt/stream')
-    || is_dir('/sys/kernel/config/usb4stream');
-  $kver = trim((string)@shell_exec('uname -r 2>/dev/null'));
-  if ($kver === '') {
-    $kver = php_uname('r');
-  }
-  $note = '';
-  if (!$available) {
-    // Mainline landed stream in Linux kernel ~7.2 — NOT Unraid product 7.2.x
-    $note = 'No thunderbolt_stream in this kernel'
-      . ($kver !== '' ? ' (' . $kver . ')' : '')
-      . '. USB4STREAM needs a kernel build that ships the module (mainline ~7.2+); '
-      . 'Unraid version numbers do not imply it. thunderbolt_net (IP/tbn) still works.';
-  } elseif (!$loaded) {
-    $note = 'Module available but not loaded'
-      . ($kver !== '' ? ' on ' . $kver : '')
-      . '. Enable USB4STREAM under Advanced and Apply, or modprobe thunderbolt-stream.';
-  } elseif (!$devs) {
-    $note = 'Module loaded; no /dev/tbstream* yet — configure stream via configfs when a peer is up (see docs/usb4stream.md).';
-  } else {
-    $note = 'USB4STREAM devices present: ' . implode(', ', $devs);
-  }
-  return [
-    'available' => $available,
-    'loaded' => $loaded,
-    'devices' => $devs,
-    'configfs' => $configfs,
-    'kernel' => $kver,
-    'note' => $note,
-  ];
-}
-
-/**
  * Probe for Thunderbolt-family host controller hardware (Thunderbolt 3/4/5, USB4 host router — not peer cable).
  * Returns keys: has_hardware, sysfs_bus, domain0, pci_lines, modules, reason.
  */
@@ -2955,9 +2892,16 @@ function tbn_load_modules() {
   // Prefer ensure (reload if wrong) over a no-op second modprobe that cannot change e2e
   tbn_ensure_e2e_param($cfg);
   // USB4STREAM — optional raw path; never fails the net stack if missing
-  if (($cfg['enable_usb4stream'] ?? 'no') === 'yes' && tbn_usb4stream_module_available()) {
-    @exec('modprobe thunderbolt_stream 2>/dev/null');
-    @exec('modprobe thunderbolt-stream 2>/dev/null');
+  if (($cfg['enable_usb4stream'] ?? 'no') === 'yes' && function_exists('tbn_usb4stream_module_available') && tbn_usb4stream_module_available()) {
+    if (function_exists('tbn_stream_load_module')) {
+      tbn_stream_load_module();
+    } else {
+      @exec('modprobe thunderbolt_stream 2>/dev/null');
+      @exec('modprobe thunderbolt-stream 2>/dev/null');
+    }
+    if (function_exists('tbn_stream_apply')) {
+      tbn_stream_apply();
+    }
   }
   return tbn_modules_loaded();
 }
@@ -3469,6 +3413,7 @@ function tbn_docs_bar_html($active = 'overview') {
     'requirements' => ['docs/requirements.md', 'Requirements'],
     'topology' => ['docs/links-and-topology.md', 'Links & topology'],
     'routing' => ['docs/routing-openfabric.md', 'OpenFabric / FRR'],
+    'stream' => ['docs/usb4stream.md', 'USB4STREAM'],
     'troubleshoot' => ['docs/troubleshooting.md', 'Troubleshooting'],
     'safemode' => ['docs/safe-mode-recovery.md', 'Safe Mode / offline'],
   ];

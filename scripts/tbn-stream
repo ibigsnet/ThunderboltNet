@@ -1,0 +1,79 @@
+#!/bin/bash
+# USB4STREAM CLI — status / create / destroy / apply / copy
+# Safe for SSH on Unraid.
+set -u
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:${PATH:-}"
+PHP="${PHP:-}"
+if [ -z "$PHP" ]; then
+  for c in /usr/bin/php /usr/local/bin/php php; do
+    if command -v "$c" >/dev/null 2>&1 || [ -x "$c" ]; then
+      PHP="$c"
+      break
+    fi
+  done
+fi
+LIB=/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php
+STREAM=/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-usb4stream.php
+if [ -z "${PHP:-}" ] || [ ! -f "$LIB" ]; then
+  echo "tbn-stream: php or plugin lib missing" >&2
+  exit 1
+fi
+
+cmd="${1:-status}"
+shift || true
+
+case "$cmd" in
+  status|json)
+    exec "$PHP" -r '
+      require_once "'"$LIB"'";
+      require_once "'"$STREAM"'";
+      echo json_encode(tbn_usb4stream_status(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), "\n";
+    '
+    ;;
+  create)
+    path="${1:-}"; name="${2:-}"; inh="${3:--1}"; outh="${4:--1}"
+    exec "$PHP" -r '
+      require_once "'"$LIB"'";
+      require_once "'"$STREAM"'";
+      $r = tbn_stream_create($argv[1], $argv[2], (int)$argv[3], (int)$argv[4], true);
+      echo json_encode($r, JSON_UNESCAPED_SLASHES), "\n";
+      exit(empty($r["ok"]) ? 1 : 0);
+    ' "$path" "$name" "$inh" "$outh"
+    ;;
+  destroy|rm)
+    path="${1:-}"; name="${2:-}"
+    exec "$PHP" -r '
+      require_once "'"$LIB"'";
+      require_once "'"$STREAM"'";
+      $r = tbn_stream_destroy($argv[1], $argv[2], true);
+      echo json_encode($r, JSON_UNESCAPED_SLASHES), "\n";
+      exit(empty($r["ok"]) ? 1 : 0);
+    ' "$path" "$name"
+    ;;
+  apply)
+    exec "$PHP" -r '
+      require_once "'"$LIB"'";
+      require_once "'"$STREAM"'";
+      $r = tbn_stream_apply(true);
+      echo json_encode($r, JSON_UNESCAPED_SLASHES), "\n";
+      exit(empty($r["ok"]) ? 1 : 0);
+    '
+    ;;
+  copy)
+    dirn="${1:-}"; dev="${2:-}"; file="${3:-}"; raw="${4:-no}"
+    exec "$PHP" -r '
+      require_once "'"$LIB"'";
+      require_once "'"$STREAM"'";
+      $raw = ($argv[4] === "yes" || $argv[4] === "1");
+      $plan = tbn_stream_copy_cmd($argv[1], $argv[2], $argv[3], $raw, true);
+      if (empty($plan["ok"])) { fwrite(STDERR, ($plan["error"] ?? "copy") . "\n"); exit(1); }
+      fwrite(STDERR, $plan["cmd"] . "\n");
+      passthru($plan["cmd"], $rc);
+      exit($rc);
+    ' "$dirn" "$dev" "$file" "$raw"
+    ;;
+  *)
+    echo "Usage: tbn-stream status|create PATH NAME [in out]|destroy PATH NAME|apply|copy send|receive DEV FILE [yes=raw]" >&2
+    exit 2
+    ;;
+esac
