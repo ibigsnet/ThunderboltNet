@@ -32,6 +32,16 @@ function tbn_stream_configfs_root() {
   return tbn_stream_configfs_roots()[0];
 }
 
+/** Live ConfigFS dir, or empty if none mounted. */
+function tbn_stream_configfs_live_root() {
+  foreach (tbn_stream_configfs_roots() as $r) {
+    if (is_dir($r)) {
+      return $r;
+    }
+  }
+  return '';
+}
+
 function tbn_stream_lab_ko_paths() {
   $kver = trim((string)@shell_exec('uname -r 2>/dev/null'));
   $paths = [];
@@ -447,13 +457,10 @@ function tbn_usb4stream_status() {
   }
   sort($devs);
   tbn_stream_ensure_configfs_mount();
-  $configfs = false;
-  foreach (tbn_stream_configfs_roots() as $r) {
-    if (is_dir($r)) {
-      $configfs = true;
-      break;
-    }
-  }
+  $configfs_root = function_exists('tbn_stream_configfs_live_root')
+    ? tbn_stream_configfs_live_root()
+    : '';
+  $configfs = ($configfs_root !== '');
   $kver = trim((string)@shell_exec('uname -r 2>/dev/null'));
   if ($kver === '') {
     $kver = php_uname('r');
@@ -481,6 +488,7 @@ function tbn_usb4stream_status() {
     'loaded' => $loaded,
     'devices' => $devs,
     'configfs' => $configfs,
+    'configfs_root' => $configfs_root,
     'kernel' => $kver,
     'note' => $note,
     'live' => $live,

@@ -6,6 +6,11 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+## 2026.09.09ac
+
+- **USB4STREAM:** Stream tab ConfigFS row shows the live root (lab module
+  registers <code>/sys/kernel/config/thunderbolt/stream</code>).
+
 ## 2026.09.09ab
 
 - **USB4STREAM:** Stream tab also uses ConfigFS `/sys/kernel/config/usb4stream`

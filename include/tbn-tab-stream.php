@@ -37,7 +37,9 @@ $enable = ($cfg['enable_usb4stream'] ?? 'no') === 'yes';
       </tr>
       <tr>
         <td>ConfigFS</td>
-        <td><code><?= !empty($st['configfs']) ? '/sys/kernel/config/thunderbolt/stream' : '(not present)' ?></code></td>
+        <td><code><?= htmlspecialchars(($st['configfs_root'] ?? '') !== ''
+          ? $st['configfs_root']
+          : (!empty($st['configfs']) ? tbn_stream_configfs_root() : '(not present)')) ?></code></td>
       </tr>
       <tr>
         <td>Devices</td>
