@@ -43,7 +43,7 @@ Stock Unraid 6.18.x has `CONFIG_USB4=m` and `thunderbolt.ko` exports for rings /
 - ConfigFS: `/sys/kernel/config/thunderbolt/stream/` (lab module registers that nested path; plugin also accepts `/sys/kernel/config/usb4stream` if present)
 - `modprobe thunderbolt_stream` after `depmod`; Stream tab Create is then not “not in this kernel”
 
-Build/load recipe is lab-local (not in the CA plugin payload). Two hosts need the module for a useful `/dev/tbstreamN` copy. HopID **-1** on 6.18 lab modules uses a name-hash (no Linux 7.2 XDomain nested properties).
+Build/load recipe is lab-local (not in the CA plugin payload). Two hosts need the module for a useful `/dev/tbstreamN` copy. HopID **-1** stays **-1** until a peer XDomain exists, then a name-hash in **[8, max hopid]** (default 15) with UUID order so the two hosts swap in/out.
 
 ---
 
