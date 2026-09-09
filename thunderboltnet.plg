@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.09.09aa">
+<!ENTITY version "2026.09.09ab">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/testing/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -25,7 +25,7 @@
 
 <CHANGES>
 ###&version;
-- USB4STREAM Stream tab: create/tear down ConfigFS streams, persist, copy helper.
+- USB4STREAM Stream tab (create/copy) plus lab extra/ module and usb4stream ConfigFS.
 
 ###2026.09.08aa–ac
 - Forget selected (csrf); mesh beacon Thunderbolt IPs; overlay install.
@@ -278,13 +278,13 @@ echo "ThunderboltNet: ready."
 </FILE>
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-usb4stream.php">
 <URL>&raw;/include/tbn-usb4stream.php?v=&version;</URL>
-<SHA256>e15033c2026f1bb04010ed0b88d9b82f1d6dc1976d2f4106b9c2643455671bb1</SHA256>
-<MD5>4f81f25996af72c16a60130906c34843</MD5>
+<SHA256>73b63d843ef6d4bb4d4ac35863dd89efca394abd0d867c47121ec2cd90ff974d</SHA256>
+<MD5>ebbb0542e859f8e298cb0332a47963e1</MD5>
 </FILE>
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-stream">
 <URL>&raw;/scripts/tbn-stream?v=&version;</URL>
-<SHA256>feb56b77756ec35345f54baf7400268888199a9cf7aa95af8553def0f2d16b2e</SHA256>
-<MD5>f12b3115429c7cd20e26869977d69699</MD5>
+<SHA256>6c61e00ffafc44cc9f88eeedcf5da956cbaf30a574a6d77bdfb4cf16e83880b2</SHA256>
+<MD5>dcf92e6c20d4feb41b2c3e50e169460e</MD5>
 </FILE>
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-stream-reapply">
 <URL>&raw;/scripts/tbn-stream-reapply?v=&version;</URL>

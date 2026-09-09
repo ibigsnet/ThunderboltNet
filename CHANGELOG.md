@@ -6,6 +6,12 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+## 2026.09.09ab
+
+- **USB4STREAM:** Stream tab also uses ConfigFS `/sys/kernel/config/usb4stream`
+  (lab 6.18 out-of-tree module). Load `thunderbolt_stream` from `extra/` or
+  flash `lab/` via insmod when stock `modprobe` has no module. `tbn-stream selftest`.
+
 ## 2026.09.09aa
 
 - **USB4STREAM:** Stream tab creates and tears down ConfigFS streams

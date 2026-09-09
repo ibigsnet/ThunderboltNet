@@ -16,8 +16,30 @@ function tbn_stream_cfg_path() {
   return tbn_cfg_dir() . '/streams.json';
 }
 
+function tbn_stream_configfs_roots() {
+  return [
+    '/sys/kernel/config/thunderbolt/stream',
+    '/sys/kernel/config/usb4stream',
+  ];
+}
+
 function tbn_stream_configfs_root() {
-  return '/sys/kernel/config/thunderbolt/stream';
+  foreach (tbn_stream_configfs_roots() as $r) {
+    if (is_dir($r)) {
+      return $r;
+    }
+  }
+  return tbn_stream_configfs_roots()[0];
+}
+
+function tbn_stream_lab_ko_paths() {
+  $kver = trim((string)@shell_exec('uname -r 2>/dev/null'));
+  $paths = [];
+  if ($kver !== '') {
+    $paths[] = '/lib/modules/' . $kver . '/extra/thunderbolt_stream.ko';
+  }
+  $paths[] = tbn_cfg_dir() . '/lab/thunderbolt_stream.ko';
+  return $paths;
 }
 
 function tbn_stream_name_ok($name) {
@@ -56,7 +78,17 @@ function tbn_usb4stream_module_available($refresh = false) {
   }
   $out = [];
   @exec('modinfo thunderbolt-stream 2>/dev/null', $out, $rc2);
-  $cached = ($rc2 === 0 && $out);
+  if ($rc2 === 0 && $out) {
+    $cached = true;
+    return true;
+  }
+  foreach (tbn_stream_lab_ko_paths() as $p) {
+    if (is_file($p)) {
+      $cached = true;
+      return true;
+    }
+  }
+  $cached = false;
   return $cached;
 }
 
@@ -84,22 +116,36 @@ function tbn_stream_load_module() {
   @exec('modprobe thunderbolt_stream 2>/dev/null', $o1, $rc1);
   if ($rc1 !== 0) {
     @exec('modprobe thunderbolt-stream 2>/dev/null', $o2, $rc2);
-    if ($rc2 !== 0) {
-      return ['ok' => false, 'error' => 'modprobe thunderbolt_stream failed'];
+    $rc1 = $rc2;
+  }
+  if ($rc1 !== 0) {
+    $ins = 1;
+    foreach (tbn_stream_lab_ko_paths() as $p) {
+      if (!is_file($p)) {
+        continue;
+      }
+      @exec('insmod ' . escapeshellarg($p) . ' 2>/dev/null', $o3, $ins);
+      if ($ins === 0) {
+        break;
+      }
+    }
+    if ($ins !== 0) {
+      return ['ok' => false, 'error' => 'modprobe/insmod thunderbolt_stream failed'];
     }
   }
   tbn_usb4stream_module_available(true);
   tbn_stream_ensure_configfs_mount();
-  $root = tbn_stream_configfs_root();
   for ($i = 0; $i < 40; $i++) {
-    if (is_dir($root)) {
-      return ['ok' => true];
+    foreach (tbn_stream_configfs_roots() as $r) {
+      if (is_dir($r)) {
+        return ['ok' => true, 'configfs' => $r];
+      }
     }
     usleep(50000);
   }
   return [
-    'ok' => is_dir($root),
-    'error' => is_dir($root) ? '' : 'configfs thunderbolt/stream did not appear after modprobe',
+    'ok' => false,
+    'error' => 'configfs usb4stream/thunderbolt/stream did not appear after load',
   ];
 }
 
@@ -401,7 +447,13 @@ function tbn_usb4stream_status() {
   }
   sort($devs);
   tbn_stream_ensure_configfs_mount();
-  $configfs = is_dir(tbn_stream_configfs_root());
+  $configfs = false;
+  foreach (tbn_stream_configfs_roots() as $r) {
+    if (is_dir($r)) {
+      $configfs = true;
+      break;
+    }
+  }
   $kver = trim((string)@shell_exec('uname -r 2>/dev/null'));
   if ($kver === '') {
     $kver = php_uname('r');

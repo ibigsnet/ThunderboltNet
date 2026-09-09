@@ -23,6 +23,22 @@ cmd="${1:-status}"
 shift || true
 
 case "$cmd" in
+  selftest)
+    exec "$PHP" -r '
+      require_once "'"$LIB"'";
+      require_once "'"$STREAM"'";
+      $roots = tbn_stream_configfs_roots();
+      $lab = tbn_stream_lab_ko_paths();
+      echo json_encode([
+        "ok" => true,
+        "configfs_roots" => $roots,
+        "lab_ko_paths" => $lab,
+        "available" => tbn_usb4stream_module_available(true),
+      ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), "\n";
+      if (!in_array("/sys/kernel/config/usb4stream", $roots, true)) { exit(1); }
+      if (!in_array("/sys/kernel/config/thunderbolt/stream", $roots, true)) { exit(1); }
+    '
+    ;;
   status|json)
     exec "$PHP" -r '
       require_once "'"$LIB"'";

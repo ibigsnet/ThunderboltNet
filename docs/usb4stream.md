@@ -32,7 +32,18 @@ uname -r
 modinfo thunderbolt_stream
 ```
 
-If `modinfo` errors “not found”, this Unraid build does not have USB4STREAM yet. Stream tab settings stay; Create reports that until Lime ships the module (or a lab kernel includes it).
+If `modinfo` errors “not found”, this Unraid build does not have USB4STREAM yet. Stream tab settings stay; Create reports that until Lime ships the module **or** a matching lab `thunderbolt_stream.ko` is loaded (see Lab module below).
+
+### Lab module (Unraid 6.18.x)
+
+Stock Unraid 6.18.x has `CONFIG_USB4=m` and `thunderbolt.ko` exports for rings / XDomain HopIDs, but **not** `CONFIG_USB4_STREAM` / `tb_configfs_register_group`. A lab out-of-tree module can load **beside** `thunderbolt_net` (it does not replace `thunderbolt.ko`):
+
+- File: `/lib/modules/$(uname -r)/extra/thunderbolt_stream.ko` or `/boot/config/plugins/ThunderboltNet/lab/thunderbolt_stream.ko`
+- Vermagic must match `uname -r` (example: `6.18.38-Unraid SMP preempt mod_unload`)
+- ConfigFS: `/sys/kernel/config/usb4stream/` (plugin accepts this as well as `/sys/kernel/config/thunderbolt/stream`)
+- `modprobe thunderbolt_stream` after `depmod`; Stream tab Create is then not “not in this kernel”
+
+Build/load recipe is lab-local (not in the CA plugin payload). Two hosts need the module for a useful `/dev/tbstreamN` copy. HopID **-1** on 6.18 lab modules uses a name-hash (no Linux 7.2 XDomain nested properties).
 
 ---
 
