@@ -6,6 +6,11 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+## 2026.09.13aa
+
+- **DHCP:** stop `pkill` quotes the dnsmasq conf filename (dots are not regex
+  wildcards).
+
 ## 2026.09.09ac
 
 - **USB4STREAM:** Stream tab ConfigFS row shows the live root (lab module

@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.09.09ac">
+<!ENTITY version "2026.09.13aa">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/testing/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -25,7 +25,10 @@
 
 <CHANGES>
 ###&version;
-- USB4STREAM Stream tab shows live ConfigFS root (thunderbolt/stream).
+- DHCP stop pkill quotes the conf name.
+
+###2026.09.09aa–ac
+- USB4STREAM Stream tab (create/copy, lab extra/ module, live ConfigFS root).
 
 ###2026.09.08aa–ac
 - Forget selected (csrf); mesh beacon Thunderbolt IPs; overlay install.
@@ -41,9 +44,6 @@
 
 ###2026.08.25aa
 - Hotplug DHCP stop; unknown peer defaults; tbn-last-good.
-
-###2026.08.17
-- OpenFabric companion path; USB4STREAM detect (module load).
 
 ### Older releases
 - Full changelog: https://github.com/ibigsnet/ThunderboltNet/blob/main/CHANGELOG.md
@@ -118,8 +118,8 @@ echo "ThunderboltNet: ready."
 </FILE>
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-dhcp.php">
 <URL>&raw;/include/tbn-dhcp.php?v=&version;</URL>
-<SHA256>33b92f70a8c2f647aa35931648751088a3316f84b1fff66cc9992b34a647e45f</SHA256>
-<MD5>89123c61e2dc7d3ebb7822a3a0709fbb</MD5>
+<SHA256>53f2de6e3bd49fa01e9ccb33f59157cf1ffda313c45bfa8b153c46e26177da17</SHA256>
+<MD5>958ab2b613a2dfcdf802ed984293d648</MD5>
 </FILE>
 <FILE Name="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-iface-page.php">
 <URL>&raw;/include/tbn-iface-page.php?v=&version;</URL>
