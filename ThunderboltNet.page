@@ -20,7 +20,7 @@ require_once '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-page-boot.php
 $tab = 'status';
 if (!empty($_GET['tbn_tab'])) {
   $cand = preg_replace('/[^a-z]/', '', strtolower((string)$_GET['tbn_tab']));
-  if (in_array($cand, ['status', 'peers', 'hardware', 'settings'], true)) {
+  if (in_array($cand, ['status', 'peers', 'hardware', 'settings', 'stream'], true)) {
     $tab = $cand;
   }
 }
@@ -88,6 +88,8 @@ if (!empty($_GET['tbn_tab'])) {
       class="<?= $tab === 'hardware' ? 'is-active' : '' ?>">Hardware</button>
     <button type="button" id="tbn-tab-btn-settings" data-tbn-tab="settings"
       class="<?= $tab === 'settings' ? 'is-active' : '' ?>">Settings</button>
+    <button type="button" id="tbn-tab-btn-stream" data-tbn-tab="stream"
+      class="<?= $tab === 'stream' ? 'is-active' : '' ?>">Stream</button>
   </div>
 
   <div id="tbn-panel-status" class="tbn-tab-panel" data-tbn-panel="status" data-tbn-lazy-panel="status"
@@ -110,6 +112,11 @@ if (!empty($_GET['tbn_tab'])) {
     <p class="tbn-muted tbn-lazy-placeholder">Loading Settings…</p>
   </div>
 
+  <div id="tbn-panel-stream" class="tbn-tab-panel" data-tbn-panel="stream" data-tbn-lazy-panel="stream"
+    <?= $tab === 'stream' ? '' : 'hidden' ?>>
+    <p class="tbn-muted tbn-lazy-placeholder">Loading Stream…</p>
+  </div>
+
 </div>
 <script src="/plugins/ThunderboltNet/thunderboltnet.js?v=<?= htmlspecialchars($ver) ?>"></script>
 <script>
@@ -128,7 +135,8 @@ if (!empty($_GET['tbn_tab'])) {
       status: root.querySelector('[data-tbn-panel="status"]'),
       peers: root.querySelector('[data-tbn-panel="peers"]'),
       hardware: root.querySelector('[data-tbn-panel="hardware"]'),
-      settings: root.querySelector('[data-tbn-panel="settings"]')
+      settings: root.querySelector('[data-tbn-panel="settings"]'),
+      stream: root.querySelector('[data-tbn-panel="stream"]')
     };
     if (!panels[name]) name = 'status';
     tabs.forEach(function (btn) {

@@ -164,7 +164,7 @@
         <?= function_exists('tbn_companion_install_html')
           ? tbn_companion_install_html(
               'Fabric Routing',
-              $fabricrouting['install_url'] ?? 'https://raw.githubusercontent.com/ibigsnet/FabricRouting/stable/fabricrouting.plg',
+              $fabricrouting['install_url'] ?? 'https://raw.githubusercontent.com/ibigsnet/FabricRouting/main/fabricrouting.plg',
               'Fabric Routing'
             )
           : '' ?>
@@ -181,22 +181,27 @@
         <?= function_exists('tbn_companion_install_html')
           ? tbn_companion_install_html(
               'NBD Export',
-              'https://raw.githubusercontent.com/ibigsnet/NBDExport/stable/nbd.plg',
+              'https://raw.githubusercontent.com/ibigsnet/NBDExport/main/nbd.plg',
               'NBD Export'
             )
           : '' ?>
 <?php endif; ?>
       </div>
-      <div id="tbn-companion-usb4stream" class="tbn-companion-card tbn-companion-muted">
-        <div class="tbn-companion-title">USB4STREAM (kernel)</div>
+      <div id="tbn-companion-usb4stream" class="tbn-companion-card<?= !empty($usb4stream['devices']) ? ' tbn-companion-ok' : ' tbn-companion-muted' ?>">
+        <div class="tbn-companion-title">USB4STREAM (raw path)</div>
         <p class="tbn-muted">
 <?php if (!empty($usb4stream['devices'])): ?>
-          Devices: <code><?= htmlspecialchars(implode(' ', $usb4stream['devices'])) ?></code>
+          <span class="tbn-companion-status tbn-status-ok">Live</span>
+          <code><?= htmlspecialchars(implode(' ', $usb4stream['devices'])) ?></code>
+          — <a href="#" onclick="if (window.tbnActivateInnerTab) { window.tbnActivateInnerTab('stream'); } return false;">Stream tab</a>
 <?php elseif ($stream_ready): ?>
-          Module available — enable under Thunderbolt → Settings.
+          Module available.
+          Enable under Settings, then create streams on the
+          <a href="#" onclick="if (window.tbnActivateInnerTab) { window.tbnActivateInnerTab('stream'); } return false;">Stream tab</a>.
 <?php else: ?>
-          Not in this kernel<?= !empty($usb4stream['kernel']) ? ' (<code>' . htmlspecialchars($usb4stream['kernel']) . '</code>)' : '' ?>.
-          Needs a kernel with <code>thunderbolt_stream</code> — not Fabric Routing.
+          Module not in this kernel<?= !empty($usb4stream['kernel']) ? ' (<code>' . htmlspecialchars($usb4stream['kernel']) . '</code>)' : '' ?>.
+          Stream tab still has create / copy; it runs when <code>thunderbolt_stream</code> is present.
+          <a href="#" onclick="if (window.tbnActivateInnerTab) { window.tbnActivateInnerTab('stream'); } return false;">Stream tab</a>
 <?php endif; ?>
         </p>
       </div>

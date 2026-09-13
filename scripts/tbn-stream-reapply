@@ -1,0 +1,34 @@
+#!/bin/bash
+# Recreate saved USB4STREAM ConfigFS groups after module load / Thunderbolt hotplug.
+# Quiet; logs to syslog. flock so udev add storms do not overlap.
+set -u
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:${PATH:-}"
+LOCK=/var/run/tbn-stream-reapply.lock
+PHP=""
+for c in /usr/bin/php /usr/local/bin/php php; do
+  if command -v "$c" >/dev/null 2>&1 || [ -x "$c" ]; then
+    PHP="$c"
+    break
+  fi
+done
+LIB=/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php
+if [ -z "$PHP" ] || [ ! -f "$LIB" ]; then
+  exit 0
+fi
+mkdir -p /var/run 2>/dev/null || true
+exec 9>"$LOCK" 2>/dev/null || exit 0
+flock -n 9 || exit 0
+OUT=$("$PHP" -r '
+  require_once "'"$LIB"'";
+  if (!function_exists("tbn_stream_apply")) { echo json_encode(["ok"=>true,"skipped"=>true]); exit; }
+  $cfg = tbn_load_cfg();
+  if (($cfg["enable_usb4stream"] ?? "no") !== "yes" && !tbn_stream_load_saved()) {
+    echo json_encode(["ok"=>true,"skipped"=>true]);
+    exit;
+  }
+  echo json_encode(tbn_stream_apply());
+' 2>/dev/null) || true
+if [ -n "${OUT:-}" ]; then
+  logger -t ThunderboltNet "tbn-stream-reapply: $OUT"
+fi
+exit 0

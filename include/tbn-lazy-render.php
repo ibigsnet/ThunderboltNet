@@ -67,6 +67,7 @@ $map = [
   'peers' => 'tbn-tab-peers.php',
   'hardware' => 'tbn-tab-hardware.php',
   'settings' => 'tbn-tab-settings.php',
+  'stream' => 'tbn-tab-stream.php',
 ];
 if ($panel === '' || !isset($map[$panel])) {
   http_response_code(400);

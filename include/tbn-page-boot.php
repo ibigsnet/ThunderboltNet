@@ -76,7 +76,7 @@ function tbn_page_boot_full() {
   $fabricrouting = function_exists('tbn_of_fabricrouting_companion') ? tbn_of_fabricrouting_companion() : [];
   $nbd_present = function_exists('tbn_nbdexport_present') && tbn_nbdexport_present();
   $of_expand_default = $frr_present && ($of_mode === 'openfabric-ready' || $of_mode === 'openfabric-running');
-  $stream_expand_default = $stream_ready;
+  $stream_expand_default = true;
   $peer_count = 0;
   foreach ($devices as $d) {
     if (preg_match('/^\d+-\d+$/', $d['id']) && $d['id'] !== '0-0' && ($d['device_name'] !== '' || $d['rx_speed'] !== '')) {

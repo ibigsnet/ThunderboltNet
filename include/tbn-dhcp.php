@@ -419,7 +419,7 @@ function tbn_dhcp_server_stop($netdev) {
   // Fallback: match our conf path
   $conf = tbn_dhcp_conf_path($netdev);
   if ($conf !== '' && is_file($conf)) {
-    @exec('pkill -f ' . escapeshellarg('dnsmasq.*' . basename($conf)) . ' 2>/dev/null || true');
+    @exec('pkill -f ' . escapeshellarg('dnsmasq.*' . preg_quote(basename($conf), '/')) . ' 2>/dev/null || true');
   }
 }
 

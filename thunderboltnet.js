@@ -1280,7 +1280,7 @@
   }
 
   /** Overview subtab order for background preload after the active panel. */
-  var TBN_OVERVIEW_PANELS = ['status', 'peers', 'hardware', 'settings'];
+  var TBN_OVERVIEW_PANELS = ['status', 'peers', 'hardware', 'settings', 'stream'];
   var tbnOverviewPreloadBusy = false;
 
   /**

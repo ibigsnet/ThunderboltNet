@@ -4,3 +4,5 @@
 # Invoke via bash: Unraid flash is often FAT32 (no execute bit on scripts).
 ACTION=="add", SUBSYSTEM=="net", KERNEL=="thunderbolt*", RUN+="/bin/bash /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-net-reapply %k"
 ACTION=="remove", SUBSYSTEM=="net", KERNEL=="thunderbolt*", RUN+="/bin/bash /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-net-reapply --remove %k"
+# USB4STREAM saved groups: recreate when a Thunderbolt device appears (module + Enable).
+ACTION=="add", SUBSYSTEM=="thunderbolt", RUN+="/bin/bash /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-stream-reapply"

@@ -6,6 +6,31 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+## 2026.09.13aa
+
+- **DHCP:** stop `pkill` quotes the dnsmasq conf filename (dots are not regex
+  wildcards).
+
+## 2026.09.09ac
+
+- **USB4STREAM:** Stream tab ConfigFS row shows the live root (lab module
+  registers <code>/sys/kernel/config/thunderbolt/stream</code>).
+
+## 2026.09.09ab
+
+- **USB4STREAM:** Stream tab also uses ConfigFS `/sys/kernel/config/usb4stream`
+  (lab 6.18 out-of-tree module). Load `thunderbolt_stream` from `extra/` or
+  flash `lab/` via insmod when stock `modprobe` has no module. `tbn-stream selftest`.
+
+## 2026.09.09aa
+
+- **USB4STREAM:** Stream tab creates and tears down ConfigFS streams
+  (`/sys/kernel/config/thunderbolt/stream/<path>/<name>`), persists them on flash,
+  recreates on Apply / array start / Thunderbolt hotplug when Enable is Yes, and
+  copies with `dd` to `/dev/tbstreamN` (files under `/mnt` or `/tmp`; optional raw
+  disk). Settings Enable is the load + recreate hook — fields stay if this kernel
+  has no `thunderbolt_stream` yet. CLI: `scripts/tbn-stream`.
+
 ## 2026.09.08ac
 
 - **Forget selected:** Known peers rows actually leave the table. Causes were

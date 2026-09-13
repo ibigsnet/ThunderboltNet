@@ -24,7 +24,7 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
 $out = ['ok' => false, 'action' => $action];
 
 // Mutations require POST (Unraid csrf). CLI unchanged.
-$read_only = ['status', 'openfabric_status', 'openfabric_preview'];
+$read_only = ['status', 'openfabric_status', 'openfabric_preview', 'stream_status'];
 if (PHP_SAPI !== 'cli' && $action !== '' && !in_array($action, $read_only, true)
     && ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
   http_response_code(405);
@@ -77,6 +77,19 @@ switch ($action) {
       $out['ok'] = true;
     } else {
       $out['error'] = 'openfabric module missing';
+    }
+    break;
+
+  case 'stream_status':
+    $out['usb4stream'] = function_exists('tbn_usb4stream_status') ? tbn_usb4stream_status() : [];
+    $out['ok'] = true;
+    break;
+
+  case 'stream_apply':
+    if (function_exists('tbn_stream_apply')) {
+      $out = array_merge($out, tbn_stream_apply(true));
+    } else {
+      $out['error'] = 'usb4stream module missing';
     }
     break;
 
