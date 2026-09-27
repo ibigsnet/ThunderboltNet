@@ -6,6 +6,12 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+## 2026.09.27aa
+
+- **Install:** one Slackware `.txz` per version, saved on the flash drive from the
+  GitHub Release (`v2026.09.27aa`). Boot no longer re-downloads plugin files from
+  live `main`. FRR/lab extra modules are unchanged.
+
 ## 2026.09.13aa
 
 - **DHCP:** stop `pkill` quotes the dnsmasq conf filename (dots are not regex
