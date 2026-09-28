@@ -1,0 +1,156 @@
+#!/bin/bash
+# Undo the old Dashboard port patch (plugin versions up to 2026.09.28aa).
+#
+# Older versions edited two stock dynamix files:
+#   plugins/dynamix/nchan/update_3
+#   plugins/dynamix/DashStats.page
+# The plugin now has its own Dashboard tile and never edits these files.
+#
+# Runs on install/upgrade and on remove. For each file:
+#   - no ThunderboltNet marker  -> leave it alone (stock, or Unraid replaced it)
+#   - marker present            -> strip our edits in place; use the flash backup
+#                                  only if it matches the stripped file or the
+#                                  in-place strip left a marker behind
+# Content is written back into the same file (mode kept); update_3 stays +x.
+# Then the old backup directory is deleted.
+#
+# Usage: tbn-dashboard-restore [restore|status]
+# No python3 required (Unraid stock often lacks it).
+
+set -uo pipefail
+
+MARKER='ThunderboltNet-dashboard-ports'
+UPDATE3="${TBN_UPDATE3:-/usr/local/emhttp/plugins/dynamix/nchan/update_3}"
+DASH="${TBN_DASH:-/usr/local/emhttp/plugins/dynamix/DashStats.page}"
+BACKUP_DIR="${TBN_DASH_BACKUP:-/boot/config/plugins/ThunderboltNet/dashboard-ports-backup}"
+
+# Literal substrings as they appear in LimeTech files
+STOCK="grep -Po '^(bond|eth|wlan)\\d+$'"
+PATCHED="grep -Po '^(bond|eth|wlan|thunderbolt)\\d+$|^(bond-tb|br-tb)\\d+$' # ${MARKER}"
+
+# DashStats only: show tbnN instead of thunderboltN (value stays kernel name for stats)
+# Single-line inject — replace_first matches one physical line.
+LABEL_MARKER='ThunderboltNet-dashboard-labels'
+LABEL_FN_STOCK="\$ports[] = 'lo';"
+LABEL_FN_PATCHED="\$ports[] = 'lo'; if (!function_exists('tbn_dash_port_label')) { function tbn_dash_port_label(\$p) { return preg_match('/^thunderbolt(\\d+)\$/', \$p, \$m) ? ('tbn'.\$m[1]) : \$p; } } # ${LABEL_MARKER}"
+LABEL_OPT_STOCK='<?=mk_option("",$port,_($port))?>'
+LABEL_OPT_PATCHED='<?=mk_option("",$port,_(tbn_dash_port_label($port)))?>'
+LABEL_SPAN_STOCK="<span class='w26'>\$port</span>"
+LABEL_SPAN_PATCHED="<span class='w26'>\".tbn_dash_port_label(\$port).\"</span>"
+
+# update_3 default: — thunderbolt_net has empty netdev speed; use TB sysfs rx/tx.
+TBMODE_MARKER='ThunderboltNet-dashboard-tbmode'
+TBMODE_STOCK='    default:'
+# shellcheck disable=SC2016
+TBMODE_PATCHED='    default: if (strpos($port,"thunderbolt")===0) { if (!$link) { $echo["mode"][]=_("interface down"); break; } $tbn_rx=$tbn_tx=""; $tbn_dev=@realpath("$net/$port/device"); if ($tbn_dev) { foreach (array(dirname($tbn_dev),dirname(dirname($tbn_dev))) as $tbn_c) { $tbn_s=@file_get_contents($tbn_c."/rx_speed"); if ($tbn_s!==false && trim($tbn_s)!=="") { $tbn_rx=trim($tbn_s); $tbn_tx=trim((string)@file_get_contents($tbn_c."/tx_speed")); break; } } } $tbn_fn=function($s){ $s=trim((string)$s); if ($s===""||$s==="0") return array(0,""); if (!preg_match("/([\d.]+)/",$s,$m)) return array(0,""); $n=(float)$m[1]; if ((stripos($s,"mb")!==false && stripos($s,"gb")===false) || ($n>500 && stripos($s,"gb")===false)) $n=$n/1000.0; $lab=(abs($n-round($n))<0.05)?(string)intval(round($n)):rtrim(rtrim(sprintf("%.1f",$n),"0"),"."); return array($n,$lab." Gbps"); }; $tbn_rp=$tbn_fn($tbn_rx); $tbn_tp=$tbn_fn($tbn_tx); if ($tbn_rp[1]!=="" && $tbn_tp[1]!=="" && $tbn_rp[0]>0 && $tbn_tp[0]>0 && abs($tbn_rp[0]-$tbn_tp[0])<0.05) { $echo["mode"][]=$tbn_rp[1].", full duplex, mtu ".$mtu; } elseif ($tbn_rp[1]!=="" && $tbn_tp[1]!=="") { $echo["mode"][]=_("Rx").": ".$tbn_rp[1].", "._("Tx").": ".$tbn_tp[1].", mtu ".$mtu; } elseif ($tbn_rp[1]!=="" || $tbn_tp[1]!=="") { $echo["mode"][]=($tbn_rp[1]!==""?_("Rx").": ".$tbn_rp[1]:_("Tx").": ".$tbn_tp[1]).", mtu ".$mtu; } else { $echo["mode"][]="---, mtu ".$mtu; } break; } # ThunderboltNet-dashboard-tbmode'
+
+
+ANY_MARKER='ThunderboltNet-dashboard'
+UPDATE3_CHANGED=0
+
+log() {
+  logger -t ThunderboltNet "dashboard-restore: $*" 2>/dev/null || true
+  if [ -t 1 ]; then
+    echo "ThunderboltNet dashboard-restore: $*"
+  fi
+}
+
+# Keep update_3 executable (nchan worker) and DashStats.page readable.
+fix_mode() {
+  local f="$1" mode="$2"
+  chmod "$mode" "$f" 2>/dev/null || true
+  if [ "$(basename "$f")" = "update_3" ] && [ ! -x "$f" ]; then
+    chmod 755 "$f" 2>/dev/null || true
+  fi
+}
+
+# Print file content with every ThunderboltNet edit reversed.
+stripped_content() {
+  local f="$1" c
+  c=$(cat "$f"; printf x)
+  c=${c%x}
+  c=${c//"$PATCHED"/"$STOCK"}
+  c=${c//"$LABEL_FN_PATCHED"/"$LABEL_FN_STOCK"}
+  c=${c//"$LABEL_OPT_PATCHED"/"$LABEL_OPT_STOCK"}
+  c=${c//"$LABEL_SPAN_PATCHED"/"$LABEL_SPAN_STOCK"}
+  c=${c//"$TBMODE_PATCHED"/"$TBMODE_STOCK"}
+  printf '%s' "$c"
+}
+
+restore_file() {
+  local f="$1" base backup mode tmp src=""
+  [ -f "$f" ] || return 0
+  if ! grep -qF "$ANY_MARKER" "$f" 2>/dev/null; then
+    log "not patched, left alone: $f"
+    return 0
+  fi
+  base=$(basename "$f")
+  backup="$BACKUP_DIR/$base.stock"
+  mode=$(stat -c '%a' "$f" 2>/dev/null || echo 644)
+  tmp=$(mktemp) || return 0
+  stripped_content "$f" >"$tmp"
+  if [ -f "$backup" ] && cmp -s "$backup" "$tmp"; then
+    src="$backup"
+  elif ! grep -qF "$ANY_MARKER" "$tmp" 2>/dev/null; then
+    src="$tmp"
+  elif [ -f "$backup" ] && ! grep -qF "$ANY_MARKER" "$backup" 2>/dev/null; then
+    src="$backup"
+  fi
+  if [ -n "$src" ]; then
+    cat "$src" >"$f"
+    fix_mode "$f" "$mode"
+    [ "$base" = "update_3" ] && UPDATE3_CHANGED=1
+    log "restored stock: $f"
+  else
+    fix_mode "$f" "$mode"
+    log "could not fully restore $f (a reboot loads the stock file)"
+  fi
+  rm -f "$tmp"
+}
+
+restart_update3() {
+  [ -f "$UPDATE3" ] || return 0
+  local pid
+  for pid in $(pgrep -f 'php -q .*/nchan/update_3' 2>/dev/null || true); do
+    kill "$pid" 2>/dev/null || true
+  done
+  sleep 0.3
+  nohup /usr/bin/php -q "$UPDATE3" >/dev/null 2>&1 &
+  log "restarted nchan update_3"
+}
+
+status_file() {
+  local f="$1"
+  if [ ! -f "$f" ]; then
+    echo "  missing: $f"
+  elif grep -qF "$ANY_MARKER" "$f" 2>/dev/null; then
+    echo "  patched: $f mode=$(stat -c '%a' "$f")"
+  else
+    echo "  stock:   $f mode=$(stat -c '%a' "$f")"
+  fi
+}
+
+case "${1:-restore}" in
+  restore|remove)
+    restore_file "$UPDATE3"
+    restore_file "$DASH"
+    if [ "$UPDATE3_CHANGED" = "1" ]; then
+      restart_update3
+    fi
+    if [ -d "$BACKUP_DIR" ]; then
+      rm -rf "$BACKUP_DIR"
+      log "removed $BACKUP_DIR"
+    fi
+    ;;
+  status)
+    echo "ThunderboltNet dashboard-restore: status"
+    status_file "$UPDATE3"
+    status_file "$DASH"
+    if [ -d "$BACKUP_DIR" ]; then echo "  backup dir: present"; else echo "  backup dir: none"; fi
+    ;;
+  *)
+    echo "Usage: $0 [restore|status]" >&2
+    exit 2
+    ;;
+esac
+exit 0

@@ -1,0 +1,76 @@
+Menu="Dashboard:0"
+Markdown="false"
+---
+<?php
+$tbn_dash_ver = @parse_ini_file('/etc/unraid-version');
+$tbn_dash_new = version_compare((string)($tbn_dash_ver['version'] ?? '0'), '7.2.0-beta', '>=');
+$tbn_dash_head = $tbn_dash_new
+  ? "<h3 class='tile-header-main'>Thunderbolt</h3><span>Thunderbolt Net links</span>"
+  : "Thunderbolt<br><span>Thunderbolt Net links</span><br>";
+$mytiles['ThunderboltNet']['column3'] = <<<EOT
+<tbody title="Thunderbolt">
+<tr><td>
+<span class='tile-header'>
+<span class='tile-header-left'><i class='fa fa-bolt f32'></i><div class='section'>{$tbn_dash_head}</div></span>
+<span class='tile-header-right'><span class='tile-header-right-controls'><a href='/Settings/NetworkSettings' title='Network Settings'><i class='fa fa-fw fa-cog control'></i></a></span></span>
+</span>
+</td></tr>
+<tr><td>
+<div class='tbn-dash-row'><span class='tbn-dash-c1'><b>Port</b></span><span class='tbn-dash-c2'><b>Link</b></span><span class='tbn-dash-c3'><b>Rx</b></span><span class='tbn-dash-c3'><b>Tx</b></span></div>
+<div id='tbn-dash-rows'><div class='tbn-dash-row'>No Thunderbolt interfaces</div></div>
+</td></tr>
+</tbody>
+EOT;
+?>
+<style>
+.tbn-dash-row span{display:inline-block;vertical-align:top}
+.tbn-dash-c1{width:20%}
+.tbn-dash-c2{width:36%}
+.tbn-dash-c3{width:22%;text-align:right}
+</style>
+<script>
+(function () {
+  var last = null;
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c];
+    });
+  }
+  function rate(bytesPerSec) {
+    var u = ['bps', 'Kbps', 'Mbps', 'Gbps'], v = bytesPerSec * 8, i = 0;
+    while (v >= 1000 && i < u.length - 1) { v /= 1000; i++; }
+    return (i ? v.toFixed(1) : Math.round(v)) + ' ' + u[i];
+  }
+  function linkText(p) {
+    if (!p.up) return 'down';
+    if (!p.rx_speed) return 'up';
+    if (!p.tx_speed || p.tx_speed === p.rx_speed) return p.rx_speed;
+    return 'Rx ' + p.rx_speed + ' / Tx ' + p.tx_speed;
+  }
+  function paint(d) {
+    var ports = (d && d.ports) ? d.ports : [];
+    var html = '';
+    ports.forEach(function (p) {
+      var rx = '-', tx = '-', prev = last && last.ports[p.name];
+      if (prev && d.time > last.time) {
+        var dt = d.time - last.time;
+        rx = rate(Math.max(0, p.rx_bytes - prev.rx) / dt);
+        tx = rate(Math.max(0, p.tx_bytes - prev.tx) / dt);
+      }
+      html += "<div class='tbn-dash-row'><span class='tbn-dash-c1'>" + esc(p.label) +
+        "</span><span class='tbn-dash-c2'>" + esc(linkText(p)) +
+        "</span><span class='tbn-dash-c3'>" + esc(rx) +
+        "</span><span class='tbn-dash-c3'>" + esc(tx) + "</span></div>";
+    });
+    $('#tbn-dash-rows').html(html || "<div class='tbn-dash-row'>No Thunderbolt interfaces</div>");
+    last = {time: d ? d.time : 0, ports: {}};
+    ports.forEach(function (p) { last.ports[p.name] = {rx: p.rx_bytes, tx: p.tx_bytes}; });
+  }
+  function poll() {
+    if (document.hidden) { setTimeout(poll, 3000); return; }
+    $.get('/plugins/ThunderboltNet/include/tbn-dash.php', paint, 'json')
+      .always(function () { setTimeout(poll, 3000); });
+  }
+  $(function () { poll(); });
+})();
+</script>

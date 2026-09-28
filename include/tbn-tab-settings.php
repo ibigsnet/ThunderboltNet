@@ -230,7 +230,7 @@ if (!$has_hw):
         <dd>
           <input type="text" name="mesh_peer_ips" maxlength="256" style="width:36em"
             value="<?= htmlspecialchars($cfg['mesh_peer_ips'] ?? '') ?>"
-            placeholder="10.255.0.2 192.168.254.4">
+            placeholder="10.255.0.2 10.255.1.2">
         </dd>
       </dl>
       <blockquote class="inline_help">

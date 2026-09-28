@@ -37,7 +37,10 @@ function tbn_page_boot_full() {
   if (is_file('/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh.php')) {
     require_once '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh.php';
   }
-  if (function_exists('tbn_mesh_ensure_token') && function_exists('tbn_write_global_cfg')) {
+  // Web GET is display-only. Writes (token, iface pages, peers, mesh poll, …)
+  // run on POST / CLI / Apply / array events — never on a page-load GET.
+  $tbn_is_post = PHP_SAPI === 'cli' || ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST';
+  if ($tbn_is_post && function_exists('tbn_mesh_ensure_token') && function_exists('tbn_write_global_cfg')) {
     $before = trim((string)($cfg['mesh_token'] ?? ''));
     tbn_mesh_ensure_token($cfg);
     $after = trim((string)($cfg['mesh_token'] ?? ''));
@@ -46,12 +49,11 @@ function tbn_page_boot_full() {
     }
   }
 
-  // Safe here: user opened Thunderbolt UI; keep tbnN Menu entries in sync
-  if (function_exists('tbn_sync_iface_pages')) {
+  if ($tbn_is_post && function_exists('tbn_sync_iface_pages')) {
     tbn_sync_iface_pages();
   }
 
-  $status = tbn_status();
+  $status = tbn_status(['readonly' => !$tbn_is_post]);
   $mods = $status['modules'];
   $devices = $status['devices'];
   $netdevs = $status['netdevs'];

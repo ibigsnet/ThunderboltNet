@@ -6,6 +6,39 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+## 2026.09.28ac
+
+- **UI GET:** opening Thunderbolt panels only reads cache. No `peers.json` rewrite, mesh poll,
+  `mesh_last_poll.json` write, seed migrate, OpenFabric auto-enable, mesh token mint, or
+  `tbnN` page sync on a page-load GET. Those still run on Settings Apply, other POSTs, CLI,
+  and array/startup events.
+
+## 2026.09.28ab
+
+- **Dashboard:** new **Thunderbolt** tile (`ThunderboltNetDash.page`) lists `thunderbolt*` (as tbnN),
+  `bond-tb*` and `br-tb*` with trained link speed and live Rx/Tx. Data comes from a read-only
+  endpoint (`include/tbn-dash.php`).
+- **Dashboard:** the plugin no longer edits the stock `dynamix/DashStats.page` or
+  `dynamix/nchan/update_3`. Install/upgrade and remove strip the old edits once (only if the
+  file still has our marker), keep `update_3` executable, and delete
+  `dashboard-ports-backup` on flash. `scripts/tbn-dashboard-ports` is replaced by
+  `scripts/tbn-dashboard-restore`.
+- **Settings saves:** `tbn-update*.php` and `tbn-ignore-warning.php` return 405 on a direct GET;
+  they only run from Unraid `update.php` (POST with `csrf_token`).
+- **Mesh token:** opening the Thunderbolt panels (GET) only reads an existing token. A new token
+  is created on Settings Apply.
+
+## 2026.09.28aa
+
+- **Settings:** mesh peer IP example uses Thunderbolt addresses only; NAT path comment no
+  longer shows a sample LAN address.
+- **OpenFabric:** FabricRouting install link points at `main` (the old `stable` branch is gone).
+- **Bridge list:** bridge names are HTML-escaped in the Bridge dropdown.
+- **Mesh refresh:** `tbn-mesh-poll.php` only polls peers on POST (Unraid `csrf_token`).
+  GET returns the last saved result and does not contact peers.
+- **Install:** old plugin `.txz` files on flash are removed by `&version;` instead of
+  reading the `.plg` from `/tmp/plugins`.
+
 ## 2026.09.27aa
 
 - **Install:** one Slackware `.txz` per version, saved on the flash drive from the
@@ -119,6 +152,11 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
   findings (submit dropped `USE_MTU=yes` behind a hidden `no`; `tbn-update-iface` now
   rewrites MTU fields from POST before apply so flash matches the form across reboot).
 
+## 2026.08.20aa
+
+- **Fix (forum report):** Jumbo / Desired MTU persists on Apply. First published as
+  2026.08.20aa, then re-dated to 2026.08.24aa (same fix).
+
 ## 2026.08.18ar
 
 - **UI:** Thunderbolt overview lazy-load — finish the **active** subtab (last visited /
@@ -228,7 +266,7 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 ## 2026.08.18ab
 
 - **Docs:** Remove public `steam-and-lan-discovery.md` and Steam-specific troubleshooting /
-  index entries for now (kept in local lab notes). Bridging copy points at house LAN /
+  index entries for now. Bridging copy points at house LAN /
   [addressing.md](docs/addressing.md) only.
 
 ## 2026.08.18aa
@@ -278,7 +316,7 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 ## 2026.08.17ay
 
 - **Peer link-check:** only validate the local Thunderbolt link that belongs to the fetched peer
-  (match remote `fabric_uuids` / hostname). Prevents painting FLOWZ orange/green from a Holo poll.
+  (match remote `fabric_uuids` / hostname). Prevents painting a peer orange/green from another host's poll.
 
 ## 2026.08.17ax
 
@@ -313,7 +351,7 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 - DHCP server: if iface `IPADDR` is `10.255.X.Y`, serve **`10.255.X.0/24`** (host `.1`, pool `.2–.254`)
   instead of always using the thunderboltN index — so two Unraids can DHCP toward one dual-homed
-  client on different /24s (e.g. NIROG `10.255.1.0/24`, Holo `10.255.2.0/24`).
+  client on different /24s (e.g. host A `10.255.1.0/24`, host B `10.255.2.0/24`).
 
 ## 2026.08.17ar
 
@@ -358,8 +396,7 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 ## 2026.08.17al
 
 - **CA / Plugins `<CHANGES>`:** ~7 summarized notes; bundle rapid ships as version ranges
-  (e.g. ag–ak blue help / eth0 polish); Older releases → full CHANGELOG.md. Agent rule:
-  `plugin-changes-and-changelog.md`.
+  (e.g. ag–ak blue help / eth0 polish); Older releases → full CHANGELOG.md.
 
 ## 2026.08.17ak
 
@@ -390,7 +427,7 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
   dropdown); **Enable VLANs** after MTU; bonding orange WIP only when bonding is Yes; clean mode
   labels (no unverified “least bad” / “usually fails”); remove on-form live-IP essay rows — live
   addresses stay in the **Info** dialog.
-- **main** only — test on NIROG before CA/stable.
+- **main** only — test on a lab host before CA/stable.
 
 ## 2026.08.17af
 
@@ -489,8 +526,32 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 ## 2026.08.15ag
 - Uninstall: full flash wipe (peers/ifaces/recovery no longer preserved).
 
+## 2026.08.15af
+
+- **Install:** do not wipe `/tmp/plugins` during install. Unraid keeps the downloading `.plg`
+  there and copies it to flash after the FILE scripts.
+
+## 2026.08.15ae
+
+- **Remove:** do not delete the plugin's own `.plg` on remove (Unraid owns it).
+
+## 2026.08.15ad
+
+- **Install/remove:** canonical paths only; one `removepkg` loop; real legacy aliases kept.
+
 ## 2026.08.15ac
 - Changelog: Plugins page shows recent entries only; full history on GitHub <code>CHANGELOG.md</code>.
+
+## 2026.08.15ab
+
+- **Install:** single runtime `.txz` package installed with `upgradepkg`. Uninstall uses
+  `removepkg` plus the existing cleanup.
+
+## 2026.08.14aq
+
+- **Dashboard:** array-start dashboard-ports messages go to syslog instead of the
+  "Array Started" footer.
+- **Docs:** maintainer notes removed from the public repo.
 
 ## 2026.08.14ap
 - **Fix:** Cables and safety help link showed literal “Directionality &amp; speeds” (double-escaped
@@ -562,10 +623,24 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 - **Release channel:** PluginURL + raw sources on branch `stable`. Development continues on `main`.
 - SECURITY.md: host networking, mesh export token/private-IP notes.
 
+## 2026.08.14
+
+- **Fabric reports (opt-in):** peer Unraid Thunderbolt Net snapshots over the private
+  underlay: JSON export and poll, green/orange/red validation, Known peers history colors,
+  hold-off. See docs/fabric-link-map.md.
+
 ## 2026.08.13ad
 - Wording: spell out **Thunderbolt** instead of ambiguous “TB” in UI/docs (terabyte confusion).
 - Companion rename: **Fabric Routing** / id **FabricRouting** (was UnraidFRR — trademark). Detects legacy install paths.
 - Docs/UI: public sanitization — no personal lab hostnames (use peer/Machine B language).
+
+## 2026.08.13ac
+
+- Companion is **Fabric Routing** (FabricRouting); detects legacy UnraidFRR install paths.
+
+## 2026.08.13ab
+
+- UI/docs: personal hostnames replaced with generic peer wording.
 
 ## 2026.08.13aa
 - Fleet standard: **`ibigsGotoNetTab`** for all Network Settings sibling links (Fabric Routing, tbnN, …); aliases `tbnGotoNetTab` / `frrGotoNetTab` / `nbdGotoNetTab`; `sessionStorage.ibigsWantTab` (+ legacy `tbnWantTab`).
@@ -582,6 +657,22 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 - Docs: spell out Thunderbolt (not Thunderbolt) next to multi-terabyte imaging context.
 - Companion name: **Fabric Routing** / CA **Fabric Routing (FRR)** (FabricRouting packages tab).
 - Note: single-letter `12a` was non-standard (use two-letter suffixes after bare date).
+
+## 2026.08.11ap
+
+- Docs: Contents/TOC on large guides.
+
+## 2026.08.11ao
+
+- Docs: spell out Thunderbolt where TB meant the cable, not terabyte.
+
+## 2026.08.11an
+
+- Docs: ecosystem table for the Fabric Routing and NBD tabs.
+
+## 2026.08.11am
+
+- Companion strings use Fabric Routing branding.
 
 ## 2026.08.11al
 - Companion copy: FRR packages live under Network Settings → Fabric Routing (FabricRouting tab).
@@ -710,6 +801,87 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 - Fix blank tbn1/tbnN tabs: use require (not require_once) so each tab re-renders the shared form.
 
+## 2026.07.30aw
+
+- Removed the in-UI port icon legend. Port marks stay in docs/port-icons.md.
+
+## 2026.07.30av
+
+- IPv4/IPv6 address, mask and gateway fields sit next to their labels like eth0.
+
+## 2026.07.30au
+
+- LOCAL link RX/TX shows the host max (e.g. ~40 Gb/s, 2-lane); REMOTE keeps the trained path.
+
+## 2026.07.30as
+
+- Port legend: Thunderbolt lightning and SuperSpeed marks; Links section sits under Known peers.
+
+## 2026.07.30ar
+
+- Port silkscreen legend for Thunderbolt vs USB marks, shown with or without a controller.
+
+## 2026.07.30aq
+
+- Link quality: compact layout; rates shown as Gb/s; REMOTE uses Below max / Healthy badges.
+
+## 2026.07.30ap
+
+- LOCAL link quality lists Thunderbolt and 5/10/20G USB SuperSpeed ports next to the host max.
+
+## 2026.07.30an
+
+- MTU modes and labels: default 1500; 9000 on both ends recommended for bulk transfer.
+  New throughput doc with PPS tables for 10–80G links.
+
+## 2026.07.30am
+
+- Apply flushes Thunderbolt addresses and routes before re-adding (fixes stacked subnets on
+  one interface). Listen forms no longer write into the interface config.
+
+## 2026.07.30al
+
+- IP/prefix row layout; bond-tb0 / br-tb0 names (legacy names migrated); include-listening help.
+
+## 2026.07.30ak
+
+- Restored the full `.plg` after an empty file was published; link-down unplug note.
+
+## 2026.07.30aj
+
+- Activity sampling no longer reports samples-too-close on page load; compact services row.
+
+## 2026.07.30ai
+
+- Host services Yes/No moved into the Known peers column (saves on change). Harden all stays
+  under the table.
+
+## 2026.07.30ah
+
+- Static apply flushes old IPv4/IPv6 first; address and prefix on one row; bond member and
+  br-tbN help.
+
+## 2026.07.30ag
+
+- Fix blank Network Settings page when more than one tbn tab loaded.
+
+## 2026.07.30af
+
+- tbn tabs: IPv4/IPv6 static or automatic like eth0; bonding members; bridging and VLAN sections.
+
+## 2026.07.30ae
+
+- Per-peer host services (SMB/NFS/web UI) on the Thunderbolt overview; preference kept and
+  re-applied on reconnect; Harden all sets everything back to No.
+
+## 2026.07.30ad
+
+- Default Thunderbolt bond name bond-tb0 (bond-tbN), so it never collides with bond0.
+
+## 2026.07.30ac
+
+- Fix blank tbn1+ tabs (the shared form now loads for every tab).
+
 ## 2026.07.30ab
 - Link quality: short complete lead lines (no mid-sentence cutoffs); richer fabric role help with examples.
 - Install fix follow-up: ensure clean plg for Unraid wget (stale compressed main cache).
@@ -763,11 +935,44 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 - Summary: local hostname/controller, listening includes, bond/bridge membership; per-link local↔remote (peer name, RX/TX, lanes); optional LLDP if tools exist.
 
+## 2026.07.29au
+
+- Clearer identity fields (OS hostname, controller product, manufacturer); unified
+  local/remote link table; more driver-option help.
+
+## 2026.07.29at
+
+- "Enable default route" (default No) replaces "Never default route"; old setting migrated.
+
+## 2026.07.29as
+
+- tbnN settings use the stock eth0 form layout.
+
+## 2026.07.29ar
+
+- tbnN back-link switches the Network Settings tab.
+
+## 2026.07.29aq
+
+- tbnN links switch Network Settings tabs instead of opening standalone pages.
+
+## 2026.07.29ap
+
+- Removed the version footer from the Thunderbolt Settings page.
+
+## 2026.07.29ao
+
+- Dropped the Settings page version footer (version shows on the Plugins page).
+
 ## 2026.07.29am
 - Thunderbolt tab vs tbnN eth-style settings; cleaner form layout.
 
 - Neutral settings copy (remove personal use-case marketing from the UI).
 - Fix tbnN tabs showing raw PHP: set Markdown=false on generated pages.
+
+## 2026.07.29ak
+
+- Neutral settings copy; tbnN pages render correctly.
 
 ## 2026.07.29aj
 - Fix blank Settings tab (absolute plugin paths).
@@ -785,5 +990,24 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 ## 2026.07.29ae
 - CLI/JSON status over SSH.
 
+## 2026.07.29ad
+
+- RELEASES and Settings help are product-facing only.
+
+## 2026.07.29ac
+
+- Install replaces the plugin tree so stale files are not kept. Remove clears Thunderbolt
+  include_interfaces and the modprobe snippet; flash config is kept.
+
+## 2026.07.29ab
+
+- Install from Plugins → Install Plugin (paste the `.plg` URL).
+
 ## 2026.07.29aa
 - Initial public release.
+
+## 2026.07.29
+
+- First release: Settings page for Thunderbolt host network interfaces (sysfs status, module
+  load, optional include_interfaces, optional static IP).
+

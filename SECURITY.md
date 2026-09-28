@@ -15,7 +15,7 @@ Copyright (c) 2026 ibigs, LLC · Author: RifleJock · License: GPL-3.0-or-later
 - Management internet stays on eth0/br0 unless you deliberately enable Thunderbolt as default route (default **No**).
 - Multi-host fabric reports / mesh export: **token required** (`X-Tbn-Mesh-Token` header only), **private IP only**, rate-limited. The beacon binds Thunderbolt IPs (and optional `mesh_eth_ifaces`), not `0.0.0.0`.
 - This plugin does **not** install FRR packages (that is Fabric Routing).
-- Dashboard port list patch (`dynamix` `update_3` / DashStats) runs only when Thunderbolt hardware or a `thunderbolt*` netdev is present, or when already patched (self-heal). See [docs/dashboard-ports-and-clock.md](docs/dashboard-ports-and-clock.md).
+- The plugin does not edit stock Unraid files. The Dashboard tile reads sysfs through its own read-only endpoint. Upgrading from 2026.09.28aa or older restores the two Dashboard files the old versions patched. See [docs/dashboard-ports-and-clock.md](docs/dashboard-ports-and-clock.md).
 
 ## Install channel
 

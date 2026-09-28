@@ -2,6 +2,11 @@
 /**
  * #include after writing ThunderboltNet.cfg (global options).
  */
+// Unraid update.php includes this on POST only; refuse a direct GET.
+if (PHP_SAPI !== 'cli' && ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+  http_response_code(405);
+  return;
+}
 require_once '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php';
 $mesh_php = '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh.php';
 if (is_file($mesh_php)) {

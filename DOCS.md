@@ -70,7 +70,7 @@ Assignment-mode autofill detail: [addressing.md — Autofill by assignment mode]
 | Share Unraid uplink with TB peers (NAT) | [docs/nat-share-uplink.md](docs/nat-share-uplink.md) |
 | Thunderbolt 3–5 / USB4: **directionality**, bandwidth table, **mixing** gens/cables/lanes, FAQ | [docs/standards-and-speeds.md](docs/standards-and-speeds.md) |
 | MTU 1500 vs 9000, PPS overhead, both-ends setup | [docs/mtu-and-throughput.md](docs/mtu-and-throughput.md) |
-| Dashboard throughput / errors for tbn (thunderboltN) | [docs/dashboard-network.md](docs/dashboard-network.md) |
+| Dashboard tile for tbn (thunderboltN), bond-tb, br-tb | [docs/dashboard-network.md](docs/dashboard-network.md) |
 | USB4STREAM (raw `/dev/tbstream*`; Stream tab + kernel module — not Unraid 7.2 product) | [docs/usb4stream.md](docs/usb4stream.md) |
 | Port silkscreen guide (Thunderbolt lightning / SS¹⁰ / SS²⁰) | [docs/port-icons.md](docs/port-icons.md) (docs only) |
 | Hardware, BIOS, modules, security | [docs/requirements.md](docs/requirements.md) |

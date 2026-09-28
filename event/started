@@ -3,15 +3,8 @@
 # Runs when the array has started (Normal or Maintenance mode).
 # Not the same as "Unraid OS is up" — see event/startup for early udev/L3.
 #
-# Job: Dashboard TB ports, OpenFabric, and a second reapply (peer may
+# Job: OpenFabric, and a second reapply (peer may
 # appear after array start; udev may need a refresh after full boot).
-
-SCRIPT=/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports
-if [ -x "$SCRIPT" ]; then
-  # Quiet stdout: Unraid merges event stdout into "Array Started • …" footer.
-  # ensure = heal if already patched; apply only when TB hardware/netdev present.
-  "$SCRIPT" ensure >/dev/null || true
-fi
 
 # OpenFabric: regenerate conf + best-effort FRR reload (no-op if FRR missing)
 php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; if (function_exists("tbn_of_apply")) { tbn_of_apply(); }' 2>/dev/null || true

@@ -128,7 +128,7 @@ function tbn_nat_iface_ipv4($if) {
  * Compact path line for the tbn form lead (same row as the muted hint).
  *
  * NAT off:  tbn1 · 10.255.0.1/24 · peer ~10.255.0.2 · NAT off
- * NAT on:   tbn1 · 10.255.0.0/24 → wlan0 (192.168.1.3) → internet
+ * NAT on:   tbn1 · 10.255.0.0/24 → wlan0 (uplink) → internet
  */
 function tbn_nat_schema_line($if, array $cfg) {
   $label = preg_match('/^thunderbolt(\d+)$/', (string)$if, $m) ? ('tbn' . $m[1]) : (string)$if;
