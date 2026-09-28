@@ -6,6 +6,13 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+## 2026.09.28ac
+
+- **UI GET:** opening Thunderbolt panels only reads cache. No `peers.json` rewrite, mesh poll,
+  `mesh_last_poll.json` write, seed migrate, OpenFabric auto-enable, mesh token mint, or
+  `tbnN` page sync on a page-load GET. Those still run on Settings Apply, other POSTs, CLI,
+  and array/startup events.
+
 ## 2026.09.28ab
 
 - **Dashboard:** new **Thunderbolt** tile (`ThunderboltNetDash.page`) lists `thunderbolt*` (as tbnN),

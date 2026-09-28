@@ -2590,7 +2590,10 @@ function tbn_diagnostics_text() {
 /**
  * Full status blob for UI / JSON.
  *
- * @param array{readonly?:bool} $opts readonly=true: no flash writes (GET live poll).
+ * @param array{readonly?:bool,no_token_mint?:bool} $opts
+ *   readonly=true: no flash writes (page GET / live poll). Skips seed migrate,
+ *   OpenFabric auto-enable, token mint, peers.json rewrite, listening reconcile,
+ *   and mesh poll. Reads peers + mesh cache only.
  */
 function tbn_status(array $opts = []) {
   $readonly = !empty($opts['readonly']);
