@@ -12,6 +12,11 @@
  * and write only via tbn_write_iface_cfg so listen forms never pollute iface cfgs
  * with tbn_listen_action / tbn_peer_key keys.
  */
+// Unraid update.php includes this on POST only; refuse a direct GET.
+if (PHP_SAPI !== 'cli' && ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+  http_response_code(405);
+  return;
+}
 $docroot = $docroot ?? ($_SERVER['DOCUMENT_ROOT'] ?? '/usr/local/emhttp');
 require_once '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php';
 

@@ -3,6 +3,11 @@
  * #include after update.php writes ThunderboltNet/ifaces/<iface>.cfg
  * #arg[1] or POST tbn_iface = kernel iface name (thunderbolt0).
  */
+// Unraid update.php includes this on POST only; refuse a direct GET.
+if (PHP_SAPI !== 'cli' && ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+  http_response_code(405);
+  return;
+}
 $docroot = $docroot ?? ($_SERVER['DOCUMENT_ROOT'] ?? '/usr/local/emhttp');
 require_once '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php';
 

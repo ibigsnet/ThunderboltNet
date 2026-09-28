@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.09.28aa">
+<!ENTITY version "2026.09.28ab">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/testing/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -25,6 +25,9 @@
 
 <CHANGES>
 ###&version;
+- Own Dashboard tile for Thunderbolt links. Stock Dashboard files are no longer edited; upgrade and remove put them back. Config includes refuse GET; a GET no longer creates the mesh token.
+
+###2026.09.28aa
 - Settings help: no example host addresses. FabricRouting install link uses main. Bridge names escaped. Mesh refresh polls on POST only; GET shows the last result. Install drops old .txz by version.
 
 ###2026.09.27aa
@@ -41,9 +44,6 @@
 
 ###2026.09.06aa–ab
 - Hashed install (SHA256/MD5); state-changing endpoints require POST.
-
-###2026.08.28aa–ad
-- USB SuperSpeed aside; Jumbo MTU persists; VFIO banner.
 
 ### Older releases
 - Full changelog: https://github.com/ibigsnet/ThunderboltNet/blob/main/CHANGELOG.md
@@ -63,8 +63,8 @@ echo "ThunderboltNet: ready."
 <!-- raw-files begin -->
 <FILE Name="&configdir;/ThunderboltNet-&version;-x86_64-1.txz" Run="upgradepkg --install-new --reinstall">
 <URL>https://github.com/ibigsnet/ThunderboltNet/releases/download/v&version;/ThunderboltNet-&version;-x86_64-1.txz</URL>
-<SHA256>87ceb995101b829857a240a10173c008ed7c965e82a34b7d995a29004fa7a10f</SHA256>
-<MD5>48ebf4acc1b95ef74a149931b75ec5fc</MD5>
+<SHA256>8a850929c52882d59ea8f9b07d224dfd36ab72d5a470f9b30aadc84fd480777a</SHA256>
+<MD5>5e0fd423b22c861b30aa20ab6b1d72db</MD5>
 </FILE>
 <!-- raw-files end -->
 
@@ -94,10 +94,9 @@ fi
 php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; if (function_exists("tbn_migrate_seed_dot2_to_dot1")) { tbn_migrate_seed_dot2_to_dot1(); } tbn_install_net_udev(); if (function_exists("tbn_sync_iface_pages")) { tbn_sync_iface_pages(); }' 2>/dev/null || true
 /bin/bash /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-net-reapply >/dev/null 2>&1 || true
 udevadm trigger --subsystem-match=net --action=add 2>/dev/null || true
-# Dashboard Interface dropdown: include thunderboltN (re-apply after every upgrade;
-# Unraid OS updates can also restore stock DashStats / update_3).
-if [ -x /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports ]; then
-  /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports ensure >/dev/null 2>&1 || true
+# Older versions patched stock Dashboard files; put them back once.
+if [ -x /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-restore ]; then
+  /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-restore restore >/dev/null 2>&1 || true
 fi
 echo "ThunderboltNet: packages now: $(ls /var/log/packages/ThunderboltNet-* 2>/dev/null | xargs -n1 basename 2>/dev/null | tr '\n' ' ')"
 echo "ThunderboltNet: install complete. Settings → Network Settings → Thunderbolt"
@@ -136,8 +135,8 @@ done
 if [ -d /boot/config/modprobe.d ] && [ -z "$(ls -A /boot/config/modprobe.d 2>/dev/null)" ]; then
   rmdir /boot/config/modprobe.d 2>/dev/null || true
 fi
-if [ -x /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports ]; then
-  /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports remove || true
+if [ -x /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-restore ]; then
+  /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-restore restore || true
 fi
 # Stop underlay DHCP servers (dnsmasq) started by this plugin
 php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; if (function_exists("tbn_dhcp_server_stop_all")) { tbn_dhcp_server_stop_all(); }' 2>/dev/null || true

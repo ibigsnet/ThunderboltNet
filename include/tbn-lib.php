@@ -2605,7 +2605,7 @@ function tbn_status(array $opts = []) {
       $cfg = tbn_of_maybe_auto_enable_from_frr($cfg);
     }
     // Peer link check defaults on: ensure a token exists and is saved once
-    if (function_exists('tbn_mesh_ensure_token') && function_exists('tbn_write_global_cfg')) {
+    if (empty($opts['no_token_mint']) && function_exists('tbn_mesh_ensure_token') && function_exists('tbn_write_global_cfg')) {
       $before = trim((string)($cfg['mesh_token'] ?? ''));
       tbn_mesh_ensure_token($cfg);
       if (($cfg['mesh_report'] ?? 'yes') === 'yes' && $before === '' && trim((string)($cfg['mesh_token'] ?? '')) !== '') {

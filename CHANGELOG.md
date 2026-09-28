@@ -6,6 +6,21 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+## 2026.09.28ab
+
+- **Dashboard:** new **Thunderbolt** tile (`ThunderboltNetDash.page`) lists `thunderbolt*` (as tbnN),
+  `bond-tb*` and `br-tb*` with trained link speed and live Rx/Tx. Data comes from a read-only
+  endpoint (`include/tbn-dash.php`).
+- **Dashboard:** the plugin no longer edits the stock `dynamix/DashStats.page` or
+  `dynamix/nchan/update_3`. Install/upgrade and remove strip the old edits once (only if the
+  file still has our marker), keep `update_3` executable, and delete
+  `dashboard-ports-backup` on flash. `scripts/tbn-dashboard-ports` is replaced by
+  `scripts/tbn-dashboard-restore`.
+- **Settings saves:** `tbn-update*.php` and `tbn-ignore-warning.php` return 405 on a direct GET;
+  they only run from Unraid `update.php` (POST with `csrf_token`).
+- **Mesh token:** opening the Thunderbolt panels (GET) only reads an existing token. A new token
+  is created on Settings Apply.
+
 ## 2026.09.28aa
 
 - **Settings:** mesh peer IP example uses Thunderbolt addresses only; NAT path comment no

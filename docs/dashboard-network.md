@@ -1,57 +1,32 @@
-# Dashboard network throughput (thunderbolt / tbn)
+# Dashboard tile (thunderbolt / tbn)
 
-Unraid **Dashboard → Interface** builds its port list in two places:
+Stock Unraid **Dashboard → Interface** only lists `eth*`, `bond*`, `wlan*` and `lo`. Thunderbolt
+Net adds its own **Thunderbolt** tile instead of changing that list.
 
-| File | Role |
-|------|------|
-| `plugins/dynamix/nchan/update_3` | Live RX/TX rates, counters, **errors/drops/overruns**, chart samples |
-| `plugins/dynamix/DashStats.page` | Port **dropdown** (which iface the graph follows) |
+The tile shows every Thunderbolt Net interface that exists right now:
 
-Stock pattern only matches:
+| Kernel iface | Shown as |
+|--------------|----------|
+| `thunderbolt0`, `thunderbolt1`, … | **tbn0**, **tbn1**, … |
+| `bond-tb0` | `bond-tb0` |
+| `br-tb0` | `br-tb0` |
 
-```text
-^(bond|eth|wlan)\d+$
-```
+For each one:
 
-plus hardcoded `lo`. Stock Dashboard does **not** list `br0` (only eth / bond / wlan + lo). This plugin only adds ThunderboltNet names — never `br0`.
+- **Link:** trained Thunderbolt rate from sysfs (`rx_speed` / `tx_speed` on the Thunderbolt
+  device). Equal rates show once; asymmetric links show `Rx … / Tx …`. `down` when there is no
+  carrier. Bonds and bridges show `up` / `down`.
+- **Rx / Tx:** current rate in bits/s, from `/sys/class/net/<iface>/statistics` byte counters
+  (refreshed every 3 seconds while the Dashboard is visible).
 
-That **omits** kernel names used by ThunderboltNet:
+Move or hide the tile like any other Dashboard tile. The gear icon opens Network Settings.
 
-| Kernel iface | Settings tab label |
-|--------------|--------------------|
-| `thunderbolt0` | **tbn0** |
-| `thunderbolt1` | **tbn1** |
-| `bond-tb0` | experimental Thunderbolt bond |
-| `br-tb0` | experimental Thunderbolt bridge |
+Data comes from `/plugins/ThunderboltNet/include/tbn-dash.php`, which only reads sysfs and never
+writes anything.
 
-## What this plugin does
+## Older versions
 
-On install (and on array **started**), `scripts/tbn-dashboard-ports apply` rewrites the stock grep to:
-
-```text
-^(bond|eth|wlan|thunderbolt)\d+$|^(bond-tb|br-tb)\d+$
-```
-
-So the Dashboard shows the same **General info / Counters / Errors / Network traffic** views for Thunderbolt links as for eth/bond/wlan.
-
-Uninstall runs `remove` and restores the stock files from a one-time backup under:
-
-```text
-/boot/config/plugins/ThunderboltNet/dashboard-ports-backup/
-```
-
-## Manual (SSH)
-
-```bash
-/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports status
-/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports apply
-/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports remove
-```
-
-After apply: hard-refresh the Dashboard. The Interface dropdown and table rows show **`tbn0`** (short label). The option **value** and stats stay the kernel name **`thunderbolt0`**. `bond-tb*` / `br-tb*` are already short.
-
-## Notes
-
-- Chart scale is the same as other ports (bits/s from byte counters).
-- **Mode of operation** for `thunderbolt*` does **not** use netdev `speed` (empty on `thunderbolt_net`). The patch reads trained `rx_speed` / `tx_speed` from the Thunderbolt device sysfs (netdev `device` + parents). Equal rates → `20 Gbps, full duplex, mtu …`. Asymmetric (e.g. TB5) → `Rx: 20 Gbps, Tx: 160 Gbps, mtu …` — not “half duplex”. Down → interface down.
-- OS upgrades may replace `update_3` / `DashStats.page`; `event/started` re-applies the port-list, short labels, and TB mode patches.
+Up to 2026.09.28aa the plugin edited two stock files (`dynamix/nchan/update_3` and
+`dynamix/DashStats.page`) to add Thunderbolt ports to the stock Interface list. That is gone.
+See [dashboard-ports-and-clock.md](dashboard-ports-and-clock.md) for how upgrade and remove put
+those files back.
