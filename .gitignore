@@ -11,18 +11,6 @@
 NOTES.local.md
 .private/
 
-# Lab / workstation only — NOT Unraid runtime (never ship in .txz, never push)
-AGENTS.md
-CA-CHANNEL.md
-DEVELOPMENT.md
-docs/DEVELOPMENT.md
-scripts/pack-txz.sh
-scripts/promote-stable.sh
-tests/
-patches/
-patches/*.ko
-patches/load-*.sh
-
 # Plugin .txz is a GitHub Release asset, not a git blob
 archive/*.txz
 dist/
