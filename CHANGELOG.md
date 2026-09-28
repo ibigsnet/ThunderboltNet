@@ -259,7 +259,7 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 ## 2026.08.18ab
 
 - **Docs:** Remove public `steam-and-lan-discovery.md` and Steam-specific troubleshooting /
-  index entries for now (kept in local lab notes). Bridging copy points at house LAN /
+  index entries for now. Bridging copy points at house LAN /
   [addressing.md](docs/addressing.md) only.
 
 ## 2026.08.18aa
@@ -389,8 +389,7 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 ## 2026.08.17al
 
 - **CA / Plugins `<CHANGES>`:** ~7 summarized notes; bundle rapid ships as version ranges
-  (e.g. ag–ak blue help / eth0 polish); Older releases → full CHANGELOG.md. Agent rule:
-  `plugin-changes-and-changelog.md`.
+  (e.g. ag–ak blue help / eth0 polish); Older releases → full CHANGELOG.md.
 
 ## 2026.08.17ak
 
