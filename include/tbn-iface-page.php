@@ -373,7 +373,7 @@ if (strpos($nm, '.') === false) {
   }
   foreach ($system_bridges as $br):
 ?>
-              <?= mk_option($sel_br, $br, $br) ?>
+              <?php $br_h = htmlspecialchars((string)$br, ENT_QUOTES, 'UTF-8'); ?><?= mk_option(htmlspecialchars((string)$sel_br, ENT_QUOTES, 'UTF-8'), $br_h, $br_h) ?>
 <?php endforeach; ?>
             </select>
 <?php endif; ?>

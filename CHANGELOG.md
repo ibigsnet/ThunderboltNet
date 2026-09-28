@@ -6,6 +6,17 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+## 2026.09.28aa
+
+- **Settings:** mesh peer IP example uses Thunderbolt addresses only; NAT path comment no
+  longer shows a sample LAN address.
+- **OpenFabric:** FabricRouting install link points at `main` (the old `stable` branch is gone).
+- **Bridge list:** bridge names are HTML-escaped in the Bridge dropdown.
+- **Mesh refresh:** `tbn-mesh-poll.php` only polls peers on POST (Unraid `csrf_token`).
+  GET returns the last saved result and does not contact peers.
+- **Install:** old plugin `.txz` files on flash are removed by `&version;` instead of
+  reading the `.plg` from `/tmp/plugins`.
+
 ## 2026.09.27aa
 
 - **Install:** one Slackware `.txz` per version, saved on the flash drive from the

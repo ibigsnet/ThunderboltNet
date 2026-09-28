@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.09.27aa">
+<!ENTITY version "2026.09.28aa">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/testing/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -25,6 +25,9 @@
 
 <CHANGES>
 ###&version;
+- Settings help: no example host addresses. FabricRouting install link uses main. Bridge names escaped. Mesh refresh polls on POST only; GET shows the last result. Install drops old .txz by version.
+
+###2026.09.27aa
 - Plugin payload is a flash .txz from the GitHub Release (not re-fetched from main at boot).
 
 ###2026.09.13aa
@@ -60,10 +63,14 @@ echo "ThunderboltNet: ready."
 <!-- raw-files begin -->
 <FILE Name="&configdir;/ThunderboltNet-&version;-x86_64-1.txz" Run="upgradepkg --install-new --reinstall">
 <URL>https://github.com/ibigsnet/ThunderboltNet/releases/download/v&version;/ThunderboltNet-&version;-x86_64-1.txz</URL>
-<SHA256>de3f3d3b7f0ff00bd687e4933bcad1a1c12df7e5f166ced56f88408e9dac00d3</SHA256>
-<MD5>ba2033d14d981a39f01c68995e6e868e</MD5>
+<SHA256>87ceb995101b829857a240a10173c008ed7c965e82a34b7d995a29004fa7a10f</SHA256>
+<MD5>48ebf4acc1b95ef74a149931b75ec5fc</MD5>
 </FILE>
 <!-- raw-files end -->
+
+<FILE Run="/bin/bash">
+<INLINE>find &configdir; -maxdepth 1 -name "&name;-*-x86_64-1.txz" ! -name "&name;-&version;-x86_64-1.txz" -delete 2>/dev/null || true</INLINE>
+</FILE>
 
 <FILE Run="/bin/bash">
 <INLINE><![CDATA[
@@ -91,10 +98,6 @@ udevadm trigger --subsystem-match=net --action=add 2>/dev/null || true
 # Unraid OS updates can also restore stock DashStats / update_3).
 if [ -x /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports ]; then
   /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-ports ensure >/dev/null 2>&1 || true
-fi
-VER=$(sed -n 's/.*ENTITY version "\([^"]*\)".*/\1/p' /tmp/plugins/thunderboltnet.plg 2>/dev/null | head -1)
-if [ -n "$VER" ]; then
-  find /boot/config/plugins/ThunderboltNet -maxdepth 1 -name 'ThunderboltNet-*-x86_64-1.txz' ! -name "ThunderboltNet-${VER}-x86_64-1.txz" -delete 2>/dev/null || true
 fi
 echo "ThunderboltNet: packages now: $(ls /var/log/packages/ThunderboltNet-* 2>/dev/null | xargs -n1 basename 2>/dev/null | tr '\n' ' ')"
 echo "ThunderboltNet: install complete. Settings → Network Settings → Thunderbolt"

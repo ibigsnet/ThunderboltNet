@@ -200,7 +200,7 @@ function tbn_mesh_cache_dir() { return tbn_cfg_dir() . '/mesh-cache'; }
 function tbn_mesh_host_id() {
   $path = tbn_mesh_host_id_path();
   // Derive from machine-id + hostname. Cloned Unraid USB sticks often share
-  // /etc/machine-id; hostname usually differs (NIROG vs HoloX3D). A copied
+  // /etc/machine-id; hostname usually differs between hosts. A copied
   // ThunderboltNet/mesh_host_id file alone also used to cause self_host_id rejects.
   $mid = is_readable('/etc/machine-id') ? trim((string)@file_get_contents('/etc/machine-id')) : '';
   $host = gethostname() ?: (php_uname('n') ?: '');
