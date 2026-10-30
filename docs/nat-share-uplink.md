@@ -4,6 +4,8 @@
 
 **Yes:** the peer keeps a private Thunderbolt IP and reaches the internet **through Unraid** (Unraid NATs toward whatever carries Unraid’s uplink — often `br0`, `eth0`, or `wlan0`). Set the peer’s default gateway to Unraid’s tbn IP.
 
+**Reach:** with the default **Peer may reach = Internet and LAN**, the peer can reach everything the uplink reaches — your LAN, its router admin page and other servers — not only the internet. Pick **Internet only** to drop private destinations (10/8, 172.16/12, 192.168/16, 100.64/10, 169.254/16); DNS to Unraid’s own private nameservers (from `/etc/resolv.conf`) still works.
+
 **Not the same as Enable bridging** (join an existing Unraid bridge). Bridging puts the peer on that bridge’s network; NAT keeps a separate TB subnet and forwards via Unraid. The UI will not allow both Yes at once.
 
 After enabling NAT, click **Apply** while the peer is linked so Saved remembers it for that peer UUID (survives cable moves / tbn renumber).
@@ -49,7 +51,7 @@ Example underlay: Unraid `10.255.N.1/24`, peer `10.255.N.2/24`, peer default gat
        ▼
   Unraid thunderboltN  10.255.N.1/24
        │
-       │  ip_forward + MASQUERADE
+       │  per-interface forwarding + MASQUERADE
        ▼
   Unraid uplink (br0 / eth0 / wlan0 / …)
        │
@@ -57,7 +59,7 @@ Example underlay: Unraid `10.255.N.1/24`, peer `10.255.N.2/24`, peer default gat
   LAN / internet
 ```
 
-Unraid enables `net.ipv4.ip_forward`, installs marked `iptables` rules for **this link’s prefix only**, and leaves Docker/libvirt NAT alone.
+Unraid turns on IPv4 forwarding **only on this Thunderbolt interface and the uplink** (`net.ipv4.conf.<iface>.forwarding`, never the global `ip_forward`), installs marked `iptables` rules for **this link’s prefix only** (`-s` prefix on MASQUERADE and on the forward rule), and leaves Docker/libvirt NAT alone. Forwarding values it changed are put back when NAT is turned off, the link goes away, or the plugin is removed.
 
 ## Settings
 
@@ -67,6 +69,7 @@ On **Network Settings → Thunderbolt → tbnN** (IPv4 static block):
 |-------|---------|---------|
 | **Share host uplink (NAT)** | **No** | Yes = MASQUERADE this underlay toward an uplink iface |
 | **NAT uplink interface** | **Auto** | Auto = iface of Unraid’s current IPv4 default route; or pick `br0` / `wlan0` / … |
+| **Peer may reach** | **Internet and LAN** | Internet only = private / CGNAT / link-local destinations dropped (DNS to Unraid’s private nameservers allowed) |
 
 Also shown (read-only):
 
@@ -101,10 +104,10 @@ If the wired bridge is down and Wi‑Fi carries default, Auto picks `wlan0`. Whe
 |-------|--------|
 | Enable / uplink choice | Flash `ifaces/thunderboltN.cfg` **and** Saved peer plan (UUID) on **Apply** while linked |
 | Live iptables rules | Installed on Apply / array start / **netdev add**; **removed on netdev remove** |
-| `ip_forward` | Set on Apply; hint file under plugin flash / `sysctl.d` when possible |
+| Forwarding | Per interface (Thunderbolt link + uplink), RAM only; undone when NAT is off, on unplug, and on uninstall. Older versions’ `sysctl-nat.conf` / `sysctl.d` files are deleted. |
 
 **Unplug:** udev `remove` clears this link’s tagged NAT rules immediately.  
-**Replug same peer:** udev `add` reapply loads that peer’s Saved plan (including NAT) onto whichever `thunderboltN` they land on.  
+**Replug same peer:** udev `add` reapply loads that peer’s Saved plan onto whichever `thunderboltN` they land on; NAT from the plan follows once the peer is confirmed this boot (see Safety).  
 **Different peer on the same tbnN:** does **not** inherit the previous peer’s NAT — only what is in *that* peer’s Saved plan (legacy plans without NAT keys → NAT off until you Apply once while linked).
 
 Disabling NAT in the UI (or disabling the interface) also removes this plugin’s marked rules for that tbnN.
@@ -121,7 +124,10 @@ Use NAT when the **peer** should reach the internet via Unraid. Leave default ro
 ## Safety
 
 - Default **off**.
-- Rules carry comment tags `ThunderboltNet-NAT-thunderboltN` — only those are removed on clear.
+- Rules carry comment tags `ThunderboltNet-NAT-thunderboltN` — only those (exact tag; `thunderbolt1` never matches `thunderbolt10`) are removed on clear, read with `iptables -S` (no DNS lookups).
+- **Internet and LAN** is full LAN access for the peer. Use **Internet only** when the peer should not see your LAN.
+- After a reboot (or a new plugin boot), Saved NAT for a reconnecting peer waits until you confirm that peer once: **Apply** on its tbn tab, or **Peers → select → Apply saved**. See [peers-and-plans.md](peers-and-plans.md#peer-confirmation-each-boot).
+- Uninstall removes every tagged rule and the forwarding it turned on.
 - Does not create or join bridges.
 - IPv6 NAT not included in this feature.
 - OpenFabric / Fabric Routing are orthogonal; NAT does not enroll eth/br into the fabric.

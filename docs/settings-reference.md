@@ -8,7 +8,7 @@ OpenFabric is the **control plane** for multi-hop fabrics (rings, “reach C thr
 
 | Field | Default | Scope | Summary |
 |-------|---------|-------|---------|
-| Enable OpenFabric | **No** until FRR packages present | Host | Hidden until FRR; auto-on when FRR appears (user may set No) |
+| Enable OpenFabric | **No** until FRR packages present | Host | Hidden until FRR; auto-on when FRR appears. Setting **No** while FRR is present is remembered (`openfabric_user_off`) |
 | OpenFabric IPv6 | Yes | Host | Also run IPv6 openfabric on ifaces |
 | OpenFabric area | 1 | Host | Must match peers in the same fabric |
 | Router ID | auto `10.254.x.y` | Host | `/32` on `lo`, passive |
@@ -42,10 +42,10 @@ Full detail: [peers-and-plans.md](peers-and-plans.md).
 | Current | IPv4 on the path right now; quiet **No carrier** / **No reply** if underlay silent |
 | Saved | Remembered IPv4 for this UUID; preferred on hotplug/boot |
 | Remember current | Copy Current (IP/MTU/services) into Saved — optional; first **tbn Apply** already captures |
-| Apply saved | Push Saved onto the path that peer currently uses |
+| Apply saved | Push Saved onto the path that peer currently uses; also confirms the peer for this boot (bridging / services / NAT) — [peers-and-plans.md](peers-and-plans.md#peer-confirmation-each-boot) |
 | Unraid services | Per-peer listening Yes/No (remembered) |
 | Forget selected | POST + csrf. Drops the Known peers row (`peers.json`) only — not eth Interface Rules or tbn tab cfg. A still-plugged peer stays off the list until unplug. |
-| Link check | Optional peer Unraid rate compare (shared token) |
+| Link check | Peer Unraid rate compare (shared token; on by default, polled each minute by the plugin cron, results in RAM) — [fabric-link-map.md](fabric-link-map.md) |
 
 **First setup:** Apply on the tbn tab while linked — that fills **Saved**. Matching Current and Saved afterward is normal.
 
@@ -86,6 +86,7 @@ Raw `/dev/tbstreamN` path. Not tbn IP. Details: [usb4stream.md](usb4stream.md).
 | OpenFabric metric | empty | Manual integer when mode=manual |
 | Enable bridging | No | Optional. Join an **existing** Unraid bridge (`br0`, `br0.N`, …). Mutually exclusive with NAT — [addressing.md](addressing.md#join-an-unraid-bridge-br0-br010-) |
 | Network protocol | IPv4 only | IPv6 limited |
+| Accept router advertisements (IPv6) | **No** | No = kernel `accept_ra=0` on this link, so the peer cannot add an IPv6 route or address. Yes = kernel SLAAC from the peer |
 | IPv4 assignment | Static (Manual User Config) | Also: DHCP Client (Automatic); DHCP Server (Unraid-Managed). Autofill table: [addressing.md](addressing.md#autofill-by-assignment-mode) |
 | IPv4 address / mask | Static seed Unraid `10.255.N.1/24` (peer `.2`) | Unique subnet per N; DHCP server mode autofills Unraid `.1` when empty or leftover historical `.2` |
 | DHCP pool start / end | (derived) | Shown for DHCP Server; default `.2`–`.254` when host is `.1` (excludes Unraid’s address) |
@@ -93,6 +94,7 @@ Raw `/dev/tbstreamN` path. Not tbn IP. Details: [usb4stream.md](usb4stream.md).
 | Enable default route | No | Don’t steal system default from eth0 |
 | Share host uplink (NAT) | **No** | Optional. Peer reaches internet through Unraid when it has no Wi‑Fi/Ethernet of its own. Leave No for ordinary P2P. Mutually exclusive with bridging — [nat-share-uplink.md](nat-share-uplink.md) |
 | NAT uplink interface | **Auto** | Shown when NAT is Yes. Auto = Unraid’s default-route iface (`br0`/`wlan0`/…) |
+| Peer may reach | **Internet and LAN** | Shown when NAT is Yes. **Internet only** drops private / CGNAT / link-local destinations (DNS to Unraid’s private nameservers allowed) |
 | Path line (read-only) | (derived) | Compact underlay · peer · `NAT off` or `underlay → uplink (ip) → internet` |
 | Desired MTU | **1500** (default) | Leave 1500 unless you opt into jumbo. **Enable jumbo frames** + 9000 (typical) can reduce packet/CPU cost on older or weaker hosts; **both ends must match**. See [mtu-and-throughput.md](mtu-and-throughput.md) |
 | Unraid services on this link (listening) | No (recommend Yes for SMB/NFS/web) | Per peer; remembered; overview table + Harden all. Does **not** start NBD — use **NBD Export** (Network Services → NBD) and bind to the Thunderbolt IP. |

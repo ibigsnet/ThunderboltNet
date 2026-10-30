@@ -6,8 +6,8 @@
 # Job: OpenFabric, and a second reapply (peer may
 # appear after array start; udev may need a refresh after full boot).
 
-# OpenFabric: regenerate conf + best-effort FRR reload (no-op if FRR missing)
-php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; if (function_exists("tbn_of_apply")) { tbn_of_apply(); }' 2>/dev/null || true
+# OpenFabric: write/remove the FRR fragment; FabricRouting hook (or fallback) reloads FRR
+php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; if (function_exists("tbn_of_apply")) { tbn_of_apply(true); }' 2>/dev/null || true
 
 # Re-assert e2e + udev (RAM root) + L3 after array start
 php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; tbn_ensure_e2e_param(); tbn_install_net_udev();' 2>/dev/null || true
@@ -19,8 +19,8 @@ fi
 
 udevadm trigger --subsystem-match=net --action=add 2>/dev/null || true
 
-# Peer link-check beacon (php -S :10807) — bypasses Unraid login 302 on /plugins export
-php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; $m="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh.php"; if (is_file($m)) { require_once $m; if (function_exists("tbn_mesh_beacon_ensure")) { tbn_mesh_beacon_ensure(); } }' 2>/dev/null || true
+# Peer link-check beacon (php -S :10807, Thunderbolt IPs only) + its cron schedule
+php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; $m="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh.php"; if (is_file($m)) { require_once $m; tbn_mesh_cron_sync(); if (function_exists("tbn_mesh_beacon_ensure")) { tbn_mesh_beacon_ensure(); } }' 2>/dev/null || true
 
 STREAM_RA=/usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-stream-reapply
 if [ -f "$STREAM_RA" ]; then

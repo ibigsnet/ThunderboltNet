@@ -246,7 +246,7 @@ Details: [nat-share-uplink.md](nat-share-uplink.md).
 |---------|--------|
 | Chip / status **needs FRR packages** | Expected without FRR. Static tbn still works. Click the chip → Multi-hop companion card (top of overview) → install [FabricRouting](https://github.com/ibigsnet/FabricRouting) (CA or raw `.plg`) → **Network Settings → Fabric Routing** → Apply. Not required for one-cable static peers. |
 | OpenFabric On but “FRR not installed” | Same as above. Optional multi-hop only — not a broken Thunderbolt Net install. |
-| No multi-hop to a third host | Both ends need fabricd + matching **area**; underlay IPs up; unique subnets per link; IP forwarding only after FRR is present |
+| No multi-hop to a third host | Both ends need fabricd + matching **area**; underlay IPs up; unique subnets per link; IP forwarding (per Thunderbolt interface) only after FRR is present; IPv6 transit needs per-interface `force_forwarding` in the kernel |
 | Routes look wrong / hairpin around ring | Metrics: lower sum wins — [routing-openfabric.md](routing-openfabric.md#path-cost-and-metrics) |
 | br0 / internet broken after experiments | Confirm tbn **default route = No**; OpenFabric should not enroll br0 by default |
 

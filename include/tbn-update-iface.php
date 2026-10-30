@@ -1,6 +1,6 @@
 <?php
 /**
- * #include after update.php writes ThunderboltNet/ifaces/<iface>.cfg
+ * #include for a tbnN form (#file ThunderboltNet/ifaces/<iface>.cfg).
  * #arg[1] or POST tbn_iface = kernel iface name (thunderbolt0).
  */
 // Unraid update.php includes this on POST only; refuse a direct GET.
@@ -10,6 +10,10 @@ if (PHP_SAPI !== 'cli' && ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
 }
 $docroot = $docroot ?? ($_SERVER['DOCUMENT_ROOT'] ?? '/usr/local/emhttp');
 require_once '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php';
+// One writer at a time (boot / udev reapply can run at the same moment)
+if (tbn_lock_acquire(60)) {
+  register_shutdown_function('tbn_lock_release');
+}
 
 $if = '';
 if (!empty($argv[1])) {
@@ -27,33 +31,15 @@ if ($if === '' || !preg_match('/^thunderbolt\d+$/', $if)) {
   return;
 }
 
-// Reset button: Unraid may pass name="#apply" value="Reset"
+// Unraid update.php runs this include *before* it saves $_POST into the iface
+// cfg, so merge the form here, write it, and stop update.php from saving its
+// older copy over ours ($save = false). Apply then uses the new settings.
+$save = false;
 $apply = $_POST['#apply'] ?? '';
 if (strcasecmp((string)$apply, 'Reset') === 0) {
   tbn_reset_iface_cfg($if);
-  // reload defaults into live cfg file already written — overwrite with defaults
-  tbn_write_iface_cfg($if, tbn_iface_defaults($if));
-}
-
-// Ensure iface dir exists
-@mkdir(tbn_iface_cfg_dir(), 0755, true);
-
-// Unraid update.php includes this file *then* writes $_POST onto flash.
-// Mutate $_POST so the subsequent save keeps jumbo (24aa wrote the file here
-// and update.php immediately overwrote it with hidden USE_MTU=no).
-if (strcasecmp((string)$apply, 'Reset') !== 0 && function_exists('tbn_load_iface_cfg')) {
-  $cfg = tbn_load_iface_cfg($if);
-  if (function_exists('tbn_reconcile_iface_mtu_post')) {
-    $mtu_fields = tbn_reconcile_iface_mtu_post($_POST);
-    $_POST['USE_MTU'] = $mtu_fields['USE_MTU'];
-    $_POST['MTU_MODE'] = $mtu_fields['MTU_MODE'];
-    $_POST['MTU'] = $mtu_fields['MTU'];
-    unset($_POST['USE_MTU_YES']);
-    $cfg['USE_MTU'] = $mtu_fields['USE_MTU'];
-    $cfg['MTU_MODE'] = $mtu_fields['MTU_MODE'];
-    $cfg['MTU'] = $mtu_fields['MTU'];
-    tbn_write_iface_cfg($if, $cfg);
-  }
+} elseif (PHP_SAPI !== 'cli') {
+  tbn_write_iface_cfg($if, tbn_merge_iface_post($if, tbn_load_iface_cfg($if), $_POST));
 }
 
 // Global modules from main cfg
@@ -62,6 +48,13 @@ if (($g['load_modules'] ?? 'yes') === 'yes') {
   tbn_load_modules();
 }
 
+// Apply on the tbn tab is the user confirming the peer on this path for this boot
+if (function_exists('tbn_live_peer_key_for_iface')) {
+  $live_key = tbn_live_peer_key_for_iface($if);
+  if ($live_key !== '') {
+    tbn_peer_confirm($live_key);
+  }
+}
 tbn_apply_iface($if);
 tbn_sync_iface_pages();
 

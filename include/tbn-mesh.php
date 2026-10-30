@@ -18,6 +18,12 @@ function tbn_mesh_beacon_pidfile() {
 }
 
 function tbn_mesh_beacon_logfile() {
+  // Access lines are discarded (php -S logs every request; /var/log is a small tmpfs).
+  return '/dev/null';
+}
+
+/** Legacy beacon log from older versions (removed on next beacon start). */
+function tbn_mesh_beacon_legacy_log() {
   return '/var/log/thunderboltnet-mesh-beacon.log';
 }
 
@@ -26,7 +32,7 @@ function tbn_mesh_beacon_logfile() {
  *
  * @return array<int,array{iface:string,network:string,host:string,pool_start:string,pool_end:string}>
  */
-function tbn_mesh_dhcp_servers_snapshot(array $cfg = null) {
+function tbn_mesh_dhcp_servers_snapshot(?array $cfg = null) {
   $out = [];
   if (!function_exists('tbn_load_iface_cfg') || !function_exists('tbn_dhcp_server_plan')) {
     return $out;
@@ -77,7 +83,7 @@ function tbn_mesh_kill_pid($pid) {
  * Private IPv4s the mesh beacon may bind (Thunderbolt + optional mesh_eth_ifaces).
  * Never br0 / wlan / docker — that was the 0.0.0.0 leak onto the management LAN.
  */
-function tbn_mesh_listen_addrs(array $cfg = null) {
+function tbn_mesh_listen_addrs(?array $cfg = null) {
   if ($cfg === null) {
     $cfg = tbn_load_cfg();
   }
@@ -108,7 +114,7 @@ function tbn_mesh_listen_addrs(array $cfg = null) {
 }
 
 /** Start mesh beacon when link-check export is enabled; stop when off. */
-function tbn_mesh_beacon_ensure(array $cfg = null) {
+function tbn_mesh_beacon_ensure(?array $cfg = null) {
   if ($cfg === null) {
     $cfg = tbn_load_cfg();
   }
@@ -144,6 +150,9 @@ function tbn_mesh_beacon_ensure(array $cfg = null) {
   }
   $port = tbn_mesh_beacon_port();
   $log = tbn_mesh_beacon_logfile();
+  if (is_file(tbn_mesh_beacon_legacy_log())) {
+    @unlink(tbn_mesh_beacon_legacy_log());
+  }
   $want = array_fill_keys($addrs, true);
   $alive = [];
   foreach (glob($dir . '/*.pid') ?: [] as $pf) {
@@ -195,7 +204,135 @@ function tbn_mesh_beacon_stop() {
 }
 
 function tbn_mesh_host_id_path() { return tbn_cfg_dir() . '/mesh_host_id'; }
-function tbn_mesh_cache_dir() { return tbn_cfg_dir() . '/mesh-cache'; }
+/** Peer snapshots, last poll and link-check results: RAM only (polled every minute). */
+function tbn_mesh_cache_dir() {
+  $d = tbn_runtime_path('mesh-cache');
+  if (!is_dir($d)) {
+    @mkdir($d, 0700, true);
+  }
+  return $d;
+}
+
+function tbn_mesh_last_poll_path() {
+  return tbn_runtime_path('mesh_last_poll.json');
+}
+
+function tbn_mesh_validation_path() {
+  return tbn_runtime_path('mesh_validation.json');
+}
+
+/** Largest peer snapshot accepted (bytes). */
+function tbn_mesh_max_body() {
+  return 262144;
+}
+
+/** Peer snapshot files kept in the cache (newest first). */
+function tbn_mesh_cache_keep() {
+  return 16;
+}
+
+/**
+ * Older versions kept the cache and last poll on flash; drop them once.
+ */
+function tbn_mesh_cleanup_flash_legacy() {
+  $old = tbn_cfg_dir() . '/mesh-cache';
+  if (is_dir($old)) {
+    foreach (glob($old . '/*.json') ?: [] as $f) {
+      @unlink($f);
+    }
+    @rmdir($old);
+  }
+  if (is_file(tbn_cfg_dir() . '/mesh_last_poll.json')) {
+    @unlink(tbn_cfg_dir() . '/mesh_last_poll.json');
+  }
+}
+
+/**
+ * Keep at most $keep cache files and none older than $max_age seconds.
+ * The far end picks host_id (the filename), so the cache must stay bounded.
+ *
+ * @return string[] removed paths
+ */
+function tbn_mesh_prune_cache($dir, $keep = 16, $max_age = 86400, $now = null) {
+  $now = $now ?? time();
+  $files = [];
+  foreach (glob($dir . '/*.json') ?: [] as $f) {
+    $files[$f] = (int)@filemtime($f);
+  }
+  arsort($files, SORT_NUMERIC);
+  $removed = [];
+  $i = 0;
+  foreach ($files as $f => $mt) {
+    $i++;
+    if ($i > $keep || ($now - $mt) > $max_age) {
+      @unlink($f);
+      $removed[] = $f;
+    }
+  }
+  return $removed;
+}
+
+/** @return array<string,array> peer_key => validation */
+function tbn_mesh_validation_load() {
+  return tbn_read_json_file(tbn_mesh_validation_path());
+}
+
+function tbn_mesh_validation_save(array $map) {
+  return tbn_write_json_file(tbn_mesh_validation_path(), array_slice($map, -64, null, true));
+}
+
+/** Add RAM link-check results to a peers.json array for display. */
+function tbn_mesh_overlay_validation(array $peers) {
+  $val = tbn_mesh_validation_load();
+  foreach ($peers as $k => $p) {
+    if (is_array($p) && isset($val[$k]) && is_array($val[$k])) {
+      $peers[$k]['mesh_validation'] = $val[$k];
+    }
+  }
+  return $peers;
+}
+
+/* ---- Schedule: Unraid plugin cron (flash .cron + update_cron) ---- */
+
+function tbn_mesh_cron_path() {
+  return tbn_cfg_dir() . '/thunderboltnet.cron';
+}
+
+function tbn_mesh_cron_body() {
+  return "# ThunderboltNet peer link check (generated; removed when the check is off)\n"
+    . "* * * * * /bin/bash /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-mesh-cron >/dev/null 2>&1\n";
+}
+
+/**
+ * Install the cron line while the link check is enabled (report=yes and a token),
+ * remove it otherwise. Flash is written only when the state changes; update_cron
+ * runs only then. The cron script itself is a cheap no-op without a link or peer IPs.
+ *
+ * @return bool true when the cron file changed
+ */
+function tbn_mesh_cron_sync(?array $cfg = null) {
+  if ($cfg === null) {
+    $cfg = tbn_load_cfg();
+  }
+  $path = tbn_mesh_cron_path();
+  $want = tbn_mesh_enabled($cfg);
+  $changed = false;
+  if ($want) {
+    $body = tbn_mesh_cron_body();
+    if (!is_file($path) || (string)@file_get_contents($path) !== $body) {
+      $changed = tbn_write_file_atomic($path, $body);
+    }
+  } elseif (is_file($path)) {
+    $changed = @unlink($path);
+  }
+  if ($changed) {
+    $uc = tbn_env_path('TBN_UPDATE_CRON', '/usr/local/sbin/update_cron');
+    if (is_file($uc)) {
+      @exec(escapeshellarg($uc) . ' >/dev/null 2>&1');
+    }
+  }
+  return $changed;
+}
 
 function tbn_mesh_host_id() {
   $path = tbn_mesh_host_id_path();
@@ -219,7 +356,7 @@ function tbn_mesh_host_id() {
     @mkdir(tbn_cfg_dir(), 0755, true);
     $prev = is_readable($path) ? trim((string)@file_get_contents($path)) : '';
     if ($prev !== $id) {
-      @file_put_contents($path, $id . "\n");
+      tbn_write_file_atomic($path, $id . "\n");
     }
     return $id;
   }
@@ -233,7 +370,7 @@ function tbn_mesh_host_id() {
   $id = substr($hex, 0, 8) . '-' . substr($hex, 8, 4) . '-' . substr($hex, 12, 4)
     . '-' . substr($hex, 16, 4) . '-' . substr($hex, 20, 12);
   @mkdir(tbn_cfg_dir(), 0755, true);
-  @file_put_contents($path, $id . "\n");
+  tbn_write_file_atomic($path, $id . "\n");
   return $id;
 }
 
@@ -259,7 +396,7 @@ function tbn_mesh_cfg_defaults() {
   ];
 }
 
-function tbn_mesh_enabled(array $cfg = null) {
+function tbn_mesh_enabled(?array $cfg = null) {
   if ($cfg === null) $cfg = tbn_load_cfg();
   return (($cfg['mesh_report'] ?? 'no') === 'yes') && trim((string)($cfg['mesh_token'] ?? '')) !== '';
 }
@@ -311,7 +448,7 @@ function tbn_mesh_fmt_mbps($mbps) {
   return $mbps . 'M';
 }
 
-function tbn_mesh_snapshot(array $links = null, array $cfg = null) {
+function tbn_mesh_snapshot(?array $links = null, ?array $cfg = null) {
   if ($cfg === null) $cfg = tbn_load_cfg();
   if ($links === null) $links = tbn_link_summaries();
   $out_links = [];
@@ -412,7 +549,7 @@ function tbn_mesh_snapshot(array $links = null, array $cfg = null) {
   ];
 }
 
-function tbn_mesh_validate_pair(array $local_link, array $peer_link = null, $stale = false) {
+function tbn_mesh_validate_pair(array $local_link, ?array $peer_link = null, $stale = false) {
   $local = [
     'tx_mbps' => (int)($local_link['tx_mbps'] ?? 0),
     'rx_mbps' => (int)($local_link['rx_mbps'] ?? 0),
@@ -555,7 +692,55 @@ function tbn_mesh_local_ipv4_set() {
   return $cache;
 }
 
-function tbn_mesh_peer_targets(array $cfg = null, array $links = null) {
+/** True when $ip is inside $cidr (a.b.c.d/nn). */
+function tbn_mesh_ip_in_cidr($ip, $cidr) {
+  if (!preg_match('#^(\d{1,3}(?:\.\d{1,3}){3})/(\d{1,2})$#', (string)$cidr, $m)) {
+    return false;
+  }
+  $il = ip2long((string)$ip);
+  $nl = ip2long($m[1]);
+  $p = (int)$m[2];
+  if ($il === false || $nl === false || $p < 1 || $p > 32) {
+    return false;
+  }
+  $mask = (-1 << (32 - $p)) & 0xffffffff;
+  return ($il & $mask) === ($nl & $mask);
+}
+
+/**
+ * Poll targets from `ip -4 neigh show dev X` lines: only resolved neighbours
+ * inside this link's own subnet(s). The far end can plant neighbour entries for
+ * any address; outside the link subnet the poll (and token) would leave the cable.
+ *
+ * @param string[] $lines
+ * @param string[] $iface_cidrs e.g. ["10.255.0.1/24"]
+ * @param array<string,true> $local_ips
+ * @return string[]
+ */
+function tbn_mesh_neigh_targets(array $lines, array $iface_cidrs, array $local_ips) {
+  $out = [];
+  foreach ($lines as $line) {
+    if (!preg_match('/^(\d{1,3}(?:\.\d{1,3}){3})\s/', (string)$line, $m)) {
+      continue;
+    }
+    if (preg_match('/\b(FAILED|INCOMPLETE|NOARP)\b/', (string)$line)) {
+      continue;
+    }
+    $ip = $m[1];
+    if (!empty($local_ips[$ip]) || !tbn_mesh_is_private_ip($ip)) {
+      continue;
+    }
+    foreach ($iface_cidrs as $c) {
+      if (tbn_mesh_ip_in_cidr($ip, $c)) {
+        $out[$ip] = $ip;
+        break;
+      }
+    }
+  }
+  return array_values($out);
+}
+
+function tbn_mesh_peer_targets(?array $cfg = null, ?array $links = null) {
   if ($cfg === null) $cfg = tbn_load_cfg();
   if ($links === null) $links = tbn_link_summaries();
   $local_ips = tbn_mesh_local_ipv4_set();
@@ -570,17 +755,17 @@ function tbn_mesh_peer_targets(array $cfg = null, array $links = null) {
     $if = $L['iface'] ?? '';
     if ($if === '' || strpos($if, 'thunderbolt') !== 0) continue;
     $lines = [];
-    @exec('ip neigh show dev ' . escapeshellarg($if) . ' 2>/dev/null', $lines);
-    foreach ($lines as $line) {
-      if (preg_match('/^([0-9.]+)\s+/', $line, $m) && tbn_mesh_is_private_ip($m[1]) && empty($local_ips[$m[1]])) {
-        $ips[$m[1]] = 'neigh';
+    @exec('ip -4 neigh show dev ' . escapeshellarg($if) . ' 2>/dev/null', $lines);
+    $cidrs = function_exists('tbn_iface_addrs') ? tbn_iface_addrs($if) : [];
+    foreach (tbn_mesh_neigh_targets($lines, $cidrs, $local_ips) as $ip) {
+      if (!isset($ips[$ip])) {
+        $ips[$ip] = 'neigh';
       }
     }
   }
   $port = tbn_mesh_beacon_port();
   $out = [];
   foreach ($ips as $ip => $src) {
-    // Prefer auth-free beacon (php -S). Legacy nginx /plugins path returns 302 without login.
     $out[] = [
       'ip' => $ip,
       'url' => 'http://' . $ip . ':' . $port . '/',
@@ -590,33 +775,101 @@ function tbn_mesh_peer_targets(array $cfg = null, array $links = null) {
   return $out;
 }
 
-function tbn_mesh_fetch_peer($url, $token, $timeout = 4) {
-  $token = (string)$token;
-  $ctx = stream_context_create([
+/**
+ * HTTP context for a peer poll: no redirects (a peer could bounce the request,
+ * token header included, to any host), short timeout, header-safe token.
+ */
+function tbn_mesh_http_options($token, $timeout = 4) {
+  $token = preg_replace('/[^\x21-\x7e]/', '', (string)$token);
+  return [
     'http' => [
       'method' => 'GET',
-      'timeout' => $timeout,
-      'header' => "X-Tbn-Mesh-Token: $token\r\nUser-Agent: ThunderboltNet-Mesh/1.0\r\n",
+      'timeout' => (float)$timeout,
+      'follow_location' => 0,
+      'max_redirects' => 0,
+      'header' => "X-Tbn-Mesh-Token: {$token}\r\nUser-Agent: ThunderboltNet-Mesh/1.1\r\nConnection: close\r\n",
       'ignore_errors' => true,
+      'protocol_version' => 1.0,
     ],
-  ]);
-  $body = @file_get_contents($url, false, $ctx);
-  $code = 0;
-  if (isset($http_response_header[0]) && preg_match('/\s(\d{3})\s/', $http_response_header[0], $m)) {
-    $code = (int)$m[1];
-  }
-  if (!is_string($body) || $body === '') {
-    return ['ok' => false, 'code' => $code, 'error' => 'empty', 'data' => null];
-  }
-  $data = json_decode($body, true);
-  if (!is_array($data) || empty($data['host_id'])) {
-    return ['ok' => false, 'code' => $code, 'error' => 'bad_json', 'data' => null];
-  }
-  return ['ok' => true, 'code' => $code, 'error' => '', 'data' => $data];
+  ];
 }
 
-function tbn_mesh_poll_all(array $cfg = null) {
+/**
+ * Decode a peer snapshot body (size-capped). Pure; used by the poller and tests.
+ *
+ * @return array{ok:bool,error:string,data:?array}
+ */
+function tbn_mesh_decode_body($body, $code, $max = null) {
+  $max = $max ?? tbn_mesh_max_body();
+  if (!is_string($body) || $body === '') {
+    return ['ok' => false, 'error' => 'empty', 'data' => null];
+  }
+  if (strlen($body) > $max) {
+    return ['ok' => false, 'error' => 'too_large', 'data' => null];
+  }
+  if ((int)$code !== 200) {
+    return ['ok' => false, 'error' => 'http_' . (int)$code, 'data' => null];
+  }
+  $data = json_decode($body, true, 32);
+  if (!is_array($data) || empty($data['host_id']) || !is_string($data['host_id'])) {
+    return ['ok' => false, 'error' => 'bad_json', 'data' => null];
+  }
+  // Shape the untrusted payload before anything iterates it
+  $data['hostname'] = substr(is_string($data['hostname'] ?? null) ? $data['hostname'] : '', 0, 255);
+  $data['generated_at'] = is_string($data['generated_at'] ?? null) ? substr($data['generated_at'], 0, 40) : '';
+  $data['fabric_uuids'] = array_values(array_filter(
+    is_array($data['fabric_uuids'] ?? null) ? $data['fabric_uuids'] : [],
+    'is_string'
+  ));
+  $links = [];
+  foreach (is_array($data['links'] ?? null) ? $data['links'] : [] as $L) {
+    if (is_array($L)) {
+      foreach ($L as $k => $v) {
+        if (!is_scalar($v) && !(is_array($v) && $k === 'local_addrs')) {
+          unset($L[$k]);
+        }
+      }
+      $links[] = $L;
+    }
+  }
+  $data['links'] = array_slice($links, 0, 64);
+  return ['ok' => true, 'error' => '', 'data' => $data];
+}
+
+function tbn_mesh_fetch_peer($url, $token, $timeout = 4) {
+  $ctx = stream_context_create(tbn_mesh_http_options($token, $timeout));
+  $fp = @fopen($url, 'rb', false, $ctx);
+  if (!$fp) {
+    return ['ok' => false, 'code' => 0, 'error' => 'connect', 'data' => null];
+  }
+  stream_set_timeout($fp, (int)ceil($timeout));
+  $max = tbn_mesh_max_body();
+  $body = (string)@stream_get_contents($fp, $max + 1);
+  $meta = @stream_get_meta_data($fp);
+  fclose($fp);
+  $code = 0;
+  foreach ((array)($meta['wrapper_data'] ?? []) as $h) {
+    if (preg_match('#^HTTP/\S+\s+(\d{3})#', (string)$h, $m)) {
+      $code = (int)$m[1];
+    }
+  }
+  $r = tbn_mesh_decode_body($body, $code, $max);
+  $r['code'] = $code;
+  return $r;
+}
+
+function tbn_mesh_poll_all(?array $cfg = null, $lock_wait = 0) {
   if ($cfg === null) $cfg = tbn_load_cfg();
+  $r = tbn_locked(function () use ($cfg) {
+    return tbn_mesh_poll_all_unlocked($cfg);
+  }, $lock_wait, true);
+  if ($r === null) {
+    return ['enabled' => tbn_mesh_enabled($cfg), 'polled' => 0, 'ok' => 0, 'edges' => [], 'hosts' => [], 'error' => 'busy'];
+  }
+  return $r;
+}
+
+function tbn_mesh_poll_all_unlocked(array $cfg) {
   $result = ['enabled' => tbn_mesh_enabled($cfg), 'polled' => 0, 'ok' => 0, 'edges' => [], 'hosts' => [], 'error' => ''];
   if (!$result['enabled']) {
     $result['error'] = 'mesh_report off or token empty';
@@ -632,8 +885,9 @@ function tbn_mesh_poll_all(array $cfg = null) {
   $links = tbn_link_summaries();
   $local_snap = tbn_mesh_snapshot($links, $cfg);
   $targets = tbn_mesh_peer_targets($cfg, $links);
-  @mkdir(tbn_mesh_cache_dir(), 0755, true);
+  $cache_dir = tbn_mesh_cache_dir();
   $peers = tbn_load_peers_memory();
+  $valmap = tbn_mesh_validation_load();
   $forgotten = function_exists('tbn_load_forgotten_peers') ? tbn_load_forgotten_peers() : [];
   $now = time();
   $our_host = $local_snap['hostname'] ?? '';
@@ -666,7 +920,8 @@ function tbn_mesh_poll_all(array $cfg = null) {
     $data['_fetched_at'] = date('c');
     $data['_fetch_ip'] = $t['ip'];
     $data['_source'] = $t['source'];
-    @file_put_contents(tbn_mesh_cache_dir() . '/' . $safe . '.json', json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+    $safe = substr($safe, 0, 64);
+    tbn_write_json_file($cache_dir . '/' . $safe . '.json', $data);
     $result['hosts'][] = ['host_id' => $hid, 'hostname' => $data['hostname'] ?? '', 'ip' => $t['ip'], 'links' => count($data['links'] ?? [])];
 
     $our_fabrics_lc = array_map('strtolower', tbn_mesh_local_fabric_uuids());
@@ -730,16 +985,13 @@ function tbn_mesh_poll_all(array $cfg = null) {
         if ($pkey === '') continue;
       }
       if (isset($forgotten[$pkey])) continue;
-      $prev = $peers[$pkey]['mesh_validation'] ?? [];
+      $prev = $valmap[$pkey] ?? [];
       $val = tbn_mesh_apply_holdoff($prev, $raw, $holdoff);
       $val['peer_host_id'] = $hid;
       $val['peer_hostname'] = $data['hostname'] ?? '';
       $val['fetch_ip'] = $t['ip'];
-      if (!isset($peers[$pkey])) {
-        $peers[$pkey] = ['peer_name' => $ll['peer_name'] ?? '', 'unique_id' => $ll['peer_unique_id'] ?? '', 'online' => true];
-      }
-      $peers[$pkey]['mesh_validation'] = $val;
-      $peers[$pkey]['mesh_last_fetch'] = date('c');
+      $val['fetched_at'] = date('c');
+      $valmap[$pkey] = $val;
       $result['edges'][] = [
         'peer_key' => $pkey,
         'status' => $val['status'] ?? 'orange',
@@ -754,8 +1006,8 @@ function tbn_mesh_poll_all(array $cfg = null) {
   foreach ($local_snap['links'] as $ll) {
     $pkey = $ll['peer_key'] ?? '';
     if ($pkey === '' || !isset($peers[$pkey])) continue;
-    if (empty($peers[$pkey]['mesh_validation'])) {
-      $peers[$pkey]['mesh_validation'] = [
+    if (empty($valmap[$pkey])) {
+      $valmap[$pkey] = [
         'status' => 'orange',
         'reason' => 'local_only',
         'checked_at' => date('c'),
@@ -765,16 +1017,17 @@ function tbn_mesh_poll_all(array $cfg = null) {
       ];
     }
   }
-  tbn_save_peers_memory($peers);
-  @file_put_contents(tbn_cfg_dir() . '/mesh_last_poll.json', json_encode(['at' => date('c'), 'result' => $result], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+  tbn_mesh_validation_save($valmap);
+  tbn_mesh_prune_cache($cache_dir, tbn_mesh_cache_keep(), max(3600, $stale_secs * 4));
+  tbn_write_json_file(tbn_mesh_last_poll_path(), ['at' => date('c'), 'result' => $result]);
   return $result;
 }
 
-function tbn_mesh_maybe_poll(array $cfg = null, $force = false) {
+function tbn_mesh_maybe_poll(?array $cfg = null, $force = false) {
   if ($cfg === null) $cfg = tbn_load_cfg();
   if (!tbn_mesh_enabled($cfg)) return null;
   $interval = max(30, (int)($cfg['mesh_poll_secs'] ?? 60));
-  $path = tbn_cfg_dir() . '/mesh_last_poll.json';
+  $path = tbn_mesh_last_poll_path();
   if (!$force && is_readable($path)) {
     $j = json_decode((string)@file_get_contents($path), true);
     $at = strtotime($j['at'] ?? '') ?: 0;
@@ -811,7 +1064,7 @@ function tbn_mesh_legend_html() {
     . '</div>';
 }
 
-function tbn_mesh_badge_html(array $val = null, $enabled = null) {
+function tbn_mesh_badge_html(?array $val = null, $enabled = null) {
   if ($enabled === null && function_exists('tbn_load_cfg')) {
     $enabled = tbn_mesh_enabled(tbn_load_cfg());
   }
@@ -854,13 +1107,13 @@ function tbn_mesh_badge_html(array $val = null, $enabled = null) {
   return $html;
 }
 
-function tbn_mesh_reports_panel_html(array $cfg = null) {
+function tbn_mesh_reports_panel_html(?array $cfg = null) {
   if ($cfg === null) $cfg = tbn_load_cfg();
   $enabled = tbn_mesh_enabled($cfg);
   $hosts = tbn_mesh_cached_hosts();
   $poll = null;
-  if (is_readable(tbn_cfg_dir() . '/mesh_last_poll.json')) {
-    $j = json_decode((string)@file_get_contents(tbn_cfg_dir() . '/mesh_last_poll.json'), true);
+  if (is_readable(tbn_mesh_last_poll_path())) {
+    $j = json_decode((string)@file_get_contents(tbn_mesh_last_poll_path()), true);
     $poll = $j;
   }
   $html = '<div class="tbn-section tbn-mesh-panel">';

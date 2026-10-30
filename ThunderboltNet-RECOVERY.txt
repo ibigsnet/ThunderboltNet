@@ -54,8 +54,10 @@ Wedged multi-cable domains are common.
   modprobe thunderbolt_net
   lsmod | grep thunderbolt
 
-Optional (many cross-host links prefer e2e off):
-  echo 0 > /sys/module/thunderbolt_net/parameters/e2e 2>/dev/null || true
+Optional (many cross-host links prefer e2e off). The e2e parameter is read-only
+at runtime, so reload the module with it (Thunderbolt links drop briefly):
+  modprobe -r thunderbolt_net
+  modprobe thunderbolt_net e2e=0
 
 
 3) FIND THE IFACE

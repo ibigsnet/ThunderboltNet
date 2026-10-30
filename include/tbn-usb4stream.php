@@ -214,7 +214,7 @@ function tbn_stream_save_saved(array $rows) {
     ];
   }
   $json = json_encode(['version' => 1, 'streams' => $clean], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-  return @file_put_contents(tbn_stream_cfg_path(), $json . "\n") !== false;
+  return tbn_write_file_atomic(tbn_stream_cfg_path(), $json . "\n");
 }
 
 function tbn_stream_saved_upsert($path, $name, $in_hopid, $out_hopid, $enabled = true) {
@@ -541,13 +541,95 @@ function tbn_stream_copy_file_ok($path, $for_write) {
   return ['ok' => true, 'path' => $real];
 }
 
-function tbn_stream_copy_raw_ok($path) {
+/** Whole-disk name for a block device name (sda1 → sda, nvme0n1p2 → nvme0n1, md1p1 → md1). */
+function tbn_stream_block_base($name) {
+  $name = basename((string)$name);
+  if (preg_match('/^((?:nvme\d+n\d+)|(?:nvd\d+)|(?:md\d+))(?:p\d+)?$/', $name, $m)) {
+    return $m[1];
+  }
+  if (preg_match('/^((?:sd|vd)[a-z]+)\d*$/', $name, $m)) {
+    return $m[1];
+  }
+  return $name;
+}
+
+/**
+ * Live facts for the raw-target check: mounts, swaps, the boot (flash) disk,
+ * array/pool member disks (emhttp disks.ini), and disks with kernel holders.
+ */
+function tbn_stream_raw_env() {
+  $mounts = (string)@file_get_contents('/proc/mounts');
+  $boot = '';
+  foreach (explode("\n", $mounts) as $line) {
+    $f = preg_split('/\s+/', trim($line));
+    if (count($f) >= 2 && $f[1] === '/boot' && strpos($f[0], '/dev/') === 0) {
+      $boot = tbn_stream_block_base($f[0]);
+    }
+  }
+  $disks = [];
+  foreach (['/var/local/emhttp/disks.ini'] as $ini) {
+    foreach (@file($ini, FILE_IGNORE_NEW_LINES) ?: [] as $line) {
+      if (preg_match('/^device="([A-Za-z0-9]+)"/', trim($line), $m)) {
+        $disks[] = tbn_stream_block_base($m[1]);
+      }
+    }
+  }
+  $held = [];
+  foreach (glob('/sys/class/block/*/holders/*') ?: [] as $h) {
+    $held[] = tbn_stream_block_base(basename(dirname(dirname($h))));
+  }
+  return [
+    'mounts' => $mounts,
+    'swaps' => (string)@file_get_contents('/proc/swaps'),
+    'boot' => $boot,
+    'disks' => array_values(array_unique($disks)),
+    'held' => array_values(array_unique($held)),
+  ];
+}
+
+/**
+ * Why a raw receive target must be refused ('' = allowed). Pure; $env from
+ * tbn_stream_raw_env(). Refuses array devices (md*), the boot flash, array and
+ * pool members, anything mounted or used as swap, and disks with holders.
+ */
+function tbn_stream_raw_refusal($path, array $env) {
+  $base = tbn_stream_block_base($path);
+  if (preg_match('/^md\d+$/', $base)) {
+    return 'array device';
+  }
+  if ($base !== '' && $base === (string)($env['boot'] ?? '')) {
+    return 'boot device';
+  }
+  if (in_array($base, (array)($env['disks'] ?? []), true)) {
+    return 'array or pool member';
+  }
+  foreach ([(string)($env['mounts'] ?? ''), (string)($env['swaps'] ?? '')] as $i => $text) {
+    foreach (explode("\n", $text) as $line) {
+      $src = preg_split('/\s+/', trim($line))[0] ?? '';
+      if (strpos($src, '/dev/') === 0 && tbn_stream_block_base($src) === $base) {
+        return $i === 0 ? 'mounted' : 'in use as swap';
+      }
+    }
+  }
+  if (in_array($base, (array)($env['held'] ?? []), true)) {
+    return 'in use (holders)';
+  }
+  return '';
+}
+
+function tbn_stream_copy_raw_ok($path, $for_write = true, ?array $env = null) {
   $path = (string)$path;
   if (!preg_match('#^/dev/(nvme[0-9]+n[0-9]+(p[0-9]+)?|sd[a-z]+[0-9]*|vd[a-z]+[0-9]*|md[0-9]+p?[0-9]*|nvd[0-9]+p?[0-9]*)$#', $path)) {
     return ['ok' => false, 'error' => 'raw device not allowed'];
   }
-  if (!file_exists($path)) {
+  if ($env === null && !file_exists($path)) {
     return ['ok' => false, 'error' => 'raw device not found'];
+  }
+  if ($for_write) {
+    $why = tbn_stream_raw_refusal($path, $env ?? tbn_stream_raw_env());
+    if ($why !== '') {
+      return ['ok' => false, 'error' => 'raw target refused: ' . $why];
+    }
   }
   return ['ok' => true, 'path' => $path];
 }
@@ -573,7 +655,7 @@ function tbn_stream_copy_cmd($direction, $dev, $file, $raw = false, $overwrite =
     return ['ok' => false, 'error' => $dev . ' is not present — create the stream first'];
   }
   if ($raw) {
-    $chk = tbn_stream_copy_raw_ok($file);
+    $chk = tbn_stream_copy_raw_ok($file, $direction === 'receive');
   } else {
     $chk = tbn_stream_copy_file_ok($file, $direction === 'receive');
   }

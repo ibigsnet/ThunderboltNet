@@ -249,71 +249,126 @@ function tbn_nat_default_route_dev() {
 }
 
 /**
+ * True when an `iptables -S` line carries exactly this comment tag
+ * (ThunderboltNet-NAT-thunderbolt1 must not match ...-thunderbolt10).
+ */
+function tbn_nat_line_has_tag($line, $tag) {
+  $q = preg_quote((string)$tag, '/');
+  return (bool)preg_match('/--comment\s+(?:"' . $q . '"|' . $q . ')(?:\s|$)/', (string)$line);
+}
+
+/** Split an `iptables -S` rule line into argv (handles "quoted" tokens). */
+function tbn_nat_split_rule($line) {
+  $out = [];
+  foreach (str_getcsv(trim((string)$line), ' ', '"', '\\') as $t) {
+    if ($t !== '' && $t !== null) {
+      $out[] = $t;
+    }
+  }
+  return $out;
+}
+
+/**
+ * Delete argv lists (without the iptables binary) for every rule tagged $tag in
+ * `iptables -t $table -S` output. Pure; no DNS lookups (uses -S, not -L).
+ *
+ * @param string[] $lines
+ * @return array<int,string[]>
+ */
+function tbn_nat_delete_argvs($table, array $lines, $tag) {
+  $out = [];
+  foreach ($lines as $line) {
+    if (strpos((string)$line, '-A ') !== 0 || !tbn_nat_line_has_tag($line, $tag)) {
+      continue;
+    }
+    $argv = tbn_nat_split_rule($line);
+    $argv[0] = '-D';
+    $out[] = array_merge(['-t', $table], $argv);
+  }
+  return $out;
+}
+
+function tbn_nat_iptables($argv, &$out = null, &$rc = null) {
+  $out = [];
+  $rc = 0;
+  @exec('iptables -w 5 ' . implode(' ', array_map('escapeshellarg', $argv)) . ' 2>&1', $out, $rc);
+  return $rc === 0;
+}
+
+/**
  * Remove all iptables rules tagged for this iface (nat + filter).
  */
 function tbn_nat_clear($if) {
   $tag = tbn_nat_comment_tag($if);
-  tbn_nat_delete_tagged_rules('nat', $tag);
-  tbn_nat_delete_tagged_rules('filter', $tag);
+  foreach (['nat' => 'POSTROUTING', 'filter' => 'FORWARD'] as $table => $chain) {
+    $lines = [];
+    @exec('iptables -w 5 -t ' . escapeshellarg($table) . ' -S ' . escapeshellarg($chain) . ' 2>/dev/null', $lines);
+    foreach (tbn_nat_delete_argvs($table, $lines, $tag) as $argv) {
+      tbn_nat_iptables($argv);
+    }
+  }
+  if (function_exists('tbn_fwd_release')) {
+    tbn_fwd_release('nat:' . $if);
+  }
   return true;
 }
 
-/**
- * Delete rules in a table that carry our comment tag (line-number delete).
- */
-function tbn_nat_delete_tagged_rules($table, $tag) {
-  $table = preg_replace('/[^a-z]/', '', (string)$table);
-  if ($table === '' || $tag === '') {
-    return;
-  }
-  $chains = ($table === 'nat') ? ['POSTROUTING'] : ['FORWARD'];
-  foreach ($chains as $chain) {
-    for ($guard = 0; $guard < 16; $guard++) {
-      $lines = [];
-      @exec(
-        'iptables -t ' . escapeshellarg($table)
-        . ' -L ' . escapeshellarg($chain)
-        . ' -v --line-numbers 2>/dev/null',
-        $lines
-      );
-      $num = 0;
-      foreach ($lines as $line) {
-        // Verbose list includes /* ThunderboltNet-NAT-… */ when comment match
-        if (strpos($line, $tag) === false) {
-          continue;
-        }
-        if (preg_match('/^\s*(\d+)\s+/', $line, $m)) {
-          $num = (int)$m[1];
-          break;
-        }
-      }
-      if ($num < 1) {
-        break;
-      }
-      @exec(
-        'iptables -t ' . escapeshellarg($table)
-        . ' -D ' . escapeshellarg($chain) . ' ' . $num . ' 2>/dev/null'
-      );
+/** Private IPv4 nameservers from resolv.conf (kept reachable in internet-only NAT). */
+function tbn_nat_private_dns($resolv = '/etc/resolv.conf') {
+  $out = [];
+  foreach (@file($resolv, FILE_IGNORE_NEW_LINES) ?: [] as $line) {
+    if (preg_match('/^\s*nameserver\s+(\d{1,3}(?:\.\d{1,3}){3})\s*$/', $line, $m)
+        && filter_var($m[1], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)
+        && !filter_var($m[1], FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+      $out[$m[1]] = $m[1];
     }
   }
+  return array_values($out);
+}
+
+/** Destinations an internet-only peer may not reach through the uplink. */
+function tbn_nat_internet_only_blocks() {
+  return ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16', '169.254.0.0/16', '100.64.0.0/10'];
 }
 
 /**
- * Ensure IPv4 forwarding is on (NAT requires it). Non-fatal if sysctl fails.
+ * Rules for one NAT link, in insert order. Each entry: argv after `iptables`.
+ * scope lan: the peer prefix may reach anything the uplink reaches.
+ * scope internet: private / CGNAT / link-local destinations are dropped,
+ * except DNS to the host's private nameservers.
+ *
+ * @return array<int,string[]>
  */
-function tbn_nat_ensure_forwarding() {
-  @exec('sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1');
-  // Persist hint for reboot (Unraid often already forwards for Docker/VMs)
-  $sysctl = '/boot/config/plugins/ThunderboltNet/sysctl-nat.conf';
-  $dir = dirname($sysctl);
-  if (is_dir($dir) || @mkdir($dir, 0755, true)) {
-    @file_put_contents($sysctl, "net.ipv4.ip_forward=1\n");
+function tbn_nat_rule_argvs($if, $prefix, $uplink, $scope = 'lan', array $dns = []) {
+  $tag = tbn_nat_comment_tag($if);
+  $c = ['-m', 'comment', '--comment', $tag];
+  $rules = [];
+  $rules[] = array_merge(['-t', 'nat', '-A', 'POSTROUTING', '-s', $prefix, '-o', $uplink], $c, ['-j', 'MASQUERADE']);
+  if ($scope === 'internet') {
+    foreach ($dns as $ip) {
+      foreach (['udp', 'tcp'] as $proto) {
+        $rules[] = array_merge(['-t', 'filter', '-A', 'FORWARD', '-i', $if, '-o', $uplink, '-s', $prefix,
+          '-d', $ip . '/32', '-p', $proto, '--dport', '53'], $c, ['-j', 'ACCEPT']);
+      }
+    }
+    foreach (tbn_nat_internet_only_blocks() as $net) {
+      $rules[] = array_merge(['-t', 'filter', '-A', 'FORWARD', '-i', $if, '-o', $uplink, '-d', $net], $c, ['-j', 'DROP']);
+    }
   }
-  // Soft-link into sysctl.d if present
-  if (is_dir('/etc/sysctl.d')) {
-    $dst = '/etc/sysctl.d/99-thunderboltnet-nat.conf';
-    if (!is_file($dst) && is_readable($sysctl)) {
-      @copy($sysctl, $dst);
+  $rules[] = array_merge(['-t', 'filter', '-A', 'FORWARD', '-i', $if, '-o', $uplink, '-s', $prefix], $c, ['-j', 'ACCEPT']);
+  $rules[] = array_merge(['-t', 'filter', '-A', 'FORWARD', '-i', $uplink, '-o', $if, '-d', $prefix,
+    '-m', 'conntrack', '--ctstate', 'RELATED,ESTABLISHED'], $c, ['-j', 'ACCEPT']);
+  return $rules;
+}
+
+/**
+ * Older versions forced net.ipv4.ip_forward=1 and left sysctl files behind.
+ * Forwarding is now per interface (tbn_fwd_*); remove the leftovers.
+ */
+function tbn_nat_cleanup_legacy_sysctl() {
+  foreach ([tbn_cfg_dir() . '/sysctl-nat.conf', '/etc/sysctl.d/99-thunderboltnet-nat.conf'] as $f) {
+    if (is_file($f)) {
+      @unlink($f);
     }
   }
 }
@@ -327,6 +382,7 @@ function tbn_nat_apply($if, array $cfg) {
   $if = (string)$if;
   // Always clear our previous tags first (idempotent)
   tbn_nat_clear($if);
+  tbn_nat_cleanup_legacy_sysctl();
 
   if (($cfg['ENABLE'] ?? 'yes') !== 'yes' || !tbn_nat_enabled($cfg)) {
     return ['ok' => true, 'enabled' => false, 'iface' => $if];
@@ -345,31 +401,24 @@ function tbn_nat_apply($if, array $cfg) {
     return ['ok' => false, 'enabled' => false, 'error' => 'NAT uplink cannot be a Thunderbolt underlay'];
   }
 
-  tbn_nat_ensure_forwarding();
-
-  $tag = tbn_nat_comment_tag($if);
-  $ife = escapeshellarg($if);
-  $upe = escapeshellarg($uplink);
-  $pre = escapeshellarg($prefix);
-  $tage = escapeshellarg($tag);
-
-  // MASQUERADE underlay → uplink
-  $cmd = "iptables -t nat -A POSTROUTING -s {$pre} -o {$upe} -m comment --comment {$tage} -j MASQUERADE 2>&1";
-  $out = [];
-  $rc = 0;
-  @exec($cmd, $out, $rc);
-  if ($rc !== 0) {
-    return [
-      'ok' => false,
-      'enabled' => false,
-      'error' => 'iptables MASQUERADE failed: ' . trim(implode(' ', $out)),
-    ];
+  $scope = (($cfg['NAT_SCOPE'] ?? 'lan') === 'internet') ? 'internet' : 'lan';
+  $dns = $scope === 'internet' ? tbn_nat_private_dns() : [];
+  foreach (tbn_nat_rule_argvs($if, $prefix, $uplink, $scope, $dns) as $i => $argv) {
+    $out = [];
+    $rc = 0;
+    if (!tbn_nat_iptables($argv, $out, $rc) && $i === 0) {
+      return [
+        'ok' => false,
+        'enabled' => false,
+        'error' => 'iptables MASQUERADE failed: ' . trim(implode(' ', $out)),
+      ];
+    }
   }
 
-  // Forward TB → uplink
-  @exec("iptables -A FORWARD -i {$ife} -o {$upe} -m comment --comment {$tage} -j ACCEPT 2>/dev/null");
-  // Established return
-  @exec("iptables -A FORWARD -i {$upe} -o {$ife} -m state --state RELATED,ESTABLISHED -m comment --comment {$tage} -j ACCEPT 2>/dev/null");
+  // Forwarding only on the two interfaces involved (not net.ipv4.ip_forward)
+  if (function_exists('tbn_fwd_claim')) {
+    tbn_fwd_claim('nat:' . $if, [$if, $uplink], []);
+  }
 
   return [
     'ok' => true,
@@ -377,13 +426,14 @@ function tbn_nat_apply($if, array $cfg) {
     'iface' => $if,
     'uplink' => $uplink,
     'prefix' => $prefix,
+    'scope' => $scope,
   ];
 }
 
 /**
  * Status blob for Info / schema (does not change rules).
  */
-function tbn_nat_status($if, array $cfg = null) {
+function tbn_nat_status($if, ?array $cfg = null) {
   if ($cfg === null && function_exists('tbn_load_iface_cfg')) {
     $cfg = tbn_load_iface_cfg($if);
   }
@@ -397,9 +447,9 @@ function tbn_nat_status($if, array $cfg = null) {
   $tag = tbn_nat_comment_tag($if);
   $live = false;
   $lines = [];
-  @exec('iptables -t nat -S POSTROUTING 2>/dev/null', $lines);
+  @exec('iptables -w 5 -t nat -S POSTROUTING 2>/dev/null', $lines);
   foreach ($lines as $line) {
-    if (strpos($line, $tag) !== false) {
+    if (tbn_nat_line_has_tag($line, $tag)) {
       $live = true;
       break;
     }
@@ -411,7 +461,8 @@ function tbn_nat_status($if, array $cfg = null) {
     'uplink' => $uplink,
     'prefix' => $prefix,
     'schema' => tbn_nat_schema_line($if, $cfg),
-    'forwarding' => trim(@file_get_contents('/proc/sys/net/ipv4/ip_forward')) === '1',
+    'scope' => (($cfg['NAT_SCOPE'] ?? 'lan') === 'internet') ? 'internet' : 'lan',
+    'forwarding' => trim((string)@file_get_contents('/proc/sys/net/ipv4/conf/' . preg_replace('/[^A-Za-z0-9_.-]/', '', (string)$if) . '/forwarding')) === '1',
   ];
 }
 

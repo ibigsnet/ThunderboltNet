@@ -6,6 +6,61 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+## 2026.10.30aa
+
+- **Settings Apply:** the global Settings form and the tbnN tab now save your changes *before*
+  applying them. Unraid's `update.php` runs the plugin include before it writes the form, so
+  earlier versions applied the previous settings and then overwrote what the include wrote.
+  **OpenFabric = No** now sticks while FRR is installed, an empty token field keeps the saved
+  token, and **Reset** on a tbn tab really resets.
+- **Peer link check:** polls on a schedule (plugin cron `thunderboltnet.cron`, loaded with
+  `update_cron`; honours **Poll interval**, does nothing without a Thunderbolt link or listed
+  peer path). Peer snapshots, last poll and link-check colors are kept in RAM
+  (`/var/local/thunderboltnet`), no longer on the flash drive; the old `mesh-cache` and
+  `mesh_last_poll.json` on flash are removed. The poller follows no HTTP redirects, caps peer
+  snapshots at 256 KiB, keeps at most 16 cached hosts, and only polls neighbours inside the
+  Thunderbolt link's own subnet. The beacon is rate-limited (30/min per source) and no longer
+  writes an access log to `/var/log`. The unused `tbn-mesh-export.php` endpoint is removed.
+- **DHCP client on Thunderbolt:** `dhcpcd -b -G` without static/classless route options and
+  without resolv.conf, hostname or NTP hooks; the `dhclient` fallback is gone. The peer can no
+  longer push routes or DNS to this host, and Apply / hotplug no longer wait for a lease.
+- **IPv6 router advertisements:** ignored on Thunderbolt links (`accept_ra=0`, set as soon as
+  the netdev appears). New per-link option **Accept router advertisements** (default No).
+- **NAT (share host uplink):** rules are limited to the link prefix (`-s`), and IPv4 forwarding
+  is turned on only for that Thunderbolt link and the uplink instead of the global
+  `ip_forward`; it is put back when NAT is off, on unplug and on uninstall. The old
+  `sysctl-nat.conf` / `sysctl.d` files are removed. New option **Peer may reach**: *Internet
+  and LAN* (default, as before) or *Internet only* (private destinations dropped; DNS to
+  Unraid's private nameservers kept). Rule cleanup matches the exact tag (`thunderbolt1` no
+  longer clears `thunderbolt10`) and uses `iptables -S` (no reverse DNS lookups).
+- **OpenFabric:** forwarding is per participating Thunderbolt interface; the global
+  `net.ipv6.conf.all.forwarding` is no longer set (it made br0 drop its IPv6 default route).
+  The FRR fragment `frr/thunderboltnet-openfabric.conf` exists only while OpenFabric is on. With
+  Fabric Routing installed, Thunderbolt Net only writes or deletes that fragment and runs Fabric
+  Routing's reload hook; without it, the marked `frr.conf` block is merged (and removed when
+  off) and FRR is reloaded with `/usr/sbin/frrinit.sh`. `vtysh write memory` is never used.
+  Turning OpenFabric off removes the router-id `/32` on `lo`.
+- **Peer confirmation:** after each boot, saved **bridging**, **Unraid services** and **NAT**
+  for a reconnecting peer stay off until you confirm it once (Apply on its tbn tab, or
+  **Peers → Apply saved**). Addresses and MTU still apply automatically. The remote fabric UUID
+  is chosen by the far host, so it is not proof of identity. Updating the plugin keeps linked
+  peers confirmed.
+- **USB4STREAM:** raw receive refuses the boot flash, array (`md*`) and pool members, mounted
+  or swap devices, and disks with holders.
+- **Uninstall:** stops the beacon, removes NAT rules and the forwarding they used, the
+  OpenFabric fragment / `frr.conf` block, the `lo` router-id, the link-check cron and RAM state;
+  `network-extra.cfg` keeps all non-Thunderbolt lines.
+- **Flash and locking:** cfg, peers and per-link files are written only when their content
+  changes, through a temp file and rename. `peers.json` no longer changes on every hotplug.
+  `thunderbolt_net.conf` on flash is rewritten only when E2E changes. One lock serialises Apply,
+  boot / udev reapply, teardown and polls.
+- **Cleanup:** one built-in defaults table (`default.cfg` / `default-iface.cfg` removed; install
+  writes the cfg); unused legacy keys (`manage_ip`, `ip_addr`, `iface_primary`, `bond_enable`,
+  `openfabric_auto_install_frr`, …) and their CLI actions are gone. PHP 8.4 nullable
+  signatures. The status JSON shows the mesh token as `(set)`.
+- **Docs:** SECURITY, fabric reports, NAT, peers, OpenFabric, settings reference and Safe Mode
+  recovery (E2E is set by reloading the module, not by writing the read-only parameter).
+
 ## 2026.09.28ac
 
 - **UI GET:** opening Thunderbolt panels only reads cache. No `peers.json` rewrite, mesh poll,

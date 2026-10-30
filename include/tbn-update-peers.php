@@ -20,6 +20,10 @@ if (PHP_SAPI !== 'cli' && ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
 }
 $docroot = $docroot ?? ($_SERVER['DOCUMENT_ROOT'] ?? '/usr/local/emhttp');
 require_once '/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php';
+// One writer at a time (boot / udev reapply can run at the same moment)
+if (tbn_lock_acquire(60)) {
+  register_shutdown_function('tbn_lock_release');
+}
 
 $save = false;
 
@@ -166,6 +170,7 @@ if ($action === 'save_plan' || $action === 'apply_plan') {
     if ($action === 'apply_plan') {
       $if = tbn_live_iface_for_peer_key($key);
       if ($if !== '') {
+        tbn_peer_confirm($key); // user confirmed this peer for this boot
         tbn_apply_peer_plan_to_iface($key, $if);
         $n++;
       }

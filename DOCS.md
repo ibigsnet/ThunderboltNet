@@ -33,7 +33,7 @@ That includes **Thunderbolt 3, 4, and 5**, and **USB4 / USB4 v2** host controlle
 |------|-----------------|------------------|
 | Fabric overview | **Settings → Network Settings → Thunderbolt** | Status, Known peers (Current/Saved), hardware, driver options |
 | Per-link network | **Thunderbolt tbn0 / tbn1 / …** tabs | Enable, static / DHCP client / DHCP server, NAT, bridge join, MTU, listening, bond |
-| Saved peers | Peers tab + flash `peers.json` | L3/MTU/NAT follow remote **fabric UUID** across unplug / tbn renumber |
+| Saved peers | Peers tab + flash `peers.json` | L3/MTU/NAT follow remote **fabric UUID** across unplug / tbn renumber; bridging / services / NAT wait for a [per-boot confirm](docs/peers-and-plans.md#peer-confirmation-each-boot) |
 | Live kernel ifaces | `thunderbolt0`, `thunderbolt1`, … | Created by `thunderbolt_net` when a peer path trains |
 
 The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt links are usually **peer-to-peer** pipes used alongside your main LAN. Optional **NAT** lets a TB peer without its own Wi‑Fi/Ethernet reach the internet *through* Unraid without joining a bridge.
@@ -51,6 +51,7 @@ The plugin does **not** replace Unraid’s eth0/br0 configuration. Thunderbolt l
 | Enable default route | **No** | Keep internet on eth0/br0; Thunderbolt stays peer-local |
 | Share host uplink (NAT) | **No** | Optional. Peer reaches internet through Unraid — [nat-share-uplink.md](docs/nat-share-uplink.md) |
 | NAT uplink | **Auto** | Unraid’s current default-route iface (`br0` / `wlan0` / …) |
+| NAT peer reach | **Internet and LAN** | **Internet only** drops private destinations — [nat-share-uplink.md](docs/nat-share-uplink.md) |
 | Include listening | **No** | Don’t advertise Unraid services on Thunderbolt unless you opt in |
 | MTU | **1500** (kernel default) | Easy default. Optional jumbo (often **9000 both ends**) — [MTU & throughput](docs/mtu-and-throughput.md) |
 | Bonding | **Off** until ≥2 live Thunderbolt netdevs | Thunderbolt-only `bond-tb*`; dual-cable same-peer limited — [roadmap](docs/links-and-topology.md) |

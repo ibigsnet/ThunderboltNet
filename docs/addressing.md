@@ -75,6 +75,7 @@ What the tbnN form does when you change **IPv4 address assignment** (and on **Re
 | Enable default route | **No** |
 | Share host uplink (NAT) | **No** (stamped into Saved on Apply while linked) |
 | NAT uplink | **Auto** |
+| NAT peer reach | **Internet and LAN** (Internet only optional) |
 | IPv6 assignment | Static; address empty until you set one |
 | IPv6 DHCP server | Shares IPv4 dnsmasq / RA on the underlay |
 

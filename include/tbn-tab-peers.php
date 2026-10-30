@@ -235,6 +235,18 @@ if (!$has_hw):
     </div>
 
 <?php
+  $tbn_held = function_exists('tbn_held_peers') ? tbn_held_peers() : [];
+  if ($tbn_held):
+?>
+    <div class="tbn-notice tbn-notice-warn" role="status">
+      <strong>Waiting for confirmation:</strong> saved bridging / services / NAT are off this boot for
+      <?= htmlspecialchars(implode(', ', array_map(function ($k, $h) { return ($h['iface'] ?? '?') . ' (' . substr((string)$k, 0, 13) . '…)'; }, array_keys($tbn_held), $tbn_held))) ?>.
+      Select the peer and <strong>Apply saved</strong> (or Apply on its tbn tab).
+      <?= tbn_help_docs_footer('docs/peers-and-plans.md', 'Peer confirmation') ?>
+    </div>
+<?php endif; ?>
+
+<?php
   // Orange only for confirmed ARP duplicate-IP (same addr, foreign MAC)
   $tbn_coll = function_exists('tbn_underlay_collision_hints') ? tbn_underlay_collision_hints(null) : [];
   if ($tbn_coll):

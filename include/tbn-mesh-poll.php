@@ -31,14 +31,14 @@ if (PHP_SAPI === 'cli' || ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
   if (PHP_SAPI !== 'cli') {
     $force = (string)($_POST['force'] ?? '1') !== '0';
   }
-  $res = tbn_mesh_maybe_poll($cfg, $force);
+  $res = $force ? (tbn_mesh_enabled($cfg) ? tbn_mesh_poll_all($cfg, 15) : null) : tbn_mesh_maybe_poll($cfg, false);
   if ($res === null) {
     $res = ['enabled' => false, 'error' => 'mesh disabled or not due', 'polled' => 0, 'ok' => 0];
   }
 } else {
   // GET is read-only: last poll result from flash, no peer fetch.
   $res = ['enabled' => tbn_mesh_enabled($cfg), 'cached' => true, 'polled' => 0, 'ok' => 0];
-  $last = @json_decode((string)@file_get_contents(tbn_cfg_dir() . '/mesh_last_poll.json'), true);
+  $last = @json_decode((string)@file_get_contents(tbn_mesh_last_poll_path()), true);
   if (is_array($last) && is_array($last['result'] ?? null)) {
     $res = $last['result'] + ['cached' => true, 'cached_at' => (string)($last['at'] ?? '')];
   }
