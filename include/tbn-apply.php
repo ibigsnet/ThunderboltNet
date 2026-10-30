@@ -39,20 +39,6 @@ switch ($action) {
     $out['ok'] = true;
     break;
 
-  case 'include_on':
-    $out['ok'] = tbn_apply_include_listening(true);
-    $out['include_interfaces'] = tbn_read_include_interfaces();
-    break;
-
-  case 'include_off':
-    $out['ok'] = tbn_apply_include_listening(false);
-    $out['include_interfaces'] = tbn_read_include_interfaces();
-    break;
-
-  case 'apply_ip':
-    $out = array_merge($out, tbn_apply_static_ip());
-    break;
-
   case 'status':
     $out = tbn_status(['readonly' => (PHP_SAPI !== 'cli')]);
     $out['ok'] = true;

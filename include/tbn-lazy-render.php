@@ -49,7 +49,7 @@ if ($iface !== '') {
           ? tbn_peer_key_from_link($L, $peers)
           : trim((string)($L['remote']['unique_id'] ?? ''));
         if ($key !== '') {
-          @tbn_apply_peer_plan_to_iface($key, $iface);
+          @tbn_apply_peer_plan_to_iface($key, $iface, ['untrusted' => true]);
         }
         break;
       }

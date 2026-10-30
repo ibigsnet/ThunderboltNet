@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.09.28ac">
+<!ENTITY version "2026.10.30ab">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -25,13 +25,11 @@
 
 <CHANGES>
 ###&version;
-- Opening Thunderbolt panels (GET) only reads cache. Peers, mesh poll, seed migrate, OpenFabric auto-enable and iface page sync run on Apply/POST/events, not on page load.
+- Security and reliability: peer link check runs on a schedule with results in RAM; NAT, OpenFabric and DHCP on Thunderbolt no longer touch the global forwarding or LAN routes; saved bridging, services and NAT wait for a per-boot peer confirm (per-peer opt-out: Apply at boot without confirmation).
+- Settings and tbn tab Apply now save before applying (OpenFabric No sticks); OpenFabric uses the Fabric Routing reload hook when installed. The beacon accepts no request bodies.
 
-###2026.09.28ab
-- Own Dashboard tile for Thunderbolt links. Stock Dashboard files are no longer edited; upgrade and remove put them back. Config includes refuse GET; a GET no longer creates the mesh token.
-
-###2026.09.28aa
-- Settings help: no example host addresses. FabricRouting install link uses main. Bridge names escaped. Mesh refresh polls on POST only; GET shows the last result. Install drops old .txz by version.
+###2026.09.28aa–ac
+- Thunderbolt panels (GET) only read cache. Own Dashboard tile; stock Dashboard files no longer edited. Config includes POST-only. Mesh refresh polls on POST only. Bridge names escaped.
 
 ###2026.09.27aa
 - Plugin payload is a flash .txz from the GitHub Release (not re-fetched from main at boot).
@@ -64,8 +62,8 @@ echo "ThunderboltNet: ready."
 <!-- raw-files begin -->
 <FILE Name="&configdir;/ThunderboltNet-&version;-x86_64-1.txz" Run="upgradepkg --install-new --reinstall">
 <URL>https://github.com/ibigsnet/ThunderboltNet/releases/download/v&version;/ThunderboltNet-&version;-x86_64-1.txz</URL>
-<SHA256>6c4e50f3cb4b63ab3c9656bfd40de886a960f189a5323c467d56fdd004f8928c</SHA256>
-<MD5>4d5618d930d47a7128c0836a5524025c</MD5>
+<SHA256>7bbebb9deab667f0f9bed676430633ef9d007d795b54bc2bfbd617c251c12cb4</SHA256>
+<MD5>7f58e0b10b3c9e90d18629cba3c4c50f</MD5>
 </FILE>
 <!-- raw-files end -->
 
@@ -83,16 +81,17 @@ fi
 chmod 755 /usr/local/emhttp/plugins/ThunderboltNet/scripts/* 2>/dev/null || true
 chmod 755 /usr/local/emhttp/plugins/ThunderboltNet/event/* 2>/dev/null || true
 mkdir -p /boot/config/plugins/ThunderboltNet
-if [ ! -f /boot/config/plugins/ThunderboltNet/ThunderboltNet.cfg ] \
-   && [ -f /usr/local/emhttp/plugins/ThunderboltNet/default.cfg ]; then
-  cp -a /usr/local/emhttp/plugins/ThunderboltNet/default.cfg /boot/config/plugins/ThunderboltNet/ThunderboltNet.cfg
-fi
 if [ -f /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt ]; then
   cp -a /usr/local/emhttp/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt \
     /boot/config/plugins/ThunderboltNet/ThunderboltNet-RECOVERY.txt
 fi
+# Global cfg from the built-in defaults table (first install), legacy keys dropped,
+# old flash mesh cache and NAT sysctl files removed, link-check cron synced.
+php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh.php"; tbn_write_global_cfg(tbn_load_cfg()); tbn_mesh_cleanup_flash_legacy(); tbn_nat_cleanup_legacy_sysctl(); if (function_exists("tbn_of_apply")) { tbn_of_apply(); }' 2>/dev/null || true
+# Update within the same boot (RAM marker or udev rule already present): peers linked right now keep running
+# as before (confirmed for this boot). At boot the marker is absent, so nothing is confirmed.
 # Hotplug + boot reapply for thunderbolt* L3 (forum persistence findings)
-php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; if (function_exists("tbn_migrate_seed_dot2_to_dot1")) { tbn_migrate_seed_dot2_to_dot1(); } tbn_install_net_udev(); if (function_exists("tbn_sync_iface_pages")) { tbn_sync_iface_pages(); }' 2>/dev/null || true
+php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; $mk = tbn_runtime_path("installed-this-boot"); if (is_file($mk) || is_file("/etc/udev/rules.d/99-thunderboltnet-net.rules")) { $pm = tbn_load_peers_memory(); foreach (tbn_link_summaries() as $L) { tbn_peer_confirm(tbn_peer_key_from_link($L, $pm)); } } @touch($mk); if (function_exists("tbn_migrate_seed_dot2_to_dot1")) { tbn_migrate_seed_dot2_to_dot1(); } tbn_install_net_udev(); if (function_exists("tbn_sync_iface_pages")) { tbn_sync_iface_pages(); }' 2>/dev/null || true
 /bin/bash /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-net-reapply >/dev/null 2>&1 || true
 udevadm trigger --subsystem-match=net --action=add 2>/dev/null || true
 # Older versions patched stock Dashboard files; put them back once.
@@ -100,6 +99,8 @@ if [ -x /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-restore ]
   /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-restore restore >/dev/null 2>&1 || true
 fi
 echo "ThunderboltNet: packages now: $(ls /var/log/packages/ThunderboltNet-* 2>/dev/null | xargs -n1 basename 2>/dev/null | tr '\n' ' ')"
+# update_cron only reads registered plugins; this one registers after the script.
+[ -x /usr/local/sbin/update_cron ] && { echo /usr/local/sbin/update_cron | at -M now + 1 minute >/dev/null 2>&1 || true; }
 echo "ThunderboltNet: install complete. Settings → Network Settings → Thunderbolt"
 echo "ThunderboltNet: Hard-refresh the browser (Ctrl+Shift+R)."
 ]]></INLINE>
@@ -108,26 +109,14 @@ echo "ThunderboltNet: Hard-refresh the browser (Ctrl+Shift+R)."
 <FILE Run="/bin/bash" Method="remove">
 <INLINE><![CDATA[
 echo "ThunderboltNet: removing..."
+# Undo live changes first (needs the plugin files): beacon, NAT + forwarding,
+# OpenFabric fragment / lo /32, DHCP servers, network-extra.cfg entries, cron.
+php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; foreach (tbn_uninstall_runtime() as $l) { echo "ThunderboltNet: $l\n"; }' 2>/dev/null || true
 php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; tbn_remove_net_udev();' 2>/dev/null || true
 rm -f /etc/udev/rules.d/99-thunderboltnet-net.rules 2>/dev/null || true
 udevadm control --reload-rules 2>/dev/null || true
-# Drop TB ifaces from network-extra include list (keep other includes)
-EXTRA=/boot/config/network-extra.cfg
-if [ -f "$EXTRA" ]; then
-  INC=$(sed -n 's/^include_interfaces="\(.*\)"/\1/p' "$EXTRA" | head -1)
-  EXC=$(sed -n 's/^exclude_interfaces="\(.*\)"/\1/p' "$EXTRA" | head -1)
-  NEW=""
-  for if in $INC; do
-    case "$if" in
-      thunderbolt*|bond-tb|bond-tb*|br-tb|br-tb*) ;;
-      *) NEW="${NEW}${NEW:+ }$if" ;;
-    esac
-  done
-  {
-    echo "include_interfaces=\"${NEW}\""
-    echo "exclude_interfaces=\"${EXC}\""
-  } > "$EXTRA"
-fi
+pkill -f 'tbn-mesh-beacon-server\.php' 2>/dev/null || true
+pkill -f 'dnsmasq --conf-file=/boot/config/plugins/ThunderboltNet/' 2>/dev/null || true
 for conf in /etc/modprobe.d/thunderbolt_net.conf /boot/config/modprobe.d/thunderbolt_net.conf; do
   if [ -f "$conf" ] && grep -q 'thunderbolt_net' "$conf" 2>/dev/null; then
     rm -f "$conf"
@@ -139,9 +128,6 @@ fi
 if [ -x /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-restore ]; then
   /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-restore restore || true
 fi
-# Stop underlay DHCP servers (dnsmasq) started by this plugin
-php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; if (function_exists("tbn_dhcp_server_stop_all")) { tbn_dhcp_server_stop_all(); }' 2>/dev/null || true
-pkill -f 'thunderboltnet-dnsmasq' 2>/dev/null || true
 # Package + emhttp
 for p in /var/log/packages/ThunderboltNet-*; do
   [ -e "$p" ] || continue
@@ -150,7 +136,13 @@ done
 rm -rf /usr/local/emhttp/plugins/ThunderboltNet
 # Flash config + runtime scratch (full uninstall — reinstall starts clean)
 rm -rf /boot/config/plugins/ThunderboltNet
-rm -rf /var/tmp/tbn-mesh-rl-* /tmp/tbn-uninstall-keep-* 2>/dev/null || true
+rm -f /boot/config/plugins/thunderboltnet/thunderboltnet.cron
+rmdir /boot/config/plugins/thunderboltnet 2>/dev/null || true
+[ -x /usr/local/sbin/update_cron ] && /usr/local/sbin/update_cron >/dev/null 2>&1
+rm -rf /var/local/thunderboltnet /var/lib/thunderboltnet /var/run/thunderboltnet-mesh-beacon 2>/dev/null || true
+rm -f /var/run/thunderboltnet.lock /var/run/thunderboltnet-mesh-rl.json /var/run/thunderboltnet-mesh-cron.lock \
+      /var/run/tbn-stream-reapply.lock /var/log/thunderboltnet-mesh-beacon.log 2>/dev/null || true
+rm -rf /var/tmp/tbn-mesh-rl-* /var/tmp/tbn-stats-* /tmp/tbn-uninstall-keep-* 2>/dev/null || true
 rm -f /tmp/plugins/thunderboltnet.txt 2>/dev/null || true
 # Note: do not delete /tmp/plugins/thunderboltnet.plg here — Unraid install working copy
 # Note: do not touch /boot/config/plugins-removed/ (Unraid-owned)

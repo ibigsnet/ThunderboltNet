@@ -119,6 +119,9 @@ if (strpos($nm, '.') === false) {
 <?php if ($peer !== ''): ?>
     · peer <strong><?= htmlspecialchars($peer) ?></strong>
 <?php endif; ?>
+<?php if (function_exists('tbn_held_peers') && in_array($if, array_column(tbn_held_peers(), 'iface'), true)): ?>
+    · <strong>waiting for confirmation</strong> (bridging / services / NAT off until Apply)
+<?php endif; ?>
 <?php if ($rx !== '' || $tx !== ''): ?>
 <?php
   $iface_rate = function_exists('tbn_format_link_rate')
@@ -582,7 +585,7 @@ if (strpos($nm, '.') === false) {
           </dl>
           <blockquote class="inline_help">
             Optional. Default <strong>No</strong> — typical Thunderbolt (copy / SMB between two hosts) does not need it.
-            <strong>Yes</strong>: peer keeps a private Thunderbolt address and reaches the internet
+            <strong>Yes</strong>: peer keeps a private Thunderbolt address and reaches the internet (and, unless Internet only, your LAN)
             <em>through Unraid</em> (NAT toward Unraid’s uplink — <code>br0</code>/<code>eth0</code>/<code>wlan0</code>/…).
             Use when the peer has no Wi‑Fi or viable Ethernet of its own (tablet, laptop on TB only, appliance, …).
             Peer gateway = this Unraid’s tbn IP. Cannot combine with Enable bridging.
@@ -605,6 +608,18 @@ if (strpos($nm, '.') === false) {
             <blockquote class="inline_help">
               Unraid interface that already reaches the internet (or your upstream LAN).
               <strong>Auto</strong> = whatever carries Unraid’s default route.
+            </blockquote>
+            <dl>
+              <dt>Peer may reach:</dt>
+              <dd>
+                <select name="NAT_SCOPE">
+                  <?= mk_option(($cfg['NAT_SCOPE'] ?? 'lan') === 'internet' ? 'internet' : 'lan', 'lan', 'Internet and LAN') ?>
+                  <?= mk_option(($cfg['NAT_SCOPE'] ?? 'lan') === 'internet' ? 'internet' : 'lan', 'internet', 'Internet only') ?>
+                </select>
+              </dd>
+            </dl>
+            <blockquote class="inline_help">
+              <strong>Internet only</strong> drops private destinations (your LAN, other servers); DNS to Unraid’s own nameservers still works.
             </blockquote>
           </div>
           </div>
@@ -682,6 +697,18 @@ if (strpos($nm, '.') === false) {
             and mess up host routing. Leave No unless tbn is meant to carry internet (rare).
           </blockquote>
         </div>
+        <dl>
+          <dt>Accept router advertisements:</dt>
+          <dd>
+            <select name="IPV6_ACCEPT_RA">
+              <?= mk_option($cfg['IPV6_ACCEPT_RA'] ?? 'no', 'no', 'No') ?>
+              <?= mk_option($cfg['IPV6_ACCEPT_RA'] ?? 'no', 'yes', 'Yes') ?>
+            </select>
+          </dd>
+        </dl>
+        <blockquote class="inline_help">
+          Default <strong>No</strong>: the peer cannot add an IPv6 route or address here. Yes = kernel SLAAC from the peer.
+        </blockquote>
       </div>
     </div>
 

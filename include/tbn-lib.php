@@ -1,7 +1,6 @@
 <?php
 /**
  * ThunderboltNet — shared helpers (sysfs discovery, network-extra, module load).
- * Develop in ~/projects/ThunderboltNet; ship via GitHub + plugin install only.
  */
 
 if (!function_exists('tbn_plugin_name')) {
@@ -20,12 +19,249 @@ if (is_file(__DIR__ . '/tbn-nat.php')) {
 }
 // USB4STREAM configfs / copy (after tbn_cfg_dir exists — required below)
 
+/** CLI-only path override (test harnesses); the web server always uses the real paths. */
+function tbn_env_path($name, $default) {
+  if (PHP_SAPI === 'cli') {
+    $v = getenv($name);
+    if (is_string($v) && $v !== '') {
+      return rtrim($v, '/');
+    }
+  }
+  return $default;
+}
+
 function tbn_cfg_dir() {
-  return '/boot/config/plugins/ThunderboltNet';
+  return tbn_env_path('TBN_CFG_DIR', '/boot/config/plugins/ThunderboltNet');
 }
 
 function tbn_cfg_path() {
   return tbn_cfg_dir() . '/ThunderboltNet.cfg';
+}
+
+/** RAM state (lost on reboot by design): mesh cache, poll results, forwarding claims, per-boot peer confirmations. */
+function tbn_runtime_dir() {
+  return tbn_env_path('TBN_RUNTIME_DIR', '/var/local/thunderboltnet');
+}
+
+function tbn_runtime_path($name) {
+  $d = tbn_runtime_dir();
+  if (!is_dir($d)) {
+    @mkdir($d, 0700, true);
+  }
+  return $d . '/' . $name;
+}
+
+/**
+ * Write a file only when its content changes, via temp file + rename
+ * (no truncated config on power loss, no flash write when nothing changed).
+ */
+function tbn_write_file_atomic($path, $data, $mode = 0644) {
+  $data = (string)$data;
+  if (is_file($path)) {
+    $cur = @file_get_contents($path);
+    if ($cur === $data) {
+      return true;
+    }
+  }
+  $dir = dirname($path);
+  if (!is_dir($dir)) {
+    @mkdir($dir, 0755, true);
+  }
+  $tmp = $dir . '/.' . basename($path) . '.tmp' . getmypid();
+  if (@file_put_contents($tmp, $data) !== strlen($data)) {
+    @unlink($tmp);
+    return false;
+  }
+  @chmod($tmp, $mode);
+  if (!@rename($tmp, $path)) {
+    @unlink($tmp);
+    return false;
+  }
+  return true;
+}
+
+function tbn_read_json_file($path) {
+  if (!is_readable($path)) {
+    return [];
+  }
+  $j = @json_decode((string)@file_get_contents($path), true);
+  return is_array($j) ? $j : [];
+}
+
+function tbn_write_json_file($path, array $data) {
+  return tbn_write_file_atomic($path, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+}
+
+/**
+ * One plugin-wide lock for apply / reapply / teardown / mesh poll.
+ * Re-entrant inside one process. Boot events, udev hotplug and UI Apply
+ * otherwise run the same flush/addr/NAT/DHCP steps at the same time.
+ */
+function tbn_lock_path() {
+  return tbn_env_path('TBN_LOCK_PATH', '/var/run/thunderboltnet.lock');
+}
+
+function &tbn_lock_state() {
+  static $st = ['fh' => null, 'depth' => 0];
+  return $st;
+}
+
+function tbn_lock_acquire($wait_secs = 60) {
+  $st = &tbn_lock_state();
+  if ($st['depth'] > 0) {
+    $st['depth']++;
+    return true;
+  }
+  $fh = @fopen(tbn_lock_path(), 'c');
+  if (!$fh) {
+    return false;
+  }
+  $deadline = microtime(true) + max(0, (float)$wait_secs);
+  while (!flock($fh, LOCK_EX | LOCK_NB)) {
+    if (microtime(true) >= $deadline) {
+      fclose($fh);
+      return false;
+    }
+    usleep(200000);
+  }
+  $st = ['fh' => $fh, 'depth' => 1];
+  return true;
+}
+
+function tbn_lock_release() {
+  $st = &tbn_lock_state();
+  if ($st['depth'] <= 0) {
+    return;
+  }
+  $st['depth']--;
+  if ($st['depth'] === 0 && $st['fh']) {
+    flock($st['fh'], LOCK_UN);
+    fclose($st['fh']);
+    $st['fh'] = null;
+  }
+}
+
+/**
+ * Run $fn under the plugin lock. $skip_if_busy: return null instead of running
+ * unlocked when the lock cannot be taken in time (background polls).
+ */
+function tbn_locked(callable $fn, $wait_secs = 60, $skip_if_busy = false) {
+  $got = tbn_lock_acquire($wait_secs);
+  if (!$got) {
+    if ($skip_if_busy) {
+      return null;
+    }
+    tbn_log('lock busy after ' . (int)$wait_secs . 's; continuing without it');
+  }
+  try {
+    return $fn();
+  } finally {
+    if ($got) {
+      tbn_lock_release();
+    }
+  }
+}
+
+function tbn_log($msg) {
+  if (PHP_SAPI === 'cli' && getenv('TBN_CFG_DIR')) {
+    return;
+  }
+  @exec('logger -t ThunderboltNet ' . escapeshellarg((string)$msg) . ' 2>/dev/null');
+}
+
+/*
+ * Per-interface forwarding (NAT and OpenFabric). Never the global
+ * net.ipv4.ip_forward / net.ipv6.conf.all.forwarding switches: on IPv6 the global
+ * switch makes br0 ignore router advertisements and lose its default route.
+ * Owners ("nat:thunderbolt0", "of") claim interfaces; values we changed are put
+ * back when the last owner releases them. State is RAM only (sysctls reset at boot).
+ */
+function tbn_fwd_state_path() {
+  return tbn_runtime_path('forwarding.json');
+}
+
+function tbn_fwd_sysctl_path($family, $if, $key = 'forwarding') {
+  $root = tbn_env_path('TBN_PROC_SYS', '/proc/sys');
+  return $root . '/net/' . ((int)$family === 6 ? 'ipv6' : 'ipv4') . '/conf/' . $if . '/' . $key;
+}
+
+function tbn_fwd_claim($owner, array $v4_ifaces, array $v6_ifaces) {
+  $st = tbn_read_json_file(tbn_fwd_state_path());
+  $clean = function (array $l) {
+    return array_values(array_unique(array_filter(array_map('strval', $l), function ($i) {
+      return (bool)preg_match('/^[A-Za-z0-9_.-]{1,15}$/', $i);
+    })));
+  };
+  $st['owners'][(string)$owner] = ['v4' => $clean($v4_ifaces), 'v6' => $clean($v6_ifaces)];
+  return tbn_fwd_sync($st);
+}
+
+function tbn_fwd_release($owner) {
+  $st = tbn_read_json_file(tbn_fwd_state_path());
+  if (!isset($st['owners'][(string)$owner]) && empty($st['set'])) {
+    return $st;
+  }
+  unset($st['owners'][(string)$owner]);
+  return tbn_fwd_sync($st);
+}
+
+function tbn_fwd_release_all() {
+  $st = tbn_read_json_file(tbn_fwd_state_path());
+  $st['owners'] = [];
+  return tbn_fwd_sync($st);
+}
+
+function tbn_fwd_sync(array $st) {
+  $owners = is_array($st['owners'] ?? null) ? $st['owners'] : [];
+  $set = is_array($st['set'] ?? null) ? $st['set'] : [];
+  $want = [];
+  foreach ($owners as $o) {
+    foreach (['4' => 'v4', '6' => 'v6'] as $fam => $k) {
+      foreach ((array)($o[$k] ?? []) as $if) {
+        $want[$fam . ':' . $if] = true;
+      }
+    }
+  }
+  // Put back what is no longer wanted (only if still at the value we set)
+  foreach ($set as $id => $rec) {
+    if (isset($want[$id])) {
+      continue;
+    }
+    [$fam, $if] = explode(':', $id, 2);
+    foreach ((array)$rec as $key => $prev) {
+      $p = tbn_fwd_sysctl_path($fam, $if, $key);
+      if (is_file($p) && trim((string)@file_get_contents($p)) === '1' && (string)$prev !== '1') {
+        @file_put_contents($p, (string)$prev);
+      }
+    }
+    unset($set[$id]);
+  }
+  // Turn on what is wanted
+  foreach (array_keys($want) as $id) {
+    if (isset($set[$id])) {
+      continue;
+    }
+    [$fam, $if] = explode(':', $id, 2);
+    $keys = ($fam === '6') ? ['forwarding', 'force_forwarding'] : ['forwarding'];
+    $rec = [];
+    foreach ($keys as $key) {
+      $p = tbn_fwd_sysctl_path($fam, $if, $key);
+      if (!is_file($p)) {
+        continue;
+      }
+      $cur = trim((string)@file_get_contents($p));
+      $rec[$key] = $cur;
+      if ($cur !== '1') {
+        @file_put_contents($p, '1');
+      }
+    }
+    if ($rec) {
+      $set[$id] = $rec;
+    }
+  }
+  $st = ['owners' => $owners, 'set' => $set];
+  tbn_write_json_file(tbn_fwd_state_path(), $st);
+  return $st;
 }
 
 if (is_file(__DIR__ . '/tbn-usb4stream.php')) {
@@ -55,41 +291,28 @@ function tbn_csrf_field() {
 }
 
 function tbn_network_extra_path() {
-  return '/boot/config/network-extra.cfg';
+  return tbn_env_path('TBN_NETWORK_EXTRA', '/boot/config/network-extra.cfg');
 }
 
 /**
- * Read plugin cfg with defaults.
+ * The one global defaults table (no default.cfg; install writes this).
  */
-function tbn_load_cfg() {
-  $defaults = [
+function tbn_cfg_defaults() {
+  return [
     'tbn_defaults' => '',
     'load_modules' => 'yes',
     'e2e_flow_control' => 'no',
-    // USB4STREAM (thunderbolt-stream): raw host↔host path, separate from thunderbolt_net
-    // Default no until the *running* kernel ships thunderbolt_stream (mainline ~7.2+;
-    // not “Unraid 7.2”). Plugin detects and enables gracefully.
+    // USB4STREAM (thunderbolt-stream): raw host↔host path, separate from thunderbolt_net.
+    // Default no until the running kernel ships thunderbolt_stream.
     'enable_usb4stream' => 'no',
     // Default IPv4 plan for new/Reset iface tabs: small-lan | p2p | custom
     'address_plan' => 'small-lan',
     'include_listening' => 'no',
-    // Legacy global IP path (tbn tabs own addressing; leave manage_ip=no)
-    'manage_ip' => 'no',
-    'ip_addr' => '10.255.0.1',
-    'ip_cidr' => '24',
-    'ip_gateway' => '',
-    'never_default' => 'yes',
-    'iface_primary' => 'thunderbolt0',
-    'iface_secondary' => 'thunderbolt1',
-    'bond_enable' => 'no',
-    'bond_name' => 'bond-tb0',
-    'bond_mode' => 'active-backup',
     // Space-separated warning keys the user chose to hide globally (e.g. vfio:0000:11:00.0)
     'ignore_warnings' => '',
     // OpenFabric / FRR — multi-hop only (default off = static tbn underlay)
     'openfabric_enable' => 'no',
     'openfabric_user_off' => 'no',
-    'openfabric_auto_install_frr' => 'yes',
     'openfabric_ipv6' => 'yes',
     'openfabric_area' => '1',
     'openfabric_router_id' => '',
@@ -104,27 +327,40 @@ function tbn_load_cfg() {
     'mesh_eth_ifaces' => '',
     'mesh_peer_ips' => '',
   ];
+}
+
+/**
+ * Parse a key="value" cfg file (Unraid plugin cfg format).
+ */
+function tbn_parse_cfg_file($path) {
   $cfg = [];
-  if (function_exists('parse_plugin_cfg')) {
-    $parsed = parse_plugin_cfg(tbn_plugin_name());
-    if (is_array($parsed)) {
-      $cfg = $parsed;
+  if (!is_readable($path)) {
+    return $cfg;
+  }
+  foreach (file($path, FILE_IGNORE_NEW_LINES) ?: [] as $line) {
+    $line = trim($line);
+    if ($line === '' || $line[0] === ';' || $line[0] === '#') {
+      continue;
     }
-  } elseif (is_readable(tbn_cfg_path())) {
-    // CLI / no Helpers: parse .cfg key="value" lines ourselves
-    foreach (file(tbn_cfg_path(), FILE_IGNORE_NEW_LINES) ?: [] as $line) {
-      $line = trim($line);
-      if ($line === '' || $line[0] === ';' || $line[0] === '#') {
-        continue;
-      }
-      if (preg_match('/^([A-Za-z0-9_]+)="([^"]*)"/', $line, $m)) {
-        $cfg[$m[1]] = $m[2];
-      } elseif (preg_match('/^([A-Za-z0-9_]+)=(.*)$/', $line, $m)) {
-        $cfg[$m[1]] = trim($m[2], " \t\"'");
-      }
+    if (preg_match('/^([A-Za-z0-9_]+)="([^"]*)"/', $line, $m)) {
+      $cfg[$m[1]] = $m[2];
+    } elseif (preg_match('/^([A-Za-z0-9_]+)=(.*)$/', $line, $m)) {
+      $cfg[$m[1]] = trim($m[2], " \t\"'");
     }
   }
-  return array_merge($defaults, $cfg);
+  return $cfg;
+}
+
+/** Value safe for a key="value" line: no quotes, no line breaks. */
+function tbn_cfg_value_clean($v) {
+  return str_replace(['"', "\r", "\n", "\0"], '', (string)$v);
+}
+
+/**
+ * Read plugin cfg with defaults.
+ */
+function tbn_load_cfg() {
+  return array_merge(tbn_cfg_defaults(), tbn_parse_cfg_file(tbn_cfg_path()));
 }
 
 /**
@@ -637,10 +873,13 @@ function tbn_save_peers_memory(array $peers) {
     });
     $peers = array_slice($peers, 0, 32, true);
   }
-  return @file_put_contents(
-    tbn_peers_memory_path(),
-    json_encode($peers, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n"
-  ) !== false;
+  // Link-check results live in RAM (tbn_mesh_validation_*), never on flash
+  foreach ($peers as $k => $p) {
+    if (is_array($p)) {
+      unset($peers[$k]['mesh_validation'], $peers[$k]['mesh_last_fetch']);
+    }
+  }
+  return tbn_write_json_file(tbn_peers_memory_path(), $peers);
 }
 
 /** Fabric UUID or iface:thunderboltN. Reject path junk. */
@@ -693,10 +932,7 @@ function tbn_save_forgotten_peers(array $map) {
   if (!is_dir($dir)) {
     @mkdir($dir, 0755, true);
   }
-  return @file_put_contents(
-    tbn_forgotten_peers_path(),
-    json_encode(['keys' => $map], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n"
-  ) !== false;
+  return tbn_write_json_file(tbn_forgotten_peers_path(), ['keys' => $map]);
 }
 
 /**
@@ -732,6 +968,131 @@ function tbn_peer_key_from_link(array $L, ?array $existing_peers = null) {
     }
   }
   return 'iface:' . ($if !== '' ? $if : 'unknown');
+}
+
+/*
+ * Peer trust (per boot). The remote fabric UUID is chosen by the far host, so a
+ * device can claim a known peer's identity. Saved bridging, service listening and
+ * NAT therefore stay off for a (re)connecting peer until the user confirms it once
+ * this boot: Apply on its tbn tab, or Peers → select → Apply saved.
+ */
+function tbn_confirmed_peers_path() {
+  return tbn_runtime_path('confirmed-peers.json');
+}
+
+function tbn_held_peers_path() {
+  return tbn_runtime_path('held-peers.json');
+}
+
+function tbn_peer_confirmed($key) {
+  $key = tbn_sanitize_peer_key($key);
+  if ($key === '') {
+    return false;
+  }
+  if (tbn_peer_boot_trusted($key)) {
+    return true;
+  }
+  $m = tbn_read_json_file(tbn_confirmed_peers_path());
+  return isset($m[$key]);
+}
+
+/**
+ * Per-peer opt-out of the boot hold ("Apply at boot without confirmation"),
+ * stored in that peer's plan in peers.json. Default No.
+ */
+function tbn_peer_boot_trusted($key) {
+  $peers = tbn_load_peers_memory();
+  return (($peers[$key]['plan']['BOOT_TRUST'] ?? 'no') === 'yes');
+}
+
+function tbn_set_peer_boot_trust($key, $yes) {
+  $key = tbn_sanitize_peer_key($key);
+  if ($key === '') {
+    return false;
+  }
+  $peers = tbn_load_peers_memory();
+  if (!isset($peers[$key]) || !is_array($peers[$key])) {
+    return false;
+  }
+  $plan = is_array($peers[$key]['plan'] ?? null) ? $peers[$key]['plan'] : [];
+  $plan['BOOT_TRUST'] = $yes ? 'yes' : 'no';
+  $peers[$key]['plan'] = $plan;
+  return tbn_save_peers_memory($peers);
+}
+
+function tbn_peer_confirm($key) {
+  $key = tbn_sanitize_peer_key($key);
+  if ($key === '') {
+    return false;
+  }
+  $m = tbn_read_json_file(tbn_confirmed_peers_path());
+  $m[$key] = date('c');
+  tbn_write_json_file(tbn_confirmed_peers_path(), array_slice($m, -64, null, true));
+  tbn_peer_unhold($key);
+  return true;
+}
+
+/** Peers whose bridging/listening/NAT is held back this boot: key => [iface, at]. */
+function tbn_held_peers() {
+  return tbn_read_json_file(tbn_held_peers_path());
+}
+
+function tbn_peer_hold($key, $if) {
+  $key = tbn_sanitize_peer_key($key);
+  if ($key === '') {
+    return;
+  }
+  $m = tbn_held_peers();
+  if (($m[$key]['iface'] ?? '') !== $if) {
+    $m[$key] = ['iface' => (string)$if, 'at' => date('c')];
+    tbn_write_json_file(tbn_held_peers_path(), $m);
+  }
+}
+
+function tbn_peer_unhold($key) {
+  $m = tbn_held_peers();
+  if (isset($m[$key])) {
+    unset($m[$key]);
+    tbn_write_json_file(tbn_held_peers_path(), $m);
+  }
+}
+
+/** Live peer key on a thunderboltN path ('' when nothing is linked). */
+function tbn_live_peer_key_for_iface($if) {
+  $peers = tbn_load_peers_memory();
+  foreach (tbn_link_summaries() as $L) {
+    if (($L['iface'] ?? '') === $if) {
+      return tbn_peer_key_from_link($L, $peers);
+    }
+  }
+  return '';
+}
+
+/** True when a cfg would give the peer more than its own underlay (LAN bridge, services, NAT). */
+function tbn_cfg_needs_trust(array $cfg) {
+  return (($cfg['BRIDGING'] ?? 'no') === 'yes')
+    || (($cfg['INCLUDE_LISTENING'] ?? 'no') === 'yes')
+    || (($cfg['NAT_ENABLE'] ?? 'no') === 'yes');
+}
+
+/**
+ * Boot / hotplug / resync decision: hold bridging, listening and NAT for this
+ * peer? No when nothing needs trust, the peer was confirmed this boot, or its
+ * plan says "Apply at boot without confirmation".
+ */
+function tbn_peer_hold_needed(array $cfg, $pkey) {
+  if (!tbn_cfg_needs_trust($cfg)) {
+    return false;
+  }
+  return $pkey === '' || !tbn_peer_confirmed($pkey);
+}
+
+/** In-memory copy for an unconfirmed peer (flash cfg is left as saved). */
+function tbn_cfg_restrict_untrusted(array $cfg) {
+  $cfg['BRIDGING'] = 'no';
+  $cfg['INCLUDE_LISTENING'] = 'no';
+  $cfg['NAT_ENABLE'] = 'no';
+  return $cfg;
 }
 
 /**
@@ -795,14 +1156,16 @@ function tbn_refresh_unraid_services() {
  * Set INCLUDE_LISTENING for one iface + network-extra include_interfaces.
  * $enable: 'yes'|'no'|bool
  */
-function tbn_set_listening_for_iface($if, $enable) {
+function tbn_set_listening_for_iface($if, $enable, $persist = true) {
   if (!preg_match('/^thunderbolt\d+$/', (string)$if)) {
     return false;
   }
   $enable = ($enable === true || $enable === 'yes' || $enable === 1 || $enable === '1') ? 'yes' : 'no';
-  $cfg = tbn_load_iface_cfg($if);
-  $cfg['INCLUDE_LISTENING'] = $enable;
-  tbn_write_iface_cfg($if, $cfg);
+  if ($persist) {
+    $cfg = tbn_load_iface_cfg($if);
+    $cfg['INCLUDE_LISTENING'] = $enable;
+    tbn_write_iface_cfg($if, $cfg);
+  }
 
   $current = tbn_read_include_interfaces();
   if ($enable === 'yes') {
@@ -845,6 +1208,9 @@ function tbn_set_peer_listening_pref($peer_key, $enable, $if = '') {
   }
   tbn_save_peers_memory($peers);
   if ($if !== '' && preg_match('/^thunderbolt\d+$/', $if)) {
+    if ($enable === 'yes') {
+      tbn_peer_confirm($peer_key); // explicit user choice on a live path
+    }
     tbn_set_listening_for_iface($if, $enable);
     tbn_refresh_unraid_services();
   }
@@ -889,6 +1255,15 @@ function tbn_reconcile_listening_from_memory(array $links) {
     $pref = (($peers[$key]['include_listening'] ?? 'no') === 'yes') ? 'yes' : 'no';
     $if = $L['iface'] ?? '';
     if ($if === '' || !preg_match('/^thunderbolt\d+$/', $if)) {
+      continue;
+    }
+    if ($pref === 'yes' && !tbn_peer_confirmed($key)) {
+      // Unconfirmed this boot: keep services off the link, leave the saved preference alone
+      tbn_peer_hold($key, $if);
+      if (in_array($if, tbn_read_include_interfaces(), true)) {
+        tbn_set_listening_for_iface($if, 'no', false);
+        $changed = true;
+      }
       continue;
     }
     $cfg = tbn_load_iface_cfg($if);
@@ -967,8 +1342,10 @@ function tbn_remember_live_peers(array $links) {
       'last_tx_lanes' => $rem['tx_lanes'] ?? '',
       'last_local_addrs' => $L['local']['addrs'] ?? [],
       'include_listening' => $listen,
-      'last_seen' => $now,
-      'seen_count' => (int)($prev['seen_count'] ?? 0) + 1,
+      // Flash-friendly: count reconnects (offline → online), refresh last_seen at most hourly
+      'last_seen' => (empty($prev['online']) || (time() - (strtotime((string)($prev['last_seen'] ?? '')) ?: 0)) > 3600)
+        ? $now : (string)$prev['last_seen'],
+      'seen_count' => (int)($prev['seen_count'] ?? 0) + (empty($prev['online']) ? 1 : 0),
       'online' => true,
     ]);
   }
@@ -999,7 +1376,7 @@ function tbn_remember_live_peers(array $links) {
     }
     $seed = tbn_peer_plan_from_addrs($p['last_local_addrs'] ?? []);
     if ($seed !== null) {
-      $peers[$k]['plan'] = $seed;
+      $peers[$k]['plan'] = array_merge(is_array($p['plan'] ?? null) ? $p['plan'] : [], $seed);
     }
   }
   tbn_save_peers_memory($peers);
@@ -1046,6 +1423,7 @@ function tbn_peer_plan_from_iface_cfg(array $cfg) {
     'NAT_UPLINK' => function_exists('tbn_nat_normalize_uplink')
       ? tbn_nat_normalize_uplink($cfg['NAT_UPLINK'] ?? 'auto')
       : (string)($cfg['NAT_UPLINK'] ?? 'auto'),
+    'NAT_SCOPE' => (($cfg['NAT_SCOPE'] ?? 'lan') === 'internet') ? 'internet' : 'lan',
   ];
 }
 
@@ -1105,6 +1483,7 @@ function tbn_iface_cfg_from_peer(array $peer, $if) {
     'DHCP_POOL_START', 'DHCP_POOL_END',
     'ADDRESS_PLAN',
     'OPENFABRIC_PARTICIPATE', 'OPENFABRIC_METRIC_MODE', 'OPENFABRIC_METRIC',
+    'IPV6_ACCEPT_RA',
   ] as $k) {
     if (array_key_exists($k, $prior)) {
       $cfg[$k] = $prior[$k];
@@ -1123,9 +1502,11 @@ function tbn_iface_cfg_from_peer(array $peer, $if) {
     $cfg['NAT_UPLINK'] = function_exists('tbn_nat_normalize_uplink')
       ? tbn_nat_normalize_uplink($plan['NAT_UPLINK'] ?? 'auto')
       : (string)($plan['NAT_UPLINK'] ?? 'auto');
+    $cfg['NAT_SCOPE'] = (($plan['NAT_SCOPE'] ?? 'lan') === 'internet') ? 'internet' : 'lan';
   } else {
     $cfg['NAT_ENABLE'] = 'no';
     $cfg['NAT_UPLINK'] = 'auto';
+    $cfg['NAT_SCOPE'] = 'lan';
   }
   if (($cfg['USE_DHCP'] ?? '') === 'server') {
     if (trim((string)($cfg['DHCP_POOL_START'] ?? '')) === '' && trim((string)($prior['DHCP_POOL_START'] ?? '')) !== '') {
@@ -1317,7 +1698,7 @@ function tbn_capture_peer_plan_from_iface($if) {
 /**
  * Apply remembered peer plan onto a live netdev (write iface cfg + apply).
  */
-function tbn_apply_peer_plan_to_iface($key, $if) {
+function tbn_apply_peer_plan_to_iface($key, $if, array $opts = []) {
   $key = trim((string)$key);
   if ($key === '' || !preg_match('/^thunderbolt\d+$/', (string)$if)) {
     return ['ok' => false, 'applied' => false, 'error' => 'bad args'];
@@ -1335,7 +1716,7 @@ function tbn_apply_peer_plan_to_iface($key, $if) {
   }
   $cfg = tbn_iface_cfg_from_peer($peer, $if);
   tbn_write_iface_cfg($if, $cfg);
-  $r = tbn_apply_iface($if, ['skip_peer_capture' => true]);
+  $r = tbn_apply_iface($if, array_merge($opts, ['skip_peer_capture' => true, 'peer_key' => $key]));
   return [
     'ok' => !empty($r['ok']),
     'applied' => true,
@@ -1898,7 +2279,7 @@ function tbn_usb_superspeed_html(array $opts = []) {
  *
  * @return list of rows: kind, title, detail, ports (int|null), speed_short, attached
  */
-function tbn_list_local_ports(array $cap = null) {
+function tbn_list_local_ports(?array $cap = null) {
   if ($cap === null) {
     $cap = tbn_controller_capability();
   }
@@ -1985,7 +2366,7 @@ function tbn_list_local_ports(array $cap = null) {
  * HTML for LOCAL column — host max + Thunderbolt links (boxed) + optional USB SuperSpeed list.
  * Rates always use Gb/s (bits). Compact: wrap text; keep column width bounded via CSS.
  */
-function tbn_controller_capability_html(array $cap = null) {
+function tbn_controller_capability_html(?array $cap = null) {
   if ($cap === null) {
     $cap = tbn_controller_capability();
   }
@@ -2638,9 +3019,9 @@ function tbn_status(array $opts = []) {
   $mesh_file = __DIR__ . '/tbn-mesh.php';
   if (is_file($mesh_file)) {
     require_once $mesh_file;
-    if (!$readonly && function_exists('tbn_mesh_maybe_poll')) {
-      @tbn_mesh_maybe_poll($cfg, false);
-      $peers = tbn_load_peers_memory();
+    // Polling runs from the plugin cron (scripts/tbn-mesh-cron); results live in RAM
+    if (function_exists('tbn_mesh_overlay_validation')) {
+      $peers = tbn_mesh_overlay_validation($peers);
     }
     $mesh = [
       'enabled' => function_exists('tbn_mesh_enabled') ? tbn_mesh_enabled($cfg) : false,
@@ -2663,7 +3044,7 @@ function tbn_status(array $opts = []) {
     'links' => $links,
     'peers_memory' => $peers,
     'include_interfaces' => tbn_read_include_interfaces(),
-    'cfg' => $cfg,
+    'cfg' => array_merge($cfg, ['mesh_token' => (trim((string)($cfg['mesh_token'] ?? '')) !== '') ? '(set)' : '']),
     'openfabric' => function_exists('tbn_of_status') ? tbn_of_status() : tbn_of_status_lazy(),
     'mesh' => $mesh,
   ];
@@ -2760,47 +3141,13 @@ function tbn_write_include_interfaces(array $ifaces) {
   foreach ($extra_lines as $el) {
     $body .= rtrim($el) . "\n";
   }
-  return @file_put_contents($path, $body) !== false;
-}
-
-/**
- * Ensure/remove Thunderbolt interfaces from include list based on cfg + live netdevs.
- */
-function tbn_apply_include_listening($enable) {
-  $cfg = tbn_load_cfg();
-  $want = [];
-  foreach ([$cfg['iface_primary'], $cfg['iface_secondary'], $cfg['bond_name']] as $if) {
-    if ($if !== '') {
-      $want[] = $if;
-    }
-  }
-  $current = tbn_read_include_interfaces();
-  if ($enable) {
-    // Only include interfaces that exist now
-    $live = [];
-    foreach (@scandir('/sys/class/net') ?: [] as $n) {
-      if ($n === '.' || $n === '..') {
-        continue;
-      }
-      $live[$n] = true;
-    }
-    foreach ($want as $if) {
-      if (!empty($live[$if]) && !in_array($if, $current, true)) {
-        $current[] = $if;
-      }
-    }
-  } else {
-    $current = array_values(array_filter($current, function ($if) use ($want) {
-      return !in_array($if, $want, true);
-    }));
-  }
-  return tbn_write_include_interfaces($current);
+  return tbn_write_file_atomic($path, $body);
 }
 
 /**
  * Desired thunderbolt_net e2e= bit from plugin cfg (product default: off).
  */
-function tbn_desired_e2e_bit(array $cfg = null) {
+function tbn_desired_e2e_bit(?array $cfg = null) {
   if ($cfg === null) {
     $cfg = tbn_load_cfg();
   }
@@ -2813,14 +3160,14 @@ function tbn_desired_e2e_bit(array $cfg = null) {
  *
  * @return string e2e bit written ('0'|'1')
  */
-function tbn_persist_e2e_modprobe(array $cfg = null) {
+function tbn_persist_e2e_modprobe(?array $cfg = null) {
   $e2e = tbn_desired_e2e_bit($cfg);
   $line = "options thunderbolt_net e2e={$e2e}\n";
   foreach (['/boot/config/modprobe.d', '/etc/modprobe.d'] as $dir) {
     if (!is_dir($dir)) {
       @mkdir($dir, 0755, true);
     }
-    @file_put_contents($dir . '/thunderbolt_net.conf', $line);
+    tbn_write_file_atomic($dir . '/thunderbolt_net.conf', $line);
   }
   return $e2e;
 }
@@ -2849,7 +3196,7 @@ function tbn_live_e2e_bit() {
  *
  * @return array{ok:bool,e2e:string,reloaded:bool,error?:string}
  */
-function tbn_ensure_e2e_param(array $cfg = null) {
+function tbn_ensure_e2e_param(?array $cfg = null) {
   $want = tbn_persist_e2e_modprobe($cfg);
   $have = tbn_live_e2e_bit();
   if ($have === $want) {
@@ -2907,68 +3254,6 @@ function tbn_load_modules() {
     }
   }
   return tbn_modules_loaded();
-}
-
-/**
- * Bring configured Thunderbolt interfaces administratively up (helps carrier / ping).
- */
-function tbn_bring_up_ifaces() {
-  $cfg = tbn_load_cfg();
-  $up = [];
-  foreach ([$cfg['iface_primary'], $cfg['iface_secondary']] as $if) {
-    if ($if === '' || !is_dir('/sys/class/net/' . $if)) {
-      continue;
-    }
-    $ife = escapeshellarg($if);
-    @exec("ip link set {$ife} up 2>/dev/null");
-    $up[] = $if;
-  }
-  return $up;
-}
-
-/**
- * Apply static IPv4 to primary iface (CLI; not full Unraid network.cfg rewrite).
- * Global legacy static IP path. Default route only if explicitly enabled.
- * thunderbolt* is hotplug — not network.cfg eth blocks.
- */
-function tbn_apply_static_ip() {
-  $cfg = tbn_load_cfg();
-  if ($cfg['manage_ip'] !== 'yes') {
-    return ['ok' => false, 'error' => 'manage_ip is no'];
-  }
-  $if = $cfg['iface_primary'];
-  if ($if === '' || !is_dir('/sys/class/net/' . $if)) {
-    return ['ok' => false, 'error' => "interface {$if} not present"];
-  }
-  $ip = $cfg['ip_addr'];
-  $cidr = preg_replace('/\D/', '', $cfg['ip_cidr']);
-  if ($cidr === '') {
-    $cidr = '24';
-  }
-  if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-    return ['ok' => false, 'error' => 'invalid ip_addr'];
-  }
-  $target = escapeshellarg($ip . '/' . $cidr);
-  $ife = escapeshellarg($if);
-  @exec("ip link set {$ife} up 2>/dev/null");
-  // Flush first — replace leaves other subnets/routes stacked on the same iface
-  tbn_iface_flush_l3($if, 4);
-  @exec("ip -4 addr add {$target} dev {$ife} 2>/dev/null", $o, $rc);
-  // Legacy global: never_default=yes means do not install default (same as DEFAULT_ROUTE=no)
-  $allow_default = (($cfg['default_route'] ?? '') === 'yes')
-    || (($cfg['never_default'] ?? 'yes') === 'no');
-  if ($cfg['ip_gateway'] !== '' && $allow_default) {
-    $gw = escapeshellarg($cfg['ip_gateway']);
-    @exec("ip route replace default via {$gw} dev {$ife} 2>/dev/null");
-  } else {
-    tbn_iface_drop_default_routes($if, 4);
-  }
-  return [
-    'ok' => $rc === 0,
-    'iface' => $if,
-    'addr' => $ip . '/' . $cidr,
-    'netdevs' => tbn_list_netdevs(),
-  ];
 }
 
 /* ------------------------------------------------------------------ */
@@ -3185,12 +3470,16 @@ function tbn_iface_defaults($if = 'thunderbolt0') {
     // Share Unraid uplink (br0/eth0/wlan0/…) with peers on this underlay — opposite of DEFAULT_ROUTE.
     'NAT_ENABLE' => 'no',
     'NAT_UPLINK' => 'auto',
+    // lan = peer may reach the uplink LAN too; internet = private destinations dropped (DNS to resolv.conf servers kept)
+    'NAT_SCOPE' => 'lan',
     // IPv6 (shown when PROTOCOL is ipv6 or ipv4+ipv6)
     'USE_DHCP6' => 'no',
     'IPADDR6' => '',
     'NETMASK6' => '64',
     'GATEWAY6' => '',
     'DEFAULT_ROUTE6' => 'no',
+    // Kernel router advertisements on this link (no = peer RAs cannot add an IPv6 route/address)
+    'IPV6_ACCEPT_RA' => 'no',
     // MTU_MODE: default (kernel 1500) | 9000 (optional jumbo, both ends) | custom
     // Product default 1500 for first-plug compatibility; 9000 only when both ends set it.
     'MTU_MODE' => 'default',
@@ -3293,6 +3582,40 @@ function tbn_reconcile_iface_mtu_post(array $post) {
     $mtu = '1500';
   }
   return ['USE_MTU' => $use, 'MTU_MODE' => $mode, 'MTU' => $mtu];
+}
+
+/**
+ * Merge a tbnN form POST into the saved iface cfg (same result update.php would
+ * save: saved keys + posted keys), restricted to known iface keys and VLAN_<id>_*.
+ * Fields the form did not post (disabled controls) keep their saved value.
+ */
+function tbn_merge_iface_post($if, array $cur, array $post) {
+  $known = tbn_iface_defaults($if);
+  $new = array_merge($known, $cur);
+  foreach ($post as $k => $v) {
+    $k = (string)$k;
+    if ($k === '' || $k[0] === '#' || $k === 'csrf_token' || $k === 'USE_MTU_YES') {
+      continue;
+    }
+    if (!array_key_exists($k, $known) && !preg_match('/^VLAN_\d{1,4}_[A-Z0-9_]{1,32}$/', $k)) {
+      continue;
+    }
+    if (is_array($v)) {
+      $v = implode(' ', array_map('strval', $v));
+    }
+    $new[$k] = trim(tbn_cfg_value_clean($v));
+  }
+  if (isset($post['USE_MTU_YES']) || isset($post['USE_MTU']) || isset($post['MTU_MODE'])) {
+    $mtu = tbn_reconcile_iface_mtu_post($post);
+    $new['USE_MTU'] = $mtu['USE_MTU'];
+    $new['MTU_MODE'] = $mtu['MTU_MODE'];
+    $new['MTU'] = $mtu['MTU'];
+  }
+  foreach (['NAT_ENABLE', 'INCLUDE_LISTENING', 'BRIDGING', 'IPV6_ACCEPT_RA'] as $yn) {
+    $new[$yn] = (($new[$yn] ?? 'no') === 'yes') ? 'yes' : 'no';
+  }
+  $new['NAT_SCOPE'] = (($new['NAT_SCOPE'] ?? 'lan') === 'internet') ? 'internet' : 'lan';
+  return $new;
 }
 
 /**
@@ -3453,25 +3776,6 @@ function tbn_help_docs_footer($path, $label = 'Full guide') {
   return '<br><br>' . tbn_docs_more_html($path, $label . ' ↗');
 }
 
-function tbn_parse_cfg_file($path) {
-  $cfg = [];
-  if (!is_readable($path)) {
-    return $cfg;
-  }
-  foreach (file($path, FILE_IGNORE_NEW_LINES) ?: [] as $line) {
-    $line = trim($line);
-    if ($line === '' || $line[0] === ';' || $line[0] === '#') {
-      continue;
-    }
-    if (preg_match('/^([A-Za-z0-9_]+)="([^"]*)"/', $line, $m)) {
-      $cfg[$m[1]] = $m[2];
-    } elseif (preg_match('/^([A-Za-z0-9_]+)=(.*)$/', $line, $m)) {
-      $cfg[$m[1]] = trim($m[2], " \t\"'");
-    }
-  }
-  return $cfg;
-}
-
 function tbn_load_iface_cfg($if) {
   $raw = tbn_parse_cfg_file(tbn_iface_cfg_path($if));
   // Migrate old NEVER_DEFAULT=yes|no → DEFAULT_ROUTE=no|yes (invert double-negative)
@@ -3521,9 +3825,9 @@ function tbn_write_iface_cfg($if, array $cfg) {
     if (is_array($v)) {
       $v = implode(' ', $v);
     }
-    $lines[] = $k . '="' . str_replace(['\\', '"'], ['\\\\', '\\"'], (string)$v) . '"';
+    $lines[] = $k . '="' . tbn_cfg_value_clean($v) . '"';
   }
-  return @file_put_contents(tbn_iface_cfg_path($if), implode("\n", $lines) . "\n") !== false;
+  return tbn_write_file_atomic(tbn_iface_cfg_path($if), implode("\n", $lines) . "\n");
 }
 
 /**
@@ -3559,10 +3863,21 @@ function tbn_iface_stop_dhcp_clients($if, $family = 0) {
  * @return array{ok:bool,iface:string,nat?:mixed,dhcp_server?:bool,dhcp_clients?:bool}
  */
 function tbn_hotplug_teardown_iface($if) {
+  return tbn_locked(function () use ($if) {
+    return tbn_hotplug_teardown_iface_unlocked($if);
+  });
+}
+
+function tbn_hotplug_teardown_iface_unlocked($if) {
   $if = trim((string)$if);
   $out = ['ok' => true, 'iface' => $if];
   if ($if === '' || !preg_match('/^thunderbolt\d+$/', $if)) {
     return ['ok' => false, 'iface' => $if, 'error' => 'bad iface'];
+  }
+  foreach (tbn_held_peers() as $hk => $h) {
+    if (($h['iface'] ?? '') === $if) {
+      tbn_peer_unhold($hk);
+    }
   }
   if (function_exists('tbn_nat_clear')) {
     tbn_nat_clear($if);
@@ -3596,6 +3911,8 @@ function tbn_path_slot_policy_keys() {
     'VLAN_ENABLE', 'VLAN_LIST',
     'INCLUDE_LISTENING',
     'OF_PARTICIPATE', 'OF_METRIC_MODE', 'OF_METRIC',
+    'OPENFABRIC_PARTICIPATE', 'OPENFABRIC_METRIC_MODE', 'OPENFABRIC_METRIC',
+    'IPV6_ACCEPT_RA',
   ];
 }
 
@@ -3622,6 +3939,51 @@ function tbn_path_slot_seed_unknown_peer($if) {
   $next['ENABLE'] = 'yes';
   tbn_write_iface_cfg($if, $next);
   return ['ok' => true, 'iface' => $if, 'seeded' => true];
+}
+
+/**
+ * Kernel IPv6 router advertisements on a Thunderbolt link. Off by default so the
+ * far end cannot install an IPv6 default route or SLAAC address on this host.
+ */
+function tbn_iface_set_accept_ra($if, $accept) {
+  $if = (string)$if;
+  if (!preg_match('/^[A-Za-z0-9_.-]{1,15}$/', $if)) {
+    return false;
+  }
+  $p = '/proc/sys/net/ipv6/conf/' . $if . '/accept_ra';
+  if (!is_file($p)) {
+    return false;
+  }
+  $want = $accept ? '1' : '0';
+  if (trim((string)@file_get_contents($p)) !== $want) {
+    @file_put_contents($p, $want);
+  }
+  return true;
+}
+
+/**
+ * dhcpcd command for a Thunderbolt underlay client (argv-safe string).
+ * -b: background at once (no lease wait inside udev / Apply). -G and no
+ * static/classless route options: the far end cannot push default or other
+ * routes. --nohook: never rewrite resolv.conf, hostname or NTP from the link.
+ * No dhclient fallback (it would take routes and DNS from the peer).
+ */
+function tbn_dhcpcd_argv($dev, $family = 4) {
+  $argv = ['dhcpcd', $family === 6 ? '-6' : '-4', '-b', '-G',
+    '--nohook', 'resolv.conf', '--nohook', 'hostname', '--nohook', 'ntp.conf', '--nohook', 'timesyncd.conf'];
+  if ($family !== 6) {
+    $argv = array_merge($argv, [
+      '--nooption', 'classless_static_routes',
+      '--nooption', 'static_routes',
+      '--nooption', 'ms_classless_static_routes',
+    ]);
+  }
+  $argv[] = (string)$dev;
+  return $argv;
+}
+
+function tbn_argv_to_cmd(array $argv) {
+  return implode(' ', array_map('escapeshellarg', $argv));
 }
 
 /**
@@ -3686,6 +4048,7 @@ function tbn_apply_ip_block($dev, array $cfg, $prefix = '') {
   if (!is_dir('/sys/class/net/' . $dev)) {
     return;
   }
+  tbn_iface_set_accept_ra($dev, ($cfg['IPV6_ACCEPT_RA'] ?? 'no') === 'yes');
   $ife = escapeshellarg($dev);
   $proto = $cfg[$prefix . 'PROTOCOL'] ?? ($prefix === '' ? ($cfg['PROTOCOL'] ?? 'ipv4') : 'ipv4');
   // VLAN blocks only store assignment keys; inherit protocol from parent when empty
@@ -3721,7 +4084,12 @@ function tbn_apply_ip_block($dev, array $cfg, $prefix = '') {
       tbn_iface_flush_l3($dev, 4);
       // -G: no default route from underlay. --nohook resolv.conf: never wipe LAN DNS
       // (empty dhcp dns-server options from a misconfigured server used to blank /etc/resolv.conf).
-      @exec("dhcpcd -n -G --nohook resolv.conf {$ife} 2>/dev/null || dhcpcd -n -G {$ife} 2>/dev/null || dhclient -1 {$ife} 2>/dev/null || true");
+      $dc_out = [];
+      $dc_rc = 0;
+      @exec(tbn_argv_to_cmd(tbn_dhcpcd_argv($dev, 4)) . ' 2>&1', $dc_out, $dc_rc);
+      if ($dc_rc !== 0) {
+        tbn_log($dev . ': dhcpcd failed: ' . implode(' ', $dc_out));
+      }
     } elseif ($use === 'server' && $prefix === '') {
       // DHCP server: host = .1, dnsmasq serves .2–.254 (see tbn-dhcp.php)
       tbn_iface_stop_dhcp_clients($dev, 4);
@@ -3771,7 +4139,12 @@ function tbn_apply_ip_block($dev, array $cfg, $prefix = '') {
     if ($use6 === 'yes') {
       tbn_iface_stop_dhcp_clients($dev, 6);
       tbn_iface_flush_l3($dev, 6);
-      @exec("dhcpcd -6 -n {$ife} 2>/dev/null || dhclient -6 -1 {$ife} 2>/dev/null || true");
+      $dc_out = [];
+      $dc_rc = 0;
+      @exec(tbn_argv_to_cmd(tbn_dhcpcd_argv($dev, 6)) . ' 2>&1', $dc_out, $dc_rc);
+      if ($dc_rc !== 0) {
+        tbn_log($dev . ': dhcpcd -6 failed: ' . implode(' ', $dc_out));
+      }
     } elseif ($use6 === 'server' && $prefix === '') {
       tbn_iface_stop_dhcp_clients($dev, 6);
       $plan = function_exists('tbn_dhcp_server_plan') ? tbn_dhcp_server_plan($dev, $cfg) : null;
@@ -3960,7 +4333,7 @@ Cond="file_exists('/sys/class/net/{$if}')"
 <script src="/plugins/ThunderboltNet/thunderboltnet.js"></script>
 
 PAGE;
-    @file_put_contents($page, $body);
+    tbn_write_file_atomic($page, $body);
   }
   foreach (glob($root . '/Tbn*.page') ?: [] as $f) {
     if (preg_match('/Tbn(\d+)\.page$/', $f, $m) && empty($keep[(int)$m[1]])) {
@@ -3980,6 +4353,13 @@ PAGE;
  * @return array<string,array> map iface => apply result
  */
 function tbn_reapply_live_ifaces($if_filter = null) {
+  return tbn_locked(function () use ($if_filter) {
+    return tbn_reapply_live_ifaces_unlocked($if_filter);
+  });
+}
+
+/** Boot / hotplug path: always "untrusted" (bridging, listening, NAT wait for a per-boot confirm). */
+function tbn_reapply_live_ifaces_unlocked($if_filter = null) {
   $out = [];
   $names = tbn_list_tb_iface_names();
   if (is_string($if_filter) && $if_filter !== '') {
@@ -4006,7 +4386,7 @@ function tbn_reapply_live_ifaces($if_filter = null) {
     if (isset($link_by_if[$if])) {
       $key = (string)tbn_peer_key_from_link($link_by_if[$if], $peers);
       $has_fabric_uuid = ($key !== '' && strpos($key, 'iface:') !== 0);
-      $pr = tbn_apply_peer_plan_to_iface($key, $if);
+      $pr = tbn_apply_peer_plan_to_iface($key, $if, ['untrusted' => true]);
       if (!empty($pr['applied'])) {
         $out[$if] = $pr;
         $applied = true;
@@ -4019,7 +4399,7 @@ function tbn_reapply_live_ifaces($if_filter = null) {
     // Do not re-impose the previous peer's path-slot IP/DHCP/NAT on a stranger.
     if ($has_fabric_uuid) {
       $seed = tbn_path_slot_seed_unknown_peer($if);
-      $r = tbn_apply_iface($if, ['skip_peer_capture' => true]);
+      $r = tbn_apply_iface($if, ['skip_peer_capture' => true, 'untrusted' => true, 'peer_key' => $key]);
       $out[$if] = array_merge(is_array($r) ? $r : [], [
         'seeded_unknown_peer' => !empty($seed['ok']),
         'peer_key' => $key,
@@ -4028,7 +4408,7 @@ function tbn_reapply_live_ifaces($if_filter = null) {
     }
     // No UUID yet (hotplug race) or no live link: path-slot reapply is fine
     if (is_file(tbn_iface_cfg_path($if))) {
-      $out[$if] = tbn_apply_iface($if, ['skip_peer_capture' => true]);
+      $out[$if] = tbn_apply_iface($if, ['skip_peer_capture' => true, 'untrusted' => true, 'peer_key' => $key]);
     }
   }
   if (function_exists('tbn_sync_iface_pages')) {
@@ -4039,6 +4419,13 @@ function tbn_reapply_live_ifaces($if_filter = null) {
     tbn_remember_live_peers(tbn_link_summaries());
   } catch (Throwable $e) {
     // non-fatal
+  }
+  // Beacon follows Thunderbolt IPs (new link or new address after hotplug)
+  if (is_file(__DIR__ . '/tbn-mesh.php')) {
+    require_once __DIR__ . '/tbn-mesh.php';
+    if (function_exists('tbn_mesh_beacon_ensure')) {
+      @tbn_mesh_beacon_ensure();
+    }
   }
   return $out;
 }
@@ -4091,7 +4478,20 @@ function tbn_iface_reconcile_nat_bridge(array $cfg) {
   return $cfg;
 }
 
+/**
+ * $opts:
+ *   skip_peer_capture  applying from a peer plan (avoid recursion)
+ *   untrusted          automatic path (boot/hotplug/auto-resync): bridging, listening
+ *                      and NAT stay off until the peer is confirmed this boot
+ *   peer_key           live peer key when the caller already knows it
+ */
 function tbn_apply_iface($if, array $opts = []) {
+  return tbn_locked(function () use ($if, $opts) {
+    return tbn_apply_iface_unlocked($if, $opts);
+  });
+}
+
+function tbn_apply_iface_unlocked($if, array $opts = []) {
   $cfg = tbn_load_iface_cfg($if);
   $before_br = (string)($cfg['BRIDGING'] ?? 'no');
   $before_nat = (string)($cfg['NAT_ENABLE'] ?? 'no');
@@ -4102,6 +4502,24 @@ function tbn_apply_iface($if, array $opts = []) {
   if (!is_dir('/sys/class/net/' . $if)) {
     return ['ok' => false, 'error' => "interface {$if} not present"];
   }
+  $held = false;
+  if (!empty($opts['untrusted']) && tbn_cfg_needs_trust($cfg)) {
+    $pkey = (string)($opts['peer_key'] ?? '');
+    if ($pkey === '') {
+      $pkey = tbn_live_peer_key_for_iface($if);
+    }
+    if (tbn_peer_hold_needed($cfg, $pkey)) {
+      $cfg = tbn_cfg_restrict_untrusted($cfg);
+      $held = true;
+      if ($pkey !== '') {
+        tbn_peer_hold($pkey, $if);
+      }
+    }
+  }
+  if (!$held && !empty($opts['peer_key'])) {
+    tbn_peer_unhold((string)$opts['peer_key']);
+  }
+  tbn_iface_set_accept_ra($if, ($cfg['IPV6_ACCEPT_RA'] ?? 'no') === 'yes');
   $ife = escapeshellarg($if);
   if (($cfg['ENABLE'] ?? 'yes') === 'yes') {
     @exec("ip link set {$ife} up 2>/dev/null");
@@ -4160,7 +4578,7 @@ function tbn_apply_iface($if, array $opts = []) {
   }
 
   // Listening include for this iface only (bridge members usually leave No — LAN already on br0)
-  tbn_set_listening_for_iface($if, ($cfg['INCLUDE_LISTENING'] ?? 'no') === 'yes' ? 'yes' : 'no');
+  tbn_set_listening_for_iface($if, ($cfg['INCLUDE_LISTENING'] ?? 'no') === 'yes' ? 'yes' : 'no', !$held);
 
   // Bonding — experimental; only when form enables it and ≥2 live Thunderbolt members
   if (!$is_slave && $want_br === '' && ($cfg['BONDING'] ?? 'no') === 'yes') {
@@ -4194,7 +4612,12 @@ function tbn_apply_iface($if, array $opts = []) {
       $cfg['NETMASK'] = (string)$p['prefix'];
       $cfg['DHCP_POOL_START'] = $p['pool_start'];
       $cfg['DHCP_POOL_END'] = $p['pool_end'];
-      tbn_write_iface_cfg($if, $cfg);
+      // Persist only the resolved plan keys (never the in-memory untrusted restriction)
+      $disk = tbn_load_iface_cfg($if);
+      foreach (['IPADDR', 'NETMASK', 'DHCP_POOL_START', 'DHCP_POOL_END'] as $pk) {
+        $disk[$pk] = $cfg[$pk];
+      }
+      tbn_write_iface_cfg($if, $disk);
     }
     $dhcp_res = tbn_dhcp_server_apply($if, $cfg);
   } elseif (!$is_slave && function_exists('tbn_dhcp_server_stop')) {
@@ -4230,6 +4653,9 @@ function tbn_apply_iface($if, array $opts = []) {
   }
 
   $out = ['ok' => true, 'iface' => $if, 'cfg' => $cfg, 'netdevs' => tbn_list_netdevs()];
+  if ($held) {
+    $out['held'] = true;
+  }
   if (is_array($dhcp_res) && empty($dhcp_res['ok'])) {
     $out['ok'] = false;
     $out['error'] = $dhcp_res['error'] ?? 'DHCP server failed';
@@ -4523,52 +4949,113 @@ function tbn_ignore_warning($key) {
  * Write full global plugin cfg (known keys only).
  */
 function tbn_write_global_cfg(array $cfg) {
-  $defaults = [
-    'tbn_defaults' => '',
-    'load_modules' => 'yes',
-    'e2e_flow_control' => 'no',
-    'enable_usb4stream' => 'no',
-    'address_plan' => 'small-lan',
-    'include_listening' => 'no',
-    'manage_ip' => 'no',
-    'ip_addr' => '10.255.0.1',
-    'ip_cidr' => '24',
-    'ip_gateway' => '',
-    'never_default' => 'yes',
-    'iface_primary' => 'thunderbolt0',
-    'iface_secondary' => 'thunderbolt1',
-    'bond_enable' => 'no',
-    'bond_name' => 'bond-tb0',
-    'bond_mode' => 'active-backup',
-    'ignore_warnings' => '',
-    'openfabric_enable' => 'no',
-    'openfabric_user_off' => 'no',
-    'openfabric_auto_install_frr' => 'yes',
-    'openfabric_ipv6' => 'yes',
-    'openfabric_area' => '1',
-    'openfabric_router_id' => '',
-    'openfabric_net' => '',
-    'openfabric_metric_reference_mbps' => '20000',
-    'mesh_report' => 'yes',
-    'mesh_token' => '',
-    'mesh_poll_secs' => '60',
-    'mesh_stale_secs' => '300',
-    'mesh_holdoff_secs' => '120',
-    'mesh_private_only' => 'yes',
-    'mesh_eth_ifaces' => '',
-    'mesh_peer_ips' => '',
-  ];
+  $defaults = tbn_cfg_defaults();
   $merged = array_merge($defaults, $cfg);
-  $dir = tbn_cfg_dir();
-  if (!is_dir($dir)) {
-    @mkdir($dir, 0755, true);
-  }
   $lines = ['; ThunderboltNet global settings', ''];
   foreach ($defaults as $k => $_) {
     $v = isset($merged[$k]) ? (string)$merged[$k] : '';
-    $lines[] = $k . '="' . str_replace(['\\', '"'], ['\\\\', '\\"'], $v) . '"';
+    $lines[] = $k . '="' . tbn_cfg_value_clean($v) . '"';
   }
-  return @file_put_contents(tbn_cfg_path(), implode("\n", $lines) . "\n") !== false;
+  $ok = tbn_write_file_atomic(tbn_cfg_path(), implode("\n", $lines) . "\n");
+  if (function_exists('tbn_mesh_cron_sync')) {
+    tbn_mesh_cron_sync(array_merge($defaults, $merged));
+  }
+  return $ok;
+}
+
+/**
+ * Uninstall: undo live changes this plugin made (before its files are removed).
+ * Beacon, NAT rules + forwarding, OpenFabric fragment / lo /32, Thunderbolt
+ * entries in network-extra.cfg (other lines kept), DHCP servers, cron schedule.
+ */
+function tbn_uninstall_runtime() {
+  $out = [];
+  $mesh = __DIR__ . '/tbn-mesh.php';
+  if (is_file($mesh)) {
+    require_once $mesh;
+    tbn_mesh_beacon_stop();
+    $out[] = 'beacon stopped';
+  }
+  // NAT: every tag we own, live iface or not
+  $ifs = [];
+  foreach (['nat' => 'POSTROUTING', 'filter' => 'FORWARD'] as $table => $chain) {
+    $lines = [];
+    @exec('iptables -w 5 -t ' . escapeshellarg($table) . ' -S ' . escapeshellarg($chain) . ' 2>/dev/null', $lines);
+    foreach ($lines as $line) {
+      if (preg_match('/--comment\s+"?ThunderboltNet-NAT-([A-Za-z0-9._-]+)"?/', $line, $m)) {
+        $ifs[$m[1]] = true;
+      }
+    }
+  }
+  foreach (array_keys($ifs) as $if) {
+    tbn_nat_clear($if);
+  }
+  $out[] = 'NAT rules cleared: ' . count($ifs);
+  tbn_nat_cleanup_legacy_sysctl();
+  if (function_exists('tbn_of_teardown')) {
+    tbn_of_teardown();
+    $out[] = 'OpenFabric fragment removed';
+  }
+  tbn_fwd_release_all();
+  if (function_exists('tbn_dhcp_server_stop_all')) {
+    tbn_dhcp_server_stop_all();
+  }
+  $cur = tbn_read_include_interfaces();
+  $keep = array_values(array_filter($cur, function ($x) {
+    return !preg_match('/^(thunderbolt\d+|bond-tb\d*|br-tb\d*)$/', (string)$x);
+  }));
+  if ($keep !== $cur && is_file(tbn_network_extra_path())) {
+    tbn_write_include_interfaces($keep);
+    tbn_refresh_unraid_services();
+    $out[] = 'network-extra.cfg: Thunderbolt entries removed';
+  }
+  if (function_exists('tbn_mesh_cron_path') && is_file(tbn_mesh_cron_path())) {
+    @unlink(tbn_mesh_cron_path());
+    if (is_file('/usr/local/sbin/update_cron')) {
+      @exec('/usr/local/sbin/update_cron >/dev/null 2>&1');
+    }
+    $out[] = 'cron removed';
+  }
+  return $out;
+}
+
+/**
+ * Merge a Settings form POST into the current global cfg (known keys only).
+ * An empty posted mesh_token keeps the saved one. openfabric_user_off is never
+ * taken from the form: it is set when the user picks OpenFabric No while the
+ * selector is shown (FRR present).
+ */
+function tbn_merge_global_post(array $cur, array $post, $frr_present) {
+  $defaults = tbn_cfg_defaults();
+  $new = array_merge($defaults, $cur);
+  foreach ($post as $k => $v) {
+    $k = (string)$k;
+    if ($k === '' || $k[0] === '#' || $k === 'csrf_token' || $k === 'openfabric_user_off'
+        || !array_key_exists($k, $defaults)) {
+      continue;
+    }
+    if (is_array($v)) {
+      $v = implode(' ', array_map('strval', $v));
+    }
+    $new[$k] = trim(tbn_cfg_value_clean($v));
+  }
+  // Header-safe token: printable ASCII, no spaces/quotes; empty keeps the saved one
+  $tok = preg_replace('/[^\x21-\x7e]|"/', '', (string)($new['mesh_token'] ?? ''));
+  if ($tok === '') {
+    $tok = trim((string)($cur['mesh_token'] ?? ''));
+  }
+  $new['mesh_token'] = substr($tok, 0, 64);
+  if ($frr_present && array_key_exists('openfabric_enable', $post)) {
+    $new['openfabric_user_off'] = (($new['openfabric_enable'] ?? 'no') === 'yes') ? 'no' : 'yes';
+  }
+  $new['mesh_poll_secs'] = (string)max(30, min(86400, (int)($new['mesh_poll_secs'] ?? 60) ?: 60));
+  foreach (['load_modules', 'e2e_flow_control', 'enable_usb4stream', 'openfabric_enable', 'openfabric_ipv6',
+            'mesh_report', 'mesh_private_only', 'include_listening'] as $yn) {
+    if (!in_array($new[$yn] ?? '', ['yes', 'no'], true)) {
+      $new[$yn] = $defaults[$yn];
+    }
+  }
+  return $new;
 }
 
 // OpenFabric / FRR helpers (optional until install finishes)

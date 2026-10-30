@@ -113,7 +113,7 @@ function tbn_dhcp_ip_in_subnet($ip, $network, $prefix) {
  *
  * @return array{ip:string,prefix:int,network:string,pool_start:string,pool_end:string,mask:string,ula_prefix?:string}
  */
-function tbn_dhcp_server_plan($if, array $cfg = null) {
+function tbn_dhcp_server_plan($if, ?array $cfg = null) {
   if ($cfg === null && function_exists('tbn_load_iface_cfg')) {
     $cfg = tbn_load_iface_cfg($if);
   }
@@ -389,7 +389,7 @@ function tbn_dhcp_write_conf($netdev, array $plan, $v4 = true, $v6 = false) {
   }
   $body = implode("\n", $lines) . "\n";
   $conf = tbn_dhcp_conf_path($netdev);
-  @file_put_contents($conf, $body);
+  tbn_write_file_atomic($conf, $body);
   return is_file($conf) ? $conf : '';
 }
 

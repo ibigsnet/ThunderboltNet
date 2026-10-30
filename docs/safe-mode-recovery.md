@@ -61,8 +61,10 @@ If `modprobe thunderbolt_net` fails, this kernel/build has no host-net path — 
 Optional E2E (many cross-host links prefer **off**):
 
 ```bash
-# only if you know you want e2e=0 for this session
-echo 0 > /sys/module/thunderbolt_net/parameters/e2e 2>/dev/null || true
+# only if you know you want e2e=0 for this session (the parameter is read-only at runtime;
+# reloading drops Thunderbolt links briefly)
+modprobe -r thunderbolt_net
+modprobe thunderbolt_net e2e=0
 ```
 
 ### 2. One cable, then wait for a netdev

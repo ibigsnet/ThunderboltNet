@@ -102,7 +102,7 @@ Thunderbolt Net owns: Thunderbolt discovery, underlay addressing, generated FRR 
 | Disadvantage | Detail |
 |--------------|--------|
 | **Extra software** | Needs FRR (`zebra` + `fabricd`). Unraid does not ship it — install via **Fabric Routing** or supply FRR yourself. |
-| **Host becomes a router** | IP forwarding for Thunderbolt prefixes; not a full edge firewall. Mis-advertising br0 is avoided by defaults but advanced knobs exist. |
+| **Host becomes a router** | Forwarding is turned on **per participating Thunderbolt interface** only (IPv4 `conf.<iface>.forwarding`; IPv6 `conf.<iface>.forwarding` + `force_forwarding` where the kernel has it). The global `ip_forward` / `all.forwarding` switches are not touched — global IPv6 forwarding would make br0 ignore router advertisements and drop its IPv6 default route. On kernels without per-interface `force_forwarding`, IPv6 *transit* through this host is not enabled (IPv6 to the host still works). Undone when OpenFabric is off or the plugin is removed. Not a full edge firewall. |
 | **Two-node static is enough** | Single cable, two hosts, only file copy: pure static /24 is simpler; OpenFabric adds little. |
 | **Peer without FRR** | No adjacency; underlay static still works. Fabric side idles cleanly if timers are sane. |
 | **Operational surface** | Adjacencies, LSPs, metrics — CCIEs will feel at home; casual users rely on UI status + this doc. |
@@ -424,7 +424,18 @@ Install FabricRouting (after the repo is published):
 
 `https://raw.githubusercontent.com/ibigsnet/FabricRouting/main/fabricrouting.plg`
 
-OpenFabric conf this plugin writes lives under `/boot/config/plugins/ThunderboltNet/` and uses marked FRR blocks:
+OpenFabric conf this plugin writes lives under `/boot/config/plugins/ThunderboltNet/frr/`:
+
+| File | When |
+|------|------|
+| `openfabric.preview.conf` | Always (preview / dry-run) |
+| `thunderboltnet-openfabric.conf` | **Only while OpenFabric is enabled**; deleted when you set it to No or uninstall |
+
+**With FabricRouting** (its hook `/usr/local/emhttp/plugins/FabricRouting/scripts/frr-reload` exists): Thunderbolt Net only writes or deletes that fragment and runs the hook. FabricRouting rebuilds `/etc/frr/frr.conf` (baseline + this fragment + your own file), sets `fabricd` in `/etc/frr/daemons` and reloads FRR under its own lock. Thunderbolt Net does not edit `/etc/frr/*` then. At boot / array start the fragment is rewritten and the hook called; FabricRouting also picks it up on its own array start, so order does not matter.
+
+**Without FabricRouting** (FRR from elsewhere): Thunderbolt Net merges the block below into `/etc/frr/frr.conf`, sets `fabricd=yes` in `/etc/frr/daemons`, and reloads with `/usr/sbin/frrinit.sh reload` (then `restart`, then other init styles). Disabling removes the block. It never runs `vtysh write memory`.
+
+Marked block:
 
 ```text
 ! BEGIN ThunderboltNet OpenFabric
@@ -442,14 +453,11 @@ Global (`ThunderboltNet.cfg`):
 
 ```ini
 openfabric_enable="yes"
-; Reserved / UI hint only — package install lives in FabricRouting, not this plugin
-openfabric_auto_install_frr="yes"
 openfabric_ipv6="yes"
 openfabric_area="1"
 openfabric_router_id=""
 openfabric_net=""
 openfabric_metric_reference_mbps="20000"
-openfabric_hello_multiplier=""
 ```
 
 Per-iface:
@@ -466,7 +474,7 @@ OPENFABRIC_METRIC=""            ; when manual
 
 **Thunderbolt overview → Routing (OpenFabric)**
 
-- Enable OpenFabric (default Yes)
+- Enable OpenFabric (turned on automatically when FRR is present; No is remembered)
 - FRR: installed / version / running / errors
 - Router ID + NET (generated + advanced)
 - Metric reference; link table with auto/manual metric

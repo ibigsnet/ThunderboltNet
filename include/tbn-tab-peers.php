@@ -178,6 +178,23 @@ if (!$has_hw):
 <?php else: ?>
             <p class="tbn-hint">Remembered Yes — applied when this peer is online.</p>
 <?php endif; ?>
+<?php $tbn_bt = (($p['plan']['BOOT_TRUST'] ?? 'no') === 'yes') ? 'yes' : 'no'; ?>
+            <form method="POST" action="/update.php" target="progressFrame" class="tbn-listen-form tbn-boot-trust-form">
+              <?= function_exists('tbn_csrf_field') ? tbn_csrf_field() : '' ?>
+              <input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">
+              <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update-listening.php">
+              <input type="hidden" name="tbn_listen_action" value="boot_trust">
+              <input type="hidden" name="tbn_iface" value="<?= htmlspecialchars($if) ?>">
+              <input type="hidden" name="tbn_peer_key" value="<?= htmlspecialchars((string)$pkey) ?>">
+              <label>Apply at boot without confirmation:
+                <select name="BOOT_TRUST" onchange="tbnListenSave(this.form)">
+                  <?= mk_option($tbn_bt, 'no', 'No') ?>
+                  <?= mk_option($tbn_bt, 'yes', 'Yes') ?>
+                </select>
+              </label>
+              <noscript><input type="submit" name="#apply" value="Apply"></noscript>
+            </form>
+            <blockquote class="inline_help">Yes trusts this peer's UUID, which the far host chooses: bridging / services / NAT come back at boot without a confirm.</blockquote>
           </td>
           <td title="Equal rates = full-duplex. Asymmetric = TX to peer · RX from peer."><?= htmlspecialchars($rate !== '' && $rate !== ' / ' ? $rate : '—') ?></td>
           <td class="tbn-muted"><?= function_exists('tbn_format_when_html')
@@ -233,6 +250,18 @@ if (!$has_hw):
       </p>
     </form>
     </div>
+
+<?php
+  $tbn_held = function_exists('tbn_held_peers') ? tbn_held_peers() : [];
+  if ($tbn_held):
+?>
+    <div class="tbn-notice tbn-notice-warn" role="status">
+      <strong>Waiting for confirmation:</strong> saved bridging / services / NAT are off this boot for
+      <?= htmlspecialchars(implode(', ', array_map(function ($k, $h) { return ($h['iface'] ?? '?') . ' (' . substr((string)$k, 0, 13) . '…)'; }, array_keys($tbn_held), $tbn_held))) ?>.
+      Select the peer and <strong>Apply saved</strong> (or Apply on its tbn tab).
+      <?= tbn_help_docs_footer('docs/peers-and-plans.md', 'Peer confirmation') ?>
+    </div>
+<?php endif; ?>
 
 <?php
   // Orange only for confirmed ARP duplicate-IP (same addr, foreign MAC)

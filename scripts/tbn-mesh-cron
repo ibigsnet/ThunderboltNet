@@ -1,0 +1,41 @@
+#!/bin/bash
+# Peer link check poll, run every minute from the plugin cron
+# (/boot/config/plugins/thunderboltnet/thunderboltnet.cron via update_cron).
+# Usage: tbn-mesh-cron [--force]
+# No-op unless a Thunderbolt netdev or configured peer/eth path exists; the
+# poll interval (mesh_poll_secs) is honoured in PHP. Results are kept in RAM.
+
+set -u
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+LIB=/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php
+MESH=/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh.php
+CFG=/boot/config/plugins/ThunderboltNet/ThunderboltNet.cfg
+[ -f "$LIB" ] && [ -f "$MESH" ] && [ -f "$CFG" ] || exit 0
+
+FORCE=0
+[ "${1:-}" = "--force" ] && FORCE=1
+
+have_path=0
+for d in /sys/class/net/thunderbolt*; do
+  [ -e "$d" ] && have_path=1 && break
+done
+if [ "$have_path" = 0 ] && grep -Eq '^mesh_(peer_ips|eth_ifaces)="[^"]+' "$CFG"; then
+  have_path=1
+fi
+[ "$have_path" = 1 ] || exit 0
+
+exec 9>/var/run/thunderboltnet-mesh-cron.lock || exit 0
+flock -n 9 || exit 0
+
+FORCE="$FORCE" timeout 120 php -r '
+  require_once "'"$LIB"'";
+  require_once "'"$MESH"'";
+  $cfg = tbn_load_cfg();
+  if (!tbn_mesh_enabled($cfg)) { exit(0); }
+  if (getenv("FORCE") === "1") {
+    tbn_mesh_poll_all($cfg, 10);
+  } else {
+    tbn_mesh_maybe_poll($cfg, false);
+  }
+' >/dev/null 2>&1
+exit 0

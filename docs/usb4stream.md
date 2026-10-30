@@ -101,7 +101,7 @@ USB4STREAM rings use kernel end-to-end credits on the **stream** path. That is s
 | **Receive** | `dd if=/dev/tbstreamN of=<file> bs=256k` |
 | **Send** | `dd if=<file> of=/dev/tbstreamN bs=256k` |
 | **File** | Absolute path under `/mnt` or `/tmp` |
-| **Raw** | File is a block device (`/dev/nvme0n1`, `/dev/sda`, …). Destructive. Confirm in the UI. |
+| **Raw** | File is a block device (`/dev/nvme0n1`, `/dev/sdX`, …). Destructive. Confirm in the UI. **Receive** refuses the boot flash, array (`md*`) and pool members, mounted or swap devices, and disks with holders (in use by md/dm). |
 
 Whole-disk imaging over **IP** remains **NBD Export**. Raw stream copy is the USB4STREAM equivalent of Intel’s `dd` examples.
 

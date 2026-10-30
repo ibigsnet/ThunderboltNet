@@ -2,6 +2,8 @@
 # clear NAT tags when they disappear so a later peer on the same name is clean.
 # thunderbolt_net destroys/recreates the netdev (new MAC) on each link setup.
 # Invoke via bash: Unraid flash is often FAT32 (no execute bit on scripts).
+# First: no kernel IPv6 router advertisements from the far end (per-link opt-in re-enables).
+ACTION=="add", SUBSYSTEM=="net", KERNEL=="thunderbolt*", RUN+="/sbin/sysctl -q -w net.ipv6.conf.%k.accept_ra=0"
 ACTION=="add", SUBSYSTEM=="net", KERNEL=="thunderbolt*", RUN+="/bin/bash /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-net-reapply %k"
 ACTION=="remove", SUBSYSTEM=="net", KERNEL=="thunderbolt*", RUN+="/bin/bash /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-net-reapply --remove %k"
 # USB4STREAM saved groups: recreate when a Thunderbolt device appears (module + Enable).

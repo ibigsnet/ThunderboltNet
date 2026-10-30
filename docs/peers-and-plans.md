@@ -14,6 +14,7 @@ Peers table columns: **Current** (on the path now) and **Saved** (remembered for
 - [Two identities](#two-identities)
 - [Saved address (L3 follows the remote host)](#saved-address-l3-follows-the-remote-host)
 - [What Apply / hotplug do](#what-apply--hotplug-do)
+- [Peer confirmation (each boot)](#peer-confirmation-each-boot)
 - [Forget peer](#forget-peer)
 - [Why not Interface Rules / MAC](#why-not-interface-rules--mac)
 - [Multi-peer and renumber](#multi-peer-and-renumber)
@@ -168,7 +169,7 @@ Matching Current and Saved after a normal Apply is expected — not duplicate se
 | **tbn Apply** while peer is linked | Writes path cfg, applies live, **captures Saved** onto that UUID |
 | Peers → **Remember current** | Same capture without changing other tbn fields (optional after first Apply) |
 | Peers → **Apply saved** | Push Saved onto the path that peer currently uses |
-| **Hotplug** (udev) | Same reapply when a `thunderbolt*` netdev appears (any array state, if rule is present) |
+| **Hotplug** (udev) | Same reapply when a `thunderbolt*` netdev appears (any array state, if rule is present); bridging / services / NAT wait for [confirmation](#peer-confirmation-each-boot) |
 | **Plugin `startup`** | After plugins install at boot: e2e modprobe persist/reload + udev + reapply (array may still be stopped) |
 | **Array `started`** | When array reaches Started (Normal **or Maintenance**) — second pass + OpenFabric/Dashboard |
 | Open Peers/Status | Refresh online flags; dedupe ghost `iface:` rows; seed Saved from last addrs if missing |
@@ -179,6 +180,18 @@ Matching Current and Saved after a normal Apply is expected — not duplicate se
 **Maintenance mode:** array **Started** still runs `event/started` — L3 reapply and udev reinstall run. Do not assume “maintenance = no plugin events.”
 
 **Array stopped / never started:** rely on **`startup`** + **udev** (and plugin install finish). If you need TB L3 only after a late cable plug with array still stopped, udev handles it once the rule is on disk from `startup` or install.
+
+## Peer confirmation (each boot)
+
+The remote fabric UUID that keys Saved plans is chosen by the far host, so another device could claim a known peer’s UUID. Automatic paths (boot, array start, hotplug, tab auto-resync) therefore apply a reconnecting peer’s **address, MTU, DHCP and VLANs** right away, but keep these **off** until you confirm that peer once per boot:
+
+- **Enable bridging** (joining `br0` etc.)
+- **Include listening interface** (Unraid services on the link)
+- **Share host uplink (NAT)**
+
+Confirm with **Apply** on its tbn tab, or **Peers → select → Apply saved** (setting **Unraid services = Yes** on the Peers row also confirms it). Until then the Peers tab and the tbn tab show *waiting for confirmation*. Saved settings on flash are not changed. Confirmations live in RAM and reset at reboot. Updating the plugin while peers are linked keeps those peers confirmed.
+
+**Opt-out per peer:** Peers tab → that row → **Apply at boot without confirmation = Yes** (default No). Stored in that peer’s Saved plan in `peers.json`. Boot, hotplug and tab resync then apply its bridging, services and NAT straight away, as before. Use it for headless boxes that need a bridged or NAT link back after a reboot. It trusts the peer’s UUID, which the far host chooses, so any device presenting that UUID gets the same access.
 
 ## Forget peer
 

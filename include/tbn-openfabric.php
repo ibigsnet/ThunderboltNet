@@ -37,7 +37,7 @@ function tbn_of_preview_path() {
 /**
  * Whether global OpenFabric is enabled in cfg (intent). Runtime needs FRR.
  */
-function tbn_of_enabled(array $cfg = null) {
+function tbn_of_enabled(?array $cfg = null) {
   if ($cfg === null) {
     $cfg = tbn_load_cfg();
   }
@@ -51,7 +51,7 @@ function tbn_of_enabled(array $cfg = null) {
  *
  * @return array updated cfg
  */
-function tbn_of_maybe_auto_enable_from_frr(array $cfg = null) {
+function tbn_of_maybe_auto_enable_from_frr(?array $cfg = null) {
   if ($cfg === null) {
     $cfg = tbn_load_cfg();
   }
@@ -231,7 +231,7 @@ function tbn_of_auto_router_id() {
   return '10.254.' . $a . '.' . $b;
 }
 
-function tbn_of_router_id(array $cfg = null) {
+function tbn_of_router_id(?array $cfg = null) {
   if ($cfg === null) {
     $cfg = tbn_load_cfg();
   }
@@ -245,7 +245,7 @@ function tbn_of_router_id(array $cfg = null) {
 /**
  * Build IS-IS style NET 49.0001.xxxx.xxxx.xxxx.00 from IPv4 router-id.
  */
-function tbn_of_net_from_router_id($rid, array $cfg = null) {
+function tbn_of_net_from_router_id($rid, ?array $cfg = null) {
   if ($cfg === null) {
     $cfg = tbn_load_cfg();
   }
@@ -338,7 +338,7 @@ function tbn_of_link_metric(array $link, array $icfg, array $gcfg) {
  *
  * @return list<array{if:string,mode:string,metric:int,participate:string}>
  */
-function tbn_of_participate_ifaces(array $gcfg = null) {
+function tbn_of_participate_ifaces(?array $gcfg = null) {
   if ($gcfg === null) {
     $gcfg = tbn_load_cfg();
   }
@@ -392,13 +392,13 @@ function tbn_of_participate_ifaces(array $gcfg = null) {
 /**
  * Generate OpenFabric conf body (without writing).
  */
-function tbn_of_generate_conf(array $gcfg = null) {
+function tbn_of_generate_conf(?array $gcfg = null) {
   if ($gcfg === null) {
     $gcfg = tbn_load_cfg();
   }
   $rid = tbn_of_router_id($gcfg);
   $net = tbn_of_net_from_router_id($rid, $gcfg);
-  $area = trim((string)($gcfg['openfabric_area'] ?? '1'));
+  $area = preg_replace('/[^A-Za-z0-9_-]/', '', trim((string)($gcfg['openfabric_area'] ?? '1')));
   if ($area === '') {
     $area = '1';
   }
@@ -452,70 +452,123 @@ function tbn_of_generate_conf(array $gcfg = null) {
 }
 
 /**
- * Write preview + generated conf to flash.
+ * Preview on flash (always, write-on-change). Contract with FabricRouting:
+ * the fragment thunderboltnet-openfabric.conf exists ONLY while OpenFabric is on.
  */
-function tbn_of_write_generated(array $gcfg = null) {
+function tbn_of_write_generated(?array $gcfg = null) {
   if ($gcfg === null) {
     $gcfg = tbn_load_cfg();
   }
   $body = tbn_of_generate_conf($gcfg);
-  $dir = tbn_of_flash_dir();
-  if (!is_dir($dir)) {
-    @mkdir($dir, 0755, true);
-  }
-  @file_put_contents(tbn_of_preview_path(), $body);
-  @file_put_contents(tbn_of_generated_conf_path(), $body);
+  tbn_write_file_atomic(tbn_of_preview_path(), $body);
   return $body;
 }
 
-/**
- * Merge generated block into a target frr.conf (or write standalone include-style file).
- */
-function tbn_of_merge_into_frr_conf($target = '/etc/frr/frr.conf') {
-  $body = tbn_of_write_generated();
-  $begin = tbn_of_marker_begin();
-  $end = tbn_of_marker_end();
-
-  $existing = '';
-  if (is_readable($target)) {
-    $existing = (string)@file_get_contents($target);
-  }
-
-  if ($existing !== '' && strpos($existing, $begin) !== false) {
-    $pattern = '/' . preg_quote($begin, '/') . '.*?' . preg_quote($end, '/') . '\s*/s';
-    $merged = preg_replace($pattern, $body . "\n", $existing, 1);
-    if (!is_string($merged)) {
-      $merged = $existing . "\n" . $body;
+/** @return bool true when the fragment changed on flash */
+function tbn_of_sync_fragment($enabled, $body) {
+  $path = tbn_of_generated_conf_path();
+  if ($enabled) {
+    $same = is_file($path) && (string)@file_get_contents($path) === $body;
+    if ($same) {
+      return false;
     }
-  } else {
-    $merged = rtrim($existing) . "\n\n" . $body;
+    return tbn_write_file_atomic($path, $body);
   }
-
-  $dir = dirname($target);
-  if (!is_dir($dir)) {
-    // Unraid may not have /etc/frr until package installed — still keep flash copy
-    return [
-      'ok' => false,
-      'error' => 'FRR config directory missing: ' . $dir,
-      'flash' => tbn_of_generated_conf_path(),
-    ];
+  if (is_file($path)) {
+    return @unlink($path);
   }
+  return false;
+}
 
-  $ok = @file_put_contents($target, $merged) !== false;
-  return [
-    'ok' => $ok,
-    'target' => $target,
-    'flash' => tbn_of_generated_conf_path(),
-  ];
+/** FabricRouting's reload hook: rebuilds frr.conf from its baseline + our fragment. */
+function tbn_of_hook_path() {
+  return tbn_env_path('TBN_FRR_HOOK', '/usr/local/emhttp/plugins/FabricRouting/scripts/frr-reload');
 }
 
 /**
- * Best-effort: enable fabricd in /etc/frr/daemons and reload FRR.
+ * Ordered commands to make FRR pick up a change.
+ * Hook present: the hook only (it owns frr.conf, daemons, reload and its lock).
+ * No hook (FRR from elsewhere): frrinit.sh reload, then restart, then other
+ * init styles. Never "vtysh write memory" (it would save FRR's running config
+ * over the user's frr.conf).
+ *
+ * @return array<int,array{kind:string,cmd:string}>
+ */
+function tbn_of_reload_plan($hook_exists, $hook_path = null) {
+  if ($hook_exists) {
+    $hook = $hook_path ?? tbn_of_hook_path();
+    $run = is_executable($hook) ? escapeshellarg($hook) : ('/bin/bash ' . escapeshellarg($hook));
+    return [['kind' => 'hook', 'cmd' => 'timeout 90 ' . $run]];
+  }
+  $plan = [];
+  foreach ([
+    '/usr/sbin/frrinit.sh reload',
+    '/usr/sbin/frrinit.sh restart',
+    '/usr/lib/frr/frrinit.sh reload',
+    '/usr/lib/frr/frrinit.sh restart',
+    '/etc/rc.d/rc.frr reload',
+    '/etc/rc.d/rc.frr restart',
+  ] as $c) {
+    $plan[] = ['kind' => 'fallback', 'cmd' => 'timeout 90 ' . $c];
+  }
+  return $plan;
+}
+
+/** Run the plan until one command succeeds. @return string|null command that worked */
+function tbn_of_run_reload(array $plan) {
+  foreach ($plan as $step) {
+    $o = [];
+    $rc = 1;
+    @exec($step['cmd'] . ' >/dev/null 2>&1', $o, $rc);
+    if ($rc === 0) {
+      return $step['cmd'];
+    }
+  }
+  return null;
+}
+
+/**
+ * Pure: frr.conf text with our marker block replaced by $body ('' removes it).
+ */
+function tbn_of_merge_text($existing, $body) {
+  $begin = tbn_of_marker_begin();
+  $end = tbn_of_marker_end();
+  $existing = (string)$existing;
+  $pattern = '/' . preg_quote($begin, '/') . '.*?' . preg_quote($end, '/') . '\s*/s';
+  $has = strpos($existing, $begin) !== false;
+  if ($body === '') {
+    return $has ? rtrim((string)preg_replace($pattern, '', $existing)) . "\n" : $existing;
+  }
+  if ($has) {
+    $merged = preg_replace($pattern, $body . "\n", $existing, 1);
+    return is_string($merged) ? $merged : ($existing . "\n" . $body);
+  }
+  return rtrim($existing) . "\n\n" . $body;
+}
+
+/**
+ * Fallback only (no FabricRouting hook): merge or remove our block in frr.conf.
+ */
+function tbn_of_merge_into_frr_conf($body, $target = '/etc/frr/frr.conf') {
+  $dir = dirname($target);
+  if (!is_dir($dir)) {
+    return ['ok' => false, 'error' => 'FRR config directory missing: ' . $dir, 'changed' => false];
+  }
+  $existing = is_readable($target) ? (string)@file_get_contents($target) : '';
+  $merged = tbn_of_merge_text($existing, (string)$body);
+  if ($merged === $existing) {
+    return ['ok' => true, 'target' => $target, 'changed' => false];
+  }
+  return ['ok' => tbn_write_file_atomic($target, $merged), 'target' => $target, 'changed' => true];
+}
+
+/**
+ * Fallback only: fabricd=yes in /etc/frr/daemons.
  */
 function tbn_of_enable_fabricd_daemon() {
   $dae = '/etc/frr/daemons';
   if (!is_readable($dae) || !is_writable($dae)) {
-    return ['ok' => false, 'error' => 'cannot update ' . $dae];
+    return ['ok' => false, 'error' => 'cannot update ' . $dae, 'changed' => false];
   }
   $raw = (string)file_get_contents($dae);
   $new = preg_replace('/^\s*fabricd\s*=\s*no\s*$/mi', 'fabricd=yes', $raw, 1, $count);
@@ -523,21 +576,49 @@ function tbn_of_enable_fabricd_daemon() {
     $new = rtrim($raw) . "\nfabricd=yes\n";
   }
   if ($new !== null && $new !== $raw) {
-    @file_put_contents($dae, $new);
+    tbn_write_file_atomic($dae, $new);
+    return ['ok' => true, 'changed' => true];
   }
-  return ['ok' => true];
+  return ['ok' => true, 'changed' => false];
+}
+
+/** Router-id /32 on lo that we added (RAM state), so disable/uninstall can remove it. */
+function tbn_of_lo_state_path() {
+  return tbn_runtime_path('openfabric-lo.json');
+}
+
+function tbn_of_lo_set($rid) {
+  $st = tbn_read_json_file(tbn_of_lo_state_path());
+  $old = (string)($st['addr'] ?? '');
+  $want = $rid !== '' ? $rid . '/32' : '';
+  if ($old !== '' && $old !== $want) {
+    @exec('ip addr del ' . escapeshellarg($old) . ' dev lo 2>/dev/null');
+  }
+  if ($want !== '') {
+    @exec('ip addr add ' . escapeshellarg($want) . ' dev lo 2>/dev/null');
+  }
+  tbn_write_json_file(tbn_of_lo_state_path(), ['addr' => $want]);
 }
 
 /**
- * Apply OpenFabric: generate conf; if FRR present, merge + reload.
+ * Apply OpenFabric: preview always; fragment + FRR only while enabled; when
+ * disabled, remove fragment, lo /32, forwarding and (fallback) our frr.conf block.
  *
  * @return array<string,mixed>
  */
-function tbn_of_apply() {
+// $force_reload: boot / array start (call the FabricRouting hook even when the fragment is unchanged)
+function tbn_of_apply($force_reload = false) {
+  return tbn_locked(function () use ($force_reload) {
+    return tbn_of_apply_unlocked($force_reload);
+  });
+}
+
+function tbn_of_apply_unlocked($force_reload = false) {
   $cfg = tbn_load_cfg();
+  $enabled = tbn_of_enabled($cfg);
   $result = [
     'ok' => false,
-    'enabled' => tbn_of_enabled($cfg),
+    'enabled' => $enabled,
     'frr' => tbn_of_frr_detect(),
     'router_id' => tbn_of_router_id($cfg),
     'net' => '',
@@ -548,68 +629,109 @@ function tbn_of_apply() {
   $result['ifaces'] = tbn_of_participate_ifaces($cfg);
 
   $body = tbn_of_write_generated($cfg);
-  $result['actions'][] = 'wrote ' . tbn_of_generated_conf_path();
   $result['preview_bytes'] = strlen($body);
+  $changed = tbn_of_sync_fragment($enabled, $body);
+  $result['actions'][] = $enabled
+    ? ('fragment ' . ($changed ? 'written' : 'unchanged') . ': ' . tbn_of_generated_conf_path())
+    : ('fragment ' . ($changed ? 'removed' : 'absent') . ' (OpenFabric off)');
 
-  if (!tbn_of_enabled($cfg)) {
+  $hook = tbn_of_hook_path();
+  $hook_exists = is_file($hook);
+  $frr = $result['frr'];
+
+  if (!$enabled) {
+    tbn_of_lo_set('');
+    if (function_exists('tbn_fwd_release')) {
+      tbn_fwd_release('of');
+    }
+    if ($hook_exists) {
+      if ($changed) {
+        $ran = tbn_of_run_reload(tbn_of_reload_plan(true, $hook));
+        $result['actions'][] = $ran !== null ? 'FabricRouting reload hook' : 'FabricRouting reload hook failed';
+      }
+    } elseif (!empty($frr['present'])) {
+      $m = tbn_of_merge_into_frr_conf('');
+      if (!empty($m['changed'])) {
+        $ran = tbn_of_run_reload(tbn_of_reload_plan(false));
+        $result['actions'][] = 'removed block from /etc/frr/frr.conf; ' . ($ran ?? 'reload failed');
+      }
+    }
     $result['ok'] = true;
-    $result['actions'][] = 'openfabric_enable=no — conf generated for preview only; fabric not started';
     return $result;
   }
 
-  // Ensure lo has router-id /32 (harmless; useful even before FRR package lands)
+  // Router-id /32 on lo (harmless; useful even before FRR package lands)
   $rid = $result['router_id'];
-  @exec('ip addr add ' . escapeshellarg($rid . '/32') . ' dev lo 2>/dev/null');
+  tbn_of_lo_set($rid);
   $result['actions'][] = 'ensured ' . $rid . '/32 on lo';
 
-  $frr = $result['frr'];
-  if (empty($frr['present'])) {
-    $result['ok'] = true; // degrade gracefully — no sysctl / frr changes without FRR
-    $result['actions'][] = 'FRR not installed — static underlay only; conf preview on flash; install FRR for multi-hop';
+  if (empty($frr['present']) && !$hook_exists) {
+    $result['ok'] = true; // degrade gracefully — fragment stays on flash for later
+    $result['actions'][] = 'FRR not installed — static underlay only; install FRR for multi-hop';
     $result['degraded'] = true;
     return $result;
   }
 
-  // Forwarding only when FRR is actually present (multi-hop fabric). Do not touch default route.
-  @exec('sysctl -w net.ipv4.ip_forward=1 2>/dev/null');
-  if (($cfg['openfabric_ipv6'] ?? 'yes') === 'yes') {
-    @exec('sysctl -w net.ipv6.conf.all.forwarding=1 2>/dev/null');
-  }
-  $result['actions'][] = 'enabled IP forwarding (sysctl)';
-
-  $merge = tbn_of_merge_into_frr_conf('/etc/frr/frr.conf');
-  $result['merge'] = $merge;
-  $result['actions'][] = !empty($merge['ok']) ? 'merged into /etc/frr/frr.conf' : ('merge skipped: ' . ($merge['error'] ?? 'unknown'));
-
-  tbn_of_enable_fabricd_daemon();
-  $result['actions'][] = 'fabricd=yes attempted in daemons';
-
-  // Reload / restart FRR
-  $reloaded = false;
-  foreach ([
-    'systemctl reload frr',
-    'systemctl restart frr',
-    '/usr/lib/frr/frrinit.sh reload',
-    '/usr/lib/frr/frrinit.sh restart',
-    'service frr reload',
-    'service frr restart',
-  ] as $cmd) {
-    $rc = 1;
-    @exec($cmd . ' 2>/dev/null', $o, $rc);
-    if ($rc === 0) {
-      $result['actions'][] = $cmd;
-      $reloaded = true;
-      break;
+  // Transit forwarding only on the participating Thunderbolt links
+  $v4 = [];
+  foreach ($result['ifaces'] as $row) {
+    if (($row['mode'] ?? '') !== 'passive') {
+      $v4[] = $row['if'];
     }
   }
-  if (!$reloaded && !empty($frr['vtysh'])) {
-    @exec(escapeshellarg($frr['vtysh']) . ' -c "write memory" 2>/dev/null');
-    $result['actions'][] = 'vtysh write memory (best effort)';
+  $v6 = (($cfg['openfabric_ipv6'] ?? 'yes') === 'yes') ? $v4 : [];
+  if (function_exists('tbn_fwd_claim')) {
+    tbn_fwd_claim('of', $v4, $v6);
+    $result['actions'][] = 'forwarding on ' . ($v4 ? implode(', ', $v4) : 'no links') . ' (per interface)';
+    if ($v6 && !is_file(tbn_fwd_sysctl_path(6, $v6[0], 'force_forwarding'))
+        && trim((string)@file_get_contents(tbn_env_path('TBN_PROC_SYS', '/proc/sys') . '/net/ipv6/conf/all/forwarding')) !== '1') {
+      $result['actions'][] = 'IPv6 transit through this host needs a kernel with per-interface force_forwarding (IPv6 to this host works)';
+    }
+  }
+
+  if ($hook_exists) {
+    // FabricRouting owns /etc/frr/frr.conf + daemons + reload
+    if ($changed || $force_reload) {
+      $ran = tbn_of_run_reload(tbn_of_reload_plan(true, $hook));
+      $result['actions'][] = $ran !== null ? 'FabricRouting reload hook' : 'FabricRouting reload hook failed';
+    }
+  } else {
+    $merge = tbn_of_merge_into_frr_conf($body);
+    $result['merge'] = $merge;
+    $dae = tbn_of_enable_fabricd_daemon();
+    if (!empty($merge['changed']) || !empty($dae['changed'])) {
+      $ran = tbn_of_run_reload(tbn_of_reload_plan(false));
+      $result['actions'][] = 'merged into /etc/frr/frr.conf; ' . ($ran ?? 'FRR reload failed');
+    }
   }
 
   $result['frr'] = tbn_of_frr_detect();
   $result['ok'] = true;
   return $result;
+}
+
+/**
+ * Uninstall / full off: remove the fragment, lo /32, forwarding; let FabricRouting
+ * rebuild (hook) or strip our block (fallback).
+ */
+function tbn_of_teardown() {
+  $had = is_file(tbn_of_generated_conf_path());
+  tbn_of_sync_fragment(false, '');
+  tbn_of_lo_set('');
+  if (function_exists('tbn_fwd_release')) {
+    tbn_fwd_release('of');
+  }
+  $hook = tbn_of_hook_path();
+  if (is_file($hook)) {
+    if ($had) {
+      tbn_of_run_reload(tbn_of_reload_plan(true, $hook));
+    }
+  } elseif (is_file('/etc/frr/frr.conf')) {
+    $m = tbn_of_merge_into_frr_conf('');
+    if (!empty($m['changed'])) {
+      tbn_of_run_reload(tbn_of_reload_plan(false));
+    }
+  }
 }
 
 /**
@@ -717,7 +839,7 @@ function tbn_of_status_html() {
     $html .= '<tr><td>Participating ifaces</td><td class="tbn-muted">None live / all participate=no</td></tr>';
   }
 
-  $html .= '<tr><td>Generated conf</td><td><code>' . htmlspecialchars($st['generated_path']) . '</code> (on flash after Apply)</td></tr>';
+  $html .= '<tr><td>Generated conf</td><td><code>' . htmlspecialchars($st['generated_path']) . '</code> (on flash while OpenFabric is on)</td></tr>';
   $html .= '</table>';
   return $html;
 }

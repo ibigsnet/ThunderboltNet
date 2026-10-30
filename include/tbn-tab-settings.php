@@ -12,30 +12,19 @@ if (!$has_hw):
       <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update.php">
       <input type="hidden" name="tbn_defaults" value="">
       <input type="hidden" name="include_listening" value="<?= htmlspecialchars($cfg['include_listening'] ?? 'no') ?>">
-      <input type="hidden" name="manage_ip" value="<?= htmlspecialchars($cfg['manage_ip'] ?? 'no') ?>">
-      <input type="hidden" name="ip_addr" value="<?= htmlspecialchars($cfg['ip_addr'] ?? '10.255.0.1') ?>">
-      <input type="hidden" name="ip_cidr" value="<?= htmlspecialchars($cfg['ip_cidr'] ?? '24') ?>">
-      <input type="hidden" name="ip_gateway" value="<?= htmlspecialchars($cfg['ip_gateway'] ?? '') ?>">
-      <input type="hidden" name="never_default" value="<?= htmlspecialchars($cfg['never_default'] ?? 'yes') ?>">
-      <input type="hidden" name="iface_primary" value="<?= htmlspecialchars($cfg['iface_primary'] ?? 'thunderbolt0') ?>">
-      <input type="hidden" name="iface_secondary" value="<?= htmlspecialchars($cfg['iface_secondary'] ?? 'thunderbolt1') ?>">
-      <input type="hidden" name="bond_enable" value="<?= htmlspecialchars($cfg['bond_enable'] ?? 'no') ?>">
-      <input type="hidden" name="bond_name" value="<?= htmlspecialchars($cfg['bond_name'] ?? 'bond-tb0') ?>">
-      <input type="hidden" name="bond_mode" value="<?= htmlspecialchars($cfg['bond_mode'] ?? 'active-backup') ?>">
       <input type="hidden" name="ignore_warnings" value="<?= htmlspecialchars($cfg['ignore_warnings'] ?? '') ?>">
       <input type="hidden" name="address_plan" value="<?= htmlspecialchars($cfg['address_plan'] ?? 'small-lan') ?>">
-      <input type="hidden" name="openfabric_auto_install_frr" value="<?= htmlspecialchars($cfg['openfabric_auto_install_frr'] ?? 'yes') ?>">
 
 <?php
   // Preserve OpenFabric keys when the advanced form is hidden (no FRR yet)
   $of_keys_preserve = [
-    'openfabric_enable', 'openfabric_user_off', 'openfabric_ipv6', 'openfabric_area',
+    'openfabric_enable', 'openfabric_ipv6', 'openfabric_area',
     'openfabric_router_id', 'openfabric_net', 'openfabric_metric_reference_mbps',
   ];
 ?>
 <?php if (!$frr_present): ?>
   <?php foreach ($of_keys_preserve as $ok): ?>
-      <input type="hidden" name="<?= htmlspecialchars($ok) ?>" value="<?= htmlspecialchars($cfg[$ok] ?? ($ok === 'openfabric_enable' || $ok === 'openfabric_user_off' ? 'no' : '')) ?>">
+      <input type="hidden" name="<?= htmlspecialchars($ok) ?>" value="<?= htmlspecialchars($cfg[$ok] ?? ($ok === 'openfabric_enable' ? 'no' : '')) ?>">
   <?php endforeach; ?>
   <div class="tbn-section tbn-section-routing">
     <h3>Multi-hop routing (optional)</h3>
@@ -213,6 +202,9 @@ if (!$has_hw):
             value="<?= htmlspecialchars($cfg['mesh_poll_secs'] ?? '60') ?>" placeholder="60">
         </dd>
       </dl>
+      <blockquote class="inline_help">
+        Checked every minute by the plugin cron; minimum 30. Results stay in RAM.
+      </blockquote>
       <dl>
         <dt>Private IPs only:</dt>
         <dd>
@@ -223,7 +215,7 @@ if (!$has_hw):
         </dd>
       </dl>
       <blockquote class="inline_help">
-        Default <strong>Yes</strong> keeps export/poll on private addresses (lab LAN / fabric), not the public internet.
+        Default <strong>Yes</strong>: private and link-local addresses only (this includes your LAN). The export still needs the token.
       </blockquote>
       <dl>
         <dt>Mesh peer IPs (optional):</dt>
@@ -246,7 +238,7 @@ if (!$has_hw):
         </dd>
       </dl>
       <blockquote class="inline_help">
-        Include private fabric Ethernet in this host’s snapshot (e.g. lab <code>eth0</code> between Unraids).
+        Include private fabric Ethernet in this host’s snapshot (e.g. a direct <code>eth1</code> link between Unraids).
         Thunderbolt links are included when present. Do not list <code>br0</code> or house Wi‑Fi.
       </blockquote>
       <p class="tbn-muted">

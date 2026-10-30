@@ -1,6 +1,10 @@
 <?php
 /**
- * #include after writing ThunderboltNet.cfg (global options).
+ * #include for the global Settings form (#file ThunderboltNet/ThunderboltNet.cfg).
+ *
+ * Unraid update.php parses #file, runs this include, then saves its own copy
+ * plus $_POST unless $save is false. So this include merges the POST itself,
+ * writes the cfg, sets $save = false, and applies the *new* settings.
  */
 // Unraid update.php includes this on POST only; refuse a direct GET.
 if (PHP_SAPI !== 'cli' && ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
@@ -13,51 +17,45 @@ if (is_file($mesh_php)) {
   require_once $mesh_php;
 }
 
-$cfg = tbn_load_cfg();
+$save = false;
 
-// Remember explicit OpenFabric No so a later FRR install does not force it back on
-if (function_exists('tbn_write_global_cfg')) {
-  if (($cfg['openfabric_enable'] ?? 'no') === 'no') {
-    $cfg['openfabric_user_off'] = 'yes';
-  } else {
-    $cfg['openfabric_user_off'] = 'no';
+tbn_locked(function () {
+  $cur = tbn_load_cfg();
+  $frr_present = false;
+  if (function_exists('tbn_of_frr_detect')) {
+    $det = tbn_of_frr_detect();
+    $frr_present = !empty($det['present']);
+  }
+  $cfg = (PHP_SAPI === 'cli') ? $cur : tbn_merge_global_post($cur, $_POST, $frr_present);
+  if (function_exists('tbn_mesh_ensure_token')) {
+    tbn_mesh_ensure_token($cfg);
   }
   tbn_write_global_cfg($cfg);
   $cfg = tbn_load_cfg();
-}
 
-// Auto-generate mesh token when enabling peer link check
-if (function_exists('tbn_mesh_ensure_token')) {
-  $live = tbn_load_cfg();
-  tbn_mesh_ensure_token($live);
-  if (trim((string)($live['mesh_token'] ?? '')) !== '' && function_exists('tbn_write_global_cfg')) {
-    $form_tok = trim((string)($cfg['mesh_token'] ?? ''));
-    if (($live['mesh_report'] ?? 'yes') === 'yes' && $form_tok === '') {
-      tbn_write_global_cfg($live);
+  if (($cfg['load_modules'] ?? 'yes') === 'yes') {
+    tbn_load_modules();
+  }
+
+  tbn_sync_iface_pages();
+
+  // OpenFabric: write or remove the fragment and reload FRR
+  if (function_exists('tbn_of_apply')) {
+    tbn_of_apply();
+  }
+
+  // Beacon + schedule follow the link-check setting
+  if (function_exists('tbn_mesh_enabled')) {
+    tbn_mesh_cron_sync($cfg);
+    if (tbn_mesh_enabled($cfg)) {
+      @tbn_mesh_beacon_ensure($cfg);
+    } else {
+      @tbn_mesh_beacon_stop();
     }
   }
-}
+});
 
-if (($cfg['load_modules'] ?? 'yes') === 'yes') {
-  tbn_load_modules();
-}
-
-tbn_sync_iface_pages();
-
-// OpenFabric: regenerate conf; start/reload FRR when available
-if (function_exists('tbn_of_apply')) {
-  tbn_of_apply();
-}
-
-// Mesh beacon (auth-free export) + one poll after settings save if enabled
-$mesh_cfg = tbn_load_cfg();
-if (function_exists('tbn_mesh_beacon_ensure')) {
-  if (function_exists('tbn_mesh_enabled') && tbn_mesh_enabled($mesh_cfg)) {
-    @tbn_mesh_beacon_ensure($mesh_cfg);
-  } else {
-    @tbn_mesh_beacon_stop();
-  }
-}
-if (function_exists('tbn_mesh_maybe_poll') && function_exists('tbn_mesh_enabled') && tbn_mesh_enabled($mesh_cfg)) {
-  @tbn_mesh_maybe_poll($mesh_cfg, true);
+// First poll in the background (peer timeouts must not hold the Apply page)
+if (function_exists('tbn_mesh_enabled') && tbn_mesh_enabled(tbn_load_cfg())) {
+  @exec('setsid nohup /bin/bash /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-mesh-cron --force >/dev/null 2>&1 &');
 }
