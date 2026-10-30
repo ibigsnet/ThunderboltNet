@@ -178,6 +178,23 @@ if (!$has_hw):
 <?php else: ?>
             <p class="tbn-hint">Remembered Yes — applied when this peer is online.</p>
 <?php endif; ?>
+<?php $tbn_bt = (($p['plan']['BOOT_TRUST'] ?? 'no') === 'yes') ? 'yes' : 'no'; ?>
+            <form method="POST" action="/update.php" target="progressFrame" class="tbn-listen-form tbn-boot-trust-form">
+              <?= function_exists('tbn_csrf_field') ? tbn_csrf_field() : '' ?>
+              <input type="hidden" name="#file" value="ThunderboltNet/ThunderboltNet.cfg">
+              <input type="hidden" name="#include" value="/plugins/ThunderboltNet/include/tbn-update-listening.php">
+              <input type="hidden" name="tbn_listen_action" value="boot_trust">
+              <input type="hidden" name="tbn_iface" value="<?= htmlspecialchars($if) ?>">
+              <input type="hidden" name="tbn_peer_key" value="<?= htmlspecialchars((string)$pkey) ?>">
+              <label>Apply at boot without confirmation:
+                <select name="BOOT_TRUST" onchange="tbnListenSave(this.form)">
+                  <?= mk_option($tbn_bt, 'no', 'No') ?>
+                  <?= mk_option($tbn_bt, 'yes', 'Yes') ?>
+                </select>
+              </label>
+              <noscript><input type="submit" name="#apply" value="Apply"></noscript>
+            </form>
+            <blockquote class="inline_help">Yes trusts this peer's UUID, which the far host chooses: bridging / services / NAT come back at boot without a confirm.</blockquote>
           </td>
           <td title="Equal rates = full-duplex. Asymmetric = TX to peer · RX from peer."><?= htmlspecialchars($rate !== '' && $rate !== ' / ' ? $rate : '—') ?></td>
           <td class="tbn-muted"><?= function_exists('tbn_format_when_html')

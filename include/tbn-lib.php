@@ -989,8 +989,35 @@ function tbn_peer_confirmed($key) {
   if ($key === '') {
     return false;
   }
+  if (tbn_peer_boot_trusted($key)) {
+    return true;
+  }
   $m = tbn_read_json_file(tbn_confirmed_peers_path());
   return isset($m[$key]);
+}
+
+/**
+ * Per-peer opt-out of the boot hold ("Apply at boot without confirmation"),
+ * stored in that peer's plan in peers.json. Default No.
+ */
+function tbn_peer_boot_trusted($key) {
+  $peers = tbn_load_peers_memory();
+  return (($peers[$key]['plan']['BOOT_TRUST'] ?? 'no') === 'yes');
+}
+
+function tbn_set_peer_boot_trust($key, $yes) {
+  $key = tbn_sanitize_peer_key($key);
+  if ($key === '') {
+    return false;
+  }
+  $peers = tbn_load_peers_memory();
+  if (!isset($peers[$key]) || !is_array($peers[$key])) {
+    return false;
+  }
+  $plan = is_array($peers[$key]['plan'] ?? null) ? $peers[$key]['plan'] : [];
+  $plan['BOOT_TRUST'] = $yes ? 'yes' : 'no';
+  $peers[$key]['plan'] = $plan;
+  return tbn_save_peers_memory($peers);
 }
 
 function tbn_peer_confirm($key) {
@@ -1046,6 +1073,18 @@ function tbn_cfg_needs_trust(array $cfg) {
   return (($cfg['BRIDGING'] ?? 'no') === 'yes')
     || (($cfg['INCLUDE_LISTENING'] ?? 'no') === 'yes')
     || (($cfg['NAT_ENABLE'] ?? 'no') === 'yes');
+}
+
+/**
+ * Boot / hotplug / resync decision: hold bridging, listening and NAT for this
+ * peer? No when nothing needs trust, the peer was confirmed this boot, or its
+ * plan says "Apply at boot without confirmation".
+ */
+function tbn_peer_hold_needed(array $cfg, $pkey) {
+  if (!tbn_cfg_needs_trust($cfg)) {
+    return false;
+  }
+  return $pkey === '' || !tbn_peer_confirmed($pkey);
 }
 
 /** In-memory copy for an unconfirmed peer (flash cfg is left as saved). */
@@ -1337,7 +1376,7 @@ function tbn_remember_live_peers(array $links) {
     }
     $seed = tbn_peer_plan_from_addrs($p['last_local_addrs'] ?? []);
     if ($seed !== null) {
-      $peers[$k]['plan'] = $seed;
+      $peers[$k]['plan'] = array_merge(is_array($p['plan'] ?? null) ? $p['plan'] : [], $seed);
     }
   }
   tbn_save_peers_memory($peers);
@@ -4469,7 +4508,7 @@ function tbn_apply_iface_unlocked($if, array $opts = []) {
     if ($pkey === '') {
       $pkey = tbn_live_peer_key_for_iface($if);
     }
-    if ($pkey === '' || !tbn_peer_confirmed($pkey)) {
+    if (tbn_peer_hold_needed($cfg, $pkey)) {
       $cfg = tbn_cfg_restrict_untrusted($cfg);
       $held = true;
       if ($pkey !== '') {

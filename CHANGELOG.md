@@ -44,7 +44,8 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
   for a reconnecting peer stay off until you confirm it once (Apply on its tbn tab, or
   **Peers → Apply saved**). Addresses and MTU still apply automatically. The remote fabric UUID
   is chosen by the far host, so it is not proof of identity. Updating the plugin keeps linked
-  peers confirmed.
+  peers confirmed. Per-peer opt-out for headless boxes: **Apply at boot without confirmation**
+  on the Peers row (default No, stored in that peer's Saved plan).
 - **USB4STREAM:** raw receive refuses the boot flash, array (`md*`) and pool members, mounted
   or swap devices, and disks with holders.
 - **Uninstall:** stops the beacon, removes NAT rules and the forwarding they used, the

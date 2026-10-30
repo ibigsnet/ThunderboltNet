@@ -44,6 +44,7 @@ Full detail: [peers-and-plans.md](peers-and-plans.md).
 | Remember current | Copy Current (IP/MTU/services) into Saved — optional; first **tbn Apply** already captures |
 | Apply saved | Push Saved onto the path that peer currently uses; also confirms the peer for this boot (bridging / services / NAT) — [peers-and-plans.md](peers-and-plans.md#peer-confirmation-each-boot) |
 | Unraid services | Per-peer listening Yes/No (remembered) |
+| Apply at boot without confirmation | Per peer, default No. Yes = bridging / services / NAT return at boot without a confirm (trusts the peer’s UUID) — [peers-and-plans.md](peers-and-plans.md#peer-confirmation-each-boot) |
 | Forget selected | POST + csrf. Drops the Known peers row (`peers.json`) only — not eth Interface Rules or tbn tab cfg. A still-plugged peer stays off the list until unplug. |
 | Link check | Peer Unraid rate compare (shared token; on by default, polled each minute by the plugin cron, results in RAM) — [fabric-link-map.md](fabric-link-map.md) |
 

@@ -25,7 +25,7 @@
 
 <CHANGES>
 ###&version;
-- Security and reliability: peer link check runs on a schedule with results in RAM; NAT, OpenFabric and DHCP on Thunderbolt no longer touch the global forwarding or LAN routes; saved bridging, services and NAT wait for a per-boot peer confirm.
+- Security and reliability: peer link check runs on a schedule with results in RAM; NAT, OpenFabric and DHCP on Thunderbolt no longer touch the global forwarding or LAN routes; saved bridging, services and NAT wait for a per-boot peer confirm (per-peer opt-out: Apply at boot without confirmation).
 - Settings and tbn tab Apply now save before applying (OpenFabric No sticks); OpenFabric uses the Fabric Routing reload hook when installed.
 
 ###2026.09.28aa–ac

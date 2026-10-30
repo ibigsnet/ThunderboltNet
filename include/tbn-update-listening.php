@@ -3,7 +3,7 @@
  * Overview forms: set per-peer listening, or harden-all (services No everywhere).
  *
  * POST:
- *   tbn_listen_action = set | harden_all
+ *   tbn_listen_action = set | harden_all | boot_trust (BOOT_TRUST = yes | no)
  *   tbn_iface         = thunderboltN (for set)
  *   tbn_peer_key      = peers.json key (optional but preferred)
  *   INCLUDE_LISTENING = yes | no (for set)
@@ -41,6 +41,15 @@ if (
 
 $if = trim((string)($_POST['tbn_iface'] ?? ''));
 $key = trim((string)($_POST['tbn_peer_key'] ?? ''));
+
+if ($action === 'boot_trust') {
+  // Per-peer opt-out of the per-boot confirmation (stored in the peer plan)
+  $yes = strtolower(trim((string)($_POST['BOOT_TRUST'] ?? 'no'))) === 'yes';
+  if (tbn_set_peer_boot_trust($key, $yes) && $yes && preg_match('/^thunderbolt\d+$/', $if) && is_dir('/sys/class/net/' . $if)) {
+    tbn_apply_peer_plan_to_iface($key, $if);
+  }
+  return;
+}
 $want = strtolower(trim((string)($_POST['INCLUDE_LISTENING'] ?? 'no')));
 $want = ($want === 'yes') ? 'yes' : 'no';
 

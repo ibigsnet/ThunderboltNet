@@ -191,6 +191,8 @@ The remote fabric UUID that keys Saved plans is chosen by the far host, so anoth
 
 Confirm with **Apply** on its tbn tab, or **Peers → select → Apply saved** (setting **Unraid services = Yes** on the Peers row also confirms it). Until then the Peers tab and the tbn tab show *waiting for confirmation*. Saved settings on flash are not changed. Confirmations live in RAM and reset at reboot. Updating the plugin while peers are linked keeps those peers confirmed.
 
+**Opt-out per peer:** Peers tab → that row → **Apply at boot without confirmation = Yes** (default No). Stored in that peer’s Saved plan in `peers.json`. Boot, hotplug and tab resync then apply its bridging, services and NAT straight away, as before. Use it for headless boxes that need a bridged or NAT link back after a reboot. It trusts the peer’s UUID, which the far host chooses, so any device presenting that UUID gets the same access.
+
 ## Forget peer
 
 **Forget selected peers** (Peers tab):
