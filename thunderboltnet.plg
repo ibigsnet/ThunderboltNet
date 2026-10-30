@@ -62,8 +62,8 @@ echo "ThunderboltNet: ready."
 <!-- raw-files begin -->
 <FILE Name="&configdir;/ThunderboltNet-&version;-x86_64-1.txz" Run="upgradepkg --install-new --reinstall">
 <URL>https://github.com/ibigsnet/ThunderboltNet/releases/download/v&version;/ThunderboltNet-&version;-x86_64-1.txz</URL>
-<SHA256>6c4e50f3cb4b63ab3c9656bfd40de886a960f189a5323c467d56fdd004f8928c</SHA256>
-<MD5>4d5618d930d47a7128c0836a5524025c</MD5>
+<SHA256>8fdd2ea533087c9ac7c89b725898433d075c2325c3ae34c73a65b2cdcfa10fc6</SHA256>
+<MD5>cde0dfd402decffde3ecd7f63c870451</MD5>
 </FILE>
 <!-- raw-files end -->
 
