@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.10.30aa">
+<!ENTITY version "2026.10.30ab">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/testing/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -26,7 +26,7 @@
 <CHANGES>
 ###&version;
 - Security and reliability: peer link check runs on a schedule with results in RAM; NAT, OpenFabric and DHCP on Thunderbolt no longer touch the global forwarding or LAN routes; saved bridging, services and NAT wait for a per-boot peer confirm (per-peer opt-out: Apply at boot without confirmation).
-- Settings and tbn tab Apply now save before applying (OpenFabric No sticks); OpenFabric uses the Fabric Routing reload hook when installed.
+- Settings and tbn tab Apply now save before applying (OpenFabric No sticks); OpenFabric uses the Fabric Routing reload hook when installed. The beacon accepts no request bodies.
 
 ###2026.09.28aa–ac
 - Thunderbolt panels (GET) only read cache. Own Dashboard tile; stock Dashboard files no longer edited. Config includes POST-only. Mesh refresh polls on POST only. Bridge names escaped.
@@ -62,8 +62,8 @@ echo "ThunderboltNet: ready."
 <!-- raw-files begin -->
 <FILE Name="&configdir;/ThunderboltNet-&version;-x86_64-1.txz" Run="upgradepkg --install-new --reinstall">
 <URL>https://github.com/ibigsnet/ThunderboltNet/releases/download/v&version;/ThunderboltNet-&version;-x86_64-1.txz</URL>
-<SHA256>8fdd2ea533087c9ac7c89b725898433d075c2325c3ae34c73a65b2cdcfa10fc6</SHA256>
-<MD5>cde0dfd402decffde3ecd7f63c870451</MD5>
+<SHA256>7bbebb9deab667f0f9bed676430633ef9d007d795b54bc2bfbd617c251c12cb4</SHA256>
+<MD5>7f58e0b10b3c9e90d18629cba3c4c50f</MD5>
 </FILE>
 <!-- raw-files end -->
 
@@ -99,6 +99,8 @@ if [ -x /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-restore ]
   /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-restore restore >/dev/null 2>&1 || true
 fi
 echo "ThunderboltNet: packages now: $(ls /var/log/packages/ThunderboltNet-* 2>/dev/null | xargs -n1 basename 2>/dev/null | tr '\n' ' ')"
+# update_cron only reads registered plugins; this one registers after the script.
+[ -x /usr/local/sbin/update_cron ] && { echo /usr/local/sbin/update_cron | at -M now + 1 minute >/dev/null 2>&1 || true; }
 echo "ThunderboltNet: install complete. Settings → Network Settings → Thunderbolt"
 echo "ThunderboltNet: Hard-refresh the browser (Ctrl+Shift+R)."
 ]]></INLINE>
@@ -134,6 +136,8 @@ done
 rm -rf /usr/local/emhttp/plugins/ThunderboltNet
 # Flash config + runtime scratch (full uninstall — reinstall starts clean)
 rm -rf /boot/config/plugins/ThunderboltNet
+rm -f /boot/config/plugins/thunderboltnet/thunderboltnet.cron
+rmdir /boot/config/plugins/thunderboltnet 2>/dev/null || true
 [ -x /usr/local/sbin/update_cron ] && /usr/local/sbin/update_cron >/dev/null 2>&1
 rm -rf /var/local/thunderboltnet /var/lib/thunderboltnet /var/run/thunderboltnet-mesh-beacon 2>/dev/null || true
 rm -f /var/run/thunderboltnet.lock /var/run/thunderboltnet-mesh-rl.json /var/run/thunderboltnet-mesh-cron.lock \

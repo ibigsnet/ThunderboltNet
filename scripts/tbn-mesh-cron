@@ -1,6 +1,6 @@
 #!/bin/bash
 # Peer link check poll, run every minute from the plugin cron
-# (/boot/config/plugins/ThunderboltNet/thunderboltnet.cron via update_cron).
+# (/boot/config/plugins/thunderboltnet/thunderboltnet.cron via update_cron).
 # Usage: tbn-mesh-cron [--force]
 # No-op unless a Thunderbolt netdev or configured peer/eth path exists; the
 # poll interval (mesh_poll_secs) is honoured in PHP. Results are kept in RAM.

@@ -27,7 +27,7 @@ udevadm trigger --subsystem-match=net --action=add 2>/dev/null || true
 
 # Mesh beacon early if link-check enabled (array may still be stopped); schedule + old flash cache cleanup
 php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; $m="/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-mesh.php"; if (is_file($m)) { require_once $m; tbn_mesh_cleanup_flash_legacy(); tbn_mesh_cron_sync(); if (function_exists("tbn_mesh_beacon_ensure")) { tbn_mesh_beacon_ensure(); } }' 2>/dev/null || true
-if [ -f /boot/config/plugins/ThunderboltNet/thunderboltnet.cron ] && [ -x /usr/local/sbin/update_cron ]; then
+if [ -f /boot/config/plugins/thunderboltnet/thunderboltnet.cron ] && [ -x /usr/local/sbin/update_cron ]; then
   /usr/local/sbin/update_cron >/dev/null 2>&1 || true
 fi
 

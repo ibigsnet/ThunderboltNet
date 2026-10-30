@@ -6,6 +6,16 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+## 2026.10.30ab
+
+- **Link-check schedule on every boot device.** The cron file moved to `/boot/config/plugins/thunderboltnet/`
+  and `update_cron` runs again a minute after install. Unraid's `update_cron` reads `/boot/config/plugins/<plugin>/*.cron` only for plugins that have finished installing, and the folder name is case-sensitive on a ZFS boot device.
+- **Beacon accepts no request bodies.** The link-check beacon (`php -S`) starts with POST parsing, file
+  uploads and session upload progress turned off; it only answers GET. This also closes the PHP session
+  upload-progress bug on Unraid builds that still ship an unpatched PHP.
+- **Beacon stop checks the process.** Stopping the beacon only signals a process whose command line is
+  the beacon, so a stale pid file cannot hit a reused PID.
+
 ## 2026.10.30aa
 
 - **Settings Apply:** the global Settings form and the tbnN tab now save your changes *before*

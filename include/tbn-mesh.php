@@ -66,6 +66,11 @@ function tbn_mesh_kill_pid($pid) {
   if ($pid <= 1 || !@file_exists('/proc/' . $pid)) {
     return;
   }
+  // Only our beacon: a stale pidfile must not kill a reused PID.
+  $cmd = (string)@file_get_contents('/proc/' . $pid . '/cmdline');
+  if (strpos($cmd, 'tbn-mesh-beacon-server.php') === false) {
+    return;
+  }
   if (function_exists('posix_kill')) {
     @posix_kill($pid, 15);
     usleep(120000);
@@ -170,7 +175,9 @@ function tbn_mesh_beacon_ensure(?array $cfg = null) {
       continue;
     }
     $pf = $dir . '/' . $ip . '.pid';
-    $cmd = 'setsid nohup ' . escapeshellarg($php) . ' -S ' . escapeshellarg($ip . ':' . (int)$port)
+    // The beacon only answers GET: no request bodies, uploads or upload progress
+    // (also closes the session upload-progress PHP bug on unpatched Unraid builds).
+    $cmd = 'setsid nohup ' . escapeshellarg($php) . ' -d enable_post_data_reading=0 -d file_uploads=0 -d session.upload_progress.enabled=0 -S ' . escapeshellarg($ip . ':' . (int)$port)
       . ' ' . escapeshellarg($router)
       . ' >>' . escapeshellarg($log) . ' 2>&1 & echo $! >' . escapeshellarg($pf);
     exec($cmd);
@@ -294,7 +301,13 @@ function tbn_mesh_overlay_validation(array $peers) {
 
 /* ---- Schedule: Unraid plugin cron (flash .cron + update_cron) ---- */
 
+// update_cron reads /boot/config/plugins/<plg name>/*.cron: lowercase
+// thunderboltnet/ (case matters on a ZFS boot device; same folder on FAT).
 function tbn_mesh_cron_path() {
+  return dirname(tbn_cfg_dir()) . '/thunderboltnet/thunderboltnet.cron';
+}
+
+function tbn_mesh_cron_legacy_path() {
   return tbn_cfg_dir() . '/thunderboltnet.cron';
 }
 
@@ -320,10 +333,16 @@ function tbn_mesh_cron_sync(?array $cfg = null) {
   if ($want) {
     $body = tbn_mesh_cron_body();
     if (!is_file($path) || (string)@file_get_contents($path) !== $body) {
+      @mkdir(dirname($path), 0755, true);
       $changed = tbn_write_file_atomic($path, $body);
     }
   } elseif (is_file($path)) {
     $changed = @unlink($path);
+  }
+  $legacy = tbn_mesh_cron_legacy_path();
+  if (is_file($legacy) && !(is_file($path) && @fileinode($legacy) === @fileinode($path))) {
+    @unlink($legacy);
+    $changed = true;
   }
   if ($changed) {
     $uc = tbn_env_path('TBN_UPDATE_CRON', '/usr/local/sbin/update_cron');
