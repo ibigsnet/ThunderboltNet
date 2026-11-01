@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.10.30ab">
+<!ENTITY version "2026.11.01aa">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -25,6 +25,9 @@
 
 <CHANGES>
 ###&version;
+- Install and update no longer replay udev add events for every network interface, only for Thunderbolt ones. On a server with a network bond, an update could rename a bond member (for example eth1 to rename_eth118) until the next reboot.
+
+###2026.10.30ab
 - Security and reliability: peer link check runs on a schedule with results in RAM; NAT, OpenFabric and DHCP on Thunderbolt no longer touch the global forwarding or LAN routes; saved bridging, services and NAT wait for a per-boot peer confirm (per-peer opt-out: Apply at boot without confirmation).
 - Settings and tbn tab Apply now save before applying (OpenFabric No sticks); OpenFabric uses the Fabric Routing reload hook when installed. The beacon accepts no request bodies.
 
@@ -62,8 +65,8 @@ echo "ThunderboltNet: ready."
 <!-- raw-files begin -->
 <FILE Name="&configdir;/ThunderboltNet-&version;-x86_64-1.txz" Run="upgradepkg --install-new --reinstall">
 <URL>https://github.com/ibigsnet/ThunderboltNet/releases/download/v&version;/ThunderboltNet-&version;-x86_64-1.txz</URL>
-<SHA256>7bbebb9deab667f0f9bed676430633ef9d007d795b54bc2bfbd617c251c12cb4</SHA256>
-<MD5>7f58e0b10b3c9e90d18629cba3c4c50f</MD5>
+<SHA256>142f61f1555ee55a22286a83993ffd5d81612ed997c7dc86073681266c8d6898</SHA256>
+<MD5>826f8639af79116c7b0e2d0f6b9a9112</MD5>
 </FILE>
 <!-- raw-files end -->
 
@@ -93,7 +96,8 @@ php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.p
 # Hotplug + boot reapply for thunderbolt* L3 (forum persistence findings)
 php -r 'require_once "/usr/local/emhttp/plugins/ThunderboltNet/include/tbn-lib.php"; $mk = tbn_runtime_path("installed-this-boot"); if (is_file($mk) || is_file("/etc/udev/rules.d/99-thunderboltnet-net.rules")) { $pm = tbn_load_peers_memory(); foreach (tbn_link_summaries() as $L) { tbn_peer_confirm(tbn_peer_key_from_link($L, $pm)); } } @touch($mk); if (function_exists("tbn_migrate_seed_dot2_to_dot1")) { tbn_migrate_seed_dot2_to_dot1(); } tbn_install_net_udev(); if (function_exists("tbn_sync_iface_pages")) { tbn_sync_iface_pages(); }' 2>/dev/null || true
 /bin/bash /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-net-reapply >/dev/null 2>&1 || true
-udevadm trigger --subsystem-match=net --action=add 2>/dev/null || true
+# Replay add for Thunderbolt NICs only; on every NIC the MAC rename rules can rename a bond member.
+udevadm trigger --subsystem-match=net --sysname-match='thunderbolt*' --action=add 2>/dev/null || true
 # Older versions patched stock Dashboard files; put them back once.
 if [ -x /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-restore ]; then
   /usr/local/emhttp/plugins/ThunderboltNet/scripts/tbn-dashboard-restore restore >/dev/null 2>&1 || true
