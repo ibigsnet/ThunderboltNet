@@ -6,6 +6,16 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+## 2026.11.01aa
+
+- **Updates leave other network interfaces alone.** The install script replayed udev `add` events for
+  every network interface so the Thunderbolt hotplug rule would run. On a server with a network bond,
+  the bond members share one MAC address, so the MAC-based naming rules could rename a member (for
+  example `eth1` became `rename_eth118`) until the next reboot. The bond kept working, but anything that
+  looks for `eth1` by name did not find it. The replay now covers `thunderbolt*` interfaces only, the
+  same interfaces the plugin's udev rule handles. If an interface was renamed by an earlier update,
+  `ip link set dev <shown name> name eth1` (or a reboot) puts the name back.
+
 ## 2026.10.30ab
 
 - **Link-check schedule on every boot device.** The cron file moved to `/boot/config/plugins/thunderboltnet/`
