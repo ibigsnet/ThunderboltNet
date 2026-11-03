@@ -631,7 +631,7 @@ function tbn_mesh_status_label($status, $reason = '') {
   if ($status === 'green') {
     return $reason === 'agree_asymmetric' ? 'Validated (asymmetric OK)' : 'Validated (both ends agree)';
   }
-  if ($status === 'red') return 'Disagree — check cable/hosts';
+  if ($status === 'red') return 'Disagree — the two hosts report different rates';
   if ($reason === 'peer_stale') return 'Unverified (peer report stale)';
   if ($reason === 'probing') return 'Probing…';
   return 'Unverified (local only)';

@@ -6,7 +6,7 @@ Thunderbolt / USB4 host networking can train at **20 / 40 / 80&nbsp;Gb/s class**
 
 **Optional jumbo (often 9000):** try when you want fewer packets per second — for example on **older hosts or weaker CPUs** under heavy rsync/SMB — so less time is spent packaging and interrupting on each frame. **Both ends must match**; MTU is not negotiated.
 
-**Directionality:** marketing **40&nbsp;Gb/s** is **not** PCIe-style full duplex 40 each way. USB4/Thunderbolt lanes are **simplex**; a 40G-class path is typically **~20&nbsp;Gb/s each direction at once**. Details: [standards-and-speeds.md — Directionality](standards-and-speeds.md#directionality-read-this-first).
+**Directionality:** a 40&nbsp;Gb/s link is 40&nbsp;Gb/s each direction on two bonded lanes. What hosts can send can be lower: see the measurements in [standards-and-speeds.md](standards-and-speeds.md#measured-two-maple-ridge-hosts-host-to-host), where MTU 1500, 9000 and 65522 gave the same throughput.
 
 ---
 
