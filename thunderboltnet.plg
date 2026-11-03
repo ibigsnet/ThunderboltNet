@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.11.01aa">
+<!ENTITY version "2026.11.03aa">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/main/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -25,6 +25,9 @@
 
 <CHANGES>
 ###&version;
+- Peers tab: Last seen and Last poll show the date and time instead of a lone comma. The Apply at boot dropdown stays inside its column.
+
+###2026.11.01aa
 - Install and update no longer replay udev add events for every network interface, only for Thunderbolt ones. On a server with a network bond, an update could rename a bond member (for example eth1 to rename_eth118) until the next reboot.
 
 ###2026.10.30ab
@@ -42,9 +45,6 @@
 
 ###2026.09.09aa–ac
 - USB4STREAM Stream tab (create/copy, lab extra/ module, live ConfigFS root).
-
-###2026.09.08aa–ac
-- Forget selected (csrf); mesh beacon Thunderbolt IPs; overlay install.
 
 
 ### Older releases
@@ -65,8 +65,8 @@ echo "ThunderboltNet: ready."
 <!-- raw-files begin -->
 <FILE Name="&configdir;/ThunderboltNet-&version;-x86_64-1.txz" Run="upgradepkg --install-new --reinstall">
 <URL>https://github.com/ibigsnet/ThunderboltNet/releases/download/v&version;/ThunderboltNet-&version;-x86_64-1.txz</URL>
-<SHA256>142f61f1555ee55a22286a83993ffd5d81612ed997c7dc86073681266c8d6898</SHA256>
-<MD5>826f8639af79116c7b0e2d0f6b9a9112</MD5>
+<SHA256>cb4fb8e1c246be135a3c78830896b03c59057d97725efb876f52f5c306662638</SHA256>
+<MD5>2cd05c4fa562206453b2b135ba0a90d0</MD5>
 </FILE>
 <!-- raw-files end -->
 

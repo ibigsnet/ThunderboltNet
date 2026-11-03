@@ -6,6 +6,13 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+## 2026.11.03aa
+
+- **Peers tab dates.** Last seen and Last poll showed a lone comma. The tab loads on demand without
+  Unraid's display settings, so the date format came out empty. Both now use Settings -> Date and Time.
+- **Peers tab layout.** The Apply at boot without confirmation dropdown ran out of its column and across
+  Link rate. It now stays inside the Unraid services column.
+
 ## 2026.11.01aa
 
 - **Updates leave other network interfaces alone.** The install script replayed udev `add` events for
