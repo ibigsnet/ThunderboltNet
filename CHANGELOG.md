@@ -6,6 +6,14 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+## 2026.11.03ab
+
+- **Link and speed text states only what has been measured.** Removed cable and MTU advice that testing
+  did not support. The 1-lane explanation now says what the lane registers show on Maple Ridge: the
+  firmware leaves the second lane disabled on host-to-host links.
+- **Corrected the 40 Gb/s explanation.** Two bonded Gen 3 lanes are 40 Gb/s each direction, not 20.
+- **Measured results added** to `docs/standards-and-speeds.md`.
+
 ## 2026.11.03aa
 
 - **Peers tab dates.** Last seen and Last poll showed a lone comma. The tab loads on demand without

@@ -1615,7 +1615,7 @@ function tbn_path_underlay_health($if, $local_addrs = '', array $peer = []) {
   return [
     'ok' => false,
     'label' => 'No reply',
-    'detail' => 'Carrier up but no ping reply from ' . $peer_ip . ' — check peer e2e/cable',
+    'detail' => 'Carrier up but no ping reply from ' . $peer_ip,
   ];
 }
 
@@ -1967,10 +1967,7 @@ function tbn_format_lanes_cell($rx_lanes, $tx_lanes, $max_lanes = 0, $side = 're
     return '—';
   }
   if ($max_lanes > 0) {
-    $s = 'Using ' . $used . ' of ' . $max_lanes . ' lanes (trained on this cable)';
-    if ($used < $max_lanes) {
-      $s .= ' — peer/cable/Linux often trains below host max';
-    }
+    $s = 'Using ' . $used . ' of ' . $max_lanes . ' lanes';
     return $s;
   }
   return 'Using ' . $used . ' lane' . ($used === 1 ? '' : 's') . ' (trained)';
@@ -2379,7 +2376,7 @@ function tbn_controller_capability_html(?array $cap = null) {
   $html .= '<p class="tbn-cap-meta">' . htmlspecialchars($cap['label'] ?? '') . '</p>';
   if (!empty($cap['class'])) {
     $html .= '<p class="tbn-cap-class tbn-muted">'
-      . htmlspecialchars($cap['class'] . ' host — controller class ceiling, not a promise of dual-lane host-net')
+      . htmlspecialchars($cap['class'] . ' host — controller class ceiling, not the rate of this link')
       . '</p>';
   }
   if (!empty($cap['product'])) {
@@ -2424,7 +2421,7 @@ function tbn_controller_capability_html(?array $cap = null) {
       $html .= ' <span class="tbn-muted">' . ($below ? 'trained (below controller max)' : 'trained') . '</span>';
       $html .= '</div>';
       if ($below) {
-        $html .= '<div class="tbn-port-hint tbn-muted">Single-lane is common for Thunderbolt host-to-host under Linux — not a failed install.</div>';
+        $html .= '<div class="tbn-port-hint tbn-muted">One lane active on this link. Not a failed install.</div>';
       }
       $html .= '</li>';
     }
@@ -2483,7 +2480,7 @@ function tbn_link_quality(array $remote, array $status = []) {
   if (preg_match('/([\d.]+)\s*Gb/i', $rx, $m)) {
     $gbps = (float)$m[1];
   }
-  // Symmetric low rate both ways strengthens “path/cable” over one-sided host bug
+  // Same low rate both ways: a single active lane
   $tx_gbps = 0.0;
   if (preg_match('/([\d.]+)\s*Gb/i', $tx, $m)) {
     $tx_gbps = (float)$m[1];
@@ -2518,12 +2515,11 @@ function tbn_link_quality(array $remote, array $status = []) {
       'label' => $badge_trained,
       'status' => 'Single-lane',
       'lead' => 'Trained ' . $trained . ' (controller max ' . $max_short . ').',
-      'note' => 'Host class is ' . $max_short . '. This path trained at ' . $trained
-        . '. TCP/SMB in the ~10–15 Gbit/s range is normal for 1-lane host-net.',
-      'likely' => 'Common on Thunderbolt 4/USB4 host-to-host under Linux (firmware ICM). Not a failed plugin install.',
-      'suggestion' => 'Prefer one cable per peer path; set MTU 9000 on both ends for bulk. Dual-cable bonding needs two live netdevs (roadmap for same-peer multi-path).',
-      'less_likely' => 'Cable/port can still matter for some pairs, but a short certified Thunderbolt 4 cable often stays 1-lane too.',
-      'detail' => 'Max ' . $max_short . '; trained ' . $trained . '; single-lane host-net common',
+      'note' => 'Host class is ' . $max_short . '. This path is at ' . $trained . '. Measured on two Maple Ridge hosts: about 14 Gb/s TCP per direction with one lane or two.',
+      'likely' => 'On Maple Ridge the firmware connection manager leaves the second lane disabled on host-to-host links (read from the lane registers). Not a failed plugin install.',
+      'suggestion' => '',
+      'less_likely' => '',
+      'detail' => 'Max ' . $max_short . '; trained ' . $trained,
       'controller' => $cap,
       'trained' => $trained,
       'max_short' => $max_short,
@@ -2554,8 +2550,8 @@ function tbn_link_quality(array $remote, array $status = []) {
       'status' => 'Dual-lane',
       'lead' => 'Trained ' . $trained . ' · controller max ' . $max_short . '.',
       'note' => 'Two lanes trained; peak rate still below controller class ceiling.',
-      'likely' => 'Path/peer/cable can still limit signaling rate under the dual-lane width.',
-      'suggestion' => 'MTU 9000 both ends helps CPU at high PPS; it does not raise trained Gb/s.',
+      'likely' => '',
+      'suggestion' => '',
       'less_likely' => '',
       'detail' => 'Max ' . $max_short . '; trained ' . $trained,
       'controller' => $cap,

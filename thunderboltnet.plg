@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.11.03aa">
+<!ENTITY version "2026.11.03ab">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/testing/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -26,6 +26,7 @@
 <CHANGES>
 ###&version;
 - Peers tab: Last seen and Last poll show the date and time instead of a lone comma. The Apply at boot dropdown stays inside its column.
+- Link and speed text now states only what has been measured. Removed cable and MTU advice that testing did not support, and corrected the 40 Gb/s explanation (40 each direction on two bonded lanes, not 20).
 
 ###2026.11.01aa
 - Install and update no longer replay udev add events for every network interface, only for Thunderbolt ones. On a server with a network bond, an update could rename a bond member (for example eth1 to rename_eth118) until the next reboot.
@@ -65,8 +66,8 @@ echo "ThunderboltNet: ready."
 <!-- raw-files begin -->
 <FILE Name="&configdir;/ThunderboltNet-&version;-x86_64-1.txz" Run="upgradepkg --install-new --reinstall">
 <URL>https://github.com/ibigsnet/ThunderboltNet/releases/download/v&version;/ThunderboltNet-&version;-x86_64-1.txz</URL>
-<SHA256>cb4fb8e1c246be135a3c78830896b03c59057d97725efb876f52f5c306662638</SHA256>
-<MD5>2cd05c4fa562206453b2b135ba0a90d0</MD5>
+<SHA256>94a65e2d427b26c50e6611dc72005dc0a2c9e7f75dba7d6c88a89197d185bc14</SHA256>
+<MD5>f66a0c72d80f6a10b5b83cbc9f9bb155</MD5>
 </FILE>
 <!-- raw-files end -->
 

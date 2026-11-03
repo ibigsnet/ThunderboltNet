@@ -26,59 +26,41 @@ This page is the **canonical** explanation of rates, duplex, mixing generations/
 
 ## Directionality (read this first)
 
-Thunderbolt / USB4 **is not PCIe-style “full duplex at the sticker number.”**
+Each USB4 / Thunderbolt lane has its own transmit pair and its own receive pair, so a lane carries its rate in both directions at once (USB4 specification). Linux reports the same rates for a host-to-host link:
 
-People often treat **PCIe** as: *“40&nbsp;Gb/s” ≈ 40&nbsp;Gbit/s in each direction at once* (true full duplex on the link).  
-**USB4 / Thunderbolt lanes are simplex:** each lane is either **TX or RX**, not both.
+| Link | Each direction | Linux reports |
+|------|----------------|---------------|
+| Gen 3, one lane | 20&nbsp;Gb/s | 20000&nbsp;Mb/s |
+| Gen 3, two bonded lanes (the "40&nbsp;Gb/s" sticker) | 40&nbsp;Gb/s | 40000&nbsp;Mb/s |
+| Gen 4, two bonded lanes (the "80&nbsp;Gb/s" sticker) | 80&nbsp;Gb/s | 80000&nbsp;Mb/s |
 
-| Concept | PCIe (common mental model) | USB4 / Thunderbolt (typical) |
-|---------|----------------------------|------------------------------|
-| Lane | Full duplex (send **and** receive on the path) | **Simplex** — each lane is TX **or** RX |
-| “40&nbsp;Gb/s” sticker | Often heard as 40 each way | **~20&nbsp;Gb/s each direction at once** on a classic 40G-class path |
-| Simultaneous both ways | Sticker ≈ one-way capacity | Sticker is **sum of directional capacity** (TX pool + RX pool) |
+That is the rate of the link. What a host can send over it can be lower, as the measurements below show.
 
-### Classic 40&nbsp;Gb/s-class path (Thunderbolt 3 / Thunderbolt 4 / USB4 40G)
+### Measured: two Maple Ridge hosts, host-to-host
 
-USB4-class hosts use **four lanes**, each up to **~20&nbsp;Gb/s**, and each lane is **one direction only**:
+Two ASUS X670E boards with onboard Maple Ridge 4C, firmware connection manager, Linux 6.18 and 7.2. Each number is per direction unless stated.
 
-```text
-  Host A ──► Host B   up to ~20 Gb/s   (TX lanes)
-  Host A ◄── Host B   up to ~20 Gb/s   (RX lanes)
+| Test | Result |
+|------|--------|
+| TCP (iperf3), one lane | 13&ndash;14&nbsp;Gb/s |
+| TCP, two lanes bonded by hand (lab test, not a plugin feature) | 13&ndash;14&nbsp;Gb/s |
+| Raw 4&nbsp;KiB frames, no TCP, 1 to 4 DMA rings, one lane or two | 13&ndash;14.8&nbsp;Gb/s in total; rings share it |
+| Raw frames, no interrupts, batched doorbells | 15.2&nbsp;Gb/s |
+| Same, with the receiver taken out of the path | 15.7&nbsp;Gb/s at most |
+| Raw frames, both directions at once | about 13&nbsp;Gb/s each way |
 
-  Marketing “40 Gb/s” ≈ 20 + 20  (both directions at once)
-  Not ≈ 40 A→B and 40 B→A at the same time
-```
-
-| Phrase | What it should mean for Thunderbolt host-net |
-|--------|-------------------------------------|
-| **40&nbsp;Gb/s standard / class** | About **20&nbsp;Gb/s A→B** and **20&nbsp;Gb/s B→A** **simultaneously** (“full duplex 20&nbsp;G”) |
-| **Trained 20&nbsp;Gb/s · 1-lane** | Sysfs **per-lane** rate; **1-lane** is common for Linux host↔host |
-| **iperf / TCP ~13–15&nbsp;Gbit/s** | Normal payload after protocol/CPU/storage — **not** a failed 40G port |
-
-Lab experience: a dual-capable “40G” host that trains **20&nbsp;Gb/s · 1-lane** often still delivers **~14&nbsp;Gbit/s** TCP one way — fine for bulk copies, not “half a PCIe x4.”
-
-### Higher classes (USB4 v2 / Thunderbolt 5)
-
-Same simplex-lane idea; **per-lane** rate goes up (e.g. toward **40&nbsp;Gb/s per lane**). Modes can be:
-
-| Mode (simplified) | Rough simultaneous budget |
-|-------------------|---------------------------|
-| Symmetric “80G class” | e.g. **~40&nbsp;G each way** (still not 80 each way) |
-| Asymmetric Thunderbolt 5-style | e.g. more lanes one way (marketing **120/40**-style) |
-
-Always trust **sysfs trained** `rx_speed` / `tx_speed` and **lanes**, not the rear-panel “40” alone.
-
-### Mental model (one sentence)
-
-> **Sticker 40&nbsp;Gb/s Thunderbolt ≈ full-duplex 20&nbsp;Gbit/s class** (20 each direction at once),  
-> **not** full-duplex 40&nbsp;Gbit/s like many people assume for PCIe.
+- These changed nothing beyond the variation between runs: MTU 1500, 9000 and 65522; end-to-end flow control; path credits 14 to 60; PCIe MaxReadReq 512 to 4096; CPU sleep states.
+- On these hosts the firmware leaves the second lane disabled on host-to-host links, and the BIOS does not give Linux control of USB4.
+- The limit is on the sending host, between RAM and the controller. Which part of that path sets it has not been identified.
+- The link from the controller to the chipset runs at 8&nbsp;GT/s x4 on both boards (31.5&nbsp;Gb/s before PCIe packet overhead).
+- Other controllers have not been tested here.
 
 ### For Unraid bulk copies (rsync, NBD, SMB on tbn)
 
 | Trained path (typical) | Planning number (TCP payload, order of) |
 |------------------------|-------------------------------------------|
-| 20&nbsp;Gb/s · 1-lane | **~10–15&nbsp;Gbit/s** one way |
-| Dual-lane high train (when you get it) | Higher; still not sticker×2 as “each way” |
+| 20&nbsp;Gb/s · 1-lane | 13&ndash;14&nbsp;Gb/s one way measured on Maple Ridge; measure yours |
+| Two lanes | Measure yours; two lanes did not raise it on Maple Ridge |
 | Soft-RoCE / RDMA on top of Thunderbolt-net | Often **lower bandwidth** than plain TCP; different use case |
 
 Design storage jobs around **measured** iperf/rsync, not “40G cable ⇒ 5&nbsp;GB/s.”
@@ -88,31 +70,30 @@ Design storage jobs around **measured** iperf/rsync, not “40G cable ⇒ 5&nbsp
 ## Expected bandwidth by standard / class (planning table)
 
 Numbers below are **order-of-magnitude** for **host-to-host** when the path actually trains that class.  
-**Both ends + cable** must support the row. Linux host-net often trains **below** the max row (commonly **20&nbsp;Gb/s · 1-lane** even on dual-capable hosts).
+**Both ends + cable** must support the row.
 
 | Marketing / class | Lanes (typical USB4-style) | Max **each direction** at once (signaling) | Max **both ways at once** (sum / sticker) | Rough **one-way TCP/iperf** to plan for* | Notes |
 |-------------------|----------------------------|--------------------------------------------|-------------------------------------------|------------------------------------------|--------|
 | **USB 3.2 Gen 2×1** (SS10) | USB SuperSpeed, not Thunderbolt fabric | ~10&nbsp;Gb/s | USB full duplex (not this plugin) | — | **Not** `thunderbolt_net`. Dongle eth is separate. |
 | **USB 3.2 Gen 2×2** (SS20) | SuperSpeed | ~20&nbsp;Gb/s | — | — | Still not Thunderbolt host-net. |
-| **USB4 20G** / single-lane class | Often 1× ~20&nbsp;G class path | ~**20&nbsp;Gb/s** | ~**20+20** if both dirs train well | **~10–15&nbsp;Gbit/s** | Many “USB4” cables/hosts land here. |
-| **Thunderbolt 3** | 2 TX + 2 RX @ ~20&nbsp;G/lane (simplex) | ~**20&nbsp;Gb/s** | ~**40&nbsp;Gb/s** sticker sum | **~10–15&nbsp;Gbit/s** typical 1-lane; higher if dual-lane | “40G” ≠ 40 each way. |
-| **Thunderbolt 4** / **USB4 40G** | same pattern as Thunderbolt 3 when full | ~**20&nbsp;Gb/s** | ~**40&nbsp;Gb/s** sticker sum | **~10–15&nbsp;Gbit/s** on common 1-lane host-net; dual-lane higher | Same simplex rule. |
-| **USB4 v2 / Thunderbolt 5** (symmetric class) | higher per-lane (e.g. ~40&nbsp;G/lane class) | ~**40&nbsp;Gb/s** order | ~**80&nbsp;Gb/s** sticker sum | Measure; still not 80 each way | Asymmetric modes exist. |
+| **USB4 20G** / single-lane class | One lane at Gen 3 | 20&nbsp;Gb/s | 20 + 20 | Measure | |
+| **Thunderbolt 3** | Two lanes, each with TX and RX | 40&nbsp;Gb/s bonded, 20 on one lane | 40 + 40 | Measure | |
+| **Thunderbolt 4** / **USB4 40G** | Two lanes, each with TX and RX | 40&nbsp;Gb/s bonded, 20 on one lane | 40 + 40 | 13&ndash;14&nbsp;Gb/s measured on Maple Ridge (above) | |
+| **USB4 v2 / Thunderbolt 5** (symmetric class) | Two lanes at Gen 4 | 80&nbsp;Gb/s | 80 + 80 | Measure | Asymmetric modes exist. |
 | **Thunderbolt 5 asymmetric** (e.g. 120/40 class) | 3+1 style lane allocation | Unequal (e.g. more A→B than B→A) | Sticker sum of dirs | Measure **both** directions | Direction matters for copies. |
 
-\*TCP/SMB/NBD after encoding, CPU, MTU, storage — **not** raw lane rate. Lab 1-lane Thunderbolt host-net often ~**13–14&nbsp;Gbit/s** iperf.
+\*Payload rate, not link rate.
 
 ### How to read one row (Thunderbolt 4 example)
 
 | Question | Answer |
 |----------|--------|
-| Port says **40**? | **Class** = up to ~20&nbsp;G each direction **simultaneously**. |
-| Sysfs `20 Gb/s` · `1-lane`? | Trained path; plan **~10–15&nbsp;Gbit/s** one-way bulk. |
-| Sysfs dual-lane high rate? | More capacity; still use **measured** TCP, not sticker÷8 as GB/s. |
-| PCIe x4 “~40G” comparison? | Different duplex model — **do not** equate stickers 1:1. |
+| Port says **40**? | 40&nbsp;Gb/s each direction with two lanes bonded. |
+| Sysfs `20 Gb/s` · `1-lane`? | One lane active: 20&nbsp;Gb/s each direction. |
+| Sysfs two lanes? | 40&nbsp;Gb/s each direction on the link; measure what the hosts send. |
 | Can I force 30&nbsp;G one way / 10&nbsp;G the other? | **No** (see [mixing](#mixing-generations-cables-and-lanes)). Whole-lane allocation only; not half-lanes. |
 
-**Plugin UI:** Link quality **LOCAL** = controller class ceiling; **REMOTE** = **trained** path. Yellow *Single-lane* = below class max, often still normal for Linux host-net.
+**Plugin UI:** Link quality **LOCAL** = controller class ceiling; **REMOTE** = **trained** path. Yellow *Single-lane* = one lane active on a host that supports two.
 
 ---
 
@@ -125,7 +106,7 @@ Numbers below are **order-of-magnitude** for **host-to-host** when the path actu
 | Mix | What happens |
 |-----|----------------|
 | **Different host generations** (Thunderbolt 3 ↔ Thunderbolt 4 ↔ Thunderbolt 5, USB4 20G ↔ 40G) | Works when both support a shared host-to-host path; trains at the **lowest common** capability |
-| **Different cables** (Thunderbolt 3 cable on Thunderbolt 4 ports) | Often works; rate/lanes limited by the **weakest** piece (often the cable) |
+| **Different cables** (Thunderbolt 3 cable on Thunderbolt 4 ports) | Often works; the link runs at what both ends and the cable support |
 | **Different lane counts** (2-lane-capable host ↔ 1-lane train) | Normal — you get **what trains** |
 | **Thunderbolt host-net + SuperSpeed-only USB-C** | **No** `thunderbolt_net` path — different stack |
 | **Per-lane “this lane 20G, that lane 40G”** | **No** — one negotiated path, one train class |
@@ -185,8 +166,6 @@ Trust **trained** values, not stickers:
 | `rx_lanes` / `tx_lanes` | Lanes each direction |
 | Plugin **Link quality** | Controller **max class** vs **trained** path |
 
-Example: two “Thunderbolt 4 40G” ports + mediocre cable → **20&nbsp;Gb/s · 1-lane** is a valid **fallback** result, not a broken mix.
-
 ### One sentence
 
 > Generations and cables **interoperate by down-training** to a common path; you don’t assign different standards per lane.
@@ -206,7 +185,7 @@ Example: two “Thunderbolt 4 40G” ports + mediocre cable → **20&nbsp;Gb/s �
 We do **not** lock the product to one marketing number (not Thunderbolt 4-only, not “40G only”).  
 If Linux sees a host domain and a `thunderboltN` netdev — Thunderbolt 3, Thunderbolt 4, Thunderbolt 5, USB4 20G/40G-class, or USB4 v2 80G-class — this plugin is for that link.
 
-**Trained 20&nbsp;Gb/s · 1-lane** is usually a **path result**, not a separate product mode you opted into.
+On Maple Ridge, **20&nbsp;Gb/s · 1-lane** on a host-to-host link is the firmware leaving the second lane disabled.
 
 ---
 
@@ -245,8 +224,8 @@ UI and docs use **Gb/s** consistently (e.g. `20 Gb/s · 1-lane`, `Max ~40 Gb/s �
 - **Gb/s** in sysfs is typically the **per-lane** trained signaling rate.  
 - **Lanes** are **directional** (`rx_lanes` / `tx_lanes`). More lanes one way = more capacity that way.  
 - On Thunderbolt 3/4-era paths, **1-lane trained** often pairs with ~**20&nbsp;Gb/s** per-lane display; **2-lane** is what people expect from a “40G” sticker when fully trained.  
-- A high-gen host that trains **20&nbsp;Gb/s · 1-lane** is **common for Linux host-to-host**. Not a failed install.  
-- Sticker **“40&nbsp;Gb/s”** = **class** (often 20+20 when fully trained) — **not** “40&nbsp;Gbit/s TCP each direction like full-duplex PCIe.”
+- **20&nbsp;Gb/s · 1-lane** on a two-lane host is not a failed install.  
+- Sticker **“40&nbsp;Gb/s”** = 40&nbsp;Gb/s each direction on two bonded lanes. See the measurements above for what hosts can send.
 
 ### How the UI builds “20 Gb/s full-duplex · using 1 of 2 lanes”
 
@@ -258,7 +237,7 @@ UI and docs use **Gb/s** consistently (e.g. `20 Gb/s · 1-lane`, `Max ~40 Gb/s �
 | Used lanes | `max(rx_lanes, tx_lanes)` from the **same path** |
 | “of M” | Host controller **class max** lanes (`tbn_controller_capability()`, e.g. 2 for TB4 dual-lane class) |
 
-So “using **1** of **2** lanes” means: this cable trained with **1** active lane each way, while this host’s controller class is dual-lane capable. Both ends can show the same when Linux host-net trains single-lane. It is **not** a live PPS/throughput calculation — it is **trained link state** from the connection manager / thunderbolt driver.
+So “using **1** of **2** lanes” means: **1** lane is active each way, while this host’s controller class supports two. It is **not** a live PPS/throughput calculation — it is **trained link state** from the connection manager / thunderbolt driver.
 
 Linux sysfs often exposes:
 
@@ -277,7 +256,7 @@ Linux sysfs often exposes:
 
 | Remote status | Meaning |
 |---------------|---------|
-| **Single-lane** (yellow) | Trained 1-lane under controller max — common for host-net; ~10–15&nbsp;Gbit/s TCP is normal |
+| **Single-lane** (yellow) | One lane active on a host that supports two |
 | **Healthy** / near max | Dual-lane high rate for this class (nice when it happens) |
 | **Dual-lane** / **Linked** | Up; may still be under ceiling |
 
@@ -289,8 +268,8 @@ Yellow means “below controller class max,” not “broken plugin” or “alw
 
 | Cable class | Typical result |
 |-------------|----------------|
-| Certified **Thunderbolt** / **USB4** high-rate (match your hosts), short passive | Best chance of dual-lane / full advertised class |
-| Long passive | May drop to 1-lane / lower Gb/s |
+| Certified **Thunderbolt** / **USB4** high-rate (match your hosts), short passive | Use a cable rated for the link class |
+| Long passive | Check the cable's rating for length |
 | Generic USB-C without high-rate cert | Often 20&nbsp;G × 1 or no host path |
 | Active / optical (correct class) | Needed for longer runs |
 
@@ -301,9 +280,9 @@ Marketing stickers lie; **sysfs trained rate** is the ground truth for your pair
 ## Throughput expectations
 
 - Trained line rate ≠ sustained TCP/SMB forever — protocol, CPU, storage, and **MTU** matter.  
-- On **1-lane · 20&nbsp;Gb/s** host-net, lab TCP/iperf often lands around **~13–14&nbsp;Gbit/s**; real multi-GiB rsync similar.  
-- **MTU 1500** is the easy default. Optional jumbo (often **9000 both ends**) can cut packets/s and CPU load on weaker hosts; it does **not** unlock dual-lane or double rate.  
-- Design around **measured** numbers; do not plan on sticker 40&nbsp;G host-net as 40&nbsp;Gbit/s TCP each way.  
+- Measured on Maple Ridge: 13&ndash;14&nbsp;Gb/s TCP on one lane or two.  
+- **MTU 1500** is the easy default. Measured on Maple Ridge: MTU 1500, 9000 and 65522 gave the same throughput.  
+- Design around **measured** numbers.  
 - Full MTU guidance: **[mtu-and-throughput.md](mtu-and-throughput.md)**.
 
 ---
@@ -317,8 +296,8 @@ Marketing stickers lie; **sysfs trained rate** is the ground truth for your pair
 | Can I mix cables? | **Yes** — weakest link wins. |
 | Can I assign different standards per lane? | **No.** |
 | Can I split 20G into dual 10G or force 30/10? | **No.** Whole lanes only; 3+1 at 20G/lane would be **60/20** if available, not user-selectable on typical Linux host-net. |
-| Why is my “40G” port only 20&nbsp;Gb/s · 1-lane? | Common under Linux host-net; see trained path vs sticker. |
-| What should I plan for bulk copy? | **~10–15&nbsp;Gbit/s** one way on a common 1-lane train; measure with iperf/rsync. |
+| Why is my “40G” port only 20&nbsp;Gb/s · 1-lane? | On Maple Ridge the firmware leaves the second lane disabled on host-to-host links. |
+| What should I plan for bulk copy? | Measure with iperf/rsync. Maple Ridge measured 13&ndash;14&nbsp;Gb/s one way. |
 | Where is the planning table? | [Expected bandwidth by standard / class](#expected-bandwidth-by-standard--class-planning-table) |
 
 ---

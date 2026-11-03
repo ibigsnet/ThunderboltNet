@@ -189,9 +189,8 @@ Saved is preferred over path-slot cfg when the live path has a known UUID. [peer
 
 ## Single-lane / 20 Gb/s · 1-lane on a dual-capable host
 
-- **Common** for Thunderbolt 4/USB4 **host-to-host under Linux** (firmware ICM). Not a failed install.  
-- Expect roughly **~10–15&nbsp;Gbit/s** TCP; optional jumbo MTU can ease CPU load, not unlock dual-lane.  
-- Cable/port can still matter for some pairs, but a short certified Thunderbolt 4 cable often stays 1-lane.  
+- On Maple Ridge the firmware leaves the second lane disabled on host-to-host links. Not a failed install.  
+- Measured there: 13&ndash;14&nbsp;Gb/s TCP on one lane or two.  
 - Details: [standards-and-speeds.md](standards-and-speeds.md).
 
 ## Two cables, still one interface (or worse)

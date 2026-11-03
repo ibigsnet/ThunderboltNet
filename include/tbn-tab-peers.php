@@ -308,11 +308,11 @@ if (!$has_hw):
       <div class="tbn-details-body">
         <p>Click a REMOTE tab name to open that tbn settings page.</p>
         <p><strong>Link rate / lanes</strong> — LOCAL is this host’s <em>capability</em> (not the live hop).
-        REMOTE is the <strong>trained</strong> path on that cable. “Using 1 of 2 lanes” means the link trained single-lane
-        even though the host class is dual-lane capable — common for Linux↔Linux host-net; both sides can show the same.</p>
-        <p>USB4/Thunderbolt lanes are simplex: marketing 40&nbsp;Gb/s class is often ~20&nbsp;Gb/s each direction at once.</p>
+        REMOTE is the <strong>live</strong> link. “Using 1 of 2 lanes” means one lane is active on a host that supports two.
+        On Maple Ridge the firmware leaves the second lane disabled on host-to-host links.</p>
+        <p>USB4 Gen&nbsp;3: one lane is 20&nbsp;Gb/s each direction, two bonded lanes are 40&nbsp;Gb/s each direction.</p>
         <p><strong>Link quality</strong> — trained rate first; yellow single-lane is below class max, not a failed install.
-        ~10–15&nbsp;Gbit/s TCP is normal for 1-lane.</p>
+        Measured on two Maple Ridge hosts: about 14 Gb/s TCP per direction with one lane or two.</p>
         <?= tbn_docs_more_html('docs/standards-and-speeds.md', 'Directionality & speeds ↗') ?>
         · <?= tbn_help_docs_footer('docs/links-and-topology.md', 'Links & topology') ?>
         · <?= tbn_docs_more_html('docs/peer-scenarios.md', 'Peer scenarios ↗') ?>
@@ -468,7 +468,7 @@ if (!$has_hw):
     ? tbn_format_lanes_cell($rem['rx_lanes'] ?? '', $rem['tx_lanes'] ?? '', (int)($tbn_cap['max_lanes'] ?? 0), 'remote')
     : (($rem['rx_lanes'] !== '' ? $rem['rx_lanes'] : '—') . ' / ' . ($rem['tx_lanes'] !== '' ? $rem['tx_lanes'] : '—'));
 ?>
-          <td class="tbn-col-remote" title="Trained on this cable. Both hosts can show 1 of 2 when Linux trains single-lane.">
+          <td class="tbn-col-remote" title="Active lanes on this link.">
             <?= htmlspecialchars($lane_txt) ?>
           </td>
 <?php endforeach; ?>
