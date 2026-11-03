@@ -49,9 +49,12 @@ Two ASUS X670E boards with onboard Maple Ridge 4C, firmware connection manager, 
 | Same, with the receiver taken out of the path | 15.7&nbsp;Gb/s at most |
 | Raw frames, both directions at once | about 13&nbsp;Gb/s each way |
 
-- These changed nothing beyond the variation between runs: MTU 1500, 9000 and 65522; end-to-end flow control; path credits 14 to 60; PCIe MaxReadReq 512 to 4096; CPU sleep states.
+- These changed nothing beyond the variation between runs: MTU 1500, 9000 and 65522; end-to-end flow control; receive path credits 14 to 60; PCIe MaxReadReq 256 to 4096; CPU sleep states.
+- Send path credits do matter: 8 credits gave 6.9&nbsp;Gb/s, 16 (what the firmware assigns) 14.9, 28 (all the NHI adapter has) 15.6.
+- MaxReadReq 128 gave 8.1&nbsp;Gb/s, about half of what 256 and up gave.
+- A CPU read of a controller register takes about 1.74&nbsp;&micro;s on both boards. The controller sits behind two chipset hops.
 - On these hosts the firmware leaves the second lane disabled on host-to-host links, and the BIOS does not give Linux control of USB4.
-- The limit is on the sending host, between RAM and the controller. Which part of that path sets it has not been identified.
+- The limit is on the sending host, between RAM and the controller. These numbers fit a fixed number of reads in flight (about 16 of 256 bytes) divided by the PCIe round trip. That is a fit to the measurements, not a confirmed design limit.
 - The link from the controller to the chipset runs at 8&nbsp;GT/s x4 on both boards (31.5&nbsp;Gb/s before PCIe packet overhead).
 - Other controllers have not been tested here.
 
