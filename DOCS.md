@@ -112,7 +112,7 @@ OpenFabric **policy** lives on Thunderbolt Net (Advanced). FRR **packages** live
 4. When `thunderbolt0` appears, open **tbn0**, set a **static** IPv4 (e.g. `10.255.0.1/24`), leave **MTU 1500** unless both ends will set jumbo, **Apply**. That also fills **Saved** for the remote host (fabric UUID) so unplug/replug can restore L3 even if the path renumbers.
 5. On the peer, matching address (e.g. `10.255.0.2/24`). MTU is not auto-negotiated — only raise to 9000 if you set **both** ends.
 6. Ping both ways. Check **Peers**: one Known peers row; **Saved** should already show your Unraid-side address (filled by that Apply — no extra Remember step). Set listening **Yes** if you want SMB/NFS/web on the TB IP.
-7. **Trained** rate can be less than the port sticker (e.g. **20 Gb/s · 1-lane**). Sticker **40 Gb/s** is typically **~20 G each direction** (simplex lanes) — expect roughly **~10–15 Gbit/s** TCP one way on a 1-lane train ([speeds](docs/standards-and-speeds.md)).
+7. **Trained** rate can be less than the port sticker (e.g. **20 Gb/s · 1-lane**). Sticker **40 Gb/s** is 40 Gb/s each direction on two bonded lanes. Measured results: [Standards and speeds](docs/standards-and-speeds.md).
 8. If dual-cable experiments wedged the fabric: unplug **all** Thunderbolt cables on **both** machines, wait, plug **one** cable only ([troubleshooting](docs/troubleshooting.md)).
 
 ---
