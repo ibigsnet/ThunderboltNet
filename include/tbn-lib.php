@@ -4806,27 +4806,30 @@ function tbn_format_when($when) {
     return ($raw === '' || $raw === '—') ? '—' : $raw;
   }
 
-  // Stock Unraid helper (Settings → Date and Time → display date/time)
+  // Settings -> Date and Time. Lazy panels load Helpers.php without $display, and my_time()
+  // then formats with ", " alone, so always pass the format.
+  static $date_fmt = null;
+  static $time_fmt = '%R';
+  if ($date_fmt === null) {
+    $date_fmt = '%c';
+    $src = $GLOBALS['display'] ?? null;
+    if (!is_array($src) || empty($src['date'])) {
+      $ini = is_readable('/boot/config/plugins/dynamix/dynamix.cfg')
+        ? @parse_ini_file('/boot/config/plugins/dynamix/dynamix.cfg', true) : false;
+      $src = is_array($ini) ? ($ini['display'] ?? null) : null;
+    }
+    if (is_array($src) && !empty($src['date'])) {
+      $date_fmt = (string)$src['date'];
+      $time_fmt = (string)($src['time'] ?? $time_fmt);
+    }
+  }
   if (function_exists('my_time')) {
-    $out = my_time($ts);
+    $out = my_time($ts, $date_fmt !== '%c' ? $date_fmt . ', ' . $time_fmt : $date_fmt);
     if (is_string($out) && $out !== '' && strtolower($out) !== 'unknown') {
       return $out;
     }
   }
 
-  // Fallback: same formula as Helpers.php my_time() without requiring $display global
-  $date_fmt = '%c';
-  $time_fmt = '%R';
-  if (isset($GLOBALS['display']) && is_array($GLOBALS['display'])) {
-    $date_fmt = (string)($GLOBALS['display']['date'] ?? $date_fmt);
-    $time_fmt = (string)($GLOBALS['display']['time'] ?? $time_fmt);
-  } elseif (is_readable('/boot/config/plugins/dynamix/dynamix.cfg')) {
-    $ini = @parse_ini_file('/boot/config/plugins/dynamix/dynamix.cfg', true);
-    if (is_array($ini) && !empty($ini['display'])) {
-      $date_fmt = (string)($ini['display']['date'] ?? $date_fmt);
-      $time_fmt = (string)($ini['display']['time'] ?? $time_fmt);
-    }
-  }
   // my_date legacy map (Wrappers.php) — strftime-ish → PHP date()
   $legacy = [
     '%c' => 'D j M Y h:i A',
