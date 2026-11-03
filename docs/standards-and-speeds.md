@@ -291,7 +291,7 @@ Marketing stickers lie; **sysfs trained rate** is the ground truth for your pair
 
 | Question | Answer |
 |----------|--------|
-| Is 40&nbsp;Gb/s Thunderbolt the same as PCIe 40G full duplex? | **No.** Thunderbolt lanes are simplex; 40G-class ≈ **20 each way**. |
+| Is 40&nbsp;Gb/s Thunderbolt 40 each way? | On the link, yes, with two bonded lanes. What hosts can send can be lower; see [the measurements](#measured-two-maple-ridge-hosts-host-to-host). |
 | Can I mix Thunderbolt 3/Thunderbolt 4/Thunderbolt 5/USB4? | **Yes** — falls back to a **common** trained path. |
 | Can I mix cables? | **Yes** — weakest link wins. |
 | Can I assign different standards per lane? | **No.** |
