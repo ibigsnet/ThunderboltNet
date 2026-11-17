@@ -16,6 +16,7 @@ This is **supported product design**. Defaults favor interconnectivity; pure sta
 - [How FRR and OpenFabric fit (loose deep dive)](#how-frr-and-openfabric-fit-loose-deep-dive)
 - [Path cost and metrics](#path-cost-and-metrics)
 - [Supported topologies](#supported-topologies)
+- [Failure timing (measured)](#failure-timing-measured)
 - [Bonding and dual-cable (roadmap — not a non-goal)](#bonding-and-dual-cable-roadmap-not-a-non-goal)
 - [Hot-plug and target device classes](#hot-plug-and-target-device-classes)
 - [Architecture](#architecture)
@@ -313,6 +314,40 @@ OpenFabric: A↔C traffic can go direct or A–B–C; metric prefers better trai
 ```
 
 **Full ring** is an explicit long-term support target: designs, lab tests, and docs should keep rings working (timers, metrics, forwarding, hot-unplug of one chord).
+
+---
+
+## Failure timing (measured)
+
+Four nodes in a ring, each running this plugin's generated config and Fabric Routing's `frr.conf` on FRR 10.7.0 (Unraid 7.3). The ring was built from network namespaces and virtual links on one host, so these numbers show what the routing does, not what a Thunderbolt cable does. A ping ran every 20&nbsp;ms between router IDs; the table gives the longest gap in replies.
+
+| Event | 2026.11.03ab and older | 2026.11.17aa with Fabric Routing 2026.11.17aa |
+|-------|------------------------|-----------------------------------------------|
+| All four nodes start together: time until every node has every route | 32.8&nbsp;s | 8.5&nbsp;s |
+| Cable pulled, both ends see the link drop: traffic that used it | 0.15&nbsp;s | 0.15&ndash;0.17&nbsp;s |
+| A peer stops answering while its link stays up | 30.9&nbsp;s | 2.7&ndash;3.0&nbsp;s |
+| A node powers off: traffic that crossed it | 0.04&nbsp;s | 0.15&nbsp;s |
+| That node comes back: traffic between the other nodes | 31.2&nbsp;s | none lost |
+| FRR restarts on one node (any OpenFabric settings change): traffic to it | 31.4&nbsp;s | 3.4&nbsp;s |
+| Same restart: traffic that crossed it | 2.1&ndash;2.7&nbsp;s | 2.1&nbsp;s |
+| A neighbour's link is back but its routing is stopped | every packet sent its way lost | none lost |
+
+What changed:
+
+- **Hellos every second, hold time 3 seconds** (was 3 and 30, FRR's defaults). The hold time only matters when a peer goes quiet without its link dropping. On a real Thunderbolt link loaded in both directions, 60 of 60 small packets sent 0.2&nbsp;s apart arrived and the longest gap was 210&nbsp;ms, so three missed hellos in a row did not come close.
+- **`lsp-gen-interval 1`.** FRR's default lets a router announce a change to its own links only once in 30 seconds. After a start that held every route back for half a minute.
+- **`no zebra nexthop kernel enable`.** See Fabric Routing's `DOCS.md`, Next-hop groups.
+
+Nodes on the old and the new timers can share a ring: each side uses the hold time the other announces. Tested with one node on the old values and three on the new.
+
+To use other values on a link, put its `interface` block in Fabric Routing's `frr.user.conf`, which is read after the generated block:
+
+```text
+interface thunderbolt0
+ openfabric hello-interval 3
+ openfabric hello-multiplier 10
+exit
+```
 
 ---
 

@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.11.03ab">
+<!ENTITY version "2026.11.17aa">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/testing/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -25,6 +25,10 @@
 
 <CHANGES>
 ###&version;
+- OpenFabric recovers faster: 1 second hellos with a 3 second hold time (was 3 and 30) and lsp-gen-interval 1. On a four-node test ring, start-up took 8.5 s instead of 32.8, and a peer that went silent with its link still up was routed around in about 3 s instead of 31. Old and new versions work in one ring.
+- The generated config turns off zebra kernel next-hop groups, so a neighbour whose routing is stopped no longer takes traffic (see Fabric Routing 2026.11.17aa). FRR restarts once after this update where OpenFabric is on.
+
+###2026.11.03aa–ab
 - Peers tab: Last seen and Last poll show the date and time instead of a lone comma. The Apply at boot dropdown stays inside its column.
 - Link and speed text now states only what has been measured. Removed cable and MTU advice that testing did not support, and corrected the 40 Gb/s explanation (40 each direction on two bonded lanes, not 20).
 
@@ -44,10 +48,6 @@
 ###2026.09.13aa
 - DHCP stop pkill quotes the conf name.
 
-###2026.09.09aa–ac
-- USB4STREAM Stream tab (create/copy, lab extra/ module, live ConfigFS root).
-
-
 ### Older releases
 - Full changelog: https://github.com/ibigsnet/ThunderboltNet/blob/main/CHANGELOG.md
 </CHANGES>
@@ -66,8 +66,8 @@ echo "ThunderboltNet: ready."
 <!-- raw-files begin -->
 <FILE Name="&configdir;/ThunderboltNet-&version;-x86_64-1.txz" Run="upgradepkg --install-new --reinstall">
 <URL>https://github.com/ibigsnet/ThunderboltNet/releases/download/v&version;/ThunderboltNet-&version;-x86_64-1.txz</URL>
-<SHA256>94a65e2d427b26c50e6611dc72005dc0a2c9e7f75dba7d6c88a89197d185bc14</SHA256>
-<MD5>f66a0c72d80f6a10b5b83cbc9f9bb155</MD5>
+<SHA256>a281e3da6b6c720c541b04d49d7d12e4077fbf24c61fc268d81db8cc062506a0</SHA256>
+<MD5>4d2037d271b61aafb1441557b925939b</MD5>
 </FILE>
 <!-- raw-files end -->
 

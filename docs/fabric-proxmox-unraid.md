@@ -117,7 +117,8 @@ Agree these across **all** nodes in a given fabric:
 | Metric policy | `ref / trained_Mbps` (ref default **20000** ≈ 20G Thunderbolt class) | Same idea or explicit manuals that agree |
 | Underlay subnets | Unique per link | **No** duplicate subnet on two Thunderbolt links |
 | IPv6 fabric | Optional | Match site choice (IPv4-only is fine early) |
-| Hello timers | Mild defaults from TBN | Align if adjacencies flap |
+| Hello timers | 1&nbsp;s hello, hold time 3&nbsp;s (2026.11.17aa and newer) | Need not match: each side uses the hold time the other announces |
+| `lsp-gen-interval` | `1` | FRR's default is 30, which held routes back for about 30&nbsp;s after a start in our test ring |
 
 ### Example loopback plan (illustration only)
 
