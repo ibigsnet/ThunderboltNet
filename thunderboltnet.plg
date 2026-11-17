@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "ThunderboltNet">
 <!ENTITY author "RifleJock">
-<!ENTITY version "2026.11.17aa">
+<!ENTITY version "2026.11.17ab">
 <!ENTITY launch "Settings/ThunderboltNet">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/ibigsnet/ThunderboltNet/testing/thunderboltnet.plg">
 <!ENTITY github "ibigsnet/ThunderboltNet">
@@ -26,6 +26,7 @@
 <CHANGES>
 ###&version;
 - OpenFabric recovers faster: 1 second hellos with a 3 second hold time (was 3 and 30) and lsp-gen-interval 1. On a four-node test ring, start-up took 8.5 s instead of 32.8, and a peer that went silent with its link still up was routed around in about 3 s instead of 31. Old and new versions work in one ring.
+- 2026.11.17ab: no drop when a link comes back. With 2026.11.17aa, traffic to the node at the far end of a returning link dropped for about 1 s in half the test runs; with spf-delay-ietf set it lost nothing in 5 of 5. A pulled cable is handled in about 0.2 s.
 - The generated config turns off zebra kernel next-hop groups, so a neighbour whose routing is stopped no longer takes traffic (see Fabric Routing 2026.11.17aa). FRR restarts once after this update where OpenFabric is on.
 
 ###2026.11.03aa–ab
@@ -66,8 +67,8 @@ echo "ThunderboltNet: ready."
 <!-- raw-files begin -->
 <FILE Name="&configdir;/ThunderboltNet-&version;-x86_64-1.txz" Run="upgradepkg --install-new --reinstall">
 <URL>https://github.com/ibigsnet/ThunderboltNet/releases/download/v&version;/ThunderboltNet-&version;-x86_64-1.txz</URL>
-<SHA256>a281e3da6b6c720c541b04d49d7d12e4077fbf24c61fc268d81db8cc062506a0</SHA256>
-<MD5>4d2037d271b61aafb1441557b925939b</MD5>
+<SHA256>0f9cef02788d2c333e6b183d1410f895eab098a66286d0bd85f958e3e3dff55b</SHA256>
+<MD5>25487697b890e775ea5329f9f3a4a3f6</MD5>
 </FILE>
 <!-- raw-files end -->
 

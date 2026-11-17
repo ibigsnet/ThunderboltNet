@@ -6,6 +6,17 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+## 2026.11.17ab
+
+- **No drop when a link comes back.** With 2026.11.17aa, traffic to the node at the far end of a
+  returning link dropped for about 1 second in half the test runs (6 of 10). The generated config now
+  sets `spf-delay-ietf init-delay 50 short-delay 200 long-delay 1000 holddown 2000 time-to-learn 500`,
+  a shorter wait between route calculations. In the test ring a returning link then lost nothing in
+  5 of 5 runs, and a link that passed packets again after going silent lost nothing either.
+- A pulled cable is handled in about 0.2 s (0.15 s before), and all four nodes starting together have
+  every route after 9.1 to 9.5 s (8.5 s with 2026.11.17aa, 32.8 s before that).
+- The failure timing table in `docs/routing-openfabric.md` is for this version.
+
 ## 2026.11.17aa
 
 - **OpenFabric recovers faster.** The generated config now uses 1-second hellos with a hold time of

@@ -448,6 +448,8 @@ function tbn_of_generate_conf(?array $gcfg = null) {
   $lines[] = ' net ' . $net;
   // FRR default 30: a router waits that long before it may announce its links again after a start
   $lines[] = ' lsp-gen-interval 1';
+  // FRR default (1 s between route calculations) lost about 1 s of traffic on link return in half the test runs
+  $lines[] = ' spf-delay-ietf init-delay 50 short-delay 200 long-delay 1000 holddown 2000 time-to-learn 500';
   $lines[] = 'exit';
   $lines[] = '!';
   $lines[] = tbn_of_marker_end();
