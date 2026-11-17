@@ -319,14 +319,14 @@ OpenFabric: A↔C traffic can go direct or A–B–C; metric prefers better trai
 
 ## Failure timing (measured)
 
-Four nodes in a ring, each running this plugin's generated config and Fabric Routing's `frr.conf` on FRR 10.7.0 (Unraid 7.3). The ring was built from network namespaces and virtual links on one host, so these numbers show what the routing does, not what a Thunderbolt cable does. A ping ran every 20&nbsp;ms between router IDs; the table gives the longest gap in replies.
+Four nodes in a ring, each running this plugin's generated config and Fabric Routing's `frr.conf` on FRR 10.7.0 (Unraid 7.3). The ring was built from network namespaces and virtual links on one host, so these numbers show what the routing does, not what a Thunderbolt cable does. A ping ran every 20&nbsp;ms between router IDs; the table gives the longest gap in replies. The right-hand column was measured on the released packages installed on the test host.
 
 | Event | 2026.11.03ab and older | 2026.11.17ab with Fabric Routing 2026.11.17aa |
 |-------|------------------------|-----------------------------------------------|
-| All four nodes start together: time until every node has every route | 32.8&nbsp;s | 9.1&ndash;9.5&nbsp;s |
-| Cable pulled, both ends see the link drop: traffic that used it | 0.15&nbsp;s | 0.19&ndash;0.21&nbsp;s |
+| All four nodes start together: time until every node has every route | 32.8&nbsp;s | 7.9&ndash;9.5&nbsp;s |
+| Cable pulled, both ends see the link drop: traffic that used it | 0.15&nbsp;s | 0.19&ndash;0.22&nbsp;s |
 | Cable plugged back in | none lost | none lost |
-| A peer stops answering while its link stays up | 30.9&nbsp;s | 2.9&ndash;3.0&nbsp;s |
+| A peer stops answering while its link stays up | 30.9&nbsp;s | 2.4&ndash;3.0&nbsp;s |
 | A node powers off: traffic that crossed it | 0.04&nbsp;s | 0.22&nbsp;s |
 | That node comes back: traffic between the other nodes | 31.2&nbsp;s | none lost |
 | FRR restarts on one node (any OpenFabric settings change): traffic to it | 31.4&nbsp;s | 3.4&nbsp;s |
