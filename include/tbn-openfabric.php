@@ -413,6 +413,9 @@ function tbn_of_generate_conf(?array $gcfg = null) {
   $lines[] = '!';
   $lines[] = 'hostname ' . preg_replace('/[^A-Za-z0-9._-]/', '-', (string)(gethostname() ?: 'unraid'));
   $lines[] = '!';
+  // FRR 10.7 zebra puts a removed equal-cost next hop back when its link returns (kernel next-hop groups)
+  $lines[] = 'no zebra nexthop kernel enable';
+  $lines[] = '!';
   $lines[] = 'interface lo';
   $lines[] = ' ip address ' . $rid . '/32';
   $lines[] = ' ip router openfabric ' . $area;
@@ -434,15 +437,19 @@ function tbn_of_generate_conf(?array $gcfg = null) {
     if ($row['mode'] === 'passive') {
       $lines[] = ' openfabric passive';
     }
-    // slightly aggressive hellos help hot-plug lab fabrics; still FRR-safe
-    $lines[] = ' openfabric hello-interval 3';
-    $lines[] = ' openfabric hello-multiplier 10';
+    // FRR default is 3 s x 10: a peer that stops answering while its link stays up is used for 30 s
+    $lines[] = ' openfabric hello-interval 1';
+    $lines[] = ' openfabric hello-multiplier 3';
     $lines[] = 'exit';
     $lines[] = '!';
   }
 
   $lines[] = 'router openfabric ' . $area;
   $lines[] = ' net ' . $net;
+  // FRR default 30: a router waits that long before it may announce its links again after a start
+  $lines[] = ' lsp-gen-interval 1';
+  // FRR default (1 s between route calculations) lost about 1 s of traffic on link return in half the test runs
+  $lines[] = ' spf-delay-ietf init-delay 50 short-delay 200 long-delay 1000 holddown 2000 time-to-learn 500';
   $lines[] = 'exit';
   $lines[] = '!';
   $lines[] = tbn_of_marker_end();

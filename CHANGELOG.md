@@ -6,6 +6,37 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 
 ---
 
+## 2026.11.17ab
+
+- **No drop when a link comes back.** With 2026.11.17aa, traffic to the node at the far end of a
+  returning link dropped for about 1 second in half the test runs (6 of 10). The generated config now
+  sets `spf-delay-ietf init-delay 50 short-delay 200 long-delay 1000 holddown 2000 time-to-learn 500`,
+  a shorter wait between route calculations. In the test ring a returning link then lost nothing in
+  5 of 5 runs, and a link that passed packets again after going silent lost nothing either.
+- A pulled cable is handled in about 0.2 s (0.15 s before), and all four nodes starting together have
+  every route after 7.9 to 9.5 s (8.5 s with 2026.11.17aa, 32.8 s before that).
+- The failure timing table in `docs/routing-openfabric.md` is for this version.
+- **Tested on Unraid 7.3.4 and 7.4.0.** The test ring gave the same results on both.
+
+## 2026.11.17aa
+
+- **OpenFabric recovers faster.** The generated config now uses 1-second hellos with a hold time of
+  3 seconds (was 3 and 30) and `lsp-gen-interval 1` (FRR's default is 30). Measured on a four-node
+  test ring: all nodes starting together had every route after 8.5 s instead of 32.8 s; a peer that
+  stopped answering while its link stayed up was routed around in about 3 s instead of 31 s; a node
+  coming back no longer cost other traffic 31 s (none was lost); an FRR restart on one node, which
+  every OpenFabric settings change causes, interrupted traffic to that node for 3.4 s instead of 31 s.
+  A pulled cable was handled in about 0.15 s before and still is.
+- **A neighbour whose routing is stopped no longer takes traffic.** The generated config carries
+  `no zebra nexthop kernel enable`; Fabric Routing 2026.11.17aa explains the fault.
+- **Old and new versions work in one ring.** With one node on the old timers and three on the new, all
+  adjacencies formed and every pair of nodes could reach each other.
+- **FRR restarts once after this update** on servers with OpenFabric on, because the generated config changes.
+- To keep other timers on a link, put its `interface` block with your values in Fabric Routing's
+  `frr.user.conf`; it is read after the generated block.
+- **Docs:** failure timing table in `docs/routing-openfabric.md`. `docs/standards-and-speeds.md` adds a
+  measurement of Maple Ridge against an AMD USB4 controller inside the CPU: 13.8 against 9.3 Gb/s.
+
 ## 2026.11.03ab
 
 - **Link and speed text states only what has been measured.** Removed cable and MTU advice that testing

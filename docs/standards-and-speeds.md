@@ -54,8 +54,24 @@ Two ASUS X670E boards with onboard Maple Ridge 4C, firmware connection manager, 
 - MaxReadReq 128 gave 8.1&nbsp;Gb/s, about half of what 256 and up gave.
 - A CPU read of a controller register takes about 1.74&nbsp;&micro;s on both boards. The controller sits behind two chipset hops.
 - On these hosts the firmware leaves the second lane disabled on host-to-host links, and the BIOS does not give Linux control of USB4.
-- The limit is on the sending host, between RAM and the controller. These numbers fit a fixed number of reads in flight (about 16 of 256 bytes) divided by the PCIe round trip. That is a fit to the measurements, not a confirmed design limit.
+- The limit is on the sending host, between RAM and the controller. These numbers fit a fixed number of reads in flight (about 16 of 256 bytes) divided by the PCIe round trip. That is a fit to these two boards only: it predicted that a controller inside the CPU would send faster, and the measurement below shows the opposite.
 - The link from the controller to the chipset runs at 8&nbsp;GT/s x4 on both boards (31.5&nbsp;Gb/s before PCIe packet overhead).
+
+### Measured: Maple Ridge and an AMD controller inside the CPU
+
+One of the Maple Ridge hosts above cabled to an AMD Strix Halo system, whose USB4 host router is part of the CPU and is run by the Linux connection manager. Linux 7.2 on both, stock drivers, one lane at 20&nbsp;Gb/s each way, MTU 9000.
+
+| Test | Result |
+|------|--------|
+| TCP (iperf3), Maple Ridge sending, 1 or 4 streams | 13.8&nbsp;Gb/s |
+| TCP, AMD controller sending, 1 or 4 streams | 9.3&ndash;9.4&nbsp;Gb/s |
+| UDP, AMD controller sending, no rate limit | 9.1&nbsp;Gb/s sent |
+| TCP both directions at once | 12.5&nbsp;Gb/s from Maple Ridge, 6.7&ndash;8.1 from the AMD controller |
+
+- Neither host ran out of CPU. The busiest core spent 20% of its time in the kernel on the AMD host while it sent, and 48% while it received 13.8&nbsp;Gb/s. The AMD host was also running low-priority compile jobs during the test.
+- Both routers had 14 flow-control credits on the path coming in from the cable (read from each router's path table).
+- So the controller inside the CPU sent about a third less than Maple Ridge over the same cable. What limits it has not been measured.
+- With both directions loaded, small packets still passed: 60 of 60 pings sent 0.2&nbsp;s apart, longest gap between replies 210&nbsp;ms.
 - Other controllers have not been tested here.
 
 ### For Unraid bulk copies (rsync, NBD, SMB on tbn)
