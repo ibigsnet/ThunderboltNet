@@ -16,18 +16,16 @@ User-facing history for this plugin. The `.plg` file (Community Applications / P
 - A pulled cable is handled in about 0.2 s (0.15 s before), and all four nodes starting together have
   every route after 7.9 to 9.5 s (8.5 s with 2026.11.17aa, 32.8 s before that).
 - The failure timing table in `docs/routing-openfabric.md` is for this version.
+- **Tested on Unraid 7.3.4 and 7.4.0.** The test ring gave the same results on both.
 
 ## 2026.11.17aa
 
 - **OpenFabric recovers faster.** The generated config now uses 1-second hellos with a hold time of
   3 seconds (was 3 and 30) and `lsp-gen-interval 1` (FRR's default is 30). Measured on a four-node
-  test ring:
-  - all nodes starting together had every route after 8.5 s instead of 32.8 s;
-  - a peer that stopped answering while its link stayed up was routed around in about 3 s instead of 31 s;
-  - a node coming back no longer cost other traffic 31 s (none was lost);
-  - an FRR restart on one node, which every OpenFabric settings change causes, interrupted traffic to
-    that node for 3.4 s instead of 31 s.
-
+  test ring: all nodes starting together had every route after 8.5 s instead of 32.8 s; a peer that
+  stopped answering while its link stayed up was routed around in about 3 s instead of 31 s; a node
+  coming back no longer cost other traffic 31 s (none was lost); an FRR restart on one node, which
+  every OpenFabric settings change causes, interrupted traffic to that node for 3.4 s instead of 31 s.
   A pulled cable was handled in about 0.15 s before and still is.
 - **A neighbour whose routing is stopped no longer takes traffic.** The generated config carries
   `no zebra nexthop kernel enable`; Fabric Routing 2026.11.17aa explains the fault.

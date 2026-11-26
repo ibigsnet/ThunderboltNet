@@ -36,7 +36,7 @@ Physical Thunderbolt/USB4 path
 | [peers-and-plans.md](peers-and-plans.md) | UUID peers, Current/Saved, Forget, vs Interface Rules |
 | [addressing.md](addressing.md) | Seed Unraid `.1` / peer `.2`; `/24` vs `/30` vs `/32`; assignment autofill; join `br0` |
 | [nat-share-uplink.md](nat-share-uplink.md) | Share Unraid uplink (NAT) with TB peers; vs default route |
-| [standards-and-speeds.md](standards-and-speeds.md) | Directionality, bandwidth table, mixing gens/cables/lanes, FAQ |
+| [standards-and-speeds.md](standards-and-speeds.md) | Directionality, measured speeds, bandwidth table, mixing gens/cables/lanes, FAQ |
 | [port-icons.md](port-icons.md) | Rear-panel silkscreen: lightning/40 vs SS — do I have Thunderbolt? |
 | [mtu-and-throughput.md](mtu-and-throughput.md) | MTU 1500 default; optional jumbo for CPU/packet cost |
 | [dashboard-network.md](dashboard-network.md) | Thunderbolt Dashboard tile: tbnN / bond-tbN / br-tbN |
@@ -45,7 +45,7 @@ Physical Thunderbolt/USB4 path
 | [requirements.md](requirements.md) | Hardware, BIOS, kernel modules, security |
 | [fabric-link-map.md](fabric-link-map.md) | Multi-host peer link validation |
 | [links-and-topology.md](links-and-topology.md) | Per-path model, multi-peer, dual cable, bonding, rings |
-| [routing-openfabric.md](routing-openfabric.md) | FRR / OpenFabric — defaults, metrics, Fabric Routing split |
+| [routing-openfabric.md](routing-openfabric.md) | FRR / OpenFabric — defaults, metrics, failure timing, Fabric Routing split |
 | [fabric-proxmox-unraid.md](fabric-proxmox-unraid.md) | Mixed fabric: Proxmox/Debian + Unraid |
 | [settings-reference.md](settings-reference.md) | Every global and tbnN field |
 | [troubleshooting.md](troubleshooting.md) | Common failures and recovery |

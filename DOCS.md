@@ -69,7 +69,7 @@ Assignment-mode autofill detail: [addressing.md — Autofill by assignment mode]
 | Unraid ↔ Mac / Linux / Windows / docks & hubs | [docs/peer-scenarios.md](docs/peer-scenarios.md) |
 | `/24` vs `/30` vs `/32`, assignment autofill, unique subnets | [docs/addressing.md](docs/addressing.md) |
 | Share Unraid uplink with TB peers (NAT) | [docs/nat-share-uplink.md](docs/nat-share-uplink.md) |
-| Thunderbolt 3–5 / USB4: **directionality**, bandwidth table, **mixing** gens/cables/lanes, FAQ | [docs/standards-and-speeds.md](docs/standards-and-speeds.md) |
+| Thunderbolt 3–5 / USB4: **directionality**, measured speeds, bandwidth table, **mixing** gens/cables/lanes, FAQ | [docs/standards-and-speeds.md](docs/standards-and-speeds.md) |
 | MTU 1500 vs 9000, PPS overhead, both-ends setup | [docs/mtu-and-throughput.md](docs/mtu-and-throughput.md) |
 | Dashboard tile for tbn (thunderboltN), bond-tb, br-tb | [docs/dashboard-network.md](docs/dashboard-network.md) |
 | USB4STREAM (raw `/dev/tbstream*`; Stream tab + kernel module — not Unraid 7.2 product) | [docs/usb4stream.md](docs/usb4stream.md) |
@@ -77,7 +77,7 @@ Assignment-mode autofill detail: [addressing.md — Autofill by assignment mode]
 | Hardware, BIOS, modules, security | [docs/requirements.md](docs/requirements.md) |
 | Multi-host fabric reports (peer validation colors) | [docs/fabric-link-map.md](docs/fabric-link-map.md) |
 | Topology: multi-peer, dual cable, bonding, rings | [docs/links-and-topology.md](docs/links-and-topology.md) |
-| **FRR / OpenFabric** multi-host routing (when/why, plugin roles) | [docs/routing-openfabric.md](docs/routing-openfabric.md) |
+| **FRR / OpenFabric** multi-host routing (when/why, plugin roles, failure timing) | [docs/routing-openfabric.md](docs/routing-openfabric.md) |
 | Mixed Unraid + Proxmox/Debian fabric (rings) | [docs/fabric-proxmox-unraid.md](docs/fabric-proxmox-unraid.md) |
 | Topic index (all docs) | [docs/README.md](docs/README.md) |
 | Every Settings field | [docs/settings-reference.md](docs/settings-reference.md) |
